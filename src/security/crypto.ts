@@ -2,7 +2,7 @@ import { SECURITY_LIMITS } from "../config/constants";
 
 /**
  * WebCrypto Cryptographic Suite for Cloudflare Workers
- * Complies with OWASP Password Storage Guidelines (PBKDF2-HMAC-SHA512)
+ * Complies with OWASP Guidelines (PBKDF2-HMAC-SHA512 & WebCrypto)
  */
 
 function bufferToHex(buffer: ArrayBuffer | Uint8Array): string {
@@ -58,6 +58,36 @@ export function generateSecureToken(bytes = 32): string {
  */
 export function generateUUID(): string {
   return crypto.randomUUID();
+}
+
+/**
+ * Generates a cryptographically secure 6-digit numeric OTP for email verification
+ */
+export function generateNumericOtp(digits = 6): string {
+  const randomBuffer = new Uint32Array(1);
+  crypto.getRandomValues(randomBuffer);
+  // Generate uniform random number between 100000 and 999999
+  const min = Math.pow(10, digits - 1);
+  const max = Math.pow(10, digits) - 1;
+  const otpNumber = min + (randomBuffer[0] % (max - min + 1));
+  return otpNumber.toString();
+}
+
+/**
+ * Hashes an OTP using SHA-256 for secure storage
+ */
+export async function hashOtp(otp: string): Promise<string> {
+  const enc = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", enc.encode(otp));
+  return bufferToHex(hashBuffer);
+}
+
+/**
+ * Verifies an OTP against its stored SHA-256 hash using constant-time equality
+ */
+export async function verifyOtp(candidateOtp: string, storedHash: string): Promise<boolean> {
+  const candidateHash = await hashOtp(candidateOtp);
+  return timingSafeEqual(candidateHash, storedHash);
 }
 
 /**

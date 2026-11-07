@@ -9,9 +9,10 @@ export const tenants = sqliteTable(
     customDomain: text("custom_domain").unique(),
     businessType: text("business_type").notNull().default("RETAIL"),
     currency: text("currency").notNull().default("KES"),
+    // Changed to PENDING by default until Super Admin approves
     status: text("status", { enum: ["ACTIVE", "SUSPENDED", "PENDING"] })
       .notNull()
-      .default("ACTIVE"),
+      .default("PENDING"),
     // Dynamic settings: branding, logo, contact, business hours, social links
     settings: text("settings", { mode: "json" })
       .$type<Record<string, unknown>>()
@@ -26,6 +27,7 @@ export const tenants = sqliteTable(
   (table) => ({
     subdomainIdx: index("tenants_subdomain_idx").on(table.subdomain),
     customDomainIdx: index("tenants_custom_domain_idx").on(table.customDomain),
+    statusIdx: index("tenants_status_idx").on(table.status),
   })
 );
 

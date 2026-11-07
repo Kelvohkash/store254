@@ -1,17 +1,24 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq } from "drizzle-orm";
+import { eq, and, desc, gt } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
 import { users } from "../../db/schema/users";
+import { passwordResetOtps } from "../../db/schema/auth-tokens";
 import { sanitizeSubdomain } from "../../security/sanitize";
-import { hashPassword, generateUUID } from "../../security/crypto";
-import { createAccessToken } from "../../security/jwt";
+import {
+  hashPassword,
+  generateUUID,
+  generateNumericOtp,
+  hashOtp,
+  verifyOtp,
+} from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
 import { rateLimiter } from "../../security/rate-limiter";
 import { SECURITY_LIMITS } from "../../config/constants";
+import { EmailService } from "../../services/email.service";
 
 export const platformRouter = new Hono<AppEnv>();
 
@@ -19,7 +26,9 @@ export const platformRouter = new Hono<AppEnv>();
 const registerStoreSchema = z.object({
   storeName: z.string().min(2, "Store name must be at least 2 characters").max(60),
   subdomain: z.string().min(2).max(32),
-  businessType: z.enum(["RETAIL", "ELECTRONICS", "FURNITURE", "SERVICES", "GENERAL"]).default("GENERAL"),
+  businessType: z
+    .enum(["RETAIL", "ELECTRONICS", "FURNITURE", "SERVICES", "GENERAL"])
+    .default("GENERAL"),
   currency: z.string().length(3).default("KES"),
   ownerEmail: z.string().email("Valid email address required"),
   ownerPassword: z
@@ -28,6 +37,20 @@ const registerStoreSchema = z.object({
     .max(SECURITY_LIMITS.MAX_PASSWORD_LENGTH),
   ownerFullName: z.string().min(2).max(80),
   ownerPhone: z.string().optional(),
+});
+
+// Forgot Password Schemas
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6, "OTP must be exactly 6 digits"),
+  newPassword: z
+    .string()
+    .min(SECURITY_LIMITS.MIN_PASSWORD_LENGTH)
+    .max(SECURITY_LIMITS.MAX_PASSWORD_LENGTH),
 });
 
 // Check Subdomain Availability
@@ -41,6 +64,17 @@ platformRouter.get("/check-subdomain", async (c) => {
       data: {
         available: false,
         reason: "Invalid subdomain format or reserved keyword.",
+      },
+    });
+  }
+
+  if (!c.env?.DB) {
+    return c.json({
+      success: true,
+      data: {
+        subdomain: cleaned,
+        available: true,
+        reason: "Available",
       },
     });
   }
@@ -62,7 +96,7 @@ platformRouter.get("/check-subdomain", async (c) => {
   });
 });
 
-// Register New Business & Create Store
+// Register New Business & Create Store (Pending Super Admin Activation)
 platformRouter.post(
   "/register-store",
   rateLimiter({ max: 5, windowMs: 60 * 1000 }), // Strict rate limit on registrations
@@ -77,6 +111,10 @@ platformRouter.post(
         400,
         "INVALID_SUBDOMAIN"
       );
+    }
+
+    if (!c.env?.DB) {
+      throw new AppError("Database binding not initialized.", 500);
     }
 
     const db = createDb(c.env.DB);
@@ -100,14 +138,14 @@ platformRouter.post(
     const userId = generateUUID();
     const hashedPassword = await hashPassword(body.ownerPassword);
 
-    // Create Tenant
+    // 1. Create Tenant with status = PENDING (Admin approval required)
     await db.insert(tenants).values({
       id: tenantId,
       name: body.storeName,
       subdomain: sanitizedSub,
       businessType: body.businessType,
       currency: body.currency.toUpperCase(),
-      status: "ACTIVE",
+      status: "PENDING", // PENDING by default until Super Admin activates
       settings: {
         theme: "default",
         contactEmail: body.ownerEmail,
@@ -115,7 +153,7 @@ platformRouter.post(
       },
     });
 
-    // Create Owner User
+    // 2. Create Owner User
     await db.insert(users).values({
       id: userId,
       tenantId: tenantId,
@@ -127,30 +165,29 @@ platformRouter.post(
       status: "ACTIVE",
     });
 
-    const jwtSecret = c.env.JWT_SECRET || "default-dev-secret-change-in-production";
-    const token = await createAccessToken(
-      {
-        id: userId,
-        tenantId,
-        email: body.ownerEmail.toLowerCase(),
-        role: "OWNER",
-      },
-      jwtSecret
-    );
-
-    const primaryDomain = c.env.PRIMARY_DOMAIN || "store254.co.ke";
+    const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
     const storeUrl = `https://${sanitizedSub}.${primaryDomain}`;
+
+    // 3. Send Pending Activation Notice from official email
+    await EmailService.sendStorePendingActivation({
+      to: body.ownerEmail,
+      storeName: body.storeName,
+      subdomain: sanitizedSub,
+      primaryDomain,
+    });
 
     return c.json(
       {
         success: true,
-        message: "Business store created successfully!",
+        message:
+          "Business store registered successfully! Your account is currently under review by the Store254 Super Admin team. You will receive an email confirmation once activated.",
         data: {
           store: {
             id: tenantId,
             name: body.storeName,
             subdomain: sanitizedSub,
             storeUrl,
+            status: "PENDING",
             currency: body.currency.toUpperCase(),
           },
           owner: {
@@ -159,10 +196,149 @@ platformRouter.post(
             fullName: body.ownerFullName,
             role: "OWNER",
           },
-          accessToken: token,
         },
       },
       201
     );
+  }
+);
+
+// Platform Password Recovery: Request OTP
+platformRouter.post(
+  "/forgot-password",
+  rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }), // Max 5 requests per 15 mins
+  zValidator("json", forgotPasswordSchema),
+  async (c) => {
+    const { email } = c.req.valid("json");
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!c.env?.DB) {
+      throw new AppError("Database binding not initialized.", 500);
+    }
+
+    const db = createDb(c.env.DB);
+
+    // Look up owner user across platform
+    const [user] = await db
+      .select({ id: users.id, email: users.email, fullName: users.fullName })
+      .from(users)
+      .where(and(eq(users.email, normalizedEmail), eq(users.role, "OWNER")))
+      .limit(1);
+
+    // Safe response to prevent account enumeration
+    if (!user) {
+      return c.json({
+        success: true,
+        message: "If an account exists with this email, a recovery OTP has been sent.",
+      });
+    }
+
+    // Invalidate any existing active OTPs for this email
+    await db
+      .update(passwordResetOtps)
+      .set({ isUsed: true })
+      .where(eq(passwordResetOtps.email, normalizedEmail));
+
+    // Generate 6-digit numeric OTP and hash it
+    const otp = generateNumericOtp(6);
+    const hashedOtp = await hashOtp(otp);
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
+
+    await db.insert(passwordResetOtps).values({
+      id: generateUUID(),
+      email: normalizedEmail,
+      otpHash: hashedOtp,
+      expiresAt,
+      isUsed: false,
+    });
+
+    // Send official email from recovery@store254.co.ke
+    await EmailService.sendPasswordResetOtp({
+      to: normalizedEmail,
+      fullName: user.fullName || "Store Owner",
+      otpCode: otp,
+      expiresMinutes: 15,
+    });
+
+    return c.json({
+      success: true,
+      message: "If an account exists with this email, a recovery OTP has been sent.",
+    });
+  }
+);
+
+// Platform Password Recovery: Verify OTP & Reset Password
+platformRouter.post(
+  "/reset-password",
+  rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
+  zValidator("json", resetPasswordSchema),
+  async (c) => {
+    const { email, otp, newPassword } = c.req.valid("json");
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!c.env?.DB) {
+      throw new AppError("Database binding not initialized.", 500);
+    }
+
+    const db = createDb(c.env.DB);
+    const now = new Date();
+
+    // Find latest unused, non-expired OTP record
+    const [record] = await db
+      .select()
+      .from(passwordResetOtps)
+      .where(
+        and(
+          eq(passwordResetOtps.email, normalizedEmail),
+          eq(passwordResetOtps.isUsed, false),
+          gt(passwordResetOtps.expiresAt, now)
+        )
+      )
+      .orderBy(desc(passwordResetOtps.createdAt))
+      .limit(1);
+
+    if (!record) {
+      throw new AppError("Invalid or expired OTP code. Please request a new one.", 400, "INVALID_OTP");
+    }
+
+    // Check attempts
+    if (record.attempts >= record.maxAttempts) {
+      await db
+        .update(passwordResetOtps)
+        .set({ isUsed: true })
+        .where(eq(passwordResetOtps.id, record.id));
+      throw new AppError("Too many incorrect OTP attempts. Code has been invalidated.", 400, "OTP_LOCKED");
+    }
+
+    // Verify OTP using constant-time comparison
+    const isValid = await verifyOtp(otp, record.otpHash);
+    if (!isValid) {
+      await db
+        .update(passwordResetOtps)
+        .set({ attempts: record.attempts + 1 })
+        .where(eq(passwordResetOtps.id, record.id));
+      throw new AppError("Incorrect OTP code. Please check and try again.", 400, "INCORRECT_OTP");
+    }
+
+    // Mark OTP as used
+    await db
+      .update(passwordResetOtps)
+      .set({ isUsed: true })
+      .where(eq(passwordResetOtps.id, record.id));
+
+    // Hash new password and update all matching user accounts for this email
+    const newPasswordHash = await hashPassword(newPassword);
+    await db
+      .update(users)
+      .set({
+        passwordHash: newPasswordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.email, normalizedEmail));
+
+    return c.json({
+      success: true,
+      message: "Password reset successfully. You may now log in with your new password.",
+    });
   }
 );

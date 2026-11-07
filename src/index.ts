@@ -13,6 +13,7 @@ import { tenantMiddleware } from "./middlewares/tenant.middleware";
 
 // Feature Modules
 import { platformRouter } from "./modules/platform/platform.routes";
+import { platformAdminRouter } from "./modules/platform/admin.routes";
 import { authRouter } from "./modules/auth/auth.routes";
 import { categoriesRouter } from "./modules/catalog/categories.routes";
 import { attributesRouter } from "./modules/catalog/attributes.routes";
@@ -54,6 +55,7 @@ app.get("/health", (c) => {
 });
 
 // Platform registration and subdomain availability check
+app.route("/api/platform/admin", platformAdminRouter);
 app.route("/api/platform", platformRouter);
 
 // Public Safaricom M-Pesa Callback Webhook (Not tied to a single tenant subdomain)
