@@ -1,27 +1,15 @@
 {
-  "name": "store254-backend",
+  "name": "store254-monorepo",
   "version": "1.0.0",
-  "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy --minify",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply store254-db --local",
-    "db:migrate:prod": "wrangler d1 migrations apply store254-db --remote",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "@hono/zod-validator": "^0.4.3",
-    "drizzle-orm": "^0.39.3",
-    "hono": "^4.7.2",
-    "zod": "^3.24.2"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250214.0",
-    "drizzle-kit": "^0.30.4",
-    "typescript": "^5.7.3",
-    "vitest": "^3.0.5",
-    "wrangler": "^3.111.0"
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "deploy:backend": "cd backend && npm run deploy",
+    "deploy:frontend": "cd frontend && npm run deploy",
+    "test": "cd backend && npm test",
+    "typecheck": "cd backend && npm run typecheck",
+    "db:migrate:local": "cd backend && npm run db:migrate:local",
+    "db:migrate:prod": "cd backend && npm run db:migrate:prod"
   }
 }

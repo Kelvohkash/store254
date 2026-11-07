@@ -7,4 +7,5 @@ export * from "./offers";
 export * from "./orders";
 export * from "./payment-configs";
 export * from "./auth-tokens";
+export * from "./reviews";
 export * from "./audit";

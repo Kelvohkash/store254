@@ -1,0 +1,9 @@
+{
+  "name": "store254-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve . -l 3000",
+    "deploy": "npx wrangler pages deploy . --project-name=store254-frontend"
+  }
+}

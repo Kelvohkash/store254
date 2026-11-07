@@ -2,19 +2,15 @@ name = "store254-backend"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "29ebb98162982a3dbbd217a589591b10"
 
 [vars]
-ENVIRONMENT = "development"
+ENVIRONMENT = "production"
 PRIMARY_DOMAIN = "store254.co.ke"
 
 # Cloudflare D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "store254-db"
-database_id = "local-d1-placeholder" # Replaced when running wrangler d1 create in production
+database_id = "02484baf-0725-47fc-83c2-cf4f1a54db47"
 migrations_dir = "drizzle"
-
-# Optional Cloudflare KV binding for rate-limiting and session cache
-# [[kv_namespaces]]
-# binding = "CACHE_KV"
-# id = "local-kv-placeholder"

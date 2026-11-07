@@ -35,6 +35,26 @@ export const orders = sqliteTable(
       .notNull()
       .default("PENDING"),
     paymentMethod: text("payment_method").notNull().default("MPESA"),
+    // Fulfillment & Courier Tracking (e.g. Fargo Courier, Wells Fargo, G4S, Rider)
+    fulfillmentDetails: text("fulfillment_details", { mode: "json" })
+      .$type<{
+        courierName?: string;
+        trackingNumber?: string;
+        trackingUrl?: string;
+        dispatchedAt?: string;
+        deliveredAt?: string;
+        notes?: string;
+      }>()
+      .default({}),
+    // Service Booking Information (For appointment / consulting services)
+    bookingDetails: text("booking_details", { mode: "json" })
+      .$type<{
+        bookingDate?: string;
+        timeSlot?: string;
+        serviceLocation?: string;
+        specialInstructions?: string;
+      }>()
+      .default({}),
     notes: text("notes"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -99,7 +119,6 @@ export const payments = sqliteTable(
     status: text("status", { enum: ["INITIATED", "COMPLETED", "FAILED"] })
       .notNull()
       .default("INITIATED"),
-    // M-Pesa specific fields
     merchantRequestId: text("merchant_request_id"),
     checkoutRequestId: text("checkout_request_id").unique(),
     mpesaReceiptNumber: text("mpesa_receipt_number"),

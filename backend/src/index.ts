@@ -46,11 +46,23 @@ app.notFound(notFoundHandler);
 // -------------------------------------------------------------
 // Root Platform Endpoints (Public platform, no tenant needed)
 // -------------------------------------------------------------
+
+// API Root Status
+app.get("/", (c) => {
+  return c.json({
+    service: "store254-backend-api",
+    version: "1.0.0",
+    status: "online",
+    environment: c.env?.ENVIRONMENT || "production",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get("/health", (c) => {
   return c.json({
     status: "ok",
     service: "store254-engine",
-    environment: c.env?.ENVIRONMENT || "development",
+    environment: c.env?.ENVIRONMENT || "production",
     timestamp: new Date().toISOString(),
   });
 });
