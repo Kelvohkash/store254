@@ -26,6 +26,11 @@ function isAllowedOrigin(origin: string, primaryDomain: string, isDev: boolean):
       return true;
     }
 
+    // Allow Cloudflare Pages and Workers preview domains
+    if (url.hostname.endsWith(".pages.dev") || url.hostname.endsWith(".workers.dev")) {
+      return true;
+    }
+
     // Subdomain of primary domain (e.g. alicebabycare.store254.co.ke)
     const suffix = `.${primaryDomain}`;
     if (url.hostname.endsWith(suffix)) {

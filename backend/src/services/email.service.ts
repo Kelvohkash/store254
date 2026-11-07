@@ -225,4 +225,71 @@ ${options.html.replace(/<[^>]+>/g, " ")}
       apiKey: params.apiKey,
     });
   }
+
+  /**
+   * Order Status Update Notification (Shipped, Processing, Completed)
+   */
+  public static async sendOrderStatusUpdate(params: {
+    to: string;
+    customerName: string;
+    storeName: string;
+    orderNumber: string;
+    status: string;
+    courierName?: string;
+    trackingNumber?: string;
+    trackingUrl?: string;
+    notes?: string;
+    apiKey?: string;
+  }): Promise<boolean> {
+    const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 24px; background: #f9fafb; }
+          .container { max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 36px; border: 1px solid #e5e7eb; }
+          .header { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 20px; }
+          .badge { display: inline-block; padding: 6px 14px; border-radius: 9999px; background: #dbeafe; color: #1e40af; font-weight: 700; font-size: 14px; margin-bottom: 16px; }
+          .tracking-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0; }
+          .footer { font-size: 13px; color: #6b7280; margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 16px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">${params.storeName}</div>
+          <div class="badge">Order Status: ${params.status}</div>
+          <h2>Hello ${params.customerName},</h2>
+          <p>Your order <strong>#${params.orderNumber}</strong> has been updated to <strong>${params.status}</strong>.</p>
+          
+          ${
+            params.courierName || params.trackingNumber
+              ? `
+          <div class="tracking-box">
+            <h4 style="margin-bottom: 8px;">Delivery & Tracking Information</h4>
+            ${params.courierName ? `<p><strong>Courier:</strong> ${params.courierName}</p>` : ""}
+            ${params.trackingNumber ? `<p><strong>Tracking Number:</strong> ${params.trackingNumber}</p>` : ""}
+            ${params.trackingUrl ? `<p><a href="${params.trackingUrl}" style="color: #2563eb; font-weight: 600;">Track Your Package &rarr;</a></p>` : ""}
+            ${params.notes ? `<p><em>${params.notes}</em></p>` : ""}
+          </div>
+          `
+              : ""
+          }
+          
+          <div class="footer">
+            <p>Thank you for shopping with ${params.storeName} via Store254.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+    `;
+
+    return this.send({
+      to: params.to,
+      subject: `[${params.storeName}] Update on Order #${params.orderNumber}: ${params.status}`,
+      html,
+      from: `${params.storeName} Orders <orders@store254.co.ke>`,
+      apiKey: params.apiKey,
+    });
+  }
 }

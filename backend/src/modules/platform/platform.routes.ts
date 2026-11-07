@@ -96,6 +96,34 @@ platformRouter.get("/check-subdomain", async (c) => {
   });
 });
 
+// Public Directory of Active Stores
+platformRouter.get("/stores", async (c) => {
+  if (!c.env?.DB) {
+    throw new AppError("Database binding not initialized.", 500);
+  }
+
+  const db = createDb(c.env.DB);
+  const activeStores = await db
+    .select({
+      id: tenants.id,
+      name: tenants.name,
+      subdomain: tenants.subdomain,
+      businessType: tenants.businessType,
+      currency: tenants.currency,
+      settings: tenants.settings,
+      createdAt: tenants.createdAt,
+    })
+    .from(tenants)
+    .where(eq(tenants.status, "ACTIVE"))
+    .orderBy(desc(tenants.createdAt))
+    .limit(50);
+
+  return c.json({
+    success: true,
+    data: activeStores,
+  });
+});
+
 // Register New Business & Create Store (Pending Super Admin Activation)
 platformRouter.post(
   "/register-store",

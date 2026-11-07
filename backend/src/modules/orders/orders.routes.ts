@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, inArray, or } from "drizzle-orm";
+import { eq, and, desc, inArray, or, gte, lte } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { orders, orderItems, payments } from "../../db/schema/orders";
@@ -16,6 +16,7 @@ import {
   initiateMpesaStkPush,
   type MpesaCredentials,
 } from "../../security/mpesa";
+import { EmailService } from "../../services/email.service";
 
 export const ordersRouter = new Hono<AppEnv>();
 
@@ -25,20 +26,40 @@ const checkoutItemSchema = z.object({
   quantity: z.number().int().positive().default(1),
 });
 
+const serviceBookingDetailsSchema = z.object({
+  bookingDate: z.string().optional(), // ISO date, e.g. "2026-11-20"
+  timeSlot: z.string().optional(), // e.g. "10:00 AM - 11:30 AM"
+  serviceLocation: z.string().optional(), // In-person or virtual
+  specialInstructions: z.string().max(500).optional(),
+});
+
 const checkoutSchema = z.object({
   customerName: z.string().min(2).max(100),
   customerEmail: z.string().email(),
   customerPhone: z.string().min(9).max(15),
   shippingAddress: z.record(z.unknown()).default({}),
+  bookingDetails: serviceBookingDetailsSchema.optional(),
   items: z.array(checkoutItemSchema).min(1, "Cart cannot be empty"),
   couponCode: z.string().optional(),
   notes: z.string().max(500).optional(),
 });
 
+const updateOrderStatusSchema = z.object({
+  status: z.enum(["PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"]),
+  fulfillmentDetails: z
+    .object({
+      courierName: z.string().max(80).optional(), // e.g. "Fargo Courier", "Wells Fargo", "Rider"
+      trackingNumber: z.string().max(100).optional(),
+      trackingUrl: z.string().url().optional(),
+      notes: z.string().max(500).optional(),
+    })
+    .optional(),
+});
+
 // Create Order & Trigger Merchant's M-Pesa STK Push
 ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkoutSchema), async (c) => {
   const tenant = c.get("tenant")!;
-  const user = c.get("user"); // May be authenticated customer or guest
+  const user = c.get("user");
   const body = c.req.valid("json");
 
   if (!c.env?.DB) throw new AppError("Database not ready", 500);
@@ -212,7 +233,7 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
   const shippingFee = 0;
   const totalAmount = Math.max(1, subtotal - discountAmount + shippingFee);
 
-  // 7. Insert Order
+  // 7. Insert Order (including service appointment booking details)
   const orderId = generateUUID();
   const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
 
@@ -225,6 +246,7 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
     customerEmail: body.customerEmail.toLowerCase().trim(),
     customerPhone: mpesaPhone,
     shippingAddress: body.shippingAddress,
+    bookingDetails: body.bookingDetails || {},
     currency: tenant.currency || "KES",
     subtotal,
     discountAmount,
@@ -320,6 +342,106 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
     },
     201
   );
+});
+
+// Merchant Update Order Status & Courier Tracking (Fulfillment)
+ordersRouter.patch(
+  "/:id/status",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  zValidator("json", updateOrderStatusSchema),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const orderId = c.req.param("id");
+    const { status, fulfillmentDetails } = c.req.valid("json");
+
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const db = createDb(c.env.DB);
+
+    const [order] = await db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenant.id), eq(orders.id, orderId)))
+      .limit(1);
+
+    if (!order) {
+      throw new AppError("Order not found.", 404, "ORDER_NOT_FOUND");
+    }
+
+    const mergedFulfillment = {
+      ...(order.fulfillmentDetails || {}),
+      ...(fulfillmentDetails || {}),
+      dispatchedAt: status === "SHIPPED" ? new Date().toISOString() : order.fulfillmentDetails?.dispatchedAt,
+      deliveredAt: status === "COMPLETED" ? new Date().toISOString() : order.fulfillmentDetails?.deliveredAt,
+    };
+
+    await db
+      .update(orders)
+      .set({
+        status,
+        fulfillmentDetails: mergedFulfillment,
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, order.id));
+
+    // Send customer notification email about the new status
+    await EmailService.sendOrderStatusUpdate({
+      to: order.customerEmail,
+      customerName: order.customerName,
+      storeName: tenant.name,
+      orderNumber: order.orderNumber,
+      status,
+      courierName: mergedFulfillment.courierName,
+      trackingNumber: mergedFulfillment.trackingNumber,
+      trackingUrl: mergedFulfillment.trackingUrl,
+      notes: mergedFulfillment.notes,
+    });
+
+    return c.json({
+      success: true,
+      message: `Order #${order.orderNumber} status updated to ${status}. Notification dispatched.`,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        status,
+        fulfillmentDetails: mergedFulfillment,
+      },
+    });
+  }
+);
+
+// Merchant Scheduled Service Bookings Calendar
+ordersRouter.get("/calendar/bookings", authMiddleware(true), requireRole(["OWNER", "ADMIN"]), async (c) => {
+  const tenant = c.get("tenant")!;
+
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const db = createDb(c.env.DB);
+
+  // Fetch all orders with bookingDetails
+  const allOrders = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      customerName: orders.customerName,
+      customerPhone: orders.customerPhone,
+      customerEmail: orders.customerEmail,
+      bookingDetails: orders.bookingDetails,
+      status: orders.status,
+      paymentStatus: orders.paymentStatus,
+      totalAmount: orders.totalAmount,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(and(eq(orders.tenantId, tenant.id), or(eq(orders.status, "PAID"), eq(orders.status, "PROCESSING"), eq(orders.status, "COMPLETED"))))
+    .orderBy(desc(orders.createdAt));
+
+  // Filter orders that have a scheduled booking date
+  const bookings = allOrders.filter((o) => Boolean(o.bookingDetails?.bookingDate));
+
+  return c.json({
+    success: true,
+    data: bookings,
+  });
 });
 
 // Authenticated Customer Order History (My Orders)
