@@ -1,0 +1,89 @@
+import { Hono } from "hono";
+import type { AppEnv } from "./types/context";
+
+// Security Frameworks
+import { enterpriseSecurityHeaders } from "./security/headers";
+import { multiTenantCors } from "./security/cors";
+import { rateLimiter } from "./security/rate-limiter";
+import { globalErrorHandler, notFoundHandler } from "./security/error-handler";
+
+// Middlewares
+import { requestIdMiddleware } from "./middlewares/request-id.middleware";
+import { tenantMiddleware } from "./middlewares/tenant.middleware";
+
+// Feature Modules
+import { platformRouter } from "./modules/platform/platform.routes";
+import { authRouter } from "./modules/auth/auth.routes";
+import { categoriesRouter } from "./modules/catalog/categories.routes";
+import { attributesRouter } from "./modules/catalog/attributes.routes";
+import { itemsRouter } from "./modules/catalog/items.routes";
+import { filtersRouter } from "./modules/filters/filters.routes";
+import { offersRouter } from "./modules/offers/offers.routes";
+import { ordersRouter } from "./modules/orders/orders.routes";
+import { paymentSettingsRouter } from "./modules/payments/settings.routes";
+import { mpesaRouter } from "./modules/payments/mpesa.routes";
+
+const app = new Hono<AppEnv>();
+
+// 1. Global Correlation ID & Request Tracking
+app.use("*", requestIdMiddleware());
+
+// 2. OWASP-Grade Enterprise Security Headers
+app.use("*", enterpriseSecurityHeaders());
+
+// 3. Dynamic Multi-Tenant CORS Engine
+app.use("*", multiTenantCors());
+
+// 4. Global Anti-Abuse Rate Limiter
+app.use("*", rateLimiter());
+
+// 5. Global Error & 404 Handlers
+app.onError(globalErrorHandler);
+app.notFound(notFoundHandler);
+
+// -------------------------------------------------------------
+// Root Platform Endpoints (Public platform, no tenant needed)
+// -------------------------------------------------------------
+app.get("/health", (c) => {
+  return c.json({
+    status: "ok",
+    service: "store254-engine",
+    environment: c.env?.ENVIRONMENT || "development",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Platform registration and subdomain availability check
+app.route("/api/platform", platformRouter);
+
+// Public Safaricom M-Pesa Callback Webhook (Not tied to a single tenant subdomain)
+app.route("/api/payments/mpesa", mpesaRouter);
+
+// -------------------------------------------------------------
+// Tenant-Scoped Endpoints (Requires Subdomain or X-Tenant-Slug)
+// -------------------------------------------------------------
+const tenantScope = new Hono<AppEnv>();
+tenantScope.use("*", tenantMiddleware({ required: true }));
+
+// Storefront metadata
+tenantScope.get("/store", (c) => {
+  const tenant = c.get("tenant")!;
+  return c.json({
+    success: true,
+    data: tenant,
+  });
+});
+
+// Tenant Sub-routes
+tenantScope.route("/auth", authRouter);
+tenantScope.route("/categories", categoriesRouter);
+tenantScope.route("/attributes", attributesRouter);
+tenantScope.route("/items", itemsRouter);
+tenantScope.route("/filters", filtersRouter);
+tenantScope.route("/offers", offersRouter);
+tenantScope.route("/orders", ordersRouter);
+tenantScope.route("/payments/settings", paymentSettingsRouter);
+
+app.route("/api", tenantScope);
+
+export default app;

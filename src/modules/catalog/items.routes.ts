@@ -1,0 +1,292 @@
+import { Hono } from "hono";
+import { z } from "zod";
+import { zValidator } from "@hono/zod-validator";
+import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
+import type { AppEnv } from "../../types/context";
+import { createDb } from "../../db";
+import { items, itemVariants, type ItemVariant } from "../../db/schema/items";
+import { categories } from "../../db/schema/categories";
+import { attributeDefinitions } from "../../db/schema/attributes";
+import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
+import { generateUUID } from "../../security/crypto";
+import { slugify } from "../../security/sanitize";
+import { AppError } from "../../security/error-handler";
+
+export const itemsRouter = new Hono<AppEnv>();
+
+const variantInputSchema = z.object({
+  title: z.string().min(1).max(100),
+  sku: z.string().optional(),
+  price: z.number().int().positive(),
+  compareAtPrice: z.number().int().positive().optional(),
+  stockQuantity: z.number().int().min(0).default(0),
+  options: z.record(z.string()).default({}),
+});
+
+const createItemSchema = z.object({
+  categoryId: z.string().uuid().nullable().optional(),
+  title: z.string().min(2).max(200),
+  slug: z.string().optional(),
+  description: z.string().optional(),
+  itemType: z.enum(["PHYSICAL", "SERVICE", "DIGITAL"]).default("PHYSICAL"),
+  basePrice: z.number().int().positive(),
+  compareAtPrice: z.number().int().positive().optional(),
+  costPrice: z.number().int().positive().optional(),
+  sku: z.string().optional(),
+  barcode: z.string().optional(),
+  trackInventory: z.boolean().default(true),
+  stockQuantity: z.number().int().min(0).default(0),
+  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("PUBLISHED"),
+  images: z.array(z.string().url()).default([]),
+  attributes: z.record(z.unknown()).default({}), // Dynamic attributes { brand: "Samsung", size: "55" }
+  metadata: z.record(z.unknown()).default({}),
+  variants: z.array(variantInputSchema).default([]),
+});
+
+// Dynamic Items Query (Filtering, Search & Facets)
+itemsRouter.get("/", async (c) => {
+  const tenant = c.get("tenant")!;
+  const query = c.req.query();
+  const db = createDb(c.env.DB);
+
+  const page = Math.max(1, parseInt(query.page || "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "20", 10)));
+  const offset = (page - 1) * limit;
+
+  // Reserved query parameter keys
+  const reservedParams = new Set(["page", "limit", "category", "search", "minPrice", "maxPrice", "itemType", "sort"]);
+
+  // Extract dynamic attribute filters from query string (e.g. ?brand=Samsung&screen_size=55)
+  const dynamicFilters: Record<string, string> = {};
+  for (const [key, val] of Object.entries(query)) {
+    if (!reservedParams.has(key) && val) {
+      dynamicFilters[key] = val;
+    }
+  }
+
+  // Retrieve published items for this tenant
+  let itemsQuery = db
+    .select({
+      id: items.id,
+      categoryId: items.categoryId,
+      title: items.title,
+      slug: items.slug,
+      description: items.description,
+      itemType: items.itemType,
+      basePrice: items.basePrice,
+      compareAtPrice: items.compareAtPrice,
+      sku: items.sku,
+      stockQuantity: items.stockQuantity,
+      images: items.images,
+      attributes: items.attributes,
+      status: items.status,
+      createdAt: items.createdAt,
+    })
+    .from(items)
+    .where(and(eq(items.tenantId, tenant.id), eq(items.status, "PUBLISHED")))
+    .orderBy(desc(items.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const rawList = await itemsQuery;
+
+  // In-memory filter for dynamic JSON attributes and client search
+  let filtered = rawList;
+
+  // Filter by category if requested
+  if (query.category) {
+    // Check if category is slug or UUID
+    const [matchedCategory] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(and(eq(categories.tenantId, tenant.id), eq(categories.slug, query.category)))
+      .limit(1);
+
+    const targetCategoryId = matchedCategory ? matchedCategory.id : query.category;
+    filtered = filtered.filter((i) => i.categoryId === targetCategoryId);
+  }
+
+  // Filter by Price range
+  if (query.minPrice) {
+    const min = parseInt(query.minPrice, 10);
+    if (!isNaN(min)) filtered = filtered.filter((i) => i.basePrice >= min);
+  }
+  if (query.maxPrice) {
+    const max = parseInt(query.maxPrice, 10);
+    if (!isNaN(max)) filtered = filtered.filter((i) => i.basePrice <= max);
+  }
+
+  // Filter by item type (e.g. PHYSICAL or SERVICE)
+  if (query.itemType) {
+    filtered = filtered.filter((i) => i.itemType === query.itemType);
+  }
+
+  // Search by keyword in title/description
+  if (query.search) {
+    const keyword = query.search.toLowerCase();
+    filtered = filtered.filter(
+      (i) =>
+        i.title.toLowerCase().includes(keyword) ||
+        (i.description && i.description.toLowerCase().includes(keyword))
+    );
+  }
+
+  // Filter by dynamic attributes (e.g. brand, size, color, duration)
+  if (Object.keys(dynamicFilters).length > 0) {
+    filtered = filtered.filter((item) => {
+      const itemAttrs = (item.attributes as Record<string, unknown>) || {};
+      for (const [filterKey, filterValue] of Object.entries(dynamicFilters)) {
+        const itemVal = itemAttrs[filterKey];
+        if (itemVal === undefined || itemVal === null) return false;
+
+        // Comma-separated multi-value match: ?brand=Samsung,Sony
+        const expectedValues = filterValue.split(",").map((v) => v.trim().toLowerCase());
+        const actualVal = String(itemVal).trim().toLowerCase();
+
+        if (!expectedValues.includes(actualVal)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  return c.json({
+    success: true,
+    data: filtered,
+    pagination: {
+      page,
+      limit,
+      count: filtered.length,
+    },
+  });
+});
+
+// Get Single Item with Variants
+itemsRouter.get("/:slug", async (c) => {
+  const tenant = c.get("tenant")!;
+  const slug = c.req.param("slug");
+  const db = createDb(c.env.DB);
+
+  const [item] = await db
+    .select()
+    .from(items)
+    .where(and(eq(items.tenantId, tenant.id), eq(items.slug, slug)))
+    .limit(1);
+
+  if (!item) {
+    throw new AppError("Item not found.", 404, "ITEM_NOT_FOUND");
+  }
+
+  // Fetch variants if any
+  const variants = await db
+    .select()
+    .from(itemVariants)
+    .where(and(eq(itemVariants.tenantId, tenant.id), eq(itemVariants.itemId, item.id)));
+
+  return c.json({
+    success: true,
+    data: {
+      ...item,
+      variants,
+    },
+  });
+});
+
+// Create Item (Physical Product or Bookable Service)
+itemsRouter.post(
+  "/",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  zValidator("json", createItemSchema),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const body = c.req.valid("json");
+    const db = createDb(c.env.DB);
+
+    const slug = body.slug ? slugify(body.slug) : slugify(body.title);
+
+    // Check slug uniqueness
+    const [existing] = await db
+      .select({ id: items.id })
+      .from(items)
+      .where(and(eq(items.tenantId, tenant.id), eq(items.slug, slug)))
+      .limit(1);
+
+    if (existing) {
+      throw new AppError(`An item with slug "${slug}" already exists.`, 409, "SLUG_EXISTS");
+    }
+
+    const itemId = generateUUID();
+
+    await db.insert(items).values({
+      id: itemId,
+      tenantId: tenant.id,
+      categoryId: body.categoryId || null,
+      title: body.title,
+      slug,
+      description: body.description || null,
+      itemType: body.itemType,
+      basePrice: body.basePrice,
+      compareAtPrice: body.compareAtPrice || null,
+      costPrice: body.costPrice || null,
+      sku: body.sku || null,
+      barcode: body.barcode || null,
+      trackInventory: body.trackInventory,
+      stockQuantity: body.stockQuantity,
+      status: body.status,
+      images: body.images,
+      attributes: body.attributes,
+      metadata: body.metadata,
+    });
+
+    // Insert variants if provided
+    const createdVariants: ItemVariant[] = [];
+    for (const v of body.variants) {
+      const variantId = generateUUID();
+      await db.insert(itemVariants).values({
+        id: variantId,
+        tenantId: tenant.id,
+        itemId: itemId,
+        title: v.title,
+        sku: v.sku || null,
+        price: v.price,
+        compareAtPrice: v.compareAtPrice || null,
+        stockQuantity: v.stockQuantity,
+        options: v.options,
+      });
+
+      createdVariants.push({
+        id: variantId,
+        tenantId: tenant.id,
+        itemId,
+        title: v.title,
+        sku: v.sku || null,
+        price: v.price,
+        compareAtPrice: v.compareAtPrice || null,
+        stockQuantity: v.stockQuantity,
+        options: v.options,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    const [createdItem] = await db
+      .select()
+      .from(items)
+      .where(eq(items.id, itemId))
+      .limit(1);
+
+    return c.json(
+      {
+        success: true,
+        message: `${body.itemType === "SERVICE" ? "Service" : "Product"} created successfully.`,
+        data: {
+          ...createdItem,
+          variants: createdVariants,
+        },
+      },
+      201
+    );
+  }
+);
