@@ -1,6 +1,6 @@
 /**
  * Store254 Web Application Client Engine
- * Connects directly to Hono Backend API on Cloudflare Workers + D1
+ * Connects directly to Hono Backend API on Cloudflare Workers + Cloudflare D1
  */
 
 // 1. API Configuration
@@ -9,10 +9,44 @@ const API_BASE_URL =
     ? "http://localhost:8787"
     : "https://store254-backend.kelvinkamauofficial254.workers.dev";
 
-// 2. Global Reactive State
+// Helper to safely render Lucide icons
+function renderIcons() {
+  if (typeof lucide !== "undefined" && lucide.createIcons) {
+    lucide.createIcons();
+  }
+}
+
+// 2. Subdomain & Tenant Detection
+function detectInitialTenantSlug() {
+  const host = window.location.hostname.toLowerCase();
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramStore = urlParams.get("store") || urlParams.get("subdomain");
+  if (paramStore) return paramStore.toLowerCase().trim();
+
+  // If host is a subdomain on store254.co.ke (e.g. alicebabycare.store254.co.ke)
+  if (host.includes("store254.co.ke")) {
+    const parts = host.split(".");
+    // e.g. ["alicebabycare", "store254", "co", "ke"] -> length 4
+    if (parts.length >= 3 && parts[0] !== "store254" && parts[0] !== "www") {
+      return parts[0];
+    }
+    return ""; // Root store254.co.ke platform marketplace
+  }
+
+  // Check URL hash fallback (e.g. #store=alicebabycare)
+  if (window.location.hash && window.location.hash.startsWith("#store=")) {
+    return window.location.hash.replace("#store=", "").trim();
+  }
+
+  // On root store254.co.ke or main pages.dev, always default to root marketplace ("")
+  return "";
+}
+
+// 3. Global Reactive State
 const state = {
-  activeTenantSlug: localStorage.getItem("store254_tenant_slug") || "alicebabycare",
+  activeTenantSlug: detectInitialTenantSlug(),
   activeTenant: null,
+  currentItemId: null,
   categories: [],
   selectedCategory: "",
   activeFilters: {},
@@ -30,14 +64,14 @@ const state = {
   activePollInterval: null,
 };
 
-// 3. Helper API Fetcher with Tenant Header Injection
+// 4. Helper API Fetcher with Tenant Header Injection
 async function apiFetch(endpoint, options = {}) {
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
   };
 
-  // Inject tenant scope header if targeting a store
+  // Inject tenant scope header if targeting an active store
   if (state.activeTenantSlug && !endpoint.startsWith("/api/platform")) {
     headers["X-Tenant-Slug"] = state.activeTenantSlug;
   }
@@ -62,7 +96,7 @@ async function apiFetch(endpoint, options = {}) {
   }
 }
 
-// 4. Toast Notifications
+// 5. Toast Notifications
 function showToast(message, type = "success") {
   const container = document.getElementById("toast-container");
   if (!container) return;
@@ -75,13 +109,17 @@ function showToast(message, type = "success") {
       ? "bg-rose-600 text-white"
       : "bg-slate-800 text-white";
 
-  toast.className = `flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all transform duration-300 ease-out ${bgClass}`;
+  const iconName = type === "success" ? "check-circle-2" : type === "error" ? "alert-circle" : "info";
+
+  toast.className = `flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-xs font-semibold transition-all transform duration-300 ease-out ${bgClass}`;
   toast.innerHTML = `
-    <span>${type === "success" ? "✓" : type === "error" ? "⚠️" : "ℹ️"}</span>
+    <i data-lucide="${iconName}" class="w-4 h-4"></i>
     <span>${message}</span>
   `;
 
   container.appendChild(toast);
+  renderIcons();
+
   setTimeout(() => {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(-8px)";
@@ -89,23 +127,24 @@ function showToast(message, type = "success") {
   }, 4000);
 }
 
-// 5. Store / Tenant Loading
+// 6. Store / Tenant Loading
 async function loadStoreProfile() {
   const storeInfoBanner = document.getElementById("store-info-banner");
   const storeSelector = document.getElementById("store-selector");
   if (storeSelector) storeSelector.value = state.activeTenantSlug;
 
   if (!state.activeTenantSlug) {
-    // Platform mode
+    // Root Platform Mode (store254.co.ke)
     state.activeTenant = null;
     if (storeInfoBanner) storeInfoBanner.classList.add("hidden");
     document.getElementById("platform-hero")?.classList.remove("hidden");
     document.getElementById("storefront-view")?.classList.add("hidden");
-    loadPlatformStores();
+    await loadPlatformStores();
+    renderIcons();
     return;
   }
 
-  // Storefront mode
+  // Subdomain Storefront Mode (e.g. alicebabycare.store254.co.ke)
   document.getElementById("platform-hero")?.classList.add("hidden");
   document.getElementById("storefront-view")?.classList.remove("hidden");
 
@@ -120,10 +159,13 @@ async function loadStoreProfile() {
     state.activeTenant = null;
     document.getElementById("platform-hero")?.classList.remove("hidden");
     document.getElementById("storefront-view")?.classList.add("hidden");
+    await loadPlatformStores();
   }
+
+  renderIcons();
 }
 
-// 6. Render Store Banner
+// 7. Render Store Banner
 function renderStoreBanner() {
   const banner = document.getElementById("store-info-banner");
   if (!banner || !state.activeTenant) return;
@@ -136,14 +178,19 @@ function renderStoreBanner() {
   document.getElementById("banner-store-desc").textContent =
     settings.description || `Welcome to ${state.activeTenant.name} on Store254`;
 
-  if (settings.phone) {
-    const phoneEl = document.getElementById("banner-store-phone");
-    phoneEl.textContent = `📞 ${settings.phone}`;
+  const phoneEl = document.getElementById("banner-store-phone");
+  const phoneText = document.getElementById("banner-store-phone-text");
+  if (settings.phone && phoneEl && phoneText) {
+    phoneText.textContent = settings.phone;
     phoneEl.classList.remove("hidden");
+  } else if (phoneEl) {
+    phoneEl.classList.add("hidden");
   }
+
+  renderIcons();
 }
 
-// 7. Load Categories & Subcategories Tree
+// 8. Load Categories & Subcategories Tree
 async function loadCategories() {
   const res = await apiFetch("/api/categories");
   const container = document.getElementById("category-pills");
@@ -167,11 +214,11 @@ async function loadCategories() {
           ? "bg-emerald-600 text-white shadow-sm"
           : "bg-slate-100 text-slate-700 hover:bg-slate-200"
       }">
-          ${cat.icon ? `${cat.icon} ` : ""}${cat.name}
+          ${cat.name}
         </button>
       `;
 
-      // Render nested subcategories if root is selected or open
+      // Render nested subcategories
       if (cat.children && cat.children.length > 0) {
         for (const sub of cat.children) {
           const isSubSelected = state.selectedCategory === sub.slug;
@@ -199,7 +246,7 @@ function selectCategory(slug) {
   loadItems();
 }
 
-// 8. Load Dynamic Faceted Filters
+// 9. Load Dynamic Faceted Filters
 async function loadDynamicFilters() {
   const endpoint = state.selectedCategory
     ? `/api/filters?category=${state.selectedCategory}`
@@ -291,7 +338,7 @@ function toggleFilter(code, value, checked) {
   loadItems();
 }
 
-// 9. Load Items (Products & Services)
+// 10. Load Items (Products & Services)
 async function loadItems() {
   const container = document.getElementById("items-grid");
   const countBadge = document.getElementById("items-count-badge");
@@ -304,7 +351,6 @@ async function loadItems() {
     </div>
   `;
 
-  // Build query string
   const params = new URLSearchParams();
   if (state.selectedCategory) params.set("category", state.selectedCategory);
 
@@ -318,7 +364,6 @@ async function loadItems() {
     params.set("maxPrice", maxPriceEl.value);
   }
 
-  // Dynamic attribute filters
   for (const [key, values] of Object.entries(state.activeFilters)) {
     if (values && values.length > 0) {
       params.set(key, values.join(","));
@@ -333,12 +378,18 @@ async function loadItems() {
     if (state.items.length === 0) {
       container.innerHTML = `
         <div class="col-span-full py-20 text-center">
-          <div class="text-4xl mb-3">📦</div>
+          <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+            <i data-lucide="package-search" class="w-6 h-6"></i>
+          </div>
           <h3 class="text-base font-bold text-slate-800">No items match your filters</h3>
           <p class="text-xs text-slate-500 mt-1">Try resetting your filters or search keywords.</p>
-          <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">Reset Filters</button>
+          <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 mx-auto">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span>Reset Filters</span>
+          </button>
         </div>
       `;
+      renderIcons();
       return;
     }
 
@@ -377,12 +428,12 @@ async function loadItems() {
               <h3 class="font-bold text-slate-900 text-sm line-clamp-2 mb-2 group-hover:text-emerald-600 transition-colors">
                 ${item.title}
               </h3>
-              
+
               <!-- Dynamic Attribute Badges -->
               <div class="flex flex-wrap gap-1.5 mb-3">
                 ${attrs.screen_size ? `<span class="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${attrs.screen_size}" Screen</span>` : ""}
-                ${attrs.duration_minutes ? `<span class="text-[11px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">⏱️ ${attrs.duration_minutes} Mins</span>` : ""}
-                ${attrs.warranty ? `<span class="text-[11px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">🛡️ ${attrs.warranty}</span>` : ""}
+                ${attrs.duration_minutes ? `<span class="text-[11px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${attrs.duration_minutes} Mins</span>` : ""}
+                ${attrs.warranty ? `<span class="text-[11px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded flex items-center gap-1"><i data-lucide="shield" class="w-3 h-3"></i> ${attrs.warranty}</span>` : ""}
               </div>
             </div>
 
@@ -397,11 +448,15 @@ async function loadItems() {
               </div>
 
               <div class="flex gap-2">
-                <button onclick="viewItemDetails('${item.slug}')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-colors">Details</button>
+                <button onclick="viewItemDetails('${item.id}')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                  <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                  <span>Details</span>
+                </button>
                 <button onclick="addToCart('${item.id}', '${item.title.replace(/'/g, "\\'")}', ${item.basePrice}, '${primaryImage}', '${item.itemType}')" class="flex-1 py-2.5 ${
                   isService ? "bg-indigo-600 hover:bg-indigo-700" : "bg-emerald-600 hover:bg-emerald-700"
-                } text-white text-xs font-bold rounded-xl shadow-sm transition-all transform active:scale-95">
-                  ${isService ? "📅 Book" : "🛒 Add"}
+                } text-white text-xs font-bold rounded-xl shadow-sm transition-all transform active:scale-95 flex items-center justify-center gap-1.5">
+                  <i data-lucide="${isService ? "calendar" : "shopping-bag"}" class="w-3.5 h-3.5"></i>
+                  <span>${isService ? "Book" : "Add"}</span>
                 </button>
               </div>
             </div>
@@ -411,6 +466,7 @@ async function loadItems() {
     }
 
     container.innerHTML = html;
+    renderIcons();
   }
 }
 
@@ -424,7 +480,179 @@ function resetFilters() {
   loadItems();
 }
 
-// 10. Cart Management
+// 11. View Item Details & Load Reviews
+async function viewItemDetails(itemId) {
+  const item = state.items.find((i) => i.id === itemId);
+  if (!item) return;
+
+  state.currentItemId = itemId;
+
+  const isService = item.itemType === "SERVICE";
+  const attrs = item.attributes || {};
+  const primaryImage =
+    item.images && item.images.length > 0
+      ? item.images[0]
+      : isService
+      ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80"
+      : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80";
+
+  document.getElementById("item-modal-title").textContent = item.title;
+  document.getElementById("item-modal-image").src = primaryImage;
+  document.getElementById("item-modal-price").textContent = `KES ${Number(item.basePrice).toLocaleString()}`;
+  document.getElementById("item-modal-description").textContent = item.description || "High quality verified offering available on Store254.";
+
+  const comparePriceEl = document.getElementById("item-modal-compare-price");
+  if (item.compareAtPrice && item.compareAtPrice > item.basePrice) {
+    comparePriceEl.textContent = `KES ${Number(item.compareAtPrice).toLocaleString()}`;
+    comparePriceEl.classList.remove("hidden");
+  } else {
+    comparePriceEl.classList.add("hidden");
+  }
+
+  // Badges
+  const badgesEl = document.getElementById("item-modal-badges");
+  badgesEl.innerHTML = `
+    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+      isService ? "bg-indigo-100 text-indigo-700" : "bg-emerald-100 text-emerald-700"
+    }">${isService ? "Service" : "Product"}</span>
+    ${attrs.brand ? `<span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">${attrs.brand}</span>` : ""}
+  `;
+
+  // Attributes table
+  const attrsEl = document.getElementById("item-modal-attributes");
+  let attrsHtml = "";
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v) {
+      const label = k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      attrsHtml += `
+        <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <span class="text-[10px] text-slate-400 font-semibold block">${label}</span>
+          <span class="text-xs font-bold text-slate-800">${v}</span>
+        </div>
+      `;
+    }
+  }
+  attrsEl.innerHTML = attrsHtml;
+
+  // Add to Cart Button
+  const btnCart = document.getElementById("item-modal-btn-cart");
+  btnCart.innerHTML = `<i data-lucide="${isService ? "calendar" : "shopping-bag"}" class="w-4 h-4"></i> <span>${
+    isService ? "Book Appointment" : "Add to Cart"
+  }</span>`;
+  btnCart.className = `w-full py-3 ${
+    isService ? "bg-indigo-600 hover:bg-indigo-700" : "bg-emerald-600 hover:bg-emerald-700"
+  } text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2`;
+  btnCart.onclick = () => {
+    addToCart(item.id, item.title, item.basePrice, primaryImage, item.itemType);
+    toggleDrawer("item-details-modal", false);
+  };
+
+  // Reset Review Form
+  toggleReviewForm(false);
+
+  // Load Reviews
+  await loadItemReviews(itemId);
+
+  toggleDrawer("item-details-modal", true);
+  renderIcons();
+}
+
+// Load Reviews from API
+async function loadItemReviews(itemId) {
+  const container = document.getElementById("item-modal-reviews-list");
+  const summaryEl = document.getElementById("item-modal-rating-summary");
+  if (!container) return;
+
+  container.innerHTML = `<div class="text-xs text-slate-400 py-3">Loading customer reviews...</div>`;
+
+  const res = await apiFetch(`/api/items/${itemId}/reviews`);
+  if (res.ok && res.data.success) {
+    const data = res.data.data;
+    const avg = data.averageRating || 5;
+    const count = data.totalReviews || 0;
+
+    if (summaryEl) {
+      summaryEl.textContent = `Rating: ${avg} / 5 (${count} ${count === 1 ? "review" : "reviews"})`;
+    }
+
+    if (!data.reviews || data.reviews.length === 0) {
+      container.innerHTML = `
+        <div class="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
+          <p class="text-xs text-slate-500">No customer reviews yet. Be the first to share your experience!</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = data.reviews.map((r) => {
+      const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "";
+      return `
+        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-900">${r.customerName}</span>
+              ${r.isVerifiedBuyer ? `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Verified Buyer</span>` : ""}
+            </div>
+            <span class="text-slate-400 text-[10px]">${dateStr}</span>
+          </div>
+          <div class="flex items-center gap-1 text-amber-500 mb-1">
+            ${Array.from({ length: r.rating || 5 }).map(() => `<i data-lucide="star" class="w-3 h-3 fill-amber-400 text-amber-400"></i>`).join("")}
+          </div>
+          ${r.comment ? `<p class="text-slate-600 leading-relaxed">${r.comment}</p>` : ""}
+        </div>
+      `;
+    }).join("");
+    renderIcons();
+  }
+}
+
+function toggleReviewForm(show) {
+  const form = document.getElementById("item-modal-review-form");
+  if (!form) return;
+  if (show === undefined) {
+    form.classList.toggle("hidden");
+  } else if (show) {
+    form.classList.remove("hidden");
+  } else {
+    form.classList.add("hidden");
+  }
+}
+
+async function handleReviewSubmit(e) {
+  e.preventDefault();
+  if (!state.currentItemId) return;
+
+  const btn = document.getElementById("btn-submit-review");
+  btn.disabled = true;
+  btn.textContent = "Submitting...";
+
+  const customerName = document.getElementById("review-input-name").value.trim();
+  const rating = parseInt(document.getElementById("review-input-rating").value, 10);
+  const comment = document.getElementById("review-input-comment").value.trim();
+
+  const res = await apiFetch(`/api/items/${state.currentItemId}/reviews`, {
+    method: "POST",
+    body: JSON.stringify({
+      customerName,
+      rating,
+      comment,
+    }),
+  });
+
+  btn.disabled = false;
+  btn.textContent = "Submit Review";
+
+  if (res.ok && res.data.success) {
+    showToast("Thank you! Your review has been published.");
+    document.getElementById("review-input-comment").value = "";
+    toggleReviewForm(false);
+    await loadItemReviews(state.currentItemId);
+  } else {
+    showToast(res.data.error?.message || "Failed to submit review", "error");
+  }
+}
+
+// 12. Cart Management
 function addToCart(id, title, price, image, itemType = "PHYSICAL") {
   const existing = state.cart.find((i) => i.itemId === id);
   if (existing) {
@@ -468,7 +696,7 @@ function updateCartBadge() {
   }
 }
 
-// 11. Render Cart & Checkout Drawer
+// 13. Render Cart & Checkout Drawer
 function renderCartDrawer() {
   const container = document.getElementById("cart-items-container");
   const subtotalEl = document.getElementById("cart-subtotal");
@@ -482,153 +710,178 @@ function renderCartDrawer() {
   if (state.cart.length === 0) {
     container.innerHTML = `
       <div class="py-16 text-center text-slate-400">
-        <div class="text-4xl mb-3">🛒</div>
+        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-300">
+          <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+        </div>
         <p class="text-sm font-semibold text-slate-700">Your cart is empty</p>
         <p class="text-xs text-slate-500 mt-1">Explore our catalog to add items!</p>
       </div>
     `;
     if (subtotalEl) subtotalEl.textContent = "KES 0";
+    if (discountRow) discountRow.classList.add("hidden");
     if (totalEl) totalEl.textContent = "KES 0";
     if (serviceBookingSection) serviceBookingSection.classList.add("hidden");
+    renderIcons();
     return;
   }
 
-  const subtotal = state.cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const hasServiceItem = state.cart.some((i) => i.itemType === "SERVICE");
-
-  // Show service appointment date picker if booking a service
+  // Check if any cart item is a SERVICE
+  const hasService = state.cart.some((i) => i.itemType === "SERVICE");
   if (serviceBookingSection) {
-    serviceBookingSection.classList.toggle("hidden", !hasServiceItem);
+    serviceBookingSection.classList.toggle("hidden", !hasService);
   }
 
+  let subtotal = 0;
   let html = "";
+
   state.cart.forEach((item, index) => {
+    const itemTotal = item.price * item.quantity;
+    subtotal += itemTotal;
+
     html += `
-      <div class="flex items-center gap-3 py-3 border-b border-slate-100">
-        <img src="${item.image}" alt="${item.title}" class="w-14 h-14 object-contain rounded-lg bg-slate-50 p-1 border border-slate-200">
+      <div class="flex items-center gap-3 py-3 border-b border-slate-100 text-xs">
+        <img src="${item.image}" alt="${item.title}" class="w-14 h-14 object-contain rounded-lg bg-slate-50 p-1 border border-slate-100">
         <div class="flex-1 min-w-0">
-          <h4 class="text-xs font-bold text-slate-900 truncate">${item.title}</h4>
-          <p class="text-xs font-semibold text-emerald-600 mt-0.5">KES ${Number(item.price).toLocaleString()}</p>
+          <h4 class="font-bold text-slate-900 truncate">${item.title}</h4>
+          <span class="text-slate-500 font-mono">KES ${item.price.toLocaleString()}</span>
         </div>
-        <div class="flex items-center gap-1.5 bg-slate-100 rounded-lg p-1">
-          <button onclick="updateCartQuantity(${index}, -1)" class="w-6 h-6 flex items-center justify-center bg-white rounded text-xs font-bold shadow-sm">-</button>
-          <span class="text-xs font-bold px-1.5">${item.quantity}</span>
-          <button onclick="updateCartQuantity(${index}, 1)" class="w-6 h-6 flex items-center justify-center bg-white rounded text-xs font-bold shadow-sm">+</button>
+        <div class="flex items-center gap-2">
+          <button onclick="updateCartQuantity(${index}, -1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700">-</button>
+          <span class="font-bold text-slate-900 w-4 text-center">${item.quantity}</span>
+          <button onclick="updateCartQuantity(${index}, 1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700">+</button>
         </div>
+        <span class="font-bold text-slate-900 min-w-[70px] text-right">KES ${itemTotal.toLocaleString()}</span>
       </div>
     `;
   });
 
   container.innerHTML = html;
-  if (subtotalEl) subtotalEl.textContent = `KES ${subtotal.toLocaleString()}`;
 
-  let discount = 0;
+  let discountAmount = 0;
   if (state.appliedCoupon) {
-    discount = state.appliedCoupon.discountAmount;
-    if (discountRow) discountRow.classList.remove("hidden");
-    if (discountEl) discountEl.textContent = `- KES ${discount.toLocaleString()}`;
-  } else {
-    if (discountRow) discountRow.classList.add("hidden");
+    if (state.appliedCoupon.type === "PERCENTAGE") {
+      discountAmount = Math.round((subtotal * state.appliedCoupon.value) / 100);
+    } else {
+      discountAmount = state.appliedCoupon.value;
+    }
   }
 
-  const total = Math.max(0, subtotal - discount);
-  if (totalEl) totalEl.textContent = `KES ${total.toLocaleString()}`;
+  const finalTotal = Math.max(1, subtotal - discountAmount);
+
+  if (subtotalEl) subtotalEl.textContent = `KES ${subtotal.toLocaleString()}`;
+  if (discountRow) {
+    discountRow.classList.toggle("hidden", discountAmount === 0);
+    if (discountEl) discountEl.textContent = `- KES ${discountAmount.toLocaleString()}`;
+  }
+  if (totalEl) totalEl.textContent = `KES ${finalTotal.toLocaleString()}`;
+  renderIcons();
 }
 
-// 12. Validate Coupon Code
+// 14. Apply Promotion / Coupon
 async function applyCoupon() {
-  const input = document.getElementById("coupon-code-input");
-  if (!input || !input.value.trim()) return;
+  const codeInput = document.getElementById("coupon-code-input");
+  if (!codeInput) return;
+  const code = codeInput.value.trim().toUpperCase();
 
-  const code = input.value.trim().toUpperCase();
-  const subtotal = state.cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  if (!code) {
+    showToast("Please enter a promotion code", "error");
+    return;
+  }
+
+  const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const res = await apiFetch("/api/offers/validate-coupon", {
     method: "POST",
     body: JSON.stringify({
       code,
-      orderAmount: subtotal,
-      itemIds: state.cart.map((i) => i.itemId),
+      cartTotal: subtotal,
+      cartItems: state.cart.map((i) => ({ itemId: i.itemId, quantity: i.quantity })),
     }),
   });
 
   if (res.ok && res.data.success) {
     state.appliedCoupon = res.data.data;
-    showToast(`Coupon "${code}" applied! Saved KES ${res.data.data.discountAmount}`);
+    showToast(`Coupon "${code}" applied: ${res.data.data.discountDescription}`);
     renderCartDrawer();
   } else {
     showToast(res.data.error?.message || "Invalid or expired coupon", "error");
+    state.appliedCoupon = null;
+    renderCartDrawer();
   }
 }
 
-// 13. Initiate M-Pesa Checkout
+// 15. Initiate Checkout with M-Pesa STK Push
 async function initiateMpesaCheckout() {
-  const nameEl = document.getElementById("checkout-name");
-  const emailEl = document.getElementById("checkout-email");
-  const phoneEl = document.getElementById("checkout-phone");
-  const bookingDateEl = document.getElementById("booking-date");
-  const bookingTimeEl = document.getElementById("booking-time");
-
-  const name = nameEl?.value.trim() || state.customerUser?.fullName;
-  const email = emailEl?.value.trim() || state.customerUser?.email;
-  const phone = phoneEl?.value.trim();
+  const name = document.getElementById("checkout-name").value.trim();
+  const email = document.getElementById("checkout-email").value.trim();
+  const phone = document.getElementById("checkout-phone").value.trim();
+  const btn = document.getElementById("btn-pay-mpesa");
 
   if (!name || !email || !phone) {
-    showToast("Please fill in your name, email, and Kenyan phone number.", "error");
+    showToast("Please fill in your name, email, and phone number", "error");
     return;
   }
 
-  const hasService = state.cart.some((i) => i.itemType === "SERVICE");
+  if (state.cart.length === 0) {
+    showToast("Your cart is empty", "error");
+    return;
+  }
+
+  // Booking details for services
   let bookingDetails = undefined;
-  if (hasService && bookingDateEl?.value) {
+  const hasService = state.cart.some((i) => i.itemType === "SERVICE");
+  if (hasService) {
+    const bookingDate = document.getElementById("booking-date")?.value;
+    const timeSlot = document.getElementById("booking-time")?.value;
     bookingDetails = {
-      bookingDate: bookingDateEl.value,
-      timeSlot: bookingTimeEl?.value || "Morning",
+      bookingDate: bookingDate || new Date().toISOString().split("T")[0],
+      timeSlot: timeSlot || "Morning (9am - 12pm)",
     };
   }
 
-  const checkoutPayload = {
+  btn.disabled = true;
+  btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full spin-slow mr-2"></div> Initiating STK Push...`;
+
+  const payload = {
     customerName: name,
     customerEmail: email,
     customerPhone: phone,
     items: state.cart.map((i) => ({ itemId: i.itemId, quantity: i.quantity })),
-    couponCode: state.appliedCoupon ? state.appliedCoupon.couponCode : undefined,
+    couponCode: state.appliedCoupon?.code,
     bookingDetails,
   };
 
-  const btn = document.getElementById("btn-pay-mpesa");
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spin-slow inline-block">⏳</span> Sending M-Pesa Prompt...`;
-  }
-
   const res = await apiFetch("/api/orders/checkout", {
     method: "POST",
-    body: JSON.stringify(checkoutPayload),
+    body: JSON.stringify(payload),
   });
 
-  if (btn) {
-    btn.disabled = false;
-    btn.innerHTML = `🟢 Pay with M-Pesa STK Push`;
-  }
+  btn.disabled = false;
+  btn.innerHTML = `<i data-lucide="smartphone" class="w-4 h-4 mr-2"></i> Pay with M-Pesa STK Push`;
+  renderIcons();
 
   if (res.ok && res.data.success) {
-    const data = res.data.data;
-    // Clear cart
+    const orderData = res.data.data;
+
+    // Clear cart on successful order creation
     state.cart = [];
-    state.appliedCoupon = null;
     saveCart();
     updateCartBadge();
     toggleDrawer("cart-drawer", false);
 
-    // Open M-Pesa PIN Modal
-    openMpesaPinModal(data.checkoutRequestId, data.orderNumber, data.totalAmount, phone);
+    // Open live PIN prompt modal
+    openMpesaPinModal(
+      orderData.checkoutRequestId,
+      orderData.orderNumber,
+      orderData.totalAmount,
+      phone
+    );
   } else {
-    showToast(res.data.error?.message || "Failed to initiate M-Pesa payment", "error");
+    showToast(res.data.error?.message || "Checkout failed. Please check M-Pesa configuration.", "error");
   }
 }
 
-// 14. Real-Time M-Pesa PIN Prompt & Status Polling
+// 16. Real-Time M-Pesa PIN Prompt & Status Polling
 function openMpesaPinModal(checkoutRequestId, orderNumber, amount, phone) {
   const modal = document.getElementById("mpesa-pin-modal");
   if (!modal) return;
@@ -639,8 +892,8 @@ function openMpesaPinModal(checkoutRequestId, orderNumber, amount, phone) {
   document.getElementById("mpesa-status-text").textContent = "Prompt sent! Check your phone and enter M-Pesa PIN...";
 
   modal.classList.remove("hidden");
+  renderIcons();
 
-  // Poll status every 2.5 seconds
   if (state.activePollInterval) clearInterval(state.activePollInterval);
 
   let attempts = 0;
@@ -657,22 +910,24 @@ function openMpesaPinModal(checkoutRequestId, orderNumber, amount, phone) {
       const statusData = res.data.data;
       if (statusData.status === "COMPLETED") {
         clearInterval(state.activePollInterval);
-        document.getElementById("mpesa-modal-icon").innerHTML = "🎉";
+        document.getElementById("mpesa-modal-icon").innerHTML = `<i data-lucide="check-circle" class="w-8 h-8 text-emerald-600"></i>`;
         document.getElementById("mpesa-status-text").innerHTML = `
           <strong class="text-emerald-600 block text-base mb-1">Payment Successful!</strong>
           M-Pesa Receipt: <span class="font-mono font-bold">${statusData.mpesaReceiptNumber || "CONFIRMED"}</span>
         `;
         showToast("Payment received! Order confirmed.");
+        renderIcons();
       } else if (statusData.status === "FAILED") {
         clearInterval(state.activePollInterval);
-        document.getElementById("mpesa-modal-icon").innerHTML = "❌";
+        document.getElementById("mpesa-modal-icon").innerHTML = `<i data-lucide="alert-circle" class="w-8 h-8 text-rose-600"></i>`;
         document.getElementById("mpesa-status-text").textContent = "Payment cancelled or insufficient funds.";
+        renderIcons();
       }
     }
   }, 2500);
 }
 
-// 15. Platform Mode: Load All Stores
+// 17. Platform Mode: Load All Stores
 async function loadPlatformStores() {
   const container = document.getElementById("platform-stores-grid");
   const selector = document.getElementById("store-selector");
@@ -682,71 +937,82 @@ async function loadPlatformStores() {
   const stores = (res.ok && res.data.success && Array.isArray(res.data.data)) ? res.data.data : [];
 
   if (selector) {
-    let selectorHtml = `<option value="">🌐 Marketplace Directory</option>`;
+    let selectorHtml = `<option value="">Marketplace Directory</option>`;
     stores.forEach((s) => {
-      selectorHtml += `<option value="${s.subdomain}" ${state.activeTenantSlug === s.subdomain ? "selected" : ""}>🏪 ${s.name}</option>`;
+      selectorHtml += `<option value="${s.subdomain}" ${state.activeTenantSlug === s.subdomain ? "selected" : ""}>${s.name}</option>`;
     });
     selector.innerHTML = selectorHtml;
   }
 
   if (stores.length === 0) {
     container.innerHTML = `
-      <div onclick="switchStore('alicebabycare')" class="bg-white rounded-2xl p-6 border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-left group">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl">👶</div>
-          <div>
-            <h4 class="font-bold text-slate-900 group-hover:text-emerald-600">Alice Baby Care & Electronics</h4>
-            <span class="text-xs text-slate-400">alicebabycare.store254.co.ke</span>
-          </div>
+      <div class="col-span-full bg-white rounded-3xl p-8 border border-slate-200 text-center shadow-sm">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="store" class="w-6 h-6"></i>
         </div>
-        <p class="text-xs text-slate-600 line-clamp-2">Smart TVs, Audio woofers, baby strollers, and nursery safety consulting.</p>
-        <div class="mt-4 flex items-center justify-between text-xs font-bold text-emerald-600">
-          <span>Visit Storefront &rarr;</span>
-          <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px]">Verified Store</span>
-        </div>
+        <h4 class="font-bold text-slate-900 text-base">Verified Stores Launching Daily</h4>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
+          Store254 is welcoming verified Kenyan businesses. Be the first in your category to sell with your own subdomain and direct M-Pesa.
+        </p>
+        <button onclick="toggleDrawer('onboard-modal', true)" class="mt-4 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all inline-flex items-center gap-1.5">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Onboard Your Store</span>
+        </button>
       </div>
     `;
+    renderIcons();
     return;
   }
 
-  const icons = {
-    ELECTRONICS: "📺",
-    SERVICES: "🛠️",
-    FURNITURE: "🛋️",
-    RETAIL: "🛒",
-    GENERAL: "🛍️",
+  const iconMap = {
+    ELECTRONICS: "tv",
+    SERVICES: "briefcase",
+    FURNITURE: "armchair",
+    RETAIL: "shopping-bag",
+    GENERAL: "store",
   };
 
   container.innerHTML = stores.map((s) => `
-    <div onclick="switchStore('${s.subdomain}')" class="bg-white rounded-2xl p-6 border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-left group">
-      <div class="flex items-center gap-3 mb-3">
-        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl">
-          ${icons[s.businessType] || "🏪"}
+    <div onclick="switchStore('${s.subdomain}')" class="bg-white rounded-2xl p-6 border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-left group flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <i data-lucide="${iconMap[s.businessType] || "store"}" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">${s.name}</h4>
+            <span class="text-xs text-slate-400 font-mono">${s.subdomain}.store254.co.ke</span>
+          </div>
         </div>
-        <div>
-          <h4 class="font-bold text-slate-900 group-hover:text-emerald-600">${s.name}</h4>
-          <span class="text-xs text-slate-400">${s.subdomain}.store254.co.ke</span>
-        </div>
+        <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed">${s.settings?.description || "Browse dynamic catalog and pay directly to merchant Till or Paybill."}</p>
       </div>
-      <p class="text-xs text-slate-600 line-clamp-2">${s.settings?.description || "Browse catalog, dynamic filters, and pay with M-Pesa directly to merchant."}</p>
-      <div class="mt-4 flex items-center justify-between text-xs font-bold text-emerald-600">
-        <span>Visit Storefront &rarr;</span>
-        <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-mono uppercase">${s.businessType}</span>
+      <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600">
+        <span class="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          <span>Visit Storefront</span>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </span>
+        <span class="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded text-[10px] font-mono uppercase">${s.businessType}</span>
       </div>
     </div>
   `).join("");
+
+  renderIcons();
 }
 
-// 16. Store Switcher
+// 18. Store Switcher
 function switchStore(slug) {
   state.activeTenantSlug = slug;
-  localStorage.setItem("store254_tenant_slug", slug);
+  if (slug) {
+    window.location.hash = `store=${slug}`;
+  } else {
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+  }
   state.activeFilters = {};
   state.selectedCategory = "";
   loadStoreProfile();
 }
 
-// 17. UI Drawer Toggles
+// 19. UI Drawer Toggles
 function toggleDrawer(id, show) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -755,12 +1021,14 @@ function toggleDrawer(id, show) {
     el.classList.remove("hidden");
     if (id === "cart-drawer") renderCartDrawer();
     if (id === "orders-drawer") loadMyOrders();
+    if (id === "super-admin-drawer") loadSuperAdminStats();
   } else {
     el.classList.add("hidden");
   }
+  renderIcons();
 }
 
-// 18. Customer Order Tracking (My Orders)
+// 20. Customer Order Tracking (My Orders)
 async function loadMyOrders() {
   const container = document.getElementById("my-orders-container");
   if (!container) return;
@@ -769,14 +1037,22 @@ async function loadMyOrders() {
   if (res.ok && res.data.success) {
     state.myOrders = res.data.data;
     if (state.myOrders.length === 0) {
-      container.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">No past orders found.</p>`;
+      container.innerHTML = `
+        <div class="py-12 text-center text-slate-400">
+          <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-300">
+            <i data-lucide="package" class="w-6 h-6"></i>
+          </div>
+          <p class="text-xs font-semibold text-slate-600">No past orders found.</p>
+        </div>
+      `;
+      renderIcons();
       return;
     }
 
     let html = "";
     for (const order of state.myOrders) {
       html += `
-        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 mb-2.5 text-xs">
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 mb-2.5 text-xs">
           <div class="flex justify-between items-center mb-1.5">
             <span class="font-bold font-mono text-slate-900">#${order.orderNumber}</span>
             <span class="px-2 py-0.5 rounded font-bold text-[10px] ${
@@ -784,15 +1060,23 @@ async function loadMyOrders() {
             }">${order.status}</span>
           </div>
           <p class="text-slate-600">Total: <strong>KES ${Number(order.totalAmount).toLocaleString()}</strong></p>
-          ${order.fulfillmentDetails?.trackingNumber ? `<p class="text-emerald-700 mt-1">🚚 Tracking: <strong>${order.fulfillmentDetails.trackingNumber}</strong> (${order.fulfillmentDetails.courierName || "Courier"})</p>` : ""}
+          ${
+            order.fulfillmentDetails?.trackingNumber
+              ? `<p class="text-emerald-700 mt-2 flex items-center gap-1.5">
+                  <i data-lucide="truck" class="w-3.5 h-3.5"></i>
+                  <span>Tracking: <strong>${order.fulfillmentDetails.trackingNumber}</strong> (${order.fulfillmentDetails.courierName || "Courier"})</span>
+                </p>`
+              : ""
+          }
         </div>
       `;
     }
     container.innerHTML = html;
+    renderIcons();
   }
 }
 
-// 19. Super Admin Actions
+// 21. Super Admin Actions
 async function loadSuperAdminStats() {
   const res = await apiFetch("/api/platform/admin/stats", {
     headers: { "x-admin-key": state.superAdminKey },
@@ -803,10 +1087,11 @@ async function loadSuperAdminStats() {
     document.getElementById("admin-stat-stores").textContent = stats.stores.total;
     document.getElementById("admin-stat-pending").textContent = stats.stores.pendingApproval;
     document.getElementById("admin-stat-gmv").textContent = `KES ${stats.orders.platformGMV_KES.toLocaleString()}`;
-    loadSuperAdminStores();
+    await loadSuperAdminStores();
   } else {
     showToast("Invalid Super Admin Key", "error");
   }
+  renderIcons();
 }
 
 async function loadSuperAdminStores() {
@@ -836,7 +1121,7 @@ async function loadSuperAdminStores() {
             }">${store.status}</span>
             ${
               store.status === "PENDING"
-                ? `<button onclick="activateStore('${store.id}')" class="px-2 py-1 bg-emerald-600 text-white rounded font-bold">Approve</button>`
+                ? `<button onclick="activateStore('${store.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Approve</button>`
                 : ""
             }
           </div>
@@ -844,6 +1129,7 @@ async function loadSuperAdminStores() {
       `;
     }
     container.innerHTML = html;
+    renderIcons();
   }
 }
 
@@ -859,8 +1145,9 @@ async function activateStore(storeId) {
   }
 }
 
-// 20. Initialization
+// 22. Initialization
 window.addEventListener("DOMContentLoaded", () => {
+  renderIcons();
   updateCartBadge();
   loadStoreProfile();
 });

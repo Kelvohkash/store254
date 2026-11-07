@@ -27,6 +27,10 @@
       }
     }
   </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen flex flex-col">
@@ -46,31 +50,35 @@
       <!-- Store Switcher & Search Bar -->
       <div class="flex-1 max-w-xl flex items-center gap-2">
         <select id="store-selector" onchange="switchStore(this.value)" class="text-xs font-bold text-slate-700 bg-slate-100 border-none rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-emerald-500">
-          <option value="">🌐 Marketplace Directory</option>
-          <option value="alicebabycare">👶 Alice Baby Care (Demo Store)</option>
+          <option value="">Marketplace Directory</option>
         </select>
 
         <div class="relative flex-1">
           <input type="text" id="search-input" oninput="loadItems()" placeholder="Search products, services, brands..." class="w-full bg-slate-100 text-xs text-slate-900 rounded-xl pl-9 pr-4 py-2.5 border-transparent focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
-          <span class="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
+          <span class="absolute left-3 top-2.5 text-slate-400">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </span>
         </div>
       </div>
 
       <!-- Action Navigation Buttons -->
       <div class="flex items-center gap-3">
         <!-- Super Admin Button -->
-        <button onclick="toggleDrawer('super-admin-drawer', true)" class="px-3 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
-          🛡️ Admin
+        <button onclick="toggleDrawer('super-admin-drawer', true)" class="px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-1.5">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+          <span>Admin</span>
         </button>
 
         <!-- Customer Orders Button -->
-        <button onclick="toggleDrawer('orders-drawer', true)" class="px-3 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
-          📦 Orders
+        <button onclick="toggleDrawer('orders-drawer', true)" class="px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-1.5">
+          <i data-lucide="package" class="w-3.5 h-3.5"></i>
+          <span>Orders</span>
         </button>
 
         <!-- Cart Button -->
         <button onclick="toggleDrawer('cart-drawer', true)" class="relative flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all transform active:scale-95">
-          <span>🛒 Cart</span>
+          <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
+          <span>Cart</span>
           <span id="cart-count-badge" class="hidden bg-white text-emerald-800 text-[11px] font-black w-5 h-5 rounded-full flex items-center justify-center">0</span>
         </button>
       </div>
@@ -78,12 +86,13 @@
     </div>
   </header>
 
-  <!-- STOREFRONT BANNER (Visible when browsing a store) -->
+  <!-- STOREFRONT BANNER (Visible only when browsing an active store subdomain) -->
   <section id="store-info-banner" class="hidden bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white py-8 border-b border-slate-700">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
       <div>
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold uppercase tracking-wider mb-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Verified Store254 Store
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold uppercase tracking-wider mb-2">
+          <i data-lucide="badge-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Verified Store254 Merchant</span>
         </div>
         <h1 id="banner-store-name" class="text-2xl sm:text-3xl font-black tracking-tight">Store Name</h1>
         <p id="banner-store-subdomain" class="text-xs font-mono text-emerald-400 mt-0.5">subdomain.store254.co.ke</p>
@@ -91,39 +100,96 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <span id="banner-store-phone" class="hidden text-xs bg-white/10 px-3 py-2 rounded-xl text-white font-semibold">📞 Phone</span>
-        <button onclick="toggleDrawer('onboard-modal', true)" class="px-4 py-2 bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold rounded-xl transition-colors">
-          + Launch Your Store
+        <span id="banner-store-phone" class="hidden text-xs bg-white/10 px-3 py-2 rounded-xl text-white font-semibold flex items-center gap-1.5">
+          <i data-lucide="phone" class="w-3.5 h-3.5"></i>
+          <span id="banner-store-phone-text"></span>
+        </span>
+        <button onclick="switchStore('')" class="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          <span>Marketplace</span>
+        </button>
+        <button onclick="toggleDrawer('onboard-modal', true)" class="px-4 py-2 bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <span>Launch Your Store</span>
         </button>
       </div>
     </div>
   </section>
 
-  <!-- PLATFORM HERO (Visible when in root marketplace directory mode) -->
-  <section id="platform-hero" class="py-14 px-4 max-w-7xl mx-auto text-center">
-    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-4">
-      🚀 Kenya's Digital Marketplace Platform
+  <!-- PLATFORM HERO (Visible when in root marketplace directory mode at store254.co.ke) -->
+  <section id="platform-hero" class="py-16 px-4 max-w-7xl mx-auto text-center">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-5">
+      <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-600"></i>
+      <span>Kenya's Premier Digital Marketplace Platform</span>
     </div>
-    <h2 class="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight max-w-3xl mx-auto">
-      Sell Products & Services on your own <span class="text-emerald-600">Subdomain</span>
-    </h2>
-    <p class="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto mt-4">
-      Launch your dynamic online storefront on Store254 with automatic catalog filters, custom attributes, and direct M-Pesa payments straight to your Till or Paybill.
+    
+    <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight max-w-4xl mx-auto">
+      Empower Your Business With Your Own <span class="text-emerald-600">Subdomain Storefront</span>
+    </h1>
+    
+    <p class="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto mt-4 leading-relaxed">
+      Launch your verified online storefront on Store254 with dedicated subdomains, dynamic catalogs, and direct M-Pesa payments straight to your Till or Paybill.
     </p>
 
+    <!-- Platform CTAs -->
     <div class="mt-8 flex flex-wrap justify-center gap-3">
-      <button onclick="toggleDrawer('onboard-modal', true)" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
-        ✨ Onboard Your Store Now
+      <button onclick="toggleDrawer('onboard-modal', true)" class="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
+        <i data-lucide="store" class="w-4 h-4"></i>
+        <span>Launch Your Store Now</span>
       </button>
-      <button onclick="switchStore('alicebabycare')" class="px-6 py-3 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-bold text-sm rounded-xl transition-colors">
-        👀 Explore Demo Storefront
+      <button onclick="document.getElementById('platform-stores-section')?.scrollIntoView({ behavior: 'smooth' })" class="px-6 py-3.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-bold text-sm rounded-xl transition-colors flex items-center gap-2">
+        <i data-lucide="compass" class="w-4 h-4 text-emerald-600"></i>
+        <span>Explore Verified Merchants</span>
       </button>
     </div>
 
-    <!-- Active Stores Grid -->
-    <div class="mt-14 max-w-4xl mx-auto">
-      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 text-left">Featured Stores</h3>
-      <div id="platform-stores-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+    <!-- Platform Value Proposition Grid -->
+    <div class="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left max-w-5xl mx-auto">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+          <i data-lucide="globe" class="w-5 h-5"></i>
+        </div>
+        <h4 class="font-bold text-slate-900 text-sm">Custom Subdomains</h4>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">Get your own branded address at <code class="font-mono text-emerald-600 font-semibold">yourstore.store254.co.ke</code>.</p>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+          <i data-lucide="smartphone" class="w-5 h-5"></i>
+        </div>
+        <h4 class="font-bold text-slate-900 text-sm">Direct M-Pesa (Model B)</h4>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">Payments from STK Push go directly to your merchant Till or Paybill shortcode.</p>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+          <i data-lucide="layers" class="w-5 h-5"></i>
+        </div>
+        <h4 class="font-bold text-slate-900 text-sm">Products & Services</h4>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">Sell physical items with dynamic filters or book consultations with time slots.</p>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <h4 class="font-bold text-slate-900 text-sm">Verified Security</h4>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">Every merchant is vetted and approved by our Super Admin team for buyer trust.</p>
+      </div>
+    </div>
+
+    <!-- Active Stores Grid Section -->
+    <div id="platform-stores-section" class="mt-20 max-w-5xl mx-auto pt-6 border-t border-slate-200">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
+            <i data-lucide="store" class="w-5 h-5 text-emerald-600"></i>
+            <span>Verified Merchants on Store254</span>
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">Explore active stores approved to sell on Store254</p>
+        </div>
+      </div>
+      <div id="platform-stores-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </div>
   </section>
 
@@ -142,9 +208,13 @@
       <aside class="lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200 h-fit sticky top-28">
         <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
           <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <span>⚙️</span> Filters
+            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-emerald-600"></i>
+            <span>Filters</span>
           </h3>
-          <button onclick="resetFilters()" class="text-[11px] text-emerald-600 hover:underline font-semibold">Reset</button>
+          <button onclick="resetFilters()" class="text-[11px] text-emerald-600 hover:underline font-semibold flex items-center gap-1">
+            <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+            <span>Reset</span>
+          </button>
         </div>
 
         <!-- Price Range Filter -->
@@ -179,9 +249,12 @@
       <div>
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
           <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
-            <span>🛒</span> Shopping Cart & Checkout
+            <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-600"></i>
+            <span>Shopping Cart & Checkout</span>
           </h3>
-          <button onclick="toggleDrawer('cart-drawer', false)" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+          <button onclick="toggleDrawer('cart-drawer', false)" class="text-slate-400 hover:text-slate-600 p-1">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
         </div>
 
         <!-- Cart Items List -->
@@ -190,7 +263,8 @@
         <!-- Service Booking Details (Auto-visible if cart has a service) -->
         <div id="service-booking-section" class="hidden mb-6 p-4 bg-indigo-50/70 border border-indigo-100 rounded-xl">
           <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <span>📅</span> Schedule Service Appointment
+            <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-600"></i>
+            <span>Schedule Service Appointment</span>
           </h4>
           <div class="grid grid-cols-2 gap-2">
             <div>
@@ -244,18 +318,107 @@
         </div>
 
         <button id="btn-pay-mpesa" onclick="initiateMpesaCheckout()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
-          <span>🟢</span> Pay with M-Pesa STK Push
+          <i data-lucide="smartphone" class="w-4 h-4"></i>
+          <span>Pay with M-Pesa STK Push</span>
         </button>
       </div>
 
     </div>
   </div>
 
+  <!-- ITEM DETAILS & REVIEWS MODAL -->
+  <div id="item-details-modal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+        <h3 id="item-modal-title" class="text-base font-black text-slate-900 truncate pr-4">Item Details</h3>
+        <button onclick="toggleDrawer('item-details-modal', false)" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Scrollable Content -->
+      <div class="p-6 overflow-y-auto space-y-6 flex-1">
+        <!-- Main Product Info -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <div class="bg-slate-50 rounded-2xl p-4 flex items-center justify-center h-56 border border-slate-100">
+            <img id="item-modal-image" src="" alt="Product" class="max-h-full max-w-full object-contain">
+          </div>
+          <div>
+            <div id="item-modal-badges" class="flex flex-wrap gap-1.5 mb-2"></div>
+            <div class="flex items-baseline gap-2 mb-3">
+              <span id="item-modal-price" class="text-2xl font-black text-slate-900">KES 0</span>
+              <span id="item-modal-compare-price" class="hidden text-xs text-slate-400 line-through">KES 0</span>
+            </div>
+            <p id="item-modal-description" class="text-xs text-slate-600 leading-relaxed mb-4"></p>
+            <div id="item-modal-attributes" class="grid grid-cols-2 gap-2 text-xs"></div>
+            <div class="mt-5">
+              <button id="item-modal-btn-cart" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2">
+                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                <span>Add to Cart</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reviews & Ratings Section -->
+        <div class="border-t border-slate-100 pt-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h4 class="text-sm font-black text-slate-900 flex items-center gap-2">
+                <i data-lucide="star" class="w-4 h-4 fill-amber-400 text-amber-400"></i>
+                <span>Customer Ratings & Reviews</span>
+              </h4>
+              <p id="item-modal-rating-summary" class="text-xs text-slate-500 mt-0.5">Rating: 5.0 / 5 (0 reviews)</p>
+            </div>
+            <button onclick="toggleReviewForm()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5">
+              <i data-lucide="pen-tool" class="w-3 h-3 text-slate-600"></i>
+              <span>Write a Review</span>
+            </button>
+          </div>
+
+          <!-- Add Review Form (Collapsible) -->
+          <form id="item-modal-review-form" onsubmit="handleReviewSubmit(event)" class="hidden mb-6 p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 text-xs">
+            <h5 class="font-bold text-slate-800">Share your experience</h5>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-600 mb-1">Your Name</label>
+                <input type="text" id="review-input-name" required placeholder="e.g. Kelvin K." class="w-full p-2.5 rounded-xl border border-slate-300">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-600 mb-1">Rating</label>
+                <select id="review-input-rating" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-amber-600">
+                  <option value="5">⭐⭐⭐⭐⭐ (5 Stars - Excellent)</option>
+                  <option value="4">⭐⭐⭐⭐ (4 Stars - Good)</option>
+                  <option value="3">⭐⭐⭐ (3 Stars - Average)</option>
+                  <option value="2">⭐⭐ (2 Stars - Below Average)</option>
+                  <option value="1">⭐ (1 Star - Poor)</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-600 mb-1">Review Comment</label>
+              <textarea id="review-input-comment" rows="2" placeholder="Tell other shoppers what you liked or how the delivery was..." class="w-full p-2.5 rounded-xl border border-slate-300"></textarea>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" onclick="toggleReviewForm(false)" class="px-3 py-2 text-slate-600 hover:bg-slate-200 rounded-lg">Cancel</button>
+              <button type="submit" id="btn-submit-review" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm">Submit Review</button>
+            </div>
+          </form>
+
+          <!-- Reviews List -->
+          <div id="item-modal-reviews-list" class="space-y-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- M-PESA PIN PROMPT MODAL -->
   <div id="mpesa-pin-modal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-slate-100">
-      <div id="mpesa-modal-icon" class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mx-auto mb-4 pulse-glow">
-        📲
+      <div id="mpesa-modal-icon" class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 pulse-glow">
+        <i data-lucide="smartphone" class="w-8 h-8"></i>
       </div>
       <h3 class="text-lg font-black text-slate-900 mb-1">M-Pesa STK Push Sent!</h3>
       <p id="mpesa-status-text" class="text-xs text-slate-600 mb-6">
@@ -285,13 +448,17 @@
       <div>
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
           <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
-            <span>🛡️</span> Super Admin Platform Manager
+            <i data-lucide="shield" class="w-4 h-4 text-slate-900"></i>
+            <span>Super Admin Platform Manager</span>
           </h3>
-          <button onclick="toggleDrawer('super-admin-drawer', false)" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+          <button onclick="toggleDrawer('super-admin-drawer', false)" class="text-slate-400 hover:text-slate-600 p-1">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
         </div>
 
-        <button onclick="loadSuperAdminStats()" class="w-full mb-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold">
-          🔄 Refresh Platform Stats
+        <button onclick="loadSuperAdminStats()" class="w-full mb-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span>Refresh Platform Stats</span>
         </button>
 
         <!-- Metrics -->
@@ -322,9 +489,12 @@
       <div>
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
           <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
-            <span>📦</span> My Orders & Tracking
+            <i data-lucide="package" class="w-4 h-4 text-slate-900"></i>
+            <span>My Orders & Tracking</span>
           </h3>
-          <button onclick="toggleDrawer('orders-drawer', false)" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+          <button onclick="toggleDrawer('orders-drawer', false)" class="text-slate-400 hover:text-slate-600 p-1">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
         </div>
         <div id="my-orders-container" class="space-y-2"></div>
       </div>
@@ -335,12 +505,17 @@
   <div id="onboard-modal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-black text-slate-900">Onboard Your Store</h3>
-        <button onclick="toggleDrawer('onboard-modal', false)" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+        <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
+          <i data-lucide="store" class="w-5 h-5 text-emerald-600"></i>
+          <span>Onboard Your Store</span>
+        </h3>
+        <button onclick="toggleDrawer('onboard-modal', false)" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
       </div>
 
-      <p class="text-xs text-slate-500 mb-6">
-        Register your store on Store254. Your application will be reviewed by the Super Admin team before going live.
+      <p class="text-xs text-slate-500 mb-6 leading-relaxed">
+        Register your store on Store254. Your application will be reviewed and activated by our Super Admin team.
       </p>
 
       <form onsubmit="handleOnboardSubmit(event)" class="space-y-4 text-xs">
@@ -382,16 +557,25 @@
           <input type="password" id="onboard-password" required placeholder="••••••••" class="w-full p-2.5 rounded-xl border border-slate-300">
         </div>
 
-        <button type="submit" id="btn-onboard" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md mt-2">
-          Submit Store Application
+        <button type="submit" id="btn-onboard" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md mt-2 flex items-center justify-center gap-2">
+          <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+          <span>Submit Store Application</span>
         </button>
       </form>
     </div>
   </div>
 
   <!-- Footer -->
-  <footer class="mt-auto bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
-    &copy; 2026 Store254.co.ke &bull; All Rights Reserved &bull; Nairobi, Kenya
+  <footer class="mt-auto bg-white border-t border-slate-200 py-8 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <img src="./assets/logo.jpg" alt="Store254" class="h-6 w-auto object-contain">
+        <span class="font-semibold text-slate-700">Store254 &bull; Your Digital Market Place</span>
+      </div>
+      <div>
+        &copy; 2026 Store254.co.ke &bull; All Rights Reserved &bull; Nairobi, Kenya
+      </div>
+    </div>
   </footer>
 
   <script src="./app.js"></script>
@@ -417,7 +601,8 @@
       });
 
       btn.disabled = false;
-      btn.textContent = "Submit Store Application";
+      btn.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i> <span>Submit Store Application</span>`;
+      renderIcons();
 
       if (res.ok && res.data.success) {
         showToast("Application submitted! Pending Super Admin review.");
