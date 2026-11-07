@@ -29,6 +29,13 @@
       "when": 1794039335032,
       "tag": "0003_smiling_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1794046662444,
+      "tag": "0004_new_sharon_ventura",
+      "breakpoints": true
     }
   ]
 }
