@@ -10,6 +10,11 @@
     "test": "cd backend && npm test",
     "typecheck": "cd backend && npm run typecheck",
     "db:migrate:local": "cd backend && npm run db:migrate:local",
-    "db:migrate:prod": "cd backend && npm run db:migrate:prod"
+    "db:migrate:prod": "cd backend && npm run db:migrate:prod",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.158.0"
   }
 }
