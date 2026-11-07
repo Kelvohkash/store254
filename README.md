@@ -2,7 +2,7 @@
 
 A high-performance, enterprise-grade multi-tenant e-commerce and services platform backend built with **Hono**, **Cloudflare Workers**, **Cloudflare D1 (SQLite)**, and **Drizzle ORM**.
 
-Designed specifically for subdomains on `store254.co.ke` (e.g., `alicebabycare.store254.co.ke`), supporting completely dynamic categories, custom product/service attributes, dynamic storefront filtering, promotional offers, **self-onboarding with Super Admin approval**, **email OTP password recovery via `recovery@store254.co.ke`**, and **merchant-owned M-Pesa Daraja STK Push payments (disabled by default)**.
+Designed specifically for subdomains on `store254.co.ke` (e.g., `alicebabycare.store254.co.ke`), supporting completely dynamic categories, custom product/service attributes, dynamic storefront filtering, promotional offers, **self-onboarding with Super Admin approval**, **email OTP password recovery via `recovery@store254.co.ke`**, **Google One-Tap / OAuth sign-in with automatic customer account creation**, and **merchant-owned M-Pesa Daraja STK Push payments (disabled by default)**.
 
 ---
 
@@ -11,6 +11,7 @@ Designed specifically for subdomains on `store254.co.ke` (e.g., `alicebabycare.s
 - **Strict Multi-Tenant Isolation:** All database tables are scoped by `tenant_id`. Every single query requires and enforces tenant boundary validation.
 - **Subdomain Injection & Host Protection:** Strict validation regex (`^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$`) prevents Host header manipulation or tenant traversal. Reserved subdomains (`admin`, `api`, `auth`, `billing`, `mail`, `store254`, etc.) are blocked.
 - **Super Admin Protection:** Super Admin management routes are gated behind `X-Admin-Key` with constant-time equality validation.
+- **Google OAuth2 Token Verification:** Cryptographically verifies Google ID tokens (iss, exp, aud, and verified email status) via Google's secure validation endpoint.
 - **Dynamic CORS Engine:** Disallows wildcard `*` with credentials. Dynamically matches `https://store254.co.ke`, `https://*.store254.co.ke`, and verified custom domains.
 - **OWASP-Grade Security Headers:**
   - `Strict-Transport-Security` (HSTS): 2-year preload (`max-age=63072000; includeSubDomains; preload`).
@@ -28,7 +29,22 @@ Designed specifically for subdomains on `store254.co.ke` (e.g., `alicebabycare.s
 
 ---
 
-## 2. Platform Architecture & Features
+## 2. Customer Google Sign-In & Order Tracking
+
+To eliminate friction and maximize conversions:
+1. **One-Click Sign-In (`POST /api/auth/google`):**
+   - The customer clicks **"Continue with Google"** on the storefront.
+   - The frontend passes the Google ID Token (`idToken`).
+   - The backend verifies the token directly with Google.
+2. **Automatic Customer Account Provisioning:**
+   - If it's a first-time customer, an account is automatically created in `users` with their Google email, verified name, and profile picture avatar.
+   - Signs and issues a tenant-bound JWT token.
+3. **Personalized Order Tracking (`GET /api/orders/my-orders`):**
+   - Authenticated customers can track all current and historical orders, line items, shipment statuses, and M-Pesa transaction receipts.
+
+---
+
+## 3. Platform Architecture & Features
 
 ### A. Landing Page Self-Onboarding & Super Admin Approval
 1. **Self-Onboarding (`POST /api/platform/register-store`):**
@@ -39,27 +55,24 @@ Designed specifically for subdomains on `store254.co.ke` (e.g., `alicebabycare.s
 2. **Super Admin Management (`/api/platform/admin/*`):**
    - `GET /api/platform/admin/stores?status=PENDING`: Inspect pending applications.
    - `PATCH /api/platform/admin/stores/:id/activate`: Approves and activates the store, instantly triggering the official activation email to the owner.
-   - `PATCH /api/platform/admin/stores/:id/deactivate`: Suspends a store (e.g. for policy violations).
+   - `PATCH /api/platform/admin/stores/:id/deactivate`: Suspends a store.
    - `DELETE /api/platform/admin/stores/:id`: Permanently cascades deletion of a store and its data.
    - `GET /api/platform/admin/stats`: Real-time platform metrics (total stores, pending approvals, completed orders, platform GMV).
 
 ### B. Official Email Password Recovery via OTP (`recovery@store254.co.ke`)
 - **Request OTP (`POST /api/platform/forgot-password` or `/api/auth/forgot-password`):**
-  - Validates email and generates a secure 6-digit OTP.
-  - Hashes the OTP before storing it in `password_reset_otps`.
-  - Sends a security-hardened HTML email with the OTP from `recovery@store254.co.ke`.
+  - Sends a security-hardened HTML email with a 6-digit OTP from `recovery@store254.co.ke`.
 - **Reset Password (`POST /api/platform/reset-password` or `/api/auth/reset-password`):**
   - Verifies OTP using constant-time comparison, enforces 3-attempt lockout and 15-minute expiration, updates password to a fresh PBKDF2 hash, and invalidates the OTP.
 
-### C. Recursive Hierarchical Categories
-Supports infinite nested categories:
-- `Electronics` $\rightarrow$ `Smart TVs` $\rightarrow$ `OLED TVs`
-- `Baby Care` $\rightarrow$ `Strollers & Prams`
+### C. Merchant Store Branding & Custom Domain Mapping
+- **Profile & Branding (`PATCH /api/store/settings`):** Store owners can update their store name, description, logo, banner, contact phone, business hours, social media links, and primary theme color.
+- **Custom Apex Domain (`PUT /api/store/settings/custom-domain`):** Allows merchants to map their own apex domain (e.g. `alicebabycare.com`) via CNAME pointing to `alicebabycare.store254.co.ke`.
 
-### D. Dynamic Attributes & Faceted Filters
-- Merchants define attributes (Brand, Screen Size, Resolution, Fabric, Service Duration).
-- Setting `isFilterable: true` automatically exposes the attribute to the dynamic storefront filter engine (`GET /api/filters`).
-- Storefront queries dynamically filter against JSONB attributes (`GET /api/items?brand=Samsung,Sony&screen_size=55`).
+### D. Recursive Hierarchical Categories & Dynamic Attributes
+- Unlimited category nesting: `Electronics` $\rightarrow$ `Smart TVs` $\rightarrow$ `OLED TVs`.
+- Dynamic attributes (Brand, Screen Size, Resolution, Fabric, Service Duration).
+- Dynamic faceted filters (`GET /api/filters`) and search queries (`GET /api/items?brand=Samsung,Sony&screen_size=55`).
 
 ### E. Merchant-Owned M-Pesa Daraja Payments (Disabled by Default)
 - **Zero Platform Escrow:** Customer payments go straight into the merchant's Safaricom Till or Paybill.
@@ -68,7 +81,7 @@ Supports infinite nested categories:
 
 ---
 
-## 3. API Endpoints Reference
+## 4. API Endpoints Reference
 
 ### Public Platform & Onboarding (Root Domain)
 - `GET /health` - Health check with security headers.
@@ -85,12 +98,18 @@ Supports infinite nested categories:
 - `DELETE /api/platform/admin/stores/:id` - Permanently delete store.
 - `GET /api/platform/admin/stats` - Platform-wide analytics (stores, orders, GMV in KES).
 
-### Tenant Storefront & Catalog (Subdomain Scope)
+### Tenant Storefront & Customer Auth (Subdomain Scope)
 - `GET /api/store` - Store profile and settings.
-- `POST /api/auth/login` - Merchant / Customer login (rejects if store is `PENDING`).
-- `POST /api/auth/register` - Customer registration.
+- `PATCH /api/store/settings` - Update store profile, branding, logo, social links (Owner/Admin).
+- `PUT /api/store/settings/custom-domain` - Map custom apex domain (Owner/Admin).
+- `POST /api/auth/google` - **Sign in / Register with Google (Auto-creates customer account).**
+- `POST /api/auth/login` - Merchant / Customer email login (rejects if store is `PENDING`).
+- `POST /api/auth/register` - Customer email registration.
 - `POST /api/auth/forgot-password` - Customer forgot password OTP.
 - `POST /api/auth/reset-password` - Customer OTP password reset.
+- `GET /api/auth/me` - Profile of authenticated user.
+
+### Catalog & Dynamic Filters
 - `GET /api/categories` - Recursive category tree.
 - `POST /api/categories` - Create category / subcategory (Owner/Admin).
 - `GET /api/attributes` - List custom dynamic attributes.
@@ -102,8 +121,9 @@ Supports infinite nested categories:
 - `GET /api/offers` - Active promotions & flash sales.
 - `POST /api/offers/validate-coupon` - Calculate cart discount.
 
-### Checkout & M-Pesa
-- `POST /api/orders/checkout` - Place order & trigger STK push (fails if M-Pesa is disabled).
+### Orders, Checkout & Tracking
+- `POST /api/orders/checkout` - Place order & trigger STK push (links authenticated customer automatically).
+- `GET /api/orders/my-orders` - Customer order tracking & history (Auth required).
 - `GET /api/orders/:id` - Order status & tracking.
 - `GET /api/orders` - Merchant orders list (Auth required).
 - `GET /api/payments/settings` - View current M-Pesa gateway settings (Auth required).
@@ -114,7 +134,7 @@ Supports infinite nested categories:
 
 ---
 
-## 4. Development & Testing Commands
+## 5. Development & Testing Commands
 
 ```bash
 # Run unit & integration test suites
