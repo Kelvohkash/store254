@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, or } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { orders, orderItems, payments } from "../../db/schema/orders";
@@ -36,9 +36,12 @@ const checkoutSchema = z.object({
 });
 
 // Create Order & Trigger Merchant's M-Pesa STK Push
-ordersRouter.post("/checkout", zValidator("json", checkoutSchema), async (c) => {
+ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkoutSchema), async (c) => {
   const tenant = c.get("tenant")!;
+  const user = c.get("user"); // May be authenticated customer or guest
   const body = c.req.valid("json");
+
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
   const db = createDb(c.env.DB);
 
   // 1. Check Merchant's Payment Configuration (DISABLED by default)
@@ -217,7 +220,7 @@ ordersRouter.post("/checkout", zValidator("json", checkoutSchema), async (c) => 
     id: orderId,
     tenantId: tenant.id,
     orderNumber,
-    customerId: null,
+    customerId: user?.id || null,
     customerName: body.customerName,
     customerEmail: body.customerEmail.toLowerCase().trim(),
     customerPhone: mpesaPhone,
@@ -261,8 +264,8 @@ ordersRouter.post("/checkout", zValidator("json", checkoutSchema), async (c) => 
     isSandbox: paymentConfig.isSandbox,
   };
 
-  const primaryDomain = c.env.PRIMARY_DOMAIN || "store254.co.ke";
-  const callbackSecret = c.env.MPESA_CALLBACK_SECRET || "dev-callback-secret";
+  const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
+  const callbackSecret = c.env?.MPESA_CALLBACK_SECRET || "dev-callback-secret";
   const callbackUrl = `https://${primaryDomain}/api/payments/mpesa/callback?token=${callbackSecret}`;
 
   // 10. Trigger Live STK Push with Merchant's own Till / Paybill
@@ -319,10 +322,38 @@ ordersRouter.post("/checkout", zValidator("json", checkoutSchema), async (c) => 
   );
 });
 
-// Get Order Details
+// Authenticated Customer Order History (My Orders)
+ordersRouter.get("/my-orders", authMiddleware(true), async (c) => {
+  const tenant = c.get("tenant")!;
+  const user = c.get("user")!;
+
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const db = createDb(c.env.DB);
+
+  const customerOrders = await db
+    .select()
+    .from(orders)
+    .where(
+      and(
+        eq(orders.tenantId, tenant.id),
+        or(eq(orders.customerId, user.id), eq(orders.customerEmail, user.email))
+      )
+    )
+    .orderBy(desc(orders.createdAt))
+    .limit(50);
+
+  return c.json({
+    success: true,
+    data: customerOrders,
+  });
+});
+
+// Get Order Details by ID
 ordersRouter.get("/:id", async (c) => {
   const tenant = c.get("tenant")!;
   const orderId = c.req.param("id");
+
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
   const db = createDb(c.env.DB);
 
   const [order] = await db
@@ -365,6 +396,8 @@ ordersRouter.get("/:id", async (c) => {
 // Merchant List Orders (Auth required)
 ordersRouter.get("/", authMiddleware(true), requireRole(["OWNER", "ADMIN"]), async (c) => {
   const tenant = c.get("tenant")!;
+
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
   const db = createDb(c.env.DB);
 
   const orderList = await db

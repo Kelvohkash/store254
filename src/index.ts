@@ -23,6 +23,7 @@ import { offersRouter } from "./modules/offers/offers.routes";
 import { ordersRouter } from "./modules/orders/orders.routes";
 import { paymentSettingsRouter } from "./modules/payments/settings.routes";
 import { mpesaRouter } from "./modules/payments/mpesa.routes";
+import { tenantSettingsRouter } from "./modules/tenant/tenant.routes";
 
 const app = new Hono<AppEnv>();
 
@@ -54,7 +55,7 @@ app.get("/health", (c) => {
   });
 });
 
-// Platform registration and subdomain availability check
+// Platform registration, landing page, and superadmin management
 app.route("/api/platform/admin", platformAdminRouter);
 app.route("/api/platform", platformRouter);
 
@@ -67,7 +68,7 @@ app.route("/api/payments/mpesa", mpesaRouter);
 const tenantScope = new Hono<AppEnv>();
 tenantScope.use("*", tenantMiddleware({ required: true }));
 
-// Storefront metadata
+// Storefront public metadata
 tenantScope.get("/store", (c) => {
   const tenant = c.get("tenant")!;
   return c.json({
@@ -75,6 +76,9 @@ tenantScope.get("/store", (c) => {
     data: tenant,
   });
 });
+
+// Store Profile & Custom Domain Management (Owners/Admins)
+tenantScope.route("/store/settings", tenantSettingsRouter);
 
 // Tenant Sub-routes
 tenantScope.route("/auth", authRouter);

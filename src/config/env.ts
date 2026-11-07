@@ -17,11 +17,14 @@ export interface Env {
   JWT_REFRESH_SECRET?: string;
   ADMIN_API_KEY?: string;
 
-  // Safaricom M-Pesa Platform Credentials (Optional fallback for all stores)
+  // Google OAuth Client ID
+  GOOGLE_CLIENT_ID?: string;
+
+  // Safaricom M-Pesa Platform Credentials (Optional fallback)
   MPESA_CONSUMER_KEY?: string;
   MPESA_CONSUMER_SECRET?: string;
   MPESA_PASSKEY?: string;
   MPESA_SHORTCODE?: string;
-  MPESA_IS_SANDBOX?: string; // "true" or "false"
+  MPESA_IS_SANDBOX?: string;
   MPESA_CALLBACK_SECRET?: string;
 }

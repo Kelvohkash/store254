@@ -11,6 +11,8 @@ export const users = sqliteTable(
     email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
     fullName: text("full_name"),
+    avatarUrl: text("avatar_url"),
+    googleId: text("google_id"),
     phone: text("phone"),
     role: text("role", { enum: ["OWNER", "ADMIN", "STAFF", "CUSTOMER"] })
       .notNull()
@@ -30,6 +32,7 @@ export const users = sqliteTable(
     // Scoped email uniqueness per tenant
     tenantEmailIdx: uniqueIndex("users_tenant_email_idx").on(table.tenantId, table.email),
     tenantRoleIdx: index("users_tenant_role_idx").on(table.tenantId, table.role),
+    tenantGoogleIdIdx: index("users_tenant_google_id_idx").on(table.tenantId, table.googleId),
   })
 );
 
