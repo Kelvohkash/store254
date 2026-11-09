@@ -1,15 +1,18 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "store254-frontend",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-11-04",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
   },
-  // Serve landing page on root AND all tenant subdomains.
-  // api.store254.co.ke/* is more specific and takes priority for the backend Worker.
+  // Serve the platform and tenant shops on their own hostnames. API browser
+  // requests are proxied by this Worker to keep each shop same-origin.
   "routes": [
     { "pattern": "store254.co.ke/*", "zone_name": "store254.co.ke" },
     { "pattern": "*.store254.co.ke/*", "zone_name": "store254.co.ke" }

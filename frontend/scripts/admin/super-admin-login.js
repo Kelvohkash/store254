@@ -1,6 +1,6 @@
 const apiBase = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://localhost:8787"
-  : "https://api.store254.co.ke";
+  : window.location.origin;
 
 const form = document.getElementById("admin-login-form");
 const submit = document.getElementById("admin-login-submit");

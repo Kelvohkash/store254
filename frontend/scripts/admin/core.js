@@ -1,7 +1,7 @@
   // ═══════════════════════════════════════
   // CONFIG
   // ═══════════════════════════════════════
-  const API = 'https://api.store254.co.ke/api';
+  const API = `${window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8787' : ''}/api`;
   const host = window.location.hostname;
   const parts = host.split('.');
   const tenantSlug = (parts.length >= 3 && parts[0] !== 'store254' && parts[0] !== 'www') ? parts[0] : null;

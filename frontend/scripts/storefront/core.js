@@ -7,7 +7,7 @@
 const API_BASE_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8787"
-    : "https://api.store254.co.ke";
+    : "";
 const DEFAULT_STORE_LOGO = "./assets/Store254_Digital_Marketplace_Logo_transparent.png";
 
 // Helper to safely render Lucide icons

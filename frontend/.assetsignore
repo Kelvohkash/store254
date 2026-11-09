@@ -6,6 +6,8 @@
 !.env.example
 /_worker.js
 /_routes.json
+/src/worker.ts
+/wrangler.jsonc
 /functions
 node_modules
 tests

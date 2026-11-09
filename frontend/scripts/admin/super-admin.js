@@ -1,7 +1,7 @@
 (() => {
   const apiBase = ["localhost", "127.0.0.1"].includes(window.location.hostname)
     ? "http://localhost:8787"
-    : "https://api.store254.co.ke";
+    : window.location.origin;
   const ui = {
     app: document.getElementById("admin-app"),
     loading: document.getElementById("admin-loading"),
