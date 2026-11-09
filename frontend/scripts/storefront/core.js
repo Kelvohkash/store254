@@ -291,7 +291,26 @@ async function apiFetch(endpoint, options = {}) {
       credentials: "include", // Super Admin session cookie is issued by the API subdomain.
       headers,
     });
-    const data = await res.json();
+    let data;
+    const responseType = res.headers.get("content-type") || "";
+    if (responseType.includes("application/json")) {
+      try {
+        data = await res.json();
+      } catch {
+        data = {
+          success: false,
+          error: { message: `The API returned an unreadable response (${res.status}).` },
+        };
+      }
+    } else {
+      const responseText = await res.text();
+      data = {
+        success: false,
+        error: {
+          message: responseText || `The API returned an empty response (${res.status}).`,
+        },
+      };
+    }
     return { status: res.status, ok: res.ok, data };
   } catch (err) {
     console.error(`[API Error] ${endpoint}:`, err);
