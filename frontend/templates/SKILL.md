@@ -4,16 +4,17 @@ description: Add or update Store254 storefront templates that use the shared liv
 ---
 # Storefront template authoring guide
 
-This folder contains Store254's presentation-only storefront templates. Every store uses the same live products, prices, descriptions, product options, dynamic filters, featured products, search, wishlist, orders, cart, and checkout. A template must only control presentation; do not add template-specific product data or commerce behavior.
+This folder contains Store254 storefront templates. Templates may redesign or replace any part of the storefront, including the header, navigation, filters, product listing, and page layout. Every existing customer option and action must remain available somewhere in the storefront: live products, prices, descriptions, product options, dynamic filters, featured products, search, profile, orders, wishlist, cart, and checkout. Reuse their existing state and handlers where possible; do not create template-specific product data or duplicate commerce behavior.
 
 ## Add a template
 
 1. Create a lowercase, hyphenated folder under `frontend/templates/`, for example `coastal-market/`.
-2. Add an entry to `frontend/templates/catalog.json` with a unique `id`, customer-facing `name`, short `description`, and `defaults` for `archetype`, `header`, `card`, `hero`, and `font`. `kicker`, `title`, and `cta` set the preview copy. Supported archetypes: `modern-retailer`, `lifestyle-boutique`, `single-product-maker`, `service-portfolio`. Supported header values: `compact-search-first`, `centered-brand`, `minimal-nav`. Supported card values: `grid-card`, `horizontal-list-row`, `service-card`. Supported hero values: `split`, `editorial`, `minimal`. Supported fonts: `modern`, `editorial`, `rounded`.
-3. Optionally add `template.css` in that folder and set `stylesheet` to its relative path in the catalog. Scope every selector under `html[data-storefront="true"][data-storefront-template="your-id"]`. Use shared CSS variables such as `--store-primary`, `--store-paper`, `--store-white`, `--store-ink`, and `--store-muted`; do not hard-code the six palette colors. Style the existing shared storefront elements and keep them responsive.
-4. Keep the template compatible with the shared storefront shell in `frontend/index.html`. Product cards, filters, product details, search, account, wishlist, orders, cart, and checkout are rendered by the shared app. Do not replace their behavior or require data fields unique to the template.
-5. Optionally add `preview.html` as a static visual reference. The admin's live preview uses the defaults and palette automatically; no hard-coded picker or runtime allow-list entry is needed.
-6. Confirm the catalog is valid JSON and run the template contract check from the repository root with `node --test frontend/tests/template-contract.test.mjs`.
+2. Add an entry to `frontend/templates/catalog.json` with a unique `id`, customer-facing `name`, short `description`, and `defaults` for `archetype`, `header`, `card`, `hero`, and `font`. `kicker`, `title`, and `cta` supply preview copy. Keep those defaults compatible with the current shared data engine; the template stylesheet can fully change how they appear.
+3. Add a catalog entry for each theme. The public landing page gallery and new-store onboarding read from this catalog, so a catalog addition must be startable by new customers without hand-editing a second list. Include a `previewImage` URL or a `preview` page when a tailored gallery preview is available; the gallery still renders a usable card when neither is supplied.
+4. Optionally add `template.css` in the template folder and set `stylesheet` to its relative path in the catalog. Scope selectors to `html[data-storefront="true"][data-storefront-template="your-id"]`. Use shared color variables such as `--store-primary`, `--store-paper`, `--store-white`, `--store-ink`, and `--store-muted` so any of the six palettes can be applied.
+5. A template may rearrange or replace markup and controls. Preserve every user-facing action from the shared storefront somewhere, including search, profile, orders, wishlist, cart, checkout, dynamic filters, category selection, and product detail. Keep actions connected to their existing state and handlers, maintain keyboard and phone usability, and do not require template-specific catalog data.
+6. Optionally add `preview.html` for a complete visual reference. The admin preview reads template defaults and palette from the catalog. Avoid hard-coded template allow-lists in the admin, storefront runtime, or public gallery.
+7. Confirm catalog JSON validity, template contract checks, and any page-specific responsive or interaction checks.
 
 ## Six shared palettes
 

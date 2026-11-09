@@ -14,6 +14,82 @@ function safeShowcaseImageUrl(value) {
   }
 }
 
+async function renderPublicTemplateGallery() {
+  const gallery = document.getElementById("public-template-gallery");
+  if (!gallery) return;
+  const catalog = await loadStorefrontTemplateCatalog();
+  storefrontTemplateCatalogForOnboarding = catalog;
+  gallery.replaceChildren();
+
+  catalog.templates.forEach((template, index) => {
+    const card = document.createElement("article");
+    card.className = "template-gallery-card";
+    card.dataset.template = template.id;
+
+    const visual = document.createElement("div");
+    visual.className = "template-gallery-art";
+    visual.dataset.template = template.id;
+    const imageUrl = safeShowcaseImageUrl(template.previewImage);
+    if (imageUrl) {
+      visual.style.backgroundImage = `linear-gradient(90deg, rgba(10,30,38,.72), rgba(10,30,38,.08)), url("${imageUrl}")`;
+      visual.classList.add("has-preview-image");
+    }
+
+    const browserBar = document.createElement("div");
+    browserBar.className = "template-gallery-browserbar";
+    browserBar.innerHTML = "<i></i><i></i><i></i><span>yourstore.store254.co.ke</span>";
+    const hero = document.createElement("div");
+    hero.className = "template-gallery-hero-copy";
+    const kicker = document.createElement("small");
+    kicker.textContent = template.defaults?.kicker || "YOUR NEXT COLLECTION";
+    const title = document.createElement("strong");
+    title.textContent = String(template.defaults?.title || template.name).replace(/<br\s*\/?>/gi, " ");
+    const callout = document.createElement("span");
+    callout.textContent = template.defaults?.cta || "Explore the store";
+    hero.append(kicker, title, callout);
+    const products = document.createElement("div");
+    products.className = "template-gallery-products";
+    for (let product = 0; product < 3; product += 1) products.append(document.createElement("i"));
+    visual.append(browserBar, hero, products);
+
+    const caption = document.createElement("div");
+    caption.className = "template-gallery-card-caption";
+    const indexLabel = document.createElement("span");
+    indexLabel.className = "template-gallery-index";
+    indexLabel.textContent = String(index + 1).padStart(2, "0");
+    const details = document.createElement("div");
+    details.className = "template-gallery-details";
+    const name = document.createElement("strong");
+    name.textContent = template.name;
+    const description = document.createElement("small");
+    description.textContent = template.description || "A ready-to-use Store254 storefront design.";
+    details.append(name, description);
+    caption.append(indexLabel, details);
+
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "template-gallery-start";
+    action.textContent = "Start with this theme";
+    action.addEventListener("click", () => startWithStorefrontTemplate(template.id));
+    card.append(visual, caption, action);
+    gallery.append(card);
+  });
+}
+
+function startWithStorefrontTemplate(templateId) {
+  const catalog = storefrontTemplateCatalogForOnboarding;
+  const template = catalog.templates.find((entry) => entry.id === templateId)
+    || catalog.templates.find((entry) => entry.id === "market-modern");
+  if (!template) return;
+  const selectedTemplate = document.getElementById("onboard-storefront-template");
+  const selectedLabel = document.getElementById("onboard-selected-theme");
+  if (selectedTemplate) selectedTemplate.value = template.id;
+  if (selectedLabel) selectedLabel.textContent = `Starting theme: ${template.name}`;
+  toggleDrawer("onboard-modal", true);
+}
+
+let storefrontTemplateCatalogForOnboarding = { templates: [] };
+
 function togglePlatformMobileMenu(show) {
   const menu = document.getElementById("platform-mobile-menu");
   const button = document.getElementById("mobile-menu-toggle");
@@ -25,6 +101,22 @@ function togglePlatformMobileMenu(show) {
   button.setAttribute("aria-expanded", String(open));
   button.setAttribute("aria-label", open ? "Close navigation menu" : "Open navigation menu");
   icon?.setAttribute("data-lucide", open ? "x" : "menu");
+  renderIcons();
+}
+
+function toggleStorefrontMenu() {
+  if (document.documentElement.dataset.storefrontTemplate !== "fashion-beauty-cosmetics") {
+    togglePlatformMobileMenu();
+    return;
+  }
+  const menu = document.getElementById("fashion-mobile-menu");
+  const button = document.getElementById("mobile-menu-toggle");
+  const icon = document.getElementById("mobile-menu-icon");
+  if (!menu || !button) return;
+  menu.hidden = !menu.hidden;
+  button.setAttribute("aria-expanded", String(!menu.hidden));
+  button.setAttribute("aria-label", menu.hidden ? "Open store menu" : "Close store menu");
+  icon?.setAttribute("data-lucide", menu.hidden ? "menu" : "x");
   renderIcons();
 }
 
@@ -120,6 +212,7 @@ function renderFeaturedStoreShowcase(stores) {
 // 17. Platform Mode: Load All Stores
 async function loadPlatformStores() {
   const container = document.getElementById("platform-stores-grid");
+  await renderPublicTemplateGallery();
 
   const res = await apiFetch("/api/platform/stores");
   const stores = (res.ok && res.data.success && Array.isArray(res.data.data)) ? res.data.data : [];

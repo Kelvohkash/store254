@@ -8,6 +8,7 @@ async function handleOnboardSubmit(e) {
         storeName: document.getElementById("onboard-name").value.trim(),
         subdomain: document.getElementById("onboard-subdomain").value.trim(),
         businessType: document.getElementById("onboard-type").value,
+        storefrontTemplate: document.getElementById("onboard-storefront-template")?.value || "market-modern",
         ownerFullName: document.getElementById("onboard-owner-name").value.trim(),
         ownerEmail: document.getElementById("onboard-email").value.trim(),
         ownerPassword: document.getElementById("onboard-password").value,

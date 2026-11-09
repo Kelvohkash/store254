@@ -12,6 +12,7 @@ frontend/
 │   └── admin/              Store admin and platform admin behavior
 ├── styles/                 Shared, storefront, admin, and landing page styles
 ├── tests/                  Template preview and contract checks
+├── templates/              Catalog, palette definitions, previews, and template styles
 ├── index.html              Marketplace and tenant storefront
 ├── admin.html              Store admin entry point
 ├── super-admin-login.html  Private platform admin sign-in entry point
@@ -52,4 +53,8 @@ Classic scripts in `index.html` must stay in dependency order. They preserve the
 - `styles/super-admin.css` — private platform administration dashboard.
 - `styles/admin.css` — admin interface and design preview.
 
-When adding a storefront template, update its admin choices, storefront settings allow-list, template styles, and template contract fixture together.
+## Storefront templates
+
+The template picker, storefront runtime, and public landing-page gallery all read `templates/catalog.json`. A new catalog entry appears in the admin picker and on the public gallery; selecting it during store signup saves it as that store's starting theme. Add a scoped `template.css` for its live storefront styling and an optional `previewImage` or `preview.html` for its gallery card. The existing commerce actions can be rearranged or redesigned by a template, but each action must stay available somewhere in the storefront and remain connected to the shared handlers.
+
+Follow [templates/SKILL.md](templates/SKILL.md) when creating or updating a storefront theme. Do not add a parallel hard-coded template list or runtime allow-list.

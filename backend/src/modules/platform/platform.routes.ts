@@ -29,6 +29,7 @@ const registerStoreSchema = z.object({
   businessType: z
     .enum(["RETAIL", "ELECTRONICS", "FURNITURE", "SERVICES", "GENERAL"])
     .default("GENERAL"),
+  storefrontTemplate: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/i).default("market-modern"),
   currency: z.string().length(3).default("KES"),
   ownerEmail: z.string().email("Valid email address required"),
   ownerPassword: z
@@ -178,6 +179,9 @@ platformRouter.post(
       status: "PENDING", // PENDING by default until Super Admin activates
       settings: {
         theme: "default",
+        storefrontTemplate: body.storefrontTemplate,
+        storefrontTemplateVersion: 1,
+        themePalette: "trust-forest",
         contactEmail: body.ownerEmail,
         contactPhone: body.ownerPhone || null,
       },

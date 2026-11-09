@@ -2,6 +2,9 @@
 async function loadCategories() {
   const res = await apiFetch("/api/categories");
   const container = document.getElementById("category-pills");
+  const headerContainer = document.getElementById("storefront-header-categories");
+  const mobileHeaderContainer = document.getElementById("fashion-mobile-categories");
+  const headerNav = document.getElementById("storefront-fashion-nav");
   if (!container) return;
 
   if (res.ok && res.data.success) {
@@ -44,6 +47,10 @@ async function loadCategories() {
     }
 
     container.innerHTML = html;
+    const isFashionTemplate = document.documentElement.dataset.storefrontTemplate === "fashion-beauty-cosmetics";
+    if (headerContainer) headerContainer.innerHTML = isFashionTemplate ? html : "";
+    if (mobileHeaderContainer) mobileHeaderContainer.innerHTML = isFashionTemplate ? html : "";
+    headerNav?.classList.toggle("hidden", !isFashionTemplate);
   }
 }
 
@@ -732,4 +739,3 @@ async function handleReviewSubmit(e) {
     showToast(res.data.error?.message || "Failed to submit review", "error");
   }
 }
-
