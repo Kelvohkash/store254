@@ -14,6 +14,12 @@ export const mpesaRouter = new Hono<AppEnv>();
  * Public webhook authenticated by a high-entropy, per-payment capability.
  */
 mpesaRouter.post("/callback", async (c) => {
+  const token = c.req.query("token");
+  if (!token) {
+    console.warn("[M-Pesa Callback Rejected] Missing per-payment capability token.");
+    return c.json({ ResultCode: 1, ResultDesc: "Unauthorized callback" }, 403);
+  }
+
   if (!c.env?.DB) {
     return c.json({ ResultCode: 1, ResultDesc: "DB not ready" }, 500);
   }
@@ -55,8 +61,7 @@ mpesaRouter.post("/callback", async (c) => {
     return c.json({ ResultCode: 0, ResultDesc: "Already processed" });
   }
 
-  const token = c.req.query("token");
-  if (!token || !paymentRecord.callbackTokenHash ||
+  if (!paymentRecord.callbackTokenHash ||
       !timingSafeEqual(await hashOtp(token), paymentRecord.callbackTokenHash)) {
     console.warn("[M-Pesa Callback Rejected] Invalid or missing per-payment capability.");
     return c.json({ ResultCode: 1, ResultDesc: "Unauthorized callback" }, 403);

@@ -59,7 +59,8 @@ export function authMiddleware(required = true): MiddlewareHandler<AppEnv> {
         if (parsedOrigin.protocol === "https:") originHost = parsedOrigin.host.toLowerCase();
         if (
           c.env?.ENVIRONMENT === "development" &&
-          ["localhost", "127.0.0.1"].includes(parsedOrigin.hostname)
+          (["localhost", "127.0.0.1"].includes(parsedOrigin.hostname) ||
+            parsedOrigin.hostname.endsWith(".localhost"))
         ) {
           originHost = parsedOrigin.host.toLowerCase();
           allowedHosts.add(originHost);

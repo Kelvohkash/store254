@@ -209,6 +209,16 @@ function renderFeaturedStoreShowcase(stores) {
   renderIcons();
 }
 
+function getStoreUrl(subdomain) {
+  const safeSub = /^[a-z0-9-]+$/i.test(subdomain || "") ? subdomain : "invalid";
+  const host = window.location.hostname.toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost")) {
+    const port = window.location.port ? `:${window.location.port}` : "";
+    return `${window.location.protocol}//${safeSub}.localhost${port}/`;
+  }
+  return `https://${safeSub}.store254.co.ke/`;
+}
+
 // 17. Platform Mode: Load All Stores
 async function loadPlatformStores() {
   const container = document.getElementById("platform-stores-grid");
@@ -248,7 +258,7 @@ async function loadPlatformStores() {
   };
 
   container.innerHTML = stores.map((s) => `
-    <a href="https://${/^[a-z0-9-]+$/i.test(s.subdomain || "") ? s.subdomain : "invalid"}.store254.co.ke/" class="bg-white rounded-2xl p-6 border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-left group flex flex-col justify-between no-underline">
+    <a href="${getStoreUrl(s.subdomain)}" class="bg-white rounded-2xl p-6 border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-left group flex flex-col justify-between no-underline">
       <div>
         <div class="platform-store-cover cover-${coverMap[s.businessType] || "maker"}">
           <span>${escapeHtml((s.name || "S").trim().slice(0, 1).toUpperCase())}</span>
@@ -278,11 +288,15 @@ async function loadPlatformStores() {
 // 18. Store Switcher — navigate to the proper subdomain
 function switchStore(slug) {
   if (slug) {
-    // Redirect to dedicated subdomain instead of hash/query param
-    const protocol = window.location.protocol; // https:
-    window.location.href = `${protocol}//${slug}.store254.co.ke/`;
+    window.location.href = getStoreUrl(slug);
   } else {
-    window.location.href = `${window.location.protocol}//store254.co.ke/`;
+    const host = window.location.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost")) {
+      const port = window.location.port ? `:${window.location.port}` : "";
+      window.location.href = `${window.location.protocol}//localhost${port}/`;
+    } else {
+      window.location.href = "https://store254.co.ke/";
+    }
   }
 }
 

@@ -5,7 +5,9 @@
 
 // 1. API Configuration
 const API_BASE_URL =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1" ||
+  window.location.hostname.endsWith(".localhost")
     ? "http://localhost:8787"
     : "";
 const DEFAULT_STORE_LOGO = "./assets/Store254_Digital_Marketplace_Logo_transparent.png";
@@ -182,7 +184,13 @@ function detectInitialTenantSlug() {
     return subdomain === "www" || subdomain === "api" ? "" : subdomain;
   }
 
-  // Keep local development and preview hosts in marketplace mode unless a store is selected.
+  // Handle local development subdomains like alicebabycare.localhost
+  if (host.endsWith(".localhost")) {
+    const subdomain = host.slice(0, -".localhost".length);
+    return subdomain === "www" || subdomain === "api" ? "" : subdomain;
+  }
+
+  // Keep other preview hosts in marketplace mode unless a store is selected.
   return "";
 }
 
@@ -224,6 +232,27 @@ function getInitialWishlist() {
   }
 }
 
+function getCartStorageKey() {
+  return `store254_cart_${state?.activeTenantSlug || INITIAL_TENANT_SLUG || "platform"}`;
+}
+
+function getInitialCart() {
+  const scopedKey = `store254_cart_${INITIAL_TENANT_SLUG || "platform"}`;
+  const stored = localStorage.getItem(scopedKey);
+  if (stored) {
+    try { return JSON.parse(stored); } catch { return []; }
+  }
+  const legacy = localStorage.getItem("store254_cart");
+  if (legacy) {
+    try {
+      const parsed = JSON.parse(legacy);
+      localStorage.setItem(scopedKey, legacy);
+      return parsed;
+    } catch { return []; }
+  }
+  return [];
+}
+
 // 3. Global Reactive State
 const state = {
   activeTenantSlug: INITIAL_TENANT_SLUG,
@@ -238,7 +267,7 @@ const state = {
   selectedPriceRange: { min: 0, max: 200000 },
   facets: [],
   items: [],
-  cart: JSON.parse(localStorage.getItem("store254_cart") || "[]"),
+  cart: getInitialCart(),
   appliedCoupon: null,
   customerToken: getInitialCustomerStorage("token", "store254_customer_token"),
   customerUser: JSON.parse(getInitialCustomerStorage("user", "store254_customer_user") || "null"),

@@ -1,10 +1,23 @@
   // ═══════════════════════════════════════
   // CONFIG
   // ═══════════════════════════════════════
-  const API = `${window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8787' : ''}/api`;
-  const host = window.location.hostname;
-  const parts = host.split('.');
-  const tenantSlug = (parts.length >= 3 && parts[0] !== 'store254' && parts[0] !== 'www') ? parts[0] : null;
+  const isLocalDev =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.endsWith('.localhost');
+  const API = `${isLocalDev ? 'http://localhost:8787' : ''}/api`;
+  const host = window.location.hostname.toLowerCase();
+  let tenantSlug = null;
+  if (host.endsWith('.store254.co.ke')) {
+    const sub = host.slice(0, -'.store254.co.ke'.length);
+    if (sub && sub !== 'www' && sub !== 'api') tenantSlug = sub;
+  } else if (host.endsWith('.localhost')) {
+    const sub = host.slice(0, -'.localhost'.length);
+    if (sub && sub !== 'www' && sub !== 'api') tenantSlug = sub;
+  } else {
+    const parts = host.split('.');
+    tenantSlug = (parts.length >= 3 && parts[0] !== 'store254' && parts[0] !== 'www') ? parts[0] : null;
+  }
 
   // ═══════════════════════════════════════
   // STATE

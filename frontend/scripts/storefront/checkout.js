@@ -31,7 +31,8 @@ function updateCartQuantity(index, delta) {
 }
 
 function saveCart() {
-  localStorage.setItem("store254_cart", JSON.stringify(state.cart));
+  const key = `store254_cart_${state.activeTenantSlug || "platform"}`;
+  localStorage.setItem(key, JSON.stringify(state.cart));
 }
 
 function updateCartBadge() {
@@ -205,6 +206,10 @@ async function initiateCashOnDeliveryCheckout() {
 }
 
 async function submitCheckout(paymentMethod) {
+  if (!state.activeTenantSlug) {
+    showToast("Please visit a store to complete your checkout.", "error");
+    return;
+  }
   populateCheckoutCustomerDetails();
   const name = document.getElementById("checkout-name").value.trim();
   const email = document.getElementById("checkout-email").value.trim();

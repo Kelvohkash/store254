@@ -1,7 +1,9 @@
 (() => {
-  const apiBase = ["localhost", "127.0.0.1"].includes(window.location.hostname)
-    ? "http://localhost:8787"
-    : window.location.origin;
+  const apiBase =
+    ["localhost", "127.0.0.1"].includes(window.location.hostname) ||
+    window.location.hostname.endsWith(".localhost")
+      ? "http://localhost:8787"
+      : window.location.origin;
   const ui = {
     app: document.getElementById("admin-app"),
     loading: document.getElementById("admin-loading"),

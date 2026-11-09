@@ -33,7 +33,12 @@ function isAllowedOrigin(
     const url = new URL(origin);
 
     // Allow local development ports
-    if (isDev && (url.hostname === "localhost" || url.hostname === "127.0.0.1")) {
+    if (
+      isDev &&
+      (url.hostname === "localhost" ||
+        url.hostname === "127.0.0.1" ||
+        url.hostname.endsWith(".localhost"))
+    ) {
       return true;
     }
 

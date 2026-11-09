@@ -9,7 +9,17 @@ export default {
 
     if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
       const apiUrl = new URL(`${url.pathname}${url.search}`, "https://api.internal");
-      return env.API.fetch(new Request(apiUrl, request));
+      const headers = new Headers(request.headers);
+      headers.set("X-Forwarded-Host", url.host);
+
+      return env.API.fetch(
+        new Request(apiUrl, {
+          method: request.method,
+          headers,
+          body: request.body,
+          redirect: "manual",
+        })
+      );
     }
 
     return env.ASSETS.fetch(request);

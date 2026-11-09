@@ -70,7 +70,9 @@ function assertAdminOrigin(c: Context<AppEnv>): void {
 
       if (
         c.env?.ENVIRONMENT === "development" &&
-        (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+        (url.hostname === "localhost" ||
+          url.hostname === "127.0.0.1" ||
+          url.hostname.endsWith(".localhost"))
       ) {
         return;
       }

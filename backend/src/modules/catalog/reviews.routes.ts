@@ -10,6 +10,7 @@ import { orders, orderItems } from "../../db/schema/orders";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
+import { rateLimiter } from "../../security/rate-limiter";
 
 export const reviewsRouter = new Hono<AppEnv>();
 
@@ -80,6 +81,7 @@ reviewsRouter.get("/:itemId/reviews", async (c) => {
 // POST /api/items/:itemId/reviews
 reviewsRouter.post(
   "/:itemId/reviews",
+  rateLimiter({ max: 5, windowMs: 60 * 1000 }),
   authMiddleware(false), // Optional customer auth
   zValidator("json", createReviewSchema),
   async (c) => {

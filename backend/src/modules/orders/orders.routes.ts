@@ -11,6 +11,7 @@ import { tenantPaymentConfigs } from "../../db/schema/payment-configs";
 import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
 import { generateUUID, generateSecureToken, hashOtp } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
+import { rateLimiter } from "../../security/rate-limiter";
 import {
   normalizeKenyanPhone,
   initiateMpesaStkPush,
@@ -1063,50 +1064,100 @@ ordersRouter.get("/my-orders", authMiddleware(true), async (c) => {
   });
 });
 
-// Get Order Details by ID
-ordersRouter.get("/:id", async (c) => {
-  const tenant = c.get("tenant")!;
-  const orderId = c.req.param("id");
+function maskEmail(email: string): string {
+  const parts = email.split("@");
+  if (parts.length !== 2) return "***@***.com";
+  const name = parts[0];
+  const domain = parts[1];
+  const maskedName = name.length > 2 ? `${name[0]}***${name[name.length - 1]}` : `${name[0]}***`;
+  return `${maskedName}@${domain}`;
+}
 
-  if (!c.env?.DB) throw new AppError("Database not ready", 500);
-  const db = createDb(c.env.DB);
+function maskPhone(phone: string): string {
+  if (phone.length <= 4) return "****";
+  return `${phone.slice(0, 4)}****${phone.slice(-3)}`;
+}
 
-  const [order] = await db
-    .select()
-    .from(orders)
-    .where(and(eq(orders.tenantId, tenant.id), eq(orders.id, orderId)))
-    .limit(1);
+// Get Order Details by ID (Protected against IDOR & PII Scraping)
+ordersRouter.get(
+  "/:id",
+  rateLimiter({ max: 30, windowMs: 60 * 1000 }),
+  authMiddleware(false),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const user = c.get("user");
+    const orderId = c.req.param("id");
 
-  if (!order) {
-    throw new AppError("Order not found.", 404, "ORDER_NOT_FOUND");
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const db = createDb(c.env.DB);
+
+    const [order] = await db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenant.id), eq(orders.id, orderId)))
+      .limit(1);
+
+    if (!order) {
+      throw new AppError("Order not found.", 404, "ORDER_NOT_FOUND");
+    }
+
+    // Check if requester has authorized access to view full customer PII
+    const isMerchant =
+      user &&
+      ["OWNER", "ADMIN"].includes(user.role) &&
+      user.tenantId === tenant.id;
+    const isCustomerOwner =
+      user &&
+      (order.customerId === user.id ||
+        (user.email &&
+          order.customerEmail.toLowerCase() === user.email.toLowerCase()));
+    const queryPhone = c.req.query("phone")?.trim();
+    const isPhoneVerified =
+      queryPhone &&
+      normalizeKenyanPhone(queryPhone) === normalizeKenyanPhone(order.customerPhone);
+
+    const hasFullAccess = isMerchant || isCustomerOwner || isPhoneVerified;
+
+    const itemsList = await db
+      .select()
+      .from(orderItems)
+      .where(and(eq(orderItems.tenantId, tenant.id), eq(orderItems.orderId, orderId)));
+
+    const paymentsList = await db
+      .select({
+        id: payments.id,
+        amount: payments.amount,
+        status: payments.status,
+        mpesaReceiptNumber: payments.mpesaReceiptNumber,
+        checkoutRequestId: payments.checkoutRequestId,
+        createdAt: payments.createdAt,
+      })
+      .from(payments)
+      .where(and(eq(payments.tenantId, tenant.id), eq(payments.orderId, orderId)));
+
+    const safeOrder = hasFullAccess
+      ? order
+      : {
+          ...order,
+          customerName: order.customerName.split(" ")[0] + " ***",
+          customerEmail: maskEmail(order.customerEmail),
+          customerPhone: maskPhone(order.customerPhone),
+          shippingAddress: {
+            county: (order.shippingAddress as any)?.county || "",
+            subCounty: (order.shippingAddress as any)?.subCounty || "",
+          },
+        };
+
+    return c.json({
+      success: true,
+      data: {
+        ...safeOrder,
+        items: itemsList,
+        payments: paymentsList,
+      },
+    });
   }
-
-  const itemsList = await db
-    .select()
-    .from(orderItems)
-    .where(and(eq(orderItems.tenantId, tenant.id), eq(orderItems.orderId, orderId)));
-
-  const paymentsList = await db
-    .select({
-      id: payments.id,
-      amount: payments.amount,
-      status: payments.status,
-      mpesaReceiptNumber: payments.mpesaReceiptNumber,
-      checkoutRequestId: payments.checkoutRequestId,
-      createdAt: payments.createdAt,
-    })
-    .from(payments)
-    .where(and(eq(payments.tenantId, tenant.id), eq(payments.orderId, orderId)));
-
-  return c.json({
-    success: true,
-    data: {
-      ...order,
-      items: itemsList,
-      payments: paymentsList,
-    },
-  });
-});
+);
 
 // Merchant List Orders (Auth required)
 ordersRouter.get("/", authMiddleware(true), requireRole(["OWNER", "ADMIN"]), async (c) => {

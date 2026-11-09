@@ -43,4 +43,25 @@ describe("tenant host and API selector resolution", () => {
       resolvedCustomDomain: "shop.example.com",
     });
   });
+
+  it("resolves an internal worker service binding request with explicit selector", () => {
+    expect(resolveTenantLookup("api.internal", "store254.co.ke", "alicebabycare")).toEqual({
+      resolvedSubdomain: "alicebabycare",
+      resolvedCustomDomain: null,
+    });
+  });
+
+  it("does not treat internal worker API host as a custom domain when selector is absent", () => {
+    expect(resolveTenantLookup("api.internal", "store254.co.ke", undefined)).toEqual({
+      resolvedSubdomain: null,
+      resolvedCustomDomain: null,
+    });
+  });
+
+  it("resolves local development *.localhost subdomains automatically", () => {
+    expect(resolveTenantLookup("alicebabycare.localhost", "store254.co.ke", undefined)).toEqual({
+      resolvedSubdomain: "alicebabycare",
+      resolvedCustomDomain: null,
+    });
+  });
 });

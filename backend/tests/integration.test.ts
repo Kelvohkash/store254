@@ -65,14 +65,16 @@ describe("Store254 End-to-End Workflow & Security Tests", () => {
     expect(body.error.code).toBe("UNAUTHORIZED_ADMIN");
   });
 
-  it("should require an authenticated session for admin reads from tenant storefronts", async () => {
+  it("should reject admin reads from tenant storefront origins", async () => {
     const res = await app.request(
       "https://store254.co.ke/api/platform/admin/stores",
       { headers: { Origin: "https://alice.store254.co.ke" } },
       mockEnv as any
     );
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error.code).toBe("INVALID_ORIGIN");
   });
 
   it("should issue an HttpOnly session cookie for username/password admin login", async () => {

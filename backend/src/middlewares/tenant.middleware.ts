@@ -28,15 +28,33 @@ export function resolveTenantLookup(
   const normalizedHost = hostname.toLowerCase();
   const normalizedDomain = primaryDomain.toLowerCase();
   const apiHost = `api.${normalizedDomain}`;
-  const isLocalHost = normalizedHost === "localhost" || normalizedHost === "127.0.0.1";
+  const isLocalHost =
+    normalizedHost === "localhost" ||
+    normalizedHost === "127.0.0.1" ||
+    normalizedHost.endsWith(".localhost");
+  const isSharedApiHost =
+    normalizedHost === apiHost ||
+    normalizedHost === "api.internal";
 
-  // The browser points at localhost during local development. Allow its
-  // explicit tenant selector to follow the same shared-API resolution path.
-  if (normalizedHost === apiHost || (isLocalHost && requestedSlug)) {
+  // Shared API requests (including internal worker service bindings) and local dev
+  // identify the tenant via X-Tenant-Slug.
+  if ((isSharedApiHost || isLocalHost) && requestedSlug) {
     return {
-      resolvedSubdomain: sanitizeSubdomain(requestedSlug || ""),
+      resolvedSubdomain: sanitizeSubdomain(requestedSlug),
       resolvedCustomDomain: null,
     };
+  }
+
+  // Local development subdomains without explicit selector (e.g. alicebabycare.localhost)
+  if (normalizedHost.endsWith(".localhost")) {
+    const localSub = normalizedHost.slice(0, -".localhost".length);
+    if (localSub && localSub !== "www" && localSub !== "api") {
+      return {
+        resolvedSubdomain: sanitizeSubdomain(localSub),
+        resolvedCustomDomain: null,
+      };
+    }
+    return { resolvedSubdomain: null, resolvedCustomDomain: null };
   }
 
   const suffix = `.${normalizedDomain}`;
@@ -47,7 +65,12 @@ export function resolveTenantLookup(
     };
   }
 
-  if (normalizedHost && normalizedHost !== normalizedDomain && !isLocalHost) {
+  if (
+    normalizedHost &&
+    normalizedHost !== normalizedDomain &&
+    normalizedHost !== "api.internal" &&
+    !isLocalHost
+  ) {
     return { resolvedSubdomain: null, resolvedCustomDomain: normalizedHost };
   }
 
@@ -65,7 +88,8 @@ export function tenantMiddleware(
 ): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
-    const hostHeader = c.req.header("host") || "";
+    const hostHeader =
+      c.req.header("x-forwarded-host") || c.req.header("host") || "";
     const hostname = hostHeader.split(":")[0].toLowerCase();
 
     const { resolvedSubdomain, resolvedCustomDomain } = resolveTenantLookup(

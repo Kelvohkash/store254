@@ -1,6 +1,9 @@
-const apiBase = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? "http://localhost:8787"
-  : window.location.origin;
+const apiBase =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1" ||
+  window.location.hostname.endsWith(".localhost")
+    ? "http://localhost:8787"
+    : window.location.origin;
 
 const form = document.getElementById("admin-login-form");
 const submit = document.getElementById("admin-login-submit");
