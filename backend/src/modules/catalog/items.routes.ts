@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte, inArray } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { items, itemVariants, type ItemVariant } from "../../db/schema/items";
@@ -23,6 +23,17 @@ const variantInputSchema = z.object({
   options: z.record(z.string()).default({}),
 });
 
+const imageUrlOrMediaPath = z
+  .string()
+  .max(2_000_000)
+  .refine(
+    (val) =>
+      val.startsWith("/api/media/") ||
+      val.startsWith("data:image/") ||
+      /^https?:\/\/.+/i.test(val),
+    "Invalid image URL or media path"
+  );
+
 export const createItemSchema = z.object({
   categoryId: z.string().min(1).nullable().optional(),
   title: z.string().min(2).max(200),
@@ -37,15 +48,16 @@ export const createItemSchema = z.object({
   trackInventory: z.boolean().default(true),
   stockQuantity: z.number().int().min(0).default(0),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("PUBLISHED"),
-  images: z.array(z.string().url()).max(5, "A product can have at most 5 photos.").default([]),
+  images: z.array(imageUrlOrMediaPath).max(5, "A product can have at most 5 photos.").default([]),
   attributes: z.record(z.unknown()).default({}), // Dynamic attributes { brand: "Samsung", size: "55" }
   metadata: z.record(z.unknown()).default({}),
   variants: z.array(variantInputSchema).default([]),
 });
 
 // Dynamic Items Query (Filtering, Search & Facets)
-itemsRouter.get("/", async (c) => {
+itemsRouter.get("/", authMiddleware(false), async (c) => {
   const tenant = c.get("tenant")!;
+  const user = c.get("user");
   const query = c.req.query();
   const db = createDb(c.env.DB);
 
@@ -53,8 +65,14 @@ itemsRouter.get("/", async (c) => {
   const limit = Math.min(100, Math.max(1, parseInt(query.limit || "20", 10)));
   const offset = (page - 1) * limit;
 
+  const isMerchant =
+    user &&
+    ["OWNER", "ADMIN"].includes(user.role) &&
+    user.tenantId === tenant.id &&
+    query.includeAll === "true";
+
   // Reserved query parameter keys
-  const reservedParams = new Set(["page", "limit", "category", "search", "minPrice", "maxPrice", "itemType", "sort"]);
+  const reservedParams = new Set(["page", "limit", "category", "search", "minPrice", "maxPrice", "itemType", "sort", "includeAll"]);
 
   // Extract dynamic attribute filters from query string (e.g. ?brand=Samsung&screen_size=55)
   const dynamicFilters: Record<string, string> = {};
@@ -64,7 +82,7 @@ itemsRouter.get("/", async (c) => {
     }
   }
 
-  // Retrieve published items for this tenant
+  // Retrieve items for this tenant (all statuses for merchant admin, PUBLISHED for storefront)
   let itemsQuery = db
     .select({
       id: items.id,
@@ -76,6 +94,7 @@ itemsRouter.get("/", async (c) => {
       basePrice: items.basePrice,
       compareAtPrice: items.compareAtPrice,
       sku: items.sku,
+      trackInventory: items.trackInventory,
       stockQuantity: items.stockQuantity,
       images: items.images,
       attributes: items.attributes,
@@ -83,15 +102,38 @@ itemsRouter.get("/", async (c) => {
       createdAt: items.createdAt,
     })
     .from(items)
-    .where(and(eq(items.tenantId, tenant.id), eq(items.status, "PUBLISHED")))
+    .where(
+      isMerchant
+        ? eq(items.tenantId, tenant.id)
+        : and(eq(items.tenantId, tenant.id), eq(items.status, "PUBLISHED"))
+    )
     .orderBy(desc(items.createdAt))
     .limit(limit)
     .offset(offset);
 
   const rawList = await itemsQuery;
 
+  // Attach variants for returned items
+  const itemIds = rawList.map((i) => i.id);
+  const allVariants =
+    itemIds.length > 0
+      ? await db
+          .select()
+          .from(itemVariants)
+          .where(and(eq(itemVariants.tenantId, tenant.id), inArray(itemVariants.itemId, itemIds)))
+      : [];
+  const variantsByItem = new Map<string, typeof allVariants>();
+  for (const v of allVariants) {
+    const arr = variantsByItem.get(v.itemId) || [];
+    arr.push(v);
+    variantsByItem.set(v.itemId, arr);
+  }
+
   // In-memory filter for dynamic JSON attributes and client search
-  let filtered = rawList;
+  let filtered = rawList.map((i) => ({
+    ...i,
+    variants: variantsByItem.get(i.id) || [],
+  }));
 
   // Filter by category if requested
   if (query.category) {
@@ -360,9 +402,39 @@ itemsRouter.put(
 
     await db.update(items).set(updateData).where(and(eq(items.id, id), eq(items.tenantId, tenant.id)));
 
-    const [updated] = await db.select().from(items).where(eq(items.id, id)).limit(1);
+    if (body.variants !== undefined) {
+      await db
+        .delete(itemVariants)
+        .where(and(eq(itemVariants.itemId, id), eq(itemVariants.tenantId, tenant.id)));
+      for (const v of body.variants) {
+        await db.insert(itemVariants).values({
+          id: generateUUID(),
+          tenantId: tenant.id,
+          itemId: id,
+          title: v.title,
+          sku: v.sku || null,
+          price: v.price,
+          compareAtPrice: v.compareAtPrice || null,
+          stockQuantity: v.stockQuantity,
+          options: v.options,
+        });
+      }
+    }
 
-    return c.json({ success: true, message: "Product updated successfully.", data: updated });
+    const [updated] = await db.select().from(items).where(eq(items.id, id)).limit(1);
+    const updatedVariants = await db
+      .select()
+      .from(itemVariants)
+      .where(and(eq(itemVariants.itemId, id), eq(itemVariants.tenantId, tenant.id)));
+
+    return c.json({
+      success: true,
+      message: "Product updated successfully.",
+      data: {
+        ...updated,
+        variants: updatedVariants,
+      },
+    });
   }
 );
 

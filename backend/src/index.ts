@@ -77,6 +77,23 @@ app.route("/auth/google", googleGatewayRouter);
 // Public Safaricom M-Pesa Callback Webhook (Not tied to a single tenant subdomain)
 app.route("/api/payments/mpesa", mpesaRouter);
 
+// Public R2 Media Serving Endpoint
+app.get("/api/media/:tenantId/:fileName", async (c) => {
+  if (!c.env?.MEDIA_BUCKET) {
+    return c.json({ success: false, message: "Media storage not configured" }, 404);
+  }
+  const key = `${c.req.param("tenantId")}/${c.req.param("fileName")}`;
+  const object = await c.env.MEDIA_BUCKET.get(key);
+  if (!object) {
+    return c.json({ success: false, message: "Media file not found" }, 404);
+  }
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("etag", object.httpEtag);
+  headers.set("cache-control", "public, max-age=31536000, immutable");
+  return new Response(object.body, { headers });
+});
+
 // -------------------------------------------------------------
 // Tenant-Scoped Endpoints (Requires Subdomain or X-Tenant-Slug)
 // -------------------------------------------------------------

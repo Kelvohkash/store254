@@ -1,22 +1,24 @@
 // DASHBOARD
   // ═══════════════════════════════════════
   async function loadDashboard() {
-    const [prodRes, orderRes] = await Promise.all([
-      apiFetch('/items?limit=100'),
+    const [prodRes, orderRes, statsRes] = await Promise.all([
+      apiFetch('/items?limit=100&includeAll=true'),
       apiFetch('/orders?limit=50'),
+      apiFetch('/store/settings/stats'),
     ]);
 
     const rawProducts = prodRes.ok ? (prodRes.data?.data?.items || prodRes.data?.data || []) : [];
     const rawOrders = orderRes.ok ? (orderRes.data?.data?.orders || orderRes.data?.data || []) : [];
+    const stats = statsRes.ok ? statsRes.data?.data : null;
 
     allProducts = Array.isArray(rawProducts) ? rawProducts : [];
     allOrders = Array.isArray(rawOrders) ? rawOrders : [];
 
-    const pending = allOrders.filter(o => o.status === 'PENDING_PAYMENT' || o.status === 'PROCESSING').length;
-    const revenue = allOrders.filter(o => o.status === 'COMPLETED').reduce((s, o) => s + (o.totalAmount || 0), 0);
+    const pending = stats?.pendingOrders ?? allOrders.filter(o => o.status === 'PENDING_PAYMENT' || o.status === 'PROCESSING').length;
+    const revenue = stats?.totalRevenue ?? allOrders.filter(o => o.status === 'COMPLETED' || o.paymentStatus === 'PAID').reduce((s, o) => s + (o.totalAmount || 0), 0);
 
-    document.getElementById('stat-products').textContent = allProducts.length;
-    document.getElementById('stat-orders').textContent = allOrders.length;
+    document.getElementById('stat-products').textContent = stats?.totalProducts ?? allProducts.length;
+    document.getElementById('stat-orders').textContent = stats?.totalOrders ?? allOrders.length;
     document.getElementById('stat-pending').textContent = pending;
     document.getElementById('stat-revenue').textContent = fmt(revenue);
 

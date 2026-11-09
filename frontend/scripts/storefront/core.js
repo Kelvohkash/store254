@@ -190,6 +190,16 @@ function detectInitialTenantSlug() {
     return subdomain === "www" || subdomain === "api" ? "" : subdomain;
   }
 
+  // Custom domains (any host that is not localhost, 127.0.0.1, or a workers.dev preview domain)
+  if (
+    host !== "localhost" &&
+    host !== "127.0.0.1" &&
+    !host.endsWith(".workers.dev") &&
+    !host.endsWith(".pages.dev")
+  ) {
+    return "__custom_domain__";
+  }
+
   // Keep other preview hosts in marketplace mode unless a store is selected.
   return "";
 }
@@ -300,8 +310,12 @@ async function apiFetch(endpoint, options = {}) {
     ...(requestOptions.headers || {}),
   };
 
-  // Inject tenant scope header if targeting an active store
-  if (state.activeTenantSlug && !endpoint.startsWith("/api/platform")) {
+  // Inject tenant scope header if targeting an active store (custom domains resolve via Host header)
+  if (
+    state.activeTenantSlug &&
+    state.activeTenantSlug !== "__custom_domain__" &&
+    !endpoint.startsWith("/api/platform")
+  ) {
     headers["X-Tenant-Slug"] = state.activeTenantSlug;
   }
 
@@ -398,3 +412,13 @@ function inlineJs(value) {
     "\u2029": "\\u2029",
   })[character])}'`;
 }
+
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  for (const modalId of ["item-details-modal", "cart-drawer", "orders-drawer", "onboard-modal", "recovery-modal", "mpesa-pin-modal"]) {
+    const el = document.getElementById(modalId);
+    if (el && !el.classList.contains("hidden") && typeof toggleDrawer === "function") {
+      toggleDrawer(modalId, false);
+    }
+  }
+});

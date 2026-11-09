@@ -45,6 +45,7 @@ export const orders = sqliteTable(
         deliveredAt?: string;
         paymentInstructionsVisible?: boolean;
         paymentInstructionsShownAt?: string;
+        inventoryDeducted?: boolean;
         notes?: string;
       }>()
       .default({}),

@@ -1,16 +1,20 @@
 // 12. Cart Management
-function addToCart(id, title, price, image, itemType = "PHYSICAL") {
-  const existing = state.cart.find((i) => i.itemId === id);
+function addToCart(id, title, price, image, itemType = "PHYSICAL", variantId = undefined, qty = 1) {
+  const quantityToAdd = Math.max(1, parseInt(qty, 10) || 1);
+  const existing = state.cart.find(
+    (i) => i.itemId === id && (i.variantId || undefined) === (variantId || undefined)
+  );
   if (existing) {
-    existing.quantity += 1;
+    existing.quantity += quantityToAdd;
   } else {
     state.cart.push({
       itemId: id,
+      variantId: variantId || undefined,
       title,
       price,
       image,
       itemType,
-      quantity: 1,
+      quantity: quantityToAdd,
     });
   }
 
@@ -175,19 +179,30 @@ async function applyCoupon() {
   }
 
   const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  if (subtotal <= 0) {
+    showToast("Add items to your cart before applying a coupon", "error");
+    return;
+  }
 
   const res = await apiFetch("/api/offers/validate-coupon", {
     method: "POST",
     body: JSON.stringify({
       code,
-      cartTotal: subtotal,
-      cartItems: state.cart.map((i) => ({ itemId: i.itemId, quantity: i.quantity })),
+      orderAmount: subtotal,
+      itemIds: state.cart.map((i) => i.itemId),
     }),
   });
 
   if (res.ok && res.data.success) {
-    state.appliedCoupon = res.data.data;
-    showToast(`Coupon "${code}" applied: ${res.data.data.discountDescription}`);
+    const d = res.data.data;
+    state.appliedCoupon = {
+      code: d.couponCode || code,
+      type: d.discountType,
+      value: d.discountValue,
+      discountAmount: d.discountAmount,
+      title: d.title,
+    };
+    showToast(`Coupon "${state.appliedCoupon.code}" applied (-KES ${Number(d.discountAmount || 0).toLocaleString()})`);
     renderCartDrawer();
   } else {
     showToast(res.data.error?.message || "Invalid or expired coupon", "error");
@@ -259,7 +274,11 @@ async function submitCheckout(paymentMethod) {
     customerPhone: phone,
     paymentMethod,
     deliveryAddress: deliveryAddress || undefined,
-    items: state.cart.map((i) => ({ itemId: i.itemId, quantity: i.quantity })),
+    items: state.cart.map((i) => ({
+      itemId: i.itemId,
+      variantId: i.variantId || undefined,
+      quantity: i.quantity,
+    })),
     couponCode: state.appliedCoupon?.code,
     bookingDetails,
   };

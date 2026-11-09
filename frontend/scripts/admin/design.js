@@ -163,6 +163,27 @@ async function loadSettings() {
 
   currentStoreDesign = storeResult.value.data.data;
   const settings = currentStoreDesign.settings || {};
+  const socials = settings.socialLinks || {};
+
+  // Populate store profile, branding, contact, and social fields
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val ?? "";
+  };
+  setVal("settings-name", currentStoreDesign.name || "");
+  setVal("settings-tagline", settings.tagline || "");
+  setVal("settings-description", settings.description || "");
+  setVal("settings-logo", settings.logoUrl || "");
+  setVal("settings-banner", settings.bannerUrl || "");
+  setVal("settings-phone", settings.contactPhone || "");
+  setVal("settings-whatsapp", socials.whatsapp || "");
+  setVal("settings-email", settings.contactEmail || "");
+  setVal("settings-address", settings.physicalAddress || "");
+  setVal("settings-instagram", socials.instagram || "");
+  setVal("settings-facebook", socials.facebook || "");
+  setVal("settings-tiktok", socials.tiktok || "");
+  setVal("settings-custom-domain", currentStoreDesign.customDomain || "");
+
   const savedTemplate = storefrontTemplateCatalog.templates.some((entry) => entry.id === settings.storefrontTemplate)
     ? settings.storefrontTemplate
     : "market-modern";
@@ -176,23 +197,85 @@ async function loadSettings() {
 async function saveStoreSettings(event) {
   event.preventDefault();
   const status = document.getElementById("design-draft-status");
+  const name = document.getElementById("settings-name")?.value.trim() || currentStoreDesign.name;
   const settings = {
     storefrontTemplate: document.getElementById("settings-storefront-template").value,
     storefrontTemplateVersion: 1,
     themePalette: document.getElementById("settings-theme-palette").value,
     primaryColor: document.getElementById("settings-primary-color").value,
     backgroundColor: document.getElementById("settings-background-color").value,
+    tagline: document.getElementById("settings-tagline")?.value.trim() || undefined,
+    description: document.getElementById("settings-description")?.value.trim() || undefined,
+    logoUrl: document.getElementById("settings-logo")?.value.trim() || "",
+    bannerUrl: document.getElementById("settings-banner")?.value.trim() || "",
+    contactPhone: document.getElementById("settings-phone")?.value.trim() || undefined,
+    contactEmail: document.getElementById("settings-email")?.value.trim() || "",
+    physicalAddress: document.getElementById("settings-address")?.value.trim() || undefined,
+    socialLinks: {
+      whatsapp: document.getElementById("settings-whatsapp")?.value.trim() || undefined,
+      instagram: document.getElementById("settings-instagram")?.value.trim() || undefined,
+      facebook: document.getElementById("settings-facebook")?.value.trim() || undefined,
+      tiktok: document.getElementById("settings-tiktok")?.value.trim() || undefined,
+    },
   };
-  status.textContent = "Applying your storefront look…";
-  const response = await apiFetch("/store/settings", { method: "PATCH", body: JSON.stringify({ settings }) });
+  status.textContent = "Applying your storefront settings…";
+  const response = await apiFetch("/store/settings", {
+    method: "PATCH",
+    body: JSON.stringify({ name, settings }),
+  });
   if (response.ok) {
+    currentStoreDesign.name = name;
     currentStoreDesign.settings = { ...currentStoreDesign.settings, ...settings };
-    status.textContent = "Your storefront look is live.";
-    showToast("Your storefront look is live!");
+    document.getElementById("sidebar-store-name").textContent = name;
+    status.textContent = "Your store profile and design are live.";
+    showToast("Store settings saved!");
   } else {
-    status.textContent = "We could not apply that look. Try again.";
-    showToast(apiErrorMessage(response, "Failed to apply storefront look."), false);
+    status.textContent = "We could not save those settings. Try again.";
+    showToast(apiErrorMessage(response, "Failed to save store settings."), false);
   }
+}
+
+async function uploadStoreBrandingImage(targetInputId, fileInput) {
+  const file = fileInput?.files?.[0];
+  if (!file) return;
+  showToast("Uploading image...");
+  const formData = new FormData();
+  formData.append("file", file);
+  const r = await apiFetch("/store/settings/media", { method: "POST", body: formData });
+  fileInput.value = "";
+  if (r.ok && r.data?.data?.url) {
+    const input = document.getElementById(targetInputId);
+    if (input) input.value = r.data.data.url;
+    showToast("Image uploaded! Click Save & Apply to publish.");
+  } else {
+    showToast(apiErrorMessage(r, "Failed to upload image."), false);
+  }
+}
+
+async function saveCustomDomain(event) {
+  event.preventDefault();
+  const domainInput = document.getElementById("settings-custom-domain");
+  const dnsBox = document.getElementById("custom-domain-dns-box");
+  const customDomain = domainInput?.value.trim().toLowerCase();
+  if (!customDomain) return;
+
+  const r = await apiFetch("/store/settings/custom-domain", {
+    method: "PUT",
+    body: JSON.stringify({ customDomain }),
+  });
+  if (!r.ok) {
+    showToast(apiErrorMessage(r, "Could not map custom domain."), false);
+    return;
+  }
+  const dns = r.data?.data?.dnsInstructions;
+  if (dns && dnsBox) {
+    dnsBox.innerHTML = `
+      <p class="font-bold text-slate-900">DNS Configuration Required:</p>
+      <p>Type: <strong class="font-mono">${escHtml(dns.recordType)}</strong> · Host: <strong class="font-mono">${escHtml(dns.host)}</strong> → Points to: <strong class="font-mono text-emerald-700">${escHtml(dns.pointsTo)}</strong></p>
+    `;
+    dnsBox.classList.remove("hidden");
+  }
+  showToast("Custom domain saved!");
 }
 
 window.addEventListener("DOMContentLoaded", () => {

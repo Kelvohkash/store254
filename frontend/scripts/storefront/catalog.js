@@ -61,6 +61,14 @@ function selectCategory(slug) {
   loadItems();
 }
 
+let searchDebounceTimer = null;
+function debouncedLoadItems() {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    loadItems();
+  }, 280);
+}
+
 // 9. Load Dynamic Faceted Filters
 async function loadDynamicFilters() {
   const endpoint = state.selectedCategory
@@ -623,16 +631,73 @@ async function viewItemDetails(itemId) {
   }
   attrsEl.innerHTML = attrsHtml;
 
+  // Variants selector & Quantity stepper
+  const variantsEl = document.getElementById("item-modal-variants");
+  const qtyInput = document.getElementById("item-modal-qty");
+  if (qtyInput) qtyInput.value = "1";
+
+  let selectedVariant = null;
+  const variants = Array.isArray(item.variants) ? item.variants : [];
+  if (variantsEl) {
+    if (variants.length > 0) {
+      selectedVariant = variants[0];
+      document.getElementById("item-modal-price").textContent = `KES ${Number(selectedVariant.price).toLocaleString()}`;
+      variantsEl.innerHTML = `
+        <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Choose Option</label>
+        <div class="flex flex-wrap gap-2" id="item-modal-variant-buttons">
+          ${variants.map((v, idx) => `
+            <button type="button" data-variant-idx="${idx}" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+              idx === 0
+                ? "bg-emerald-600 text-white border-emerald-600"
+                : "bg-white text-slate-700 border-slate-200 hover:border-emerald-400"
+            }">
+              ${escapeHtml(v.title)} · KES ${Number(v.price).toLocaleString()}
+            </button>
+          `).join("")}
+        </div>
+      `;
+      variantsEl.classList.remove("hidden");
+      variantsEl.querySelectorAll("[data-variant-idx]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.getAttribute("data-variant-idx") || 0);
+          selectedVariant = variants[idx] || variants[0];
+          document.getElementById("item-modal-price").textContent = `KES ${Number(selectedVariant.price).toLocaleString()}`;
+          variantsEl.querySelectorAll("[data-variant-idx]").forEach((b, i) => {
+            b.className = `px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+              i === idx
+                ? "bg-emerald-600 text-white border-emerald-600"
+                : "bg-white text-slate-700 border-slate-200 hover:border-emerald-400"
+            }`;
+          });
+        });
+      });
+    } else {
+      variantsEl.innerHTML = "";
+      variantsEl.classList.add("hidden");
+    }
+  }
+
   // Add to Cart Button
   const btnCart = document.getElementById("item-modal-btn-cart");
   btnCart.innerHTML = `<i data-lucide="${isService ? "calendar" : "shopping-bag"}" class="w-4 h-4"></i> <span>${
     isService ? "Book Appointment" : "Add to Cart"
   }</span>`;
-  btnCart.className = `w-full py-3 ${
+  btnCart.className = `flex-1 py-3 ${
     isService ? "bg-indigo-600 hover:bg-indigo-700" : "bg-emerald-600 hover:bg-emerald-700"
   } text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2`;
   btnCart.onclick = () => {
-    addToCart(item.id, item.title, item.basePrice, state.currentItemImages[state.currentItemImageIndex], item.itemType);
+    const qty = Math.max(1, parseInt(document.getElementById("item-modal-qty")?.value || "1", 10) || 1);
+    const displayTitle = selectedVariant ? `${item.title} (${selectedVariant.title})` : item.title;
+    const unitPrice = selectedVariant ? selectedVariant.price : item.basePrice;
+    addToCart(
+      item.id,
+      displayTitle,
+      unitPrice,
+      state.currentItemImages[state.currentItemImageIndex],
+      item.itemType,
+      selectedVariant?.id,
+      qty
+    );
     toggleDrawer("item-details-modal", false);
   };
 
@@ -644,6 +709,13 @@ async function viewItemDetails(itemId) {
 
   toggleDrawer("item-details-modal", true);
   renderIcons();
+}
+
+function stepItemModalQty(delta) {
+  const input = document.getElementById("item-modal-qty");
+  if (!input) return;
+  const current = parseInt(input.value || "1", 10) || 1;
+  input.value = String(Math.min(99, Math.max(1, current + delta)));
 }
 
 // Load Reviews from API
@@ -679,7 +751,8 @@ async function loadItemReviews(itemId) {
         <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
           <div class="flex items-center justify-between mb-1.5">
             <div class="flex items-center gap-2">
-          <span class="font-semibold text-slate-900">${escapeHtml(r.customerName)}</span>
+              <span class="font-semibold text-slate-900">${escapeHtml(r.customerName)}</span>
+              ${r.isVerifiedBuyer ? `<span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">Verified Buyer</span>` : ""}
             </div>
             <span class="text-slate-400 text-[10px]">${dateStr}</span>
           </div>

@@ -62,17 +62,16 @@
   }
 
   async function apiFetch(path, opts = {}) {
-    const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+    const isFormData = typeof FormData !== 'undefined' && opts.body instanceof FormData;
+    const headers = isFormData ? { ...(opts.headers || {}) } : { 'Content-Type': 'application/json', ...(opts.headers || {}) };
     if (tenantSlug) headers['X-Tenant-Slug'] = tenantSlug;
     if (adminAccessToken && path !== '/auth/login') {
       headers.Authorization = `Bearer ${adminAccessToken}`;
     }
     try {
-      // Store Admin requests use the short-lived token returned by /auth/login.
-      // Do not send the broad-domain customer SSO cookie to owner-only endpoints.
-      const r = await fetch(API + path, { ...opts, headers, credentials: 'omit' });
+      const r = await fetch(API + path, { ...opts, headers, credentials: 'include' });
       const data = await r.json().catch(() => ({}));
-      if (r.status === 401 && hasSession && path !== '/auth/login') {
+      if (r.status === 401 && hasSession && path !== '/auth/login' && path !== '/auth/logout') {
         handleLogout('Your session expired. Sign in again to continue.');
       }
       return { ok: r.ok, status: r.status, data };
@@ -123,9 +122,13 @@
     bootApp(userData);
   }
 
-  function handleLogout(message = '') {
+  async function handleLogout(message = '') {
+    const hadSession = hasSession || Boolean(adminAccessToken);
     adminAccessToken = null;
     hasSession = false;
+    if (hadSession && !message) {
+      await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+    }
     document.getElementById('app-shell').classList.add('hidden');
     document.getElementById('login-screen').classList.remove('hidden');
     const errEl = document.getElementById('login-error');
@@ -179,14 +182,14 @@
 
   function showPage(name) {
     toggleAdminSidebar(false);
-    ['dashboard','products','categories','orders','settings','payments'].forEach(p => {
+    ['dashboard','products','categories','orders','promotions','settings','payments'].forEach(p => {
       const el = document.getElementById(`page-${p}`);
       if (el) el.classList.toggle('hidden', p !== name);
       const nav = document.getElementById(`nav-${p}`);
       if (nav) nav.classList.toggle('active', p === name);
     });
-    const titles = { dashboard:'Dashboard', products:'Products', categories:'Categories', orders:'Orders', settings:'Store Settings', payments:'M-Pesa & Payments' };
-    const subs = { dashboard:'Overview of your store activity', products:'Manage your product catalog', categories:'Organise products into categories', orders:'View and manage customer orders', settings:'Update your store profile', payments:'Configure M-Pesa payment credentials' };
+    const titles = { dashboard:'Dashboard', products:'Products', categories:'Categories', orders:'Orders', promotions:'Promotions & Coupons', settings:'Store Settings', payments:'M-Pesa & Payments' };
+    const subs = { dashboard:'Overview of your store activity', products:'Manage your product catalog', categories:'Organise products into categories', orders:'View and manage customer orders', promotions:'Manage discount codes and offers', settings:'Update your store profile and design', payments:'Configure M-Pesa payment credentials' };
     document.getElementById('page-title').textContent = titles[name] || name;
     document.getElementById('page-subtitle').textContent = subs[name] || '';
     currentPage = name;
@@ -194,10 +197,19 @@
     if (name === 'products') loadProducts();
     if (name === 'categories') loadCategories();
     if (name === 'orders') loadOrders();
+    if (name === 'promotions') loadPromotions();
     if (name === 'settings') loadSettings();
     if (name === 'payments') loadPaymentSettings();
     lucide.createIcons();
   }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      ['product-modal', 'category-modal', 'promo-modal', 'order-drawer'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+      });
+    }
+  });
 
   // ═══════════════════════════════════════
   

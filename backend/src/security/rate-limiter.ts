@@ -57,7 +57,8 @@ export function rateLimiter(options: RateLimitOptions = {}): MiddlewareHandler<A
       "127.0.0.1";
 
     const customKey = options.keyGenerator ? options.keyGenerator(c) : "";
-    const key = `${clientIp}:${customKey || c.req.path}:${max}:${windowMs}`;
+    const normalizedPath = c.req.routePath || c.req.path;
+    const key = `${clientIp}:${c.req.method}:${customKey || normalizedPath}:${max}:${windowMs}`;
 
     const distributedLimiter = cloudflareLimiter(c, max);
     if (distributedLimiter) {

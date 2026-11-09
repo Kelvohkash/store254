@@ -123,10 +123,16 @@ mpesaRouter.post("/callback", async (c) => {
 
     // Keep shipment/delivery state for COD orders; only update their payment state.
     const [order] = await db
-      .select({ status: orders.status, paymentMethod: orders.paymentMethod })
+      .select({
+        status: orders.status,
+        paymentMethod: orders.paymentMethod,
+        fulfillmentDetails: orders.fulfillmentDetails,
+      })
       .from(orders)
       .where(and(eq(orders.id, paymentRecord.orderId), eq(orders.tenantId, paymentRecord.tenantId)))
       .limit(1);
+
+    const alreadyDeducted = order?.fulfillmentDetails?.inventoryDeducted === true;
 
     const paidOrder = await db
       .update(orders)
@@ -137,6 +143,10 @@ mpesaRouter.post("/callback", async (c) => {
             ? order.status
             : "PAID",
         paymentStatus: "PAID",
+        fulfillmentDetails: {
+          ...(order?.fulfillmentDetails || {}),
+          inventoryDeducted: true,
+        },
         updatedAt: new Date(),
       })
       .where(and(
@@ -146,8 +156,8 @@ mpesaRouter.post("/callback", async (c) => {
       ))
       .returning({ id: orders.id });
 
-    // Deduct inventory once, only when this callback made the order paid.
-    if (paidOrder.length) {
+    // Deduct inventory once, only when this callback made the order paid and stock wasn't already deducted (e.g. COD).
+    if (paidOrder.length && !alreadyDeducted) {
     const orderLines = await db
       .select()
       .from(orderItems)

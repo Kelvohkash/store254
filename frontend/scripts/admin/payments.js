@@ -47,6 +47,7 @@
     if (r.ok) {
       const user = r.data?.data;
       if (['OWNER', 'ADMIN'].includes(user?.role)) {
+        hasSession = true;
         bootApp(user);
       } else {
         handleLogout('This account does not have store admin access.');

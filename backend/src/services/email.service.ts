@@ -9,6 +9,29 @@ export interface SendEmailOptions {
   html: string;
   from?: string;
   apiKey?: string;
+  redactInLogs?: string[];
+}
+
+function escapeHtml(value: string | undefined | null): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function sanitizeHttpsUrl(url: string | undefined | null): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return escapeHtml(parsed.toString());
+    }
+  } catch {
+    // Ignore invalid URLs
+  }
+  return null;
 }
 
 export class EmailService {
@@ -43,15 +66,24 @@ export class EmailService {
       }
     }
 
-    // Default development & test mode: Output to console with full trace
+    let safeSubject = options.subject;
+    let safeBody = options.html.replace(/<[^>]+>/g, " ");
+    for (const secret of options.redactInLogs || []) {
+      if (secret) {
+        safeSubject = safeSubject.split(secret).join("[REDACTED]");
+        safeBody = safeBody.split(secret).join("[REDACTED]");
+      }
+    }
+
+    // Default development & test mode: Output to console with sensitive tokens redacted
     console.log(`
 ===================================================================
 [STORE254 OUTGOING EMAIL]
 From: ${from}
 To: ${options.to}
-Subject: ${options.subject}
+Subject: ${safeSubject}
 -------------------------------------------------------------------
-${options.html.replace(/<[^>]+>/g, " ")}
+${safeBody}
 ===================================================================
     `);
 
@@ -68,6 +100,8 @@ ${options.html.replace(/<[^>]+>/g, " ")}
     expiresMinutes: number;
     apiKey?: string;
   }): Promise<boolean> {
+    const safeName = escapeHtml(params.fullName);
+    const safeOtp = escapeHtml(params.otpCode);
     const html = `
     <!DOCTYPE html>
     <html>
@@ -88,14 +122,14 @@ ${options.html.replace(/<[^>]+>/g, " ")}
         <div class="container">
           <div class="logo">Store<span>254</span> Security</div>
           <h2>Password Recovery Request</h2>
-          <p>Hello <strong>${params.fullName}</strong>,</p>
+          <p>Hello <strong>${safeName}</strong>,</p>
           <p>We received a request to reset the password for your account. Use the 6-digit One-Time PIN (OTP) below to proceed:</p>
           
           <div class="otp-box">
-            <div class="otp-code">${params.otpCode}</div>
+            <div class="otp-code">${safeOtp}</div>
           </div>
           
-          <p>This code will expire in <strong>${params.expiresMinutes} minutes</strong>.</p>
+          <p>This code will expire in <strong>${Number(params.expiresMinutes) || 15} minutes</strong>.</p>
           <p class="warning">⚠️ Never share this OTP with anyone. Store254 staff will never ask for your recovery code.</p>
           
           <div class="footer">
@@ -113,6 +147,7 @@ ${options.html.replace(/<[^>]+>/g, " ")}
       html,
       from: "Store254 Recovery <recovery@store254.co.ke>",
       apiKey: params.apiKey,
+      redactInLogs: [params.otpCode],
     });
   }
 
@@ -126,6 +161,9 @@ ${options.html.replace(/<[^>]+>/g, " ")}
     primaryDomain: string;
     apiKey?: string;
   }): Promise<boolean> {
+    const safeStoreName = escapeHtml(params.storeName);
+    const safeSubdomain = escapeHtml(params.subdomain);
+    const safePrimaryDomain = escapeHtml(params.primaryDomain);
     const html = `
     <!DOCTYPE html>
     <html>
@@ -145,8 +183,8 @@ ${options.html.replace(/<[^>]+>/g, " ")}
           <div class="logo">Store<span>254</span></div>
           <div class="badge">Application Under Review</div>
           <h2>Welcome to Store254!</h2>
-          <p>Thank you for registering <strong>${params.storeName}</strong> on the Store254 platform.</p>
-          <p>Your requested subdomain is: <strong>${params.subdomain}.${params.primaryDomain}</strong></p>
+          <p>Thank you for registering <strong>${safeStoreName}</strong> on the Store254 platform.</p>
+          <p>Your requested subdomain is: <strong>${safeSubdomain}.${safePrimaryDomain}</strong></p>
           <p>As part of our trust & safety policy, all new store registrations are reviewed by our platform Super Admin team before going live. We verify business details to maintain a high-trust marketplace for all Kenyan consumers.</p>
           <p>You will receive an email as soon as your store account is activated (typically within 1-2 hours during business hours).</p>
           <div class="footer">
@@ -176,7 +214,8 @@ ${options.html.replace(/<[^>]+>/g, " ")}
     primaryDomain: string;
     apiKey?: string;
   }): Promise<boolean> {
-    const storeUrl = `https://${params.subdomain}.${params.primaryDomain}`;
+    const safeStoreName = escapeHtml(params.storeName);
+    const storeUrl = sanitizeHttpsUrl(`https://${params.subdomain}.${params.primaryDomain}`) || "#";
     const html = `
     <!DOCTYPE html>
     <html>
@@ -197,7 +236,7 @@ ${options.html.replace(/<[^>]+>/g, " ")}
           <div class="logo">Store<span>254</span></div>
           <div class="badge">Store Activated</div>
           <h2>Your Store is Live! 🎉</h2>
-          <p>Great news! The Store254 Super Admin team has reviewed and activated your business store: <strong>${params.storeName}</strong>.</p>
+          <p>Great news! The Store254 Super Admin team has reviewed and activated your business store: <strong>${safeStoreName}</strong>.</p>
           <p>Your online store is now accessible to customers at:</p>
           <p><a href="${storeUrl}" style="color: #2563eb; font-weight: 600; font-size: 16px;">${storeUrl}</a></p>
           
@@ -241,6 +280,15 @@ ${options.html.replace(/<[^>]+>/g, " ")}
     notes?: string;
     apiKey?: string;
   }): Promise<boolean> {
+    const safeStoreName = escapeHtml(params.storeName);
+    const safeCustomerName = escapeHtml(params.customerName);
+    const safeOrderNumber = escapeHtml(params.orderNumber);
+    const safeStatus = escapeHtml(params.status);
+    const safeCourier = escapeHtml(params.courierName);
+    const safeTrackingNum = escapeHtml(params.trackingNumber);
+    const safeTrackingUrl = sanitizeHttpsUrl(params.trackingUrl);
+    const safeNotes = escapeHtml(params.notes);
+
     const html = `
     <!DOCTYPE html>
     <html>
@@ -257,27 +305,27 @@ ${options.html.replace(/<[^>]+>/g, " ")}
       </head>
       <body>
         <div class="container">
-          <div class="header">${params.storeName}</div>
-          <div class="badge">Order Status: ${params.status}</div>
-          <h2>Hello ${params.customerName},</h2>
-          <p>Your order <strong>#${params.orderNumber}</strong> has been updated to <strong>${params.status}</strong>.</p>
+          <div class="header">${safeStoreName}</div>
+          <div class="badge">Order Status: ${safeStatus}</div>
+          <h2>Hello ${safeCustomerName},</h2>
+          <p>Your order <strong>#${safeOrderNumber}</strong> has been updated to <strong>${safeStatus}</strong>.</p>
           
           ${
-            params.courierName || params.trackingNumber
+            safeCourier || safeTrackingNum
               ? `
           <div class="tracking-box">
             <h4 style="margin-bottom: 8px;">Delivery & Tracking Information</h4>
-            ${params.courierName ? `<p><strong>Courier:</strong> ${params.courierName}</p>` : ""}
-            ${params.trackingNumber ? `<p><strong>Tracking Number:</strong> ${params.trackingNumber}</p>` : ""}
-            ${params.trackingUrl ? `<p><a href="${params.trackingUrl}" style="color: #2563eb; font-weight: 600;">Track Your Package &rarr;</a></p>` : ""}
-            ${params.notes ? `<p><em>${params.notes}</em></p>` : ""}
+            ${safeCourier ? `<p><strong>Courier:</strong> ${safeCourier}</p>` : ""}
+            ${safeTrackingNum ? `<p><strong>Tracking Number:</strong> ${safeTrackingNum}</p>` : ""}
+            ${safeTrackingUrl ? `<p><a href="${safeTrackingUrl}" style="color: #2563eb; font-weight: 600;">Track Your Package &rarr;</a></p>` : ""}
+            ${safeNotes ? `<p><em>${safeNotes}</em></p>` : ""}
           </div>
           `
               : ""
           }
           
           <div class="footer">
-            <p>Thank you for shopping with ${params.storeName} via Store254.</p>
+            <p>Thank you for shopping with ${safeStoreName} via Store254.</p>
           </div>
         </div>
       </body>
@@ -288,7 +336,7 @@ ${options.html.replace(/<[^>]+>/g, " ")}
       to: params.to,
       subject: `[${params.storeName}] Update on Order #${params.orderNumber}: ${params.status}`,
       html,
-      from: `${params.storeName} Orders <orders@store254.co.ke>`,
+      from: `${params.storeName.replace(/["<>]/g, "")} Orders <orders@store254.co.ke>`,
       apiKey: params.apiKey,
     });
   }

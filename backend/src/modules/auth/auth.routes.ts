@@ -21,7 +21,11 @@ import { authMiddleware } from "../../middlewares/auth.middleware";
 import { SECURITY_LIMITS } from "../../config/constants";
 import { EmailService } from "../../services/email.service";
 import { requireSecret } from "../../security/secrets";
-import { clearCustomerSessionCookie } from "../../security/session-cookie";
+import {
+  clearCustomerSessionCookie,
+  clearTenantSessionCookie,
+  tenantSessionCookie,
+} from "../../security/session-cookie";
 
 export const authRouter = new Hono<AppEnv>();
 
@@ -72,7 +76,9 @@ authRouter.get("/google/config", (c) => {
 
 authRouter.post("/logout", (c) => {
   const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
-  c.header("Set-Cookie", clearCustomerSessionCookie(primaryDomain));
+  const isDev = c.env?.ENVIRONMENT === "development";
+  c.header("Set-Cookie", clearCustomerSessionCookie(primaryDomain), { append: true });
+  c.header("Set-Cookie", clearTenantSessionCookie(isDev), { append: true });
   return c.json({ success: true, message: "Signed out successfully." });
 });
 
@@ -141,6 +147,9 @@ authRouter.post(
       },
       secret
     );
+
+    const isDev = c.env?.ENVIRONMENT === "development";
+    c.header("Set-Cookie", tenantSessionCookie(token, isDev));
 
     return c.json({
       success: true,

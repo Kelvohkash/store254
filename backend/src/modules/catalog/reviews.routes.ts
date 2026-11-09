@@ -7,7 +7,7 @@ import { createDb } from "../../db";
 import { reviews } from "../../db/schema/reviews";
 import { items } from "../../db/schema/items";
 import { orders, orderItems } from "../../db/schema/orders";
-import { authMiddleware } from "../../middlewares/auth.middleware";
+import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
 import { rateLimiter } from "../../security/rate-limiter";
@@ -16,6 +16,8 @@ export const reviewsRouter = new Hono<AppEnv>();
 
 const createReviewSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters").max(80),
+  customerEmail: z.string().email().optional(),
+  orderNumber: z.string().max(40).optional(),
   rating: z.number().int().min(1, "Rating must be between 1 and 5").max(5),
   comment: z.string().max(1000, "Review comment cannot exceed 1000 characters").optional(),
 });
@@ -88,7 +90,7 @@ reviewsRouter.post(
     const tenant = c.get("tenant")!;
     const user = c.get("user");
     const itemId = c.req.param("itemId");
-    const { customerName, rating, comment } = c.req.valid("json");
+    const { customerName, customerEmail, orderNumber, rating, comment } = c.req.valid("json");
 
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
     const db = createDb(c.env.DB);
@@ -104,7 +106,7 @@ reviewsRouter.post(
       throw new AppError("Item not found.", 404, "ITEM_NOT_FOUND");
     }
 
-    // Determine verified buyer status if authenticated customer
+    // Determine verified buyer status via authenticated customer, matching email, or order number
     let isVerified = false;
     if (user?.id) {
       const pastOrders = await db
@@ -122,6 +124,35 @@ reviewsRouter.post(
         .limit(1);
 
       if (pastOrders.length > 0) {
+        isVerified = true;
+      }
+    } else if (customerEmail || orderNumber) {
+      const lookupEmail = customerEmail?.toLowerCase().trim();
+      const lookupOrderNum = orderNumber?.toUpperCase().trim();
+      const pastOrders = await db
+        .select({
+          id: orders.id,
+          email: orders.customerEmail,
+          orderNum: orders.orderNumber,
+        })
+        .from(orders)
+        .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
+        .where(
+          and(
+            eq(orders.tenantId, tenant.id),
+            eq(orderItems.itemId, itemId),
+            eq(orders.status, "COMPLETED")
+          )
+        )
+        .limit(25);
+
+      if (
+        pastOrders.some(
+          (o) =>
+            (lookupEmail && o.email.toLowerCase() === lookupEmail) ||
+            (lookupOrderNum && o.orderNum.toUpperCase() === lookupOrderNum)
+        )
+      ) {
         isVerified = true;
       }
     }
@@ -148,5 +179,35 @@ reviewsRouter.post(
       },
       201
     );
+  }
+);
+
+// DELETE /api/items/:itemId/reviews/:reviewId (Merchant Moderation)
+reviewsRouter.delete(
+  "/:itemId/reviews/:reviewId",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const itemId = c.req.param("itemId");
+    const reviewId = c.req.param("reviewId");
+
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const db = createDb(c.env.DB);
+
+    await db
+      .delete(reviews)
+      .where(
+        and(
+          eq(reviews.id, reviewId),
+          eq(reviews.itemId, itemId),
+          eq(reviews.tenantId, tenant.id)
+        )
+      );
+
+    return c.json({
+      success: true,
+      message: "Review removed.",
+    });
   }
 );

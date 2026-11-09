@@ -3,7 +3,11 @@ import type { AppEnv, UserContext } from "../types/context";
 import { verifyAccessToken, verifyCustomerSsoToken } from "../security/jwt";
 import { AppError } from "../security/error-handler";
 import { requireSecret } from "../security/secrets";
-import { CUSTOMER_SESSION_COOKIE, getCookieValue } from "../security/session-cookie";
+import {
+  CUSTOMER_SESSION_COOKIE,
+  TENANT_SESSION_COOKIE,
+  getCookieValue,
+} from "../security/session-cookie";
 import { createDb } from "../db";
 import { resolveGoogleCustomerForTenant } from "../services/google-customer-auth.service";
 
@@ -15,7 +19,15 @@ export function authMiddleware(required = true): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const authHeader = c.req.header("authorization");
     const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7).trim() : null;
-    const cookieToken = bearerToken ? null : getCookieValue(c.req.header("cookie"), CUSTOMER_SESSION_COOKIE);
+    const cookieHeader = c.req.header("cookie");
+    const tenantCookieToken = bearerToken
+      ? null
+      : getCookieValue(cookieHeader, TENANT_SESSION_COOKIE);
+    const ssoCookieToken =
+      bearerToken || tenantCookieToken
+        ? null
+        : getCookieValue(cookieHeader, CUSTOMER_SESSION_COOKIE);
+    const cookieToken = tenantCookieToken || ssoCookieToken;
     const token = bearerToken || cookieToken;
 
     if (!token) {
@@ -32,8 +44,8 @@ export function authMiddleware(required = true): MiddlewareHandler<AppEnv> {
 
     // Verify token and ensure it matches the current tenant (prevents cross-tenant token replay)
     let user = await verifyAccessToken(token, secret, currentTenant?.id);
-    if (!user && cookieToken && currentTenant && c.env?.DB) {
-      const googleUser = await verifyCustomerSsoToken(cookieToken, secret);
+    if (!user && ssoCookieToken && currentTenant && c.env?.DB) {
+      const googleUser = await verifyCustomerSsoToken(ssoCookieToken, secret);
       if (googleUser) {
         user = await resolveGoogleCustomerForTenant(createDb(c.env.DB), currentTenant, googleUser);
       }
@@ -48,6 +60,12 @@ export function authMiddleware(required = true): MiddlewareHandler<AppEnv> {
 
     if (cookieToken && !["GET", "HEAD", "OPTIONS"].includes(c.req.method.toUpperCase())) {
       const origin = c.req.header("origin");
+      const secFetchSite = c.req.header("sec-fetch-site");
+      if (!origin && (secFetchSite === "same-origin" || secFetchSite === "same-site")) {
+        c.set("user", user);
+        await next();
+        return;
+      }
       const primaryDomain = (c.env?.PRIMARY_DOMAIN || "store254.co.ke").toLowerCase();
       const allowedHosts = new Set([
         `${currentTenant?.subdomain}.${primaryDomain}`,

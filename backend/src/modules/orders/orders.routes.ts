@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, inArray, or, gte, lte } from "drizzle-orm";
+import { eq, and, desc, inArray, or, gte, lte, sql } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { orders, orderItems, payments } from "../../db/schema/orders";
@@ -272,6 +272,11 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
       } else if (promo.discountType === "FIXED_AMOUNT") {
         discountAmount = Math.min(subtotal, promo.discountValue);
       }
+
+      await db
+        .update(promotions)
+        .set({ usageCount: sql`${promotions.usageCount} + 1` })
+        .where(and(eq(promotions.id, promo.id), eq(promotions.tenantId, tenant.id)));
     }
   }
 
@@ -303,10 +308,12 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
     status: body.paymentMethod === "CASH_ON_DELIVERY" ? "PROCESSING" : "PENDING_PAYMENT",
     paymentStatus: "PENDING",
     paymentMethod: body.paymentMethod,
+    fulfillmentDetails:
+      body.paymentMethod === "CASH_ON_DELIVERY" ? { inventoryDeducted: true } : {},
     notes: body.notes || null,
   });
 
-  // 8. Insert Order Items
+  // 8. Insert Order Items & deduct inventory for COD orders
   for (const item of orderLineItemsToInsert) {
     await db.insert(orderItems).values({
       id: item.id,
@@ -321,6 +328,36 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
       totalPrice: item.totalPrice,
       options: item.options,
     });
+
+    if (body.paymentMethod === "CASH_ON_DELIVERY") {
+      if (item.variantId) {
+        await db
+          .update(itemVariants)
+          .set({
+            stockQuantity: sql`MAX(0, ${itemVariants.stockQuantity} - ${item.quantity})`,
+          })
+          .where(
+            and(
+              eq(itemVariants.id, item.variantId),
+              eq(itemVariants.tenantId, tenant.id),
+              gte(itemVariants.stockQuantity, item.quantity)
+            )
+          );
+      } else {
+        await db
+          .update(items)
+          .set({
+            stockQuantity: sql`MAX(0, ${items.stockQuantity} - ${item.quantity})`,
+          })
+          .where(
+            and(
+              eq(items.id, item.itemId),
+              eq(items.tenantId, tenant.id),
+              gte(items.stockQuantity, item.quantity)
+            )
+          );
+      }
+    }
   }
 
   if (body.paymentMethod === "CASH_ON_DELIVERY") {
@@ -456,11 +493,19 @@ ordersRouter.patch(
       throw new AppError("Delivered orders cannot be changed by the merchant.", 400, "ORDER_ALREADY_DELIVERED");
     }
 
+    const shouldRestoreStock =
+      status === "CANCELLED" &&
+      order.status !== "CANCELLED" &&
+      (order.fulfillmentDetails?.inventoryDeducted === true || order.paymentStatus === "PAID");
+
     const mergedFulfillment = {
       ...(order.fulfillmentDetails || {}),
       ...(fulfillmentDetails || {}),
       dispatchedAt: status === "SHIPPED" ? new Date().toISOString() : order.fulfillmentDetails?.dispatchedAt,
       deliveredAt: order.fulfillmentDetails?.deliveredAt,
+      inventoryDeducted: shouldRestoreStock
+        ? false
+        : order.fulfillmentDetails?.inventoryDeducted,
     };
 
     const [updatedOrder] = await db
@@ -480,6 +525,26 @@ ordersRouter.patch(
       .returning({ id: orders.id });
     if (!updatedOrder) {
       throw new AppError("Order status changed. Refresh and try again.", 409, "ORDER_STATUS_CHANGED");
+    }
+
+    if (shouldRestoreStock) {
+      const lines = await db
+        .select()
+        .from(orderItems)
+        .where(and(eq(orderItems.orderId, order.id), eq(orderItems.tenantId, tenant.id)));
+      for (const line of lines) {
+        if (line.variantId) {
+          await db
+            .update(itemVariants)
+            .set({ stockQuantity: sql`${itemVariants.stockQuantity} + ${line.quantity}` })
+            .where(and(eq(itemVariants.id, line.variantId), eq(itemVariants.tenantId, tenant.id)));
+        } else if (line.itemId) {
+          await db
+            .update(items)
+            .set({ stockQuantity: sql`${items.stockQuantity} + ${line.quantity}` })
+            .where(and(eq(items.id, line.itemId), eq(items.tenantId, tenant.id)));
+        }
+      }
     }
 
     // Send customer notification email about the new status

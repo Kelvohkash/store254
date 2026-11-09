@@ -180,4 +180,26 @@ describe("Store254 End-to-End Workflow & Security Tests", () => {
     const body = await res.json();
     expect(body.ResultCode).toBe(1);
   });
+
+  it("should escape HTML and redact OTPs in EmailService console logs", async () => {
+    const { EmailService } = await import("../src/services/email.service");
+    const logs: string[] = [];
+    const origLog = console.log;
+    console.log = (...args: unknown[]) => logs.push(args.join(" "));
+    try {
+      await EmailService.sendPasswordResetOtp({
+        to: "user@example.com",
+        fullName: '<script>alert("xss")</script>',
+        otpCode: "987654",
+        expiresMinutes: 15,
+      });
+    } finally {
+      console.log = origLog;
+    }
+
+    const combined = logs.join("\n");
+    expect(combined).toContain("[REDACTED]");
+    expect(combined).not.toContain("987654");
+    expect(combined).not.toContain('<script>alert("xss")</script>');
+  });
 });

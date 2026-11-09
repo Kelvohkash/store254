@@ -192,3 +192,74 @@ offersRouter.post(
     );
   }
 );
+
+// List All Promotions for Merchant Admin (Owners & Admins only)
+offersRouter.get(
+  "/manage",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const db = createDb(c.env.DB);
+    const list = await db
+      .select()
+      .from(promotions)
+      .where(eq(promotions.tenantId, tenant.id));
+
+    return c.json({
+      success: true,
+      data: list,
+    });
+  }
+);
+
+// Toggle Promotion Active Status (Owners & Admins only)
+offersRouter.patch(
+  "/:id",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  zValidator("json", z.object({ isActive: z.boolean() })),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const id = c.req.param("id");
+    const { isActive } = c.req.valid("json");
+    const db = createDb(c.env.DB);
+
+    const [updated] = await db
+      .update(promotions)
+      .set({ isActive })
+      .where(and(eq(promotions.id, id), eq(promotions.tenantId, tenant.id)))
+      .returning();
+
+    if (!updated) {
+      throw new AppError("Promotion not found.", 404, "PROMOTION_NOT_FOUND");
+    }
+
+    return c.json({
+      success: true,
+      message: `Promotion ${isActive ? "enabled" : "disabled"}.`,
+      data: updated,
+    });
+  }
+);
+
+// Delete Promotion (Owners & Admins only)
+offersRouter.delete(
+  "/:id",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const id = c.req.param("id");
+    const db = createDb(c.env.DB);
+
+    await db
+      .delete(promotions)
+      .where(and(eq(promotions.id, id), eq(promotions.tenantId, tenant.id)));
+
+    return c.json({
+      success: true,
+      message: "Promotion deleted.",
+    });
+  }
+);

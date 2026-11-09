@@ -1,14 +1,30 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
+import { items } from "../../db/schema/items";
+import { orders } from "../../db/schema/orders";
 import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
 import { AppError } from "../../security/error-handler";
+import { generateUUID } from "../../security/crypto";
 
 export const tenantSettingsRouter = new Hono<AppEnv>();
+
+const optionalUrlOrMediaPath = z
+  .string()
+  .max(500)
+  .refine(
+    (val) =>
+      val === "" ||
+      val.startsWith("/api/media/") ||
+      val.startsWith("data:image/") ||
+      /^https?:\/\/.+/i.test(val),
+    "Must be a valid image URL or uploaded media path"
+  )
+  .optional();
 
 // Update Store Profile & Branding Schema
 const updateStoreProfileSchema = z.object({
@@ -19,21 +35,21 @@ const updateStoreProfileSchema = z.object({
     .optional(),
   settings: z
     .object({
-      logoUrl: z.string().url().optional(),
-      bannerUrl: z.string().url().optional(),
+      logoUrl: optionalUrlOrMediaPath,
+      bannerUrl: optionalUrlOrMediaPath,
       tagline: z.string().max(160).optional(),
       description: z.string().max(1000).optional(),
-      contactEmail: z.string().email().optional(),
+      contactEmail: z.union([z.string().email(), z.literal("")]).optional(),
       contactPhone: z.string().max(20).optional(),
       physicalAddress: z.string().max(255).optional(),
       businessHours: z.record(z.string()).optional(),
       socialLinks: z
         .object({
-          instagram: z.string().optional(),
-          facebook: z.string().optional(),
-          tiktok: z.string().optional(),
-          whatsapp: z.string().optional(),
-          twitter: z.string().optional(),
+          instagram: z.string().max(200).optional(),
+          facebook: z.string().max(200).optional(),
+          tiktok: z.string().max(200).optional(),
+          whatsapp: z.string().max(50).optional(),
+          twitter: z.string().max(200).optional(),
         })
         .optional(),
       primaryColor: z.string().regex(/^#([0-9a-fA-F]{3}){1,2}$/).optional(),
@@ -165,3 +181,121 @@ tenantSettingsRouter.put(
     });
   }
 );
+
+// Accurate SQL-aggregated Store Statistics for Merchant Dashboard
+tenantSettingsRouter.get(
+  "/stats",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const db = createDb(c.env.DB);
+
+    const [productStats] = await db
+      .select({
+        totalProducts: sql<number>`count(*)`,
+      })
+      .from(items)
+      .where(eq(items.tenantId, tenant.id));
+
+    const [orderStats] = await db
+      .select({
+        totalOrders: sql<number>`count(*)`,
+        pendingOrders: sql<number>`sum(case when ${orders.status} in ('PENDING_PAYMENT', 'PROCESSING') then 1 else 0 end)`,
+        completedRevenue: sql<number>`sum(case when ${orders.status} = 'COMPLETED' or ${orders.paymentStatus} = 'PAID' then ${orders.totalAmount} else 0 end)`,
+      })
+      .from(orders)
+      .where(eq(orders.tenantId, tenant.id));
+
+    return c.json({
+      success: true,
+      data: {
+        totalProducts: Number(productStats?.totalProducts || 0),
+        totalOrders: Number(orderStats?.totalOrders || 0),
+        pendingOrders: Number(orderStats?.pendingOrders || 0),
+        totalRevenue: Number(orderStats?.completedRevenue || 0),
+      },
+    });
+  }
+);
+
+// Upload Store/Product Image to Cloudflare R2 (or Data URI fallback in local dev)
+tenantSettingsRouter.post(
+  "/media",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const formData = await c.req.formData().catch(() => null);
+    if (!formData) {
+      throw new AppError("Invalid multipart form data.", 400, "INVALID_FORM_DATA");
+    }
+
+    const rawFile = formData.get("file") as unknown;
+    if (
+      !rawFile ||
+      typeof rawFile !== "object" ||
+      typeof (rawFile as Blob).arrayBuffer !== "function"
+    ) {
+      throw new AppError("No image file uploaded.", 400, "FILE_REQUIRED");
+    }
+    const file = rawFile as Blob;
+
+    const allowedTypes: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+    };
+
+    const ext = allowedTypes[file.type];
+    if (!ext) {
+      throw new AppError(
+        "Unsupported image format. Please upload JPEG, PNG, WEBP, or GIF.",
+        400,
+        "UNSUPPORTED_MEDIA_TYPE"
+      );
+    }
+
+    const maxBytes = 5 * 1024 * 1024; // 5 MB
+    if (file.size > maxBytes) {
+      throw new AppError("Image exceeds the 5 MB maximum size.", 400, "FILE_TOO_LARGE");
+    }
+
+    const buffer = await file.arrayBuffer();
+    const key = `${tenant.id}/${generateUUID()}.${ext}`;
+
+    if (c.env?.MEDIA_BUCKET) {
+      await c.env.MEDIA_BUCKET.put(key, buffer, {
+        httpMetadata: {
+          contentType: file.type,
+          cacheControl: "public, max-age=31536000, immutable",
+        },
+      });
+      return c.json({
+        success: true,
+        data: {
+          url: `/api/media/${key}`,
+          key,
+        },
+      });
+    }
+
+    // Local development fallback when R2 bucket is not bound
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    return c.json({
+      success: true,
+      data: {
+        url: `data:${file.type};base64,${base64}`,
+        key,
+      },
+    });
+  }
+);
+

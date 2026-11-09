@@ -1,7 +1,7 @@
 // PRODUCTS
   // ═══════════════════════════════════════
   async function loadProducts() {
-    const r = await apiFetch('/items?limit=100');
+    const r = await apiFetch('/items?limit=100&includeAll=true');
     const rawItems = r.ok ? (r.data?.data?.items || r.data?.data || []) : [];
     allProducts = Array.isArray(rawItems) ? rawItems : [];
     renderProductsTable(allProducts);
@@ -80,6 +80,7 @@
     document.getElementById('product-sku').value = '';
     document.getElementById('product-images').value = '';
     updateProductImageCount();
+    renderVariantRows([]);
     document.getElementById('product-status').value = 'PUBLISHED';
     document.getElementById('product-type').value = 'PHYSICAL';
     document.getElementById('product-category').value = '';
@@ -101,6 +102,7 @@
     document.getElementById('product-sku').value = p.sku || '';
     document.getElementById('product-images').value = (p.images || []).join('\n');
     updateProductImageCount();
+    renderVariantRows(p.variants || []);
     document.getElementById('product-status').value = p.status || 'PUBLISHED';
     document.getElementById('product-type').value = p.itemType || 'PHYSICAL';
     document.getElementById('product-category').value = p.categoryId || '';
@@ -137,6 +139,7 @@
       itemType: document.getElementById('product-type').value,
       categoryId: document.getElementById('product-category').value || undefined,
       trackInventory: true,
+      variants: collectProductVariants(),
     };
 
     const r = id
@@ -161,10 +164,100 @@
     const count = document.getElementById('product-image-count');
     if (!input || !count) return;
 
-    const photos = input.value.split(/\r?\n/).map(value => value.trim()).filter(Boolean).length;
+    const urls = input.value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+    const photos = urls.length;
     count.textContent = `${photos}/5 photos`;
     count.classList.toggle('text-red-600', photos > 5);
     count.classList.toggle('text-slate-500', photos <= 5);
+    renderProductImagePreviews(urls);
+  }
+
+  function renderProductImagePreviews(urls) {
+    const container = document.getElementById('product-image-previews');
+    if (!container) return;
+    if (!urls.length) {
+      container.innerHTML = '';
+      return;
+    }
+    container.innerHTML = urls.slice(0, 5).map((url, idx) => `
+      <div class="relative group rounded-xl overflow-hidden border border-slate-200 aspect-square bg-slate-100">
+        <img src="${escHtml(url)}" class="w-full h-full object-cover" onerror="this.style.opacity='0.3'" />
+        <button type="button" onclick="removeProductImageAt(${idx})" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" title="Remove photo">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function removeProductImageAt(index) {
+    const input = document.getElementById('product-images');
+    if (!input) return;
+    const urls = input.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+    urls.splice(index, 1);
+    input.value = urls.join('\n');
+    updateProductImageCount();
+  }
+
+  async function handleProductImageUpload(fileInput) {
+    const files = Array.from(fileInput?.files || []);
+    if (!files.length) return;
+    const textarea = document.getElementById('product-images');
+    const currentUrls = textarea.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+    if (currentUrls.length + files.length > 5) {
+      showToast('A product can have at most 5 photos.', false);
+      fileInput.value = '';
+      return;
+    }
+
+    showToast('Uploading photo(s)...');
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      const r = await apiFetch('/store/settings/media', { method: 'POST', body: formData });
+      if (r.ok && r.data?.data?.url) {
+        currentUrls.push(r.data.data.url);
+      } else {
+        showToast(apiErrorMessage(r, 'Failed to upload image.'), false);
+      }
+    }
+    textarea.value = currentUrls.join('\n');
+    fileInput.value = '';
+    updateProductImageCount();
+    showToast('Photo(s) uploaded!');
+  }
+
+  function renderVariantRows(variants = []) {
+    const list = document.getElementById('product-variants-list');
+    if (!list) return;
+    list.innerHTML = '';
+    variants.forEach(v => addProductVariantRow(v));
+  }
+
+  function addProductVariantRow(v = {}) {
+    const list = document.getElementById('product-variants-list');
+    if (!list) return;
+    const row = document.createElement('div');
+    row.className = 'variant-row grid grid-cols-[1fr_90px_75px_32px] gap-2 items-center';
+    row.innerHTML = `
+      <input type="text" class="input text-xs py-1.5 variant-title" placeholder="Variant (e.g. Large / Red)" value="${escHtml(v.title || '')}" />
+      <input type="number" min="1" class="input text-xs py-1.5 variant-price" placeholder="KES Price" value="${escHtml(v.price || '')}" />
+      <input type="number" min="0" class="input text-xs py-1.5 variant-stock" placeholder="Stock" value="${escHtml(v.stockQuantity ?? 5)}" />
+      <button type="button" onclick="this.closest('.variant-row').remove()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center">✕</button>
+    `;
+    list.appendChild(row);
+  }
+
+  function collectProductVariants() {
+    const rows = document.querySelectorAll('#product-variants-list .variant-row');
+    const basePrice = parseInt(document.getElementById('product-price').value) || 1;
+    const out = [];
+    rows.forEach(row => {
+      const title = row.querySelector('.variant-title')?.value.trim();
+      const price = parseInt(row.querySelector('.variant-price')?.value) || basePrice;
+      const stockQuantity = Math.max(0, parseInt(row.querySelector('.variant-stock')?.value) || 0);
+      if (title) {
+        out.push({ title, price, stockQuantity, options: { variant: title } });
+      }
+    });
+    return out;
   }
 
   async function deleteProduct(id, title) {
@@ -228,6 +321,105 @@
     const r = await apiFetch(`/categories/${id}`, { method: 'DELETE' });
     if (r.ok) { showToast('Category deleted.'); loadCategories(); }
     else showToast(apiErrorMessage(r, 'Cannot delete.'), false);
+  }
+
+  // ═══════════════════════════════════════
+  // PROMOTIONS & COUPONS
+  // ═══════════════════════════════════════
+  async function loadPromotions() {
+    const r = await apiFetch('/offers/manage');
+    const promos = r.ok && Array.isArray(r.data?.data) ? r.data.data : [];
+    renderPromotionsTable(promos);
+  }
+
+  function renderPromotionsTable(promos) {
+    const tbody = document.getElementById('promotions-table-body');
+    if (!tbody) return;
+    if (!promos.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">No promotions or coupon codes yet. Create one to boost sales!</td></tr>';
+      return;
+    }
+    tbody.innerHTML = promos.map(p => `
+      <tr class="hover:bg-slate-50 transition-colors">
+        <td class="px-5 py-3 font-bold text-slate-900 text-sm">${escHtml(p.title)}</td>
+        <td class="px-5 py-3">
+          ${p.code ? `<span class="font-mono text-xs font-black bg-slate-100 text-slate-800 px-2.5 py-1 rounded-lg border border-slate-200">${escHtml(p.code)}</span>` : '<span class="text-xs text-slate-400">Auto</span>'}
+        </td>
+        <td class="px-5 py-3 font-black text-emerald-700 text-sm">
+          ${p.discountType === 'PERCENTAGE' ? `${p.discountValue}% OFF` : fmt(p.discountValue)}
+        </td>
+        <td class="px-5 py-3 text-xs text-slate-500">${p.minOrderAmount ? fmt(p.minOrderAmount) : 'None'}</td>
+        <td class="px-5 py-3 text-xs font-bold text-slate-600">${p.usageCount || 0}${p.usageLimit ? ` / ${p.usageLimit}` : ''}</td>
+        <td class="px-5 py-3">
+          <span class="text-[10px] font-black px-2 py-0.5 rounded-full border ${p.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}">${p.isActive ? 'ACTIVE' : 'PAUSED'}</span>
+        </td>
+        <td class="px-5 py-3 text-right">
+          <button onclick="togglePromoStatus(${inlineJs(p.id)}, ${!p.isActive})" class="text-xs font-bold text-slate-600 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50 mr-1">${p.isActive ? 'Pause' : 'Activate'}</button>
+          <button onclick="deletePromo(${inlineJs(p.id)}, ${inlineJs(p.title)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openAddPromoModal() {
+    document.getElementById('promo-title').value = '';
+    document.getElementById('promo-code').value = '';
+    document.getElementById('promo-type').value = 'PERCENTAGE';
+    document.getElementById('promo-value').value = '';
+    document.getElementById('promo-min-order').value = '0';
+    document.getElementById('promo-usage-limit').value = '';
+    document.getElementById('promo-ends-at').value = '';
+    document.getElementById('promo-modal-error').classList.add('hidden');
+    document.getElementById('promo-modal').classList.remove('hidden');
+    lucide.createIcons();
+  }
+
+  async function handleSavePromo(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('promo-modal-error');
+    errEl.classList.add('hidden');
+    const endsDate = document.getElementById('promo-ends-at').value;
+    const usageLimitVal = parseInt(document.getElementById('promo-usage-limit').value);
+    const body = {
+      title: document.getElementById('promo-title').value.trim(),
+      code: document.getElementById('promo-code').value.trim().toUpperCase(),
+      discountType: document.getElementById('promo-type').value,
+      discountValue: parseInt(document.getElementById('promo-value').value) || 1,
+      minOrderAmount: parseInt(document.getElementById('promo-min-order').value) || 0,
+      usageLimit: usageLimitVal > 0 ? usageLimitVal : undefined,
+      startsAt: new Date().toISOString(),
+      endsAt: endsDate ? new Date(`${endsDate}T23:59:59Z`).toISOString() : undefined,
+    };
+    const r = await apiFetch('/offers', { method: 'POST', body: JSON.stringify(body) });
+    if (!r.ok) {
+      errEl.textContent = apiErrorMessage(r, 'Could not create promotion.');
+      errEl.classList.remove('hidden');
+      return;
+    }
+    closeModal('promo-modal');
+    showToast('Coupon created!');
+    loadPromotions();
+  }
+
+  async function togglePromoStatus(id, isActive) {
+    const r = await apiFetch(`/offers/${id}`, { method: 'PATCH', body: JSON.stringify({ isActive }) });
+    if (r.ok) {
+      showToast(isActive ? 'Promotion activated!' : 'Promotion paused.');
+      loadPromotions();
+    } else {
+      showToast(apiErrorMessage(r, 'Failed to update promotion.'), false);
+    }
+  }
+
+  async function deletePromo(id, title) {
+    if (!confirm(`Delete promotion "${title}"?`)) return;
+    const r = await apiFetch(`/offers/${id}`, { method: 'DELETE' });
+    if (r.ok) {
+      showToast('Promotion deleted.');
+      loadPromotions();
+    } else {
+      showToast(apiErrorMessage(r, 'Failed to delete promotion.'), false);
+    }
   }
 
   // ═══════════════════════════════════════

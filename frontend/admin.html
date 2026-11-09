@@ -6,7 +6,7 @@
   <title>Store Admin — Store254</title>
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="./styles/tailwind.generated.css">
   <link rel="stylesheet" href="./styles/admin.css">
 </head>
@@ -96,6 +96,9 @@
       <a class="sidebar-link" onclick="showPage('orders')" id="nav-orders">
         <i data-lucide="shopping-bag" class="w-4 h-4"></i> Orders
         <span id="sidebar-pending-badge" class="hidden ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full"></span>
+      </a>
+      <a class="sidebar-link" onclick="showPage('promotions')" id="nav-promotions">
+        <i data-lucide="percent" class="w-4 h-4"></i> Promotions &amp; Coupons
       </a>
 
       <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 pt-4 pb-1">Settings</div>
@@ -290,54 +293,171 @@
         </div>
       </section>
 
+      <!-- ══════════ PROMOTIONS & COUPONS PAGE ══════════ -->
+      <section id="page-promotions" class="hidden">
+        <div class="flex items-center justify-between mb-5">
+          <p class="text-sm text-slate-500">Create discount codes and seasonal offers for your shoppers</p>
+          <button onclick="openAddPromoModal()" class="btn-primary">
+            <i data-lucide="plus" class="w-4 h-4"></i> New Coupon / Offer
+          </button>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wide">
+              <tr>
+                <th class="px-5 py-3 text-left">Title</th>
+                <th class="px-5 py-3 text-left">Coupon Code</th>
+                <th class="px-5 py-3 text-left">Discount</th>
+                <th class="px-5 py-3 text-left">Min. Order</th>
+                <th class="px-5 py-3 text-left">Usage</th>
+                <th class="px-5 py-3 text-left">Status</th>
+                <th class="px-5 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="promotions-table-body" class="divide-y divide-slate-100">
+              <tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">Loading promotions...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- ══════════ SETTINGS PAGE ══════════ -->
       <section id="page-settings" class="hidden">
         <div class="max-w-7xl grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_390px] gap-6 items-start">
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2"><i data-lucide="paintbrush-vertical" class="w-4 h-4 text-emerald-600"></i> Store appearance</h3>
-            <p class="text-xs text-slate-500 mb-5">Choose a storefront look and its colour. Your products, filters, prices and shopping features stay the same.</p>
-            <form onsubmit="saveStoreSettings(event)" class="space-y-5">
-              <input id="settings-storefront-template" type="hidden" value="market-modern">
-              <input id="settings-theme-palette" type="hidden" value="trust-forest">
-              <input id="settings-primary-color" type="hidden" value="#15803d">
-              <input id="settings-background-color" type="hidden" value="#edf5ee">
-              <input id="settings-background-custom" type="hidden" value="">
-              <input id="settings-storefront-archetype" type="hidden" value="modern-retailer">
-              <input id="settings-header-variant" type="hidden" value="compact-search-first">
-              <input id="settings-product-card-style" type="hidden" value="grid-card">
-              <input id="settings-heading-font" type="hidden" value="modern">
-              <input id="settings-image-ratio" type="hidden" value="square">
-              <input id="settings-hero-style" type="hidden" value="split">
-              <input id="settings-hero-focal" type="hidden" value="center">
-              <input id="settings-card-density" type="hidden" value="comfortable">
-              <input id="settings-section-intro" type="hidden" value="true">
-              <input id="settings-section-social" type="hidden" value="true">
-              <input id="settings-section-contact" type="hidden" value="true">
-              <input id="settings-name" type="hidden" value="">
-              <input id="settings-tagline" type="hidden" value="">
-              <input id="settings-description" type="hidden" value="">
-              <input id="settings-email" type="hidden" value="">
-              <input id="settings-phone" type="hidden" value="">
-              <input id="settings-address" type="hidden" value="">
-              <input id="settings-logo" type="hidden" value="">
-              <input id="settings-banner" type="hidden" value="">
-              <input id="settings-instagram" type="hidden" value="">
-              <input id="settings-whatsapp" type="hidden" value="">
-              <input id="settings-facebook" type="hidden" value="">
-              <input id="settings-tiktok" type="hidden" value="">
-              <div>
-                <div class="flex items-center justify-between gap-3"><label class="label">Choose a template</label><span class="text-[11px] text-slate-400">Swipe to explore</span></div>
-                <div id="template-choice-grid" class="template-choice-grid" role="group" aria-label="Storefront templates" tabindex="0"></div>
-              </div>
-              <div>
-                <div class="flex items-center justify-between gap-3"><label class="label">Choose a colour</label><span id="selected-palette-name" class="text-xs font-semibold text-slate-500">Forest</span></div>
-                <div id="template-palette-choices" class="template-palette-choices" role="group" aria-label="Storefront colour palettes"></div>
-              </div>
-              <div class="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
-                <button type="submit" class="btn-primary"><i data-lucide="check" class="w-4 h-4"></i> Apply to my store</button>
-                <span id="design-draft-status" class="text-xs text-slate-500" aria-live="polite">Preview your choices before applying.</span>
-              </div>
-            </form>
+          <div class="space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2"><i data-lucide="paintbrush-vertical" class="w-4 h-4 text-emerald-600"></i> Store appearance &amp; profile</h3>
+              <p class="text-xs text-slate-500 mb-5">Customise your storefront template, colour palette, store profile, contact details, and social media links.</p>
+              <form onsubmit="saveStoreSettings(event)" class="space-y-6">
+                <input id="settings-storefront-template" type="hidden" value="market-modern">
+                <input id="settings-theme-palette" type="hidden" value="trust-forest">
+                <input id="settings-primary-color" type="hidden" value="#15803d">
+                <input id="settings-background-color" type="hidden" value="#edf5ee">
+                <input id="settings-background-custom" type="hidden" value="">
+                <input id="settings-storefront-archetype" type="hidden" value="modern-retailer">
+                <input id="settings-header-variant" type="hidden" value="compact-search-first">
+                <input id="settings-product-card-style" type="hidden" value="grid-card">
+                <input id="settings-heading-font" type="hidden" value="modern">
+                <input id="settings-image-ratio" type="hidden" value="square">
+                <input id="settings-hero-style" type="hidden" value="split">
+                <input id="settings-hero-focal" type="hidden" value="center">
+                <input id="settings-card-density" type="hidden" value="comfortable">
+                <input id="settings-section-intro" type="hidden" value="true">
+                <input id="settings-section-social" type="hidden" value="true">
+                <input id="settings-section-contact" type="hidden" value="true">
+
+                <div>
+                  <div class="flex items-center justify-between gap-3"><label class="label">Choose a template</label><span class="text-[11px] text-slate-400">Swipe to explore</span></div>
+                  <div id="template-choice-grid" class="template-choice-grid" role="group" aria-label="Storefront templates" tabindex="0"></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between gap-3"><label class="label">Choose a colour</label><span id="selected-palette-name" class="text-xs font-semibold text-slate-500">Forest</span></div>
+                  <div id="template-palette-choices" class="template-palette-choices" role="group" aria-label="Storefront colour palettes"></div>
+                </div>
+
+                <!-- Store Identity & Branding -->
+                <div class="border-t border-slate-100 pt-5 space-y-4">
+                  <h4 class="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <i data-lucide="store" class="w-4 h-4 text-emerald-600"></i> Store Profile &amp; Branding
+                  </h4>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="label">Store Name *</label>
+                      <input id="settings-name" type="text" required class="input" placeholder="e.g. Savannah Living" oninput="updateDesignPreview()" />
+                    </div>
+                    <div>
+                      <label class="label">Tagline / Hero Kicker</label>
+                      <input id="settings-tagline" type="text" class="input" placeholder="e.g. Curated Kenyan Craft &amp; Home" oninput="updateDesignPreview()" />
+                    </div>
+                  </div>
+                  <div>
+                    <label class="label">Store Description</label>
+                    <textarea id="settings-description" rows="2" class="input" placeholder="Tell customers what makes your store special..."></textarea>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="label mb-0">Logo URL</label>
+                        <label class="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer">
+                          Upload Logo
+                          <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-logo', this)" />
+                        </label>
+                      </div>
+                      <input id="settings-logo" type="text" class="input text-xs" placeholder="https://... or upload image" />
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="label mb-0">Hero Banner URL</label>
+                        <label class="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer">
+                          Upload Banner
+                          <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-banner', this)" />
+                        </label>
+                      </div>
+                      <input id="settings-banner" type="text" class="input text-xs" placeholder="https://... or upload image" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Contact & Location -->
+                <div class="border-t border-slate-100 pt-5 space-y-4">
+                  <h4 class="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <i data-lucide="phone" class="w-4 h-4 text-emerald-600"></i> Contact &amp; Social Links
+                  </h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="label">Contact Phone</label>
+                      <input id="settings-phone" type="text" class="input" placeholder="e.g. +254712345678" />
+                    </div>
+                    <div>
+                      <label class="label">WhatsApp Number</label>
+                      <input id="settings-whatsapp" type="text" class="input" placeholder="e.g. 254712345678" />
+                    </div>
+                    <div>
+                      <label class="label">Contact Email</label>
+                      <input id="settings-email" type="email" class="input" placeholder="hello@yourstore.co.ke" />
+                    </div>
+                  </div>
+                  <div>
+                    <label class="label">Physical Address / Pickup Location</label>
+                    <input id="settings-address" type="text" class="input" placeholder="e.g. Westlands Commercial Centre, Nairobi" />
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label class="label">Instagram URL / Handle</label>
+                      <input id="settings-instagram" type="text" class="input text-xs" placeholder="https://instagram.com/yourstore" />
+                    </div>
+                    <div>
+                      <label class="label">Facebook URL</label>
+                      <input id="settings-facebook" type="text" class="input text-xs" placeholder="https://facebook.com/yourstore" />
+                    </div>
+                    <div>
+                      <label class="label">TikTok URL / Handle</label>
+                      <input id="settings-tiktok" type="text" class="input text-xs" placeholder="https://tiktok.com/@yourstore" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
+                  <button type="submit" class="btn-primary"><i data-lucide="check" class="w-4 h-4"></i> Save &amp; Apply to Store</button>
+                  <span id="design-draft-status" class="text-xs text-slate-500" aria-live="polite">Preview your choices before applying.</span>
+                </div>
+              </form>
+            </div>
+
+            <!-- Custom Domain Mapping Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2">
+                <i data-lucide="globe" class="w-4 h-4 text-emerald-600"></i> Custom Domain
+              </h3>
+              <p class="text-xs text-slate-500 mb-4">Connect your own domain (e.g. <span class="font-mono">www.yourbrand.co.ke</span>) to your Store254 storefront.</p>
+              <form onsubmit="saveCustomDomain(event)" class="flex flex-col sm:flex-row gap-3">
+                <input id="settings-custom-domain" type="text" class="input flex-1 font-mono text-xs" placeholder="e.g. shop.yourbrand.co.ke" />
+                <button type="submit" class="btn-secondary shrink-0">
+                  <i data-lucide="link" class="w-4 h-4"></i> Connect Domain
+                </button>
+              </form>
+              <div id="custom-domain-dns-box" class="hidden mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 space-y-1"></div>
+            </div>
           </div>
           <aside class="design-preview-panel">
             <div class="design-preview-heading"><div><p class="design-preview-eyebrow">Live preview</p><h4 id="design-preview-heading">Your storefront</h4></div><span class="design-preview-live"><i></i> Preview</span></div>
@@ -467,12 +587,32 @@
         </div>
       </div>
       <div>
-        <div class="flex items-center justify-between gap-3">
-          <label class="label mb-1">Product Photos <span class="text-slate-400 font-normal">(one image URL per line)</span></label>
-          <span id="product-image-count" class="text-xs font-bold text-slate-500" aria-live="polite">0/5 photos</span>
+        <div class="flex items-center justify-between gap-3 mb-1.5">
+          <label class="label mb-0">Product Photos <span class="text-slate-400 font-normal">(up to 5)</span></label>
+          <div class="flex items-center gap-3">
+            <label class="text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer flex items-center gap-1">
+              <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i> Upload Photos
+              <input id="product-image-upload" type="file" accept="image/*" multiple class="hidden" onchange="handleProductImageUpload(this)" />
+            </label>
+            <span id="product-image-count" class="text-xs font-bold text-slate-500" aria-live="polite">0/5 photos</span>
+          </div>
         </div>
-        <textarea id="product-images" oninput="updateProductImageCount()" class="input font-mono text-xs" rows="3" placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"></textarea>
+        <div id="product-image-previews" class="grid grid-cols-5 gap-2 mb-2 empty:hidden"></div>
+        <textarea id="product-images" oninput="updateProductImageCount()" class="input font-mono text-xs" rows="2" placeholder="Paste image URLs (one per line) or click 'Upload Photos' above"></textarea>
         <p class="mt-1 text-[11px] text-slate-500">Add up to 5 photos. The first photo is used as the main product image.</p>
+      </div>
+      <!-- Product Variants Builder -->
+      <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/60 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-black text-slate-800 uppercase tracking-wide">Product Variants <span class="text-slate-400 font-normal lowercase">(optional)</span></p>
+            <p class="text-[11px] text-slate-500">Add sizes, colours, or options with specific prices and stock</p>
+          </div>
+          <button type="button" onclick="addProductVariantRow()" class="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-colors">
+            + Add Variant
+          </button>
+        </div>
+        <div id="product-variants-list" class="space-y-2 empty:hidden"></div>
       </div>
       <div>
         <label class="label">Status</label>
@@ -525,6 +665,66 @@
           <i data-lucide="save" class="w-4 h-4"></i> Create Category
         </button>
         <button type="button" onclick="closeModal('category-modal')" class="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ADD PROMOTION / COUPON MODAL
+════════════════════════════════════════════════ -->
+<div id="promo-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md">
+    <div class="flex items-center justify-between p-6 border-b border-slate-100">
+      <h2 class="text-lg font-black text-slate-900">New Promotion / Coupon</h2>
+      <button onclick="closeModal('promo-modal')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+        <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
+      </button>
+    </div>
+    <form onsubmit="handleSavePromo(event)" class="p-6 space-y-4">
+      <div>
+        <label class="label">Promotion Title *</label>
+        <input id="promo-title" type="text" required class="input" placeholder="e.g. Holiday 10% Off" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label">Coupon Code *</label>
+          <input id="promo-code" type="text" required class="input font-mono uppercase" placeholder="e.g. KARIBU10" />
+        </div>
+        <div>
+          <label class="label">Discount Type</label>
+          <select id="promo-type" class="input">
+            <option value="PERCENTAGE">Percentage (%)</option>
+            <option value="FIXED_AMOUNT">Fixed Amount (KES)</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label">Discount Value *</label>
+          <input id="promo-value" type="number" required min="1" class="input" placeholder="e.g. 10 or 500" />
+        </div>
+        <div>
+          <label class="label">Min. Order (KES)</label>
+          <input id="promo-min-order" type="number" min="0" value="0" class="input" placeholder="0" />
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label">Usage Limit <span class="text-slate-400 font-normal">(optional)</span></label>
+          <input id="promo-usage-limit" type="number" min="1" class="input" placeholder="Unlimited" />
+        </div>
+        <div>
+          <label class="label">Expires On <span class="text-slate-400 font-normal">(optional)</span></label>
+          <input id="promo-ends-at" type="date" class="input" />
+        </div>
+      </div>
+      <div id="promo-modal-error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-semibold"></div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" id="promo-save-btn" class="btn-primary flex-1 justify-center py-3">
+          <i data-lucide="save" class="w-4 h-4"></i> Create Coupon
+        </button>
+        <button type="button" onclick="closeModal('promo-modal')" class="btn-secondary">Cancel</button>
       </div>
     </form>
   </div>
