@@ -2,6 +2,7 @@
 html:not([data-storefront="true"]) body:has(#platform-hero) { background:#f6f8f6 !important; color:#18241d; }
 html:not([data-storefront="true"]) body:has(#platform-hero) .site-header { background:rgba(255,255,255,.96) !important; border-bottom:1px solid #e5eee7; box-shadow:0 3px 14px rgba(24,55,35,.06); }
 .site-header-inner { min-height:4.5rem; gap:1rem; }
+@media(min-width:1024px) { html:not([data-storefront="true"]) body:has(#platform-hero) .site-header-inner > div:last-child { display:none; } }
 #header-brand { min-width:10rem; }
 #header-platform-logo { object-fit:contain; }
 #desktop-search { max-width:25rem; }
@@ -19,6 +20,7 @@ html:not([data-storefront="true"]) #desktop-cart-btn { display:none !important; 
 .platform-intro .platform-eyebrow { margin:0 0 1rem; color:#07834e !important; letter-spacing:.12em; font-size:.68rem; }
 .platform-intro h1 { max-width:11ch; margin:0; color:#172820 !important; font:700 clamp(2.7rem,5.1vw,4.65rem)/.99 "Manrope",sans-serif; letter-spacing:-.065em; }
 .platform-intro h1 span { color:#07834e !important; }
+.platform-intro h1 .hero-heading-accent { color:#c8463b !important; font-size:.82em; }
 .platform-summary { max-width:37rem; margin:1rem 0 1.25rem; color:#596b60 !important; font-size:.9rem; line-height:1.7; }
 .platform-hero-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.7rem; }
 .platform-primary,.platform-secondary { display:inline-flex; align-items:center; justify-content:center; gap:.65rem; min-height:2.8rem; padding:.72rem 1rem; border-radius:999px; font-size:.75rem; font-weight:800; text-decoration:none; transition:transform .18s ease,background .18s ease,box-shadow .18s ease; }

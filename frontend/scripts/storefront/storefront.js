@@ -87,6 +87,8 @@ function initializeShowcaseCarousel() {
       slide.setAttribute("aria-hidden", String(!active));
     });
     dots.forEach((dot, dotIndex) => dot.setAttribute("aria-current", String(dotIndex === activeIndex)));
+    const ownerLabel = document.getElementById("featured-store-owner");
+    if (ownerLabel) ownerLabel.textContent = slides[activeIndex].dataset.ownerName || "Store owner";
   };
   const stop = () => {
     window.clearInterval(timer);

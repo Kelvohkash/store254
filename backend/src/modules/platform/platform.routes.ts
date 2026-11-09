@@ -112,8 +112,10 @@ platformRouter.get("/stores", async (c) => {
       currency: tenants.currency,
       settings: tenants.settings,
       createdAt: tenants.createdAt,
+      ownerName: users.fullName,
     })
     .from(tenants)
+    .leftJoin(users, and(eq(users.tenantId, tenants.id), eq(users.role, "OWNER")))
     .where(eq(tenants.status, "ACTIVE"))
     .orderBy(desc(tenants.createdAt))
     .limit(50);

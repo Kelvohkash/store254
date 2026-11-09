@@ -33,12 +33,14 @@ function renderFeaturedStoreShowcase(stores) {
     const settings = store.settings || {};
     const imageUrl = safeShowcaseImageUrl(settings.bannerUrl) || FEATURED_STORE_FALLBACK_IMAGES[index % FEATURED_STORE_FALLBACK_IMAGES.length];
     const name = store.name || "Independent Kenyan store";
+    const ownerName = typeof store.ownerName === "string" && store.ownerName.trim() ? store.ownerName.trim() : "Store owner";
     const detail = settings.tagline || settings.description || (store.businessType || "Independent store").replace(/_/g, " ");
     const validSlug = /^[a-z0-9-]+$/i.test(store.subdomain || "");
 
     const slide = document.createElement("article");
     slide.className = `showcase-main-card${index === 0 ? " is-active" : ""}`;
     slide.dataset.showcaseSlide = "";
+    slide.dataset.ownerName = ownerName;
     slide.setAttribute("aria-hidden", String(index !== 0));
 
     const image = document.createElement("div");
