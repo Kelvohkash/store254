@@ -22,9 +22,9 @@ function renderFeaturedStoreShowcase(stores) {
   // Keep the hero card deck visible even before any stores are active or when the directory is offline.
   const hasLiveStores = stores.length > 0;
   const featured = hasLiveStores ? [...stores] : [
-    { name: "Your store could be here", businessType: "Independent Kenyan brand", settings: { tagline: "A home for your hustle" } },
-    { name: "Made by a local creator", businessType: "Kenyan maker", settings: { tagline: "Thoughtful finds, made nearby" } },
-    { name: "Your neighborhood shop", businessType: "Everyday essentials", settings: { tagline: "Discover something local" } },
+    { name: "Launch your local online store in minutes", businessType: "Independent Kenyan brand", settings: { tagline: "Launch your local online store in minutes" } },
+    { name: "Your store. Your domain. Your customers.", businessType: "Kenyan maker", settings: { tagline: "Your store. Your domain. Your customers." } },
+    { name: "Your neighborhood shop", businessType: "Everything your business has to offer in one place.", settings: { tagline: "Everything your business has to offer in one place." } },
   ];
   const ownerBadge = document.querySelector(".showcase-float-tag");
   if (ownerBadge) ownerBadge.hidden = !hasLiveStores;
