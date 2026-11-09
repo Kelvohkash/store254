@@ -39,14 +39,14 @@ html:not([data-storefront="true"]) #desktop-cart-btn { display:none !important; 
 .platform-hero-proof { display:flex; flex-wrap:wrap; gap:.6rem 1.1rem; margin-top:1.4rem; padding-top:1rem; border-top:1px solid #e4eee6; color:#596b60 !important; }
 .platform-hero-proof span { display:inline-flex; align-items:center; gap:.35rem; font-size:.63rem; font-weight:650; }
 .platform-hero-proof svg { width:.85rem; height:.85rem; color:#07834e !important; }
-.platform-showcase-art { position:relative; display:grid; min-width:0; min-height:23rem; place-items:center; isolation:isolate; }
+.platform-showcase-art { position:relative; display:grid; min-width:0; min-height:28rem; place-items:center; isolation:isolate; }
 .showcase-glow { position:absolute; z-index:-1; inset:4%; border-radius:50%; background:radial-gradient(circle,rgba(170,222,185,.72),rgba(211,239,218,.5) 42%,transparent 73%) !important; filter:blur(8px); }
-.showcase-carousel { position:relative; width:min(100%,23rem); min-height:19rem; }
+.showcase-carousel { position:relative; width:min(100%,28rem); min-height:24rem; }
 .showcase-main-card { position:absolute; inset:0; display:flex; flex-direction:column; padding:.65rem; border:1px solid #fff !important; border-radius:1.2rem; background:#fff; box-shadow:0 22px 55px rgba(29,76,48,.17),0 0 0 1px rgba(7,131,78,.1) !important; opacity:1; visibility:visible !important; transform:translate(1.7rem,-.7rem) rotate(7deg) scale(.9); transition:opacity .55s ease,transform .72s cubic-bezier(.2,.8,.2,1),z-index .1s linear; pointer-events:none; }
 .showcase-main-card[data-stack-position="0"] { z-index:3; opacity:1; transform:translate(0,0) rotate(-2deg) scale(1); pointer-events:auto; }
 .showcase-main-card[data-stack-position="1"] { z-index:2; opacity:.78; transform:translate(1rem,-.45rem) rotate(4deg) scale(.95); }
 .showcase-main-card[data-stack-position="2"] { z-index:1; opacity:.48; transform:translate(1.9rem,-.9rem) rotate(8deg) scale(.9); }
-.showcase-main-image { position:relative; display:flex; flex:1; min-height:13rem; align-items:end; justify-content:space-between; overflow:hidden; padding:1rem; border-radius:.85rem; color:#fff; background:radial-gradient(ellipse at 72% 24%,#e9d2b0 0 17%,transparent 18%),linear-gradient(145deg,#a67b5b,#51684d 58%,#263c30); }
+.showcase-main-image { position:relative; display:flex; flex:1; min-height:16rem; align-items:end; justify-content:space-between; overflow:hidden; padding:1rem; border-radius:.85rem; color:#fff; background:radial-gradient(ellipse at 72% 24%,#e9d2b0 0 17%,transparent 18%),linear-gradient(145deg,#a67b5b,#51684d 58%,#263c30); }
 .showcase-main-image.has-photo::before { content:none; }
 .story-image-style { background:radial-gradient(ellipse at 75% 20%,#e6c3a6 0 18%,transparent 19%),linear-gradient(145deg,#b77769,#72534a 58%,#332e2d); }
 .story-image-market { background:radial-gradient(ellipse at 70% 20%,#f2c979 0 15%,transparent 16%),linear-gradient(145deg,#a6aa68,#a96e42 58%,#583b2b); }
@@ -143,4 +143,17 @@ html:not([data-storefront="true"]) #desktop-cart-btn { display:none !important; 
   html:not([data-storefront="true"]) body:has(#platform-hero) .platform-mobile-menu:not([hidden]) { display:flex; flex-direction:column; gap:.25rem; padding:.6rem 1rem .8rem; border-top:1px solid #edf1ed; background:#fff; }
   .platform-mobile-menu a,.platform-mobile-menu button { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:2.75rem; padding:.65rem .75rem; border:0; border-radius:.6rem; background:transparent; color:#26392d; font-size:.85rem; font-weight:700; text-align:left; text-decoration:none; }
   .platform-mobile-menu button { background:#07834e; color:#fff; }
+}
+
+@media(min-width:641px) and (max-width:900px) {
+  .platform-showcase-art { min-height:26rem; }
+  .platform-showcase-art .showcase-carousel { width:min(92%,28rem); min-height:22rem; }
+  .platform-showcase-art .showcase-main-image { min-height:14rem; }
+}
+
+@media(max-width:640px) {
+  #platform-hero .platform-showcase-art { min-height:22rem; }
+  #platform-hero .platform-showcase-art .showcase-carousel { width:min(88%,23rem); min-height:19rem; }
+  #platform-hero .platform-showcase-art .showcase-main-image { min-height:12rem; }
+  #platform-hero .showcase-main-card { padding:.55rem; }
 }
