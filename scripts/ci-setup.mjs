@@ -45,11 +45,21 @@ if (isCI) {
   const targetWorker = process.env.WRANGLER_CI_OVERRIDE_NAME || "";
   if (!targetWorker || targetWorker === "store254-backend") {
     console.log("[ci-setup] Installing backend dependencies...");
-    execSync("npm --prefix backend ci", { cwd: rootDir, stdio: "inherit" });
+    try {
+      execSync("npm --prefix backend ci", { cwd: rootDir, stdio: "inherit" });
+    } catch (ciError) {
+      console.warn("[ci-setup] 'npm ci' failed for backend; falling back to 'npm install'...", ciError.message);
+      execSync("npm --prefix backend install --no-audit --prefer-offline", { cwd: rootDir, stdio: "inherit" });
+    }
   }
   if (!targetWorker || targetWorker === "store254-frontend") {
     console.log("[ci-setup] Installing frontend dependencies and building styles...");
-    execSync("npm --prefix frontend ci", { cwd: rootDir, stdio: "inherit" });
+    try {
+      execSync("npm --prefix frontend ci", { cwd: rootDir, stdio: "inherit" });
+    } catch (ciError) {
+      console.warn("[ci-setup] 'npm ci' failed for frontend; falling back to 'npm install'...", ciError.message);
+      execSync("npm --prefix frontend install --no-audit --prefer-offline", { cwd: rootDir, stdio: "inherit" });
+    }
     execSync("npm --prefix frontend run build", { cwd: rootDir, stdio: "inherit" });
   }
 }
