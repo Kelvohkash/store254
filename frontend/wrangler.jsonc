@@ -9,8 +9,11 @@
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": true
   },
+  "services": [
+    { "binding": "API", "service": "store254-backend" }
+  ],
   // Serve the platform and tenant shops on their own hostnames. API browser
   // requests are proxied by this Worker to keep each shop same-origin.
   "routes": [
