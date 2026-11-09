@@ -167,10 +167,79 @@
       </div>
     </div>
 
+    <!-- Platform Benefit Strip -->
+    <section id="platform-benefit-strip" class="platform-benefit-strip" aria-label="Why Store254">
+      <article>
+        <span class="benefit-number">01 / SUBDOMAIN & SSL</span>
+        <h2>Claim your Kenyan store subdomain</h2>
+        <p>Get a clean, branded address like yourbrand.store254.co.ke with automated SSL, lightning CDN, and zero hosting fees.</p>
+      </article>
+      <article>
+        <span class="benefit-number">02 / M-PESA CHECKOUT</span>
+        <h2>Direct M-Pesa STK push payments</h2>
+        <p>Customers checkout with their Safaricom number and pay instantly into your Till or Paybill with real-time confirmation.</p>
+      </article>
+      <article>
+        <span class="benefit-number">03 / 11 CURATED THEMES</span>
+        <h2>Automatic contrast-safe styles</h2>
+        <p>Pick any foreground and background color without fear. Our visibility engine guarantees crisp contrast every time.</p>
+      </article>
+    </section>
+
+    <!-- Platform Stores Section -->
+    <section id="platform-stores-section" class="platform-stores-section" aria-labelledby="platform-stores-title">
+      <div class="platform-stores-heading">
+        <div>
+          <p class="platform-eyebrow">DISCOVER KENYAN SELLERS</p>
+          <h2 id="platform-stores-title">Explore active storefronts</h2>
+        </div>
+        <p>Support independent entrepreneurs, makers, and boutiques across Nairobi, Mombasa, and beyond.</p>
+      </div>
+      <div id="platform-stores-grid" class="platform-stores-grid" aria-live="polite"></div>
+    </section>
+
+    <!-- Seller Themes Gallery -->
     <section class="platform-template-gallery" aria-labelledby="platform-template-title">
-      <div class="platform-section-heading"><div><p class="platform-eyebrow">A home that fits your brand</p><h2 id="platform-template-title">Your store should feel like yours.</h2></div><span>Choose a style made for the things you sell, then make it your own.</span></div>
+      <div class="platform-section-heading">
+        <div>
+          <p class="platform-eyebrow">A HOME THAT FITS YOUR BRAND</p>
+          <h2 id="platform-template-title">Your store should feel like yours.</h2>
+        </div>
+        <span>Choose a style made for the things you sell, preview it live, then customize it with your own colors.</span>
+      </div>
+
+      <!-- Vibe & Industry Filter Tabs -->
+      <div class="template-gallery-filter-bar" role="tablist" aria-label="Filter templates by vibe">
+        <button type="button" class="template-filter-tab is-active" data-vibe-filter="all">All Themes (11)</button>
+        <button type="button" class="template-filter-tab" data-vibe-filter="cute">Cute & Playful</button>
+        <button type="button" class="template-filter-tab" data-vibe-filter="food">Food & Local</button>
+        <button type="button" class="template-filter-tab" data-vibe-filter="fashion">Fashion & Beauty</button>
+        <button type="button" class="template-filter-tab" data-vibe-filter="tech">Tech & Modern</button>
+        <button type="button" class="template-filter-tab" data-vibe-filter="luxury">Luxury & Maker</button>
+        <button type="button" class="template-filter-tab" data-vibe-filter="bold">Bold & Vibrant</button>
+      </div>
+
       <div class="template-gallery-grid" id="public-template-gallery" aria-live="polite"></div>
-      <div class="template-gallery-bottom"><span>Choose a look, then start your storefront with it.</span><button type="button" onclick="startWithStorefrontTemplate('market-modern')">Create your storefront <i data-lucide="arrow-up-right"></i></button></div>
+      <div class="template-gallery-bottom">
+        <span>Choose a look, then start your storefront with it.</span>
+        <button type="button" onclick="startWithStorefrontTemplate('market-modern')">Create your storefront <i data-lucide="arrow-up-right"></i></button>
+      </div>
+    </section>
+
+    <!-- Platform Seller Callout -->
+    <section class="platform-seller-callout" aria-labelledby="seller-callout-title">
+      <div class="seller-callout-copy">
+        <p class="platform-eyebrow">START IN 3 MINUTES</p>
+        <h2 id="seller-callout-title">Turn your hustle into a live online store.</h2>
+        <p>No credit card required. Connect your M-Pesa Till or Paybill and start sharing your link on Instagram, WhatsApp, and TikTok.</p>
+      </div>
+      <button type="button" class="platform-primary" onclick="toggleDrawer('onboard-modal', true)">
+        <span>Create your store free</span>
+        <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+      </button>
+      <div class="seller-callout-decoration" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
     </section>
 
   </section>

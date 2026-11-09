@@ -78,6 +78,53 @@
     renderStores();
   }
 
+  const formatTemplateName = (id) => {
+    const map = {
+      "cute-boutique": "Sweet & Cute",
+      "food-local": "Food & Local",
+      "luxury-atelier": "Luxury Atelier",
+      "brutalist-studio": "Brutalist Studio",
+      "tech-home": "Tech & Home",
+      "service-studio": "Service Studio",
+      "editorial-boutique": "Editorial Boutique",
+      "fashion-beauty-cosmetics": "Fashion Beauty",
+      "premium-maker": "Premium Maker",
+      "bazaar-vibrant": "Bazaar Vibrant",
+      "market-modern": "Market Modern",
+    };
+    return map[id] || (id ? id.replace(/-/g, " ") : "Market Modern");
+  };
+
+  function confirmDialog(title, message, isDanger = false) {
+    const modal = document.getElementById("confirm-modal");
+    if (!modal) return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+    const titleEl = document.getElementById("confirm-modal-title");
+    const msgEl = document.getElementById("confirm-modal-message");
+    const okBtn = document.getElementById("confirm-ok-btn");
+    const cancelBtn = document.getElementById("confirm-cancel-btn");
+    const iconEl = document.getElementById("confirm-modal-icon");
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    iconEl.textContent = isDanger ? "⚠️" : "✅";
+    okBtn.className = isDanger ? "modal-btn danger" : "modal-btn primary";
+    okBtn.textContent = isDanger ? "Yes, suspend" : "Yes, approve";
+    modal.hidden = false;
+
+    return new Promise((resolve) => {
+      const cleanup = (confirmed) => {
+        modal.hidden = true;
+        okBtn.removeEventListener("click", onOk);
+        cancelBtn.removeEventListener("click", onCancel);
+        resolve(confirmed);
+      };
+      const onOk = () => cleanup(true);
+      const onCancel = () => cleanup(false);
+      okBtn.addEventListener("click", onOk);
+      cancelBtn.addEventListener("click", onCancel);
+    });
+  }
+
   function rowMarkup(store) {
     const name = store.name || "Unnamed business";
     const slug = /^[a-z0-9-]+$/i.test(store.subdomain || "") ? store.subdomain : "";
@@ -85,18 +132,45 @@
     const status = ["ACTIVE", "PENDING", "SUSPENDED"].includes(store.status) ? store.status : "UNKNOWN";
     const statusLabel = { ACTIVE: "Active", PENDING: "Needs review", SUSPENDED: "Suspended", UNKNOWN: "Unknown" }[status];
     const category = formatCategory(store.businessType);
+    const templateId = store.settings?.storefrontTemplate || "market-modern";
+    const templateLabel = formatTemplateName(templateId);
+
     const action = status === "PENDING"
-      ? `<button class="row-action" type="button" data-store-action="activate" data-store-id="${escapeHtml(store.id)}">Approve store</button>`
+      ? `<button class="row-action is-approve" type="button" data-store-action="activate" data-store-id="${escapeHtml(store.id)}"><span>✓</span> Approve store</button>`
       : status === "ACTIVE"
-        ? `<button class="row-action is-danger" type="button" data-store-action="deactivate" data-store-id="${escapeHtml(store.id)}">Suspend</button>`
-        : '<span aria-label="No available action">—</span>';
+        ? `<button class="row-action is-danger" type="button" data-store-action="deactivate" data-store-id="${escapeHtml(store.id)}"><span>Ⅱ</span> Suspend</button>`
+        : '<span class="text-muted" aria-label="No available action">—</span>';
+
     return `<tr>
-      <td><div class="business-cell"><span class="business-avatar" aria-hidden="true">${escapeHtml(name.trim().slice(0, 1).toUpperCase() || "S")}</span><span><strong class="business-name">${escapeHtml(name)}</strong><small class="business-type">${escapeHtml(category)}</small></span></div></td>
-      <td>${storeUrl ? `<a class="store-link" href="${storeUrl}" target="_blank" rel="noopener">${escapeHtml(slug)}.store254.co.ke ↗</a>` : "—"}</td>
-      <td>${escapeHtml(category)}</td>
+      <td>
+        <div class="business-cell">
+          <span class="business-avatar" data-category="${escapeHtml(store.businessType || 'GENERAL')}" aria-hidden="true">${escapeHtml(name.trim().slice(0, 1).toUpperCase() || "S")}</span>
+          <div>
+            <strong class="business-name">${escapeHtml(name)}</strong>
+            <small class="business-type">${escapeHtml(category)}</small>
+          </div>
+        </div>
+      </td>
+      <td>
+        ${storeUrl ? `
+          <div class="store-url-pill">
+            <a class="store-link" href="${storeUrl}" target="_blank" rel="noopener">${escapeHtml(slug)}.store254.co.ke</a>
+            <button type="button" class="copy-url-btn" title="Copy store link" data-copy-url="${escapeHtml(storeUrl)}">⎘</button>
+          </div>
+        ` : '<span class="text-muted">—</span>'}
+      </td>
+      <td>
+        <span class="store-template-badge" data-template="${escapeHtml(templateId)}">${escapeHtml(templateLabel)}</span>
+      </td>
+      <td><span class="category-pill">${escapeHtml(category)}</span></td>
       <td class="date-cell">${escapeHtml(formatDate(store.createdAt))}</td>
-      <td><span class="status-badge status-${status.toLowerCase()}">${escapeHtml(statusLabel)}</span></td>
-      <td class="actions-cell">${action}</td>
+      <td><span class="status-badge status-${status.toLowerCase()}"><i class="status-dot"></i>${escapeHtml(statusLabel)}</span></td>
+      <td class="actions-cell">
+        <div class="actions-group">
+          ${action}
+          ${storeUrl ? `<a href="${storeUrl}" target="_blank" rel="noopener" class="row-action is-link" title="Visit storefront">↗</a>` : ""}
+        </div>
+      </td>
     </tr>`;
   }
 
@@ -104,14 +178,32 @@
     const query = ui.search.value.trim().toLowerCase();
     const visible = stores.filter((store) => {
       const matchesStatus = selectedStatus === "ALL" || store.status === selectedStatus;
-      const matchesQuery = !query || `${store.name || ""} ${store.subdomain || ""} ${store.businessType || ""}`.toLowerCase().includes(query);
+      const matchesQuery = !query || `${store.name || ""} ${store.subdomain || ""} ${store.businessType || ""} ${store.settings?.storefrontTemplate || ""}`.toLowerCase().includes(query);
       return matchesStatus && matchesQuery;
     });
     document.getElementById("result-count").textContent = `${visible.length} ${visible.length === 1 ? "business" : "businesses"}`;
     ui.rows.innerHTML = visible.map(rowMarkup).join("");
     ui.empty.hidden = visible.length > 0;
     ui.rows.hidden = visible.length === 0;
-    ui.rows.querySelectorAll("[data-store-action]").forEach((button) => button.addEventListener("click", () => void handleStoreAction(button)));
+
+    ui.rows.querySelectorAll("[data-store-action]").forEach((button) => {
+      button.addEventListener("click", () => void handleStoreAction(button));
+    });
+
+    ui.rows.querySelectorAll("[data-copy-url]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(button.dataset.copyUrl);
+          const orig = button.textContent;
+          button.textContent = "✓";
+          setTimeout(() => { button.textContent = orig; }, 1400);
+        } catch {
+          setNotice("Could not copy link to clipboard.", true);
+        }
+      });
+    });
+
+    if (window.lucide?.createIcons) window.lucide.createIcons();
   }
 
   async function loadDashboard() {
@@ -122,6 +214,7 @@
     }
     renderMetrics(statsResult.data.data);
     setNotice("");
+    if (window.lucide?.createIcons) window.lucide.createIcons();
   }
 
   async function handleStoreAction(button) {
@@ -129,10 +222,13 @@
     if (!store) return;
     const action = button.dataset.storeAction;
     const isApproval = action === "activate";
-    const prompt = isApproval
-      ? `Approve ${store.name}? This makes the storefront live and notifies its owner.`
-      : `Suspend ${store.name}? Customers will no longer be able to use this storefront.`;
-    if (!window.confirm(prompt)) return;
+    const title = isApproval ? `Approve ${store.name}?` : `Suspend ${store.name}?`;
+    const message = isApproval
+      ? `This will immediately make the storefront live at https://${store.subdomain}.store254.co.ke/ and notify the merchant.`
+      : `Customers will no longer be able to browse or place orders on this storefront until re-activated.`;
+
+    const confirmed = await confirmDialog(title, message, !isApproval);
+    if (!confirmed) return;
 
     button.disabled = true;
     button.textContent = isApproval ? "Approving…" : "Suspending…";
@@ -165,8 +261,17 @@
       await loadDashboard();
     } catch (error) {
       setNotice(error.message || "Could not load platform data.", true);
-      ui.rows.innerHTML = '<tr><td colspan="6" class="table-message">The business directory could not be loaded. Try refreshing.</td></tr>';
+      ui.rows.innerHTML = '<tr><td colspan="7" class="table-message">The business directory could not be loaded. Try refreshing.</td></tr>';
     }
+
+    // Keyboard shortcut ⌘K / Ctrl+K
+    window.addEventListener("keydown", (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault();
+        ui.search.focus();
+        ui.search.select();
+      }
+    });
   }
 
   ui.search.addEventListener("input", renderStores);

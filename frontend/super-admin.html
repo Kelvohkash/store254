@@ -11,53 +11,149 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles/super-admin.css">
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <div id="admin-loading" class="admin-loading" role="status">Checking your admin session…</div>
+  <div id="admin-loading" class="admin-loading" role="status">
+    <div class="loading-spinner"></div>
+    <span>Checking your admin session…</span>
+  </div>
   <main id="admin-app" class="admin-app" hidden>
     <aside class="admin-sidebar">
       <a class="admin-brand" href="./" aria-label="Store254 marketplace">
         <img src="./assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254">
       </a>
       <div class="sidebar-label">WORKSPACE</div>
-      <a class="sidebar-link is-current" href="#overview"><span class="nav-icon">⌂</span> Overview</a>
-      <a class="sidebar-link" href="#businesses"><span class="nav-icon">▦</span> Businesses <span id="sidebar-store-count" class="sidebar-count">—</span></a>
+      <a class="sidebar-link is-current" href="#overview"><span class="nav-icon"><i data-lucide="layout-dashboard"></i></span> Overview</a>
+      <a class="sidebar-link" href="#businesses"><span class="nav-icon"><i data-lucide="store"></i></span> Businesses <span id="sidebar-store-count" class="sidebar-count">—</span></a>
+      <a class="sidebar-link" href="./" target="_blank" rel="noopener"><span class="nav-icon"><i data-lucide="external-link"></i></span> Marketplace</a>
+      
       <div class="sidebar-bottom">
-        <div class="session-card"><span class="session-indicator"></span><div><strong>Secure session</strong><small>Super administrator</small></div></div>
-        <button id="logout-button" class="logout-button" type="button"><span>↪</span> Sign out</button>
+        <div class="session-card">
+          <span class="session-indicator"></span>
+          <div>
+            <strong>Super Administrator</strong>
+            <small>Active secure session</small>
+          </div>
+        </div>
+        <button id="logout-button" class="logout-button" type="button">
+          <i data-lucide="log-out"></i>
+          <span>Sign out</span>
+        </button>
       </div>
     </aside>
 
     <section class="admin-content">
       <header class="topbar">
-        <div class="crumb"><span>Store254</span><b>/</b><strong>Platform admin</strong></div>
-        <div class="topbar-actions"><span class="live-label"><i></i> PLATFORM LIVE</span><button id="refresh-button" class="icon-button" type="button" aria-label="Refresh data" title="Refresh">↻</button></div>
+        <div class="crumb">
+          <span>Store254</span>
+          <b>/</b>
+          <strong>Platform Command Center</strong>
+        </div>
+        <div class="topbar-actions">
+          <span class="live-label"><i></i> CLOUDFLARE EDGE LIVE</span>
+          <button id="refresh-button" class="icon-button" type="button" aria-label="Refresh data" title="Refresh data">
+            <i data-lucide="rotate-cw"></i>
+          </button>
+        </div>
       </header>
 
       <div class="page-wrap">
         <section id="overview" class="welcome-row">
-          <div><p class="eyebrow">YOUR MARKETPLACE, AT A GLANCE</p><h1>Good morning, Admin <span>✳</span></h1><p class="page-subtitle">Keep an eye on the businesses growing with Store254.</p></div>
-          <a class="public-site-link" href="./" target="_blank" rel="noopener">View marketplace <span>↗</span></a>
+          <div>
+            <p class="eyebrow">STORE254 SUPER ADMIN</p>
+            <h1>Platform Overview <span>✳</span></h1>
+            <p class="page-subtitle">Monitor registered merchants, review applications, and manage platform health.</p>
+          </div>
+          <a class="public-site-link" href="./" target="_blank" rel="noopener">
+            <span>View marketplace</span>
+            <i data-lucide="arrow-up-right"></i>
+          </a>
         </section>
 
         <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
 
         <section class="metric-grid" aria-label="Marketplace overview">
-          <article class="metric-card metric-total"><div class="metric-top"><span>Total businesses</span><span class="metric-icon">▦</span></div><strong id="metric-total">—</strong><small>Registered on Store254</small></article>
-          <article class="metric-card metric-active"><div class="metric-top"><span>Active stores</span><span class="metric-icon">✓</span></div><strong id="metric-active">—</strong><small>Live and serving customers</small></article>
-          <article class="metric-card metric-pending"><div class="metric-top"><span>Needs review</span><span class="metric-icon">◷</span></div><strong id="metric-pending">—</strong><small>Waiting for approval</small></article>
-          <article class="metric-card metric-suspended"><div class="metric-top"><span>Suspended</span><span class="metric-icon">Ⅱ</span></div><strong id="metric-suspended">—</strong><small>Currently not live</small></article>
+          <article class="metric-card metric-total">
+            <div class="metric-top">
+              <span>Total businesses</span>
+              <span class="metric-icon"><i data-lucide="building-2"></i></span>
+            </div>
+            <strong id="metric-total">—</strong>
+            <div class="metric-footer">
+              <small>Registered merchants</small>
+              <span class="metric-pill">All time</span>
+            </div>
+          </article>
+
+          <article class="metric-card metric-active">
+            <div class="metric-top">
+              <span>Active stores</span>
+              <span class="metric-icon"><i data-lucide="badge-check"></i></span>
+            </div>
+            <strong id="metric-active">—</strong>
+            <div class="metric-footer">
+              <small>Live &amp; accepting orders</small>
+              <span class="metric-pill pill-green">Selling</span>
+            </div>
+          </article>
+
+          <article class="metric-card metric-pending">
+            <div class="metric-top">
+              <span>Needs review</span>
+              <span class="metric-icon"><i data-lucide="clock"></i></span>
+            </div>
+            <strong id="metric-pending">—</strong>
+            <div class="metric-footer">
+              <small>Waiting for approval</small>
+              <span class="metric-pill pill-amber">Pending KYC</span>
+            </div>
+          </article>
+
+          <article class="metric-card metric-suspended">
+            <div class="metric-top">
+              <span>Suspended</span>
+              <span class="metric-icon"><i data-lucide="shield-alert"></i></span>
+            </div>
+            <strong id="metric-suspended">—</strong>
+            <div class="metric-footer">
+              <small>Disabled storefronts</small>
+              <span class="metric-pill pill-rose">Inactive</span>
+            </div>
+          </article>
         </section>
 
-        <section class="activity-banner"><div class="activity-mark">↗</div><div><strong>Marketplace sales volume</strong><p>Paid orders processed across all Store254 businesses</p></div><div class="activity-value"><span id="metric-gmv">KES —</span><small>ALL TIME</small></div></section>
+        <section class="activity-banner">
+          <div class="activity-mark"><i data-lucide="trending-up"></i></div>
+          <div class="activity-body">
+            <strong>Marketplace Transaction Volume (GMV)</strong>
+            <p>Total M-Pesa &amp; card order volume processed across all active Store254 businesses</p>
+          </div>
+          <div class="activity-value">
+            <span id="metric-gmv">KES —</span>
+            <small>ALL-TIME SETTLED</small>
+          </div>
+        </section>
 
         <section id="businesses" class="business-section">
-          <div class="section-heading"><div><p class="eyebrow">THE STORE DIRECTORY</p><h2>Registered businesses</h2><p class="section-subtitle">Review applications and manage storefront access.</p></div><span id="result-count" class="result-count">Loading businesses…</span></div>
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">THE STORE DIRECTORY</p>
+              <h2>Registered Businesses</h2>
+              <p class="section-subtitle">Review new store applications, inspect configured templates, and manage storefront access.</p>
+            </div>
+            <span id="result-count" class="result-count">Loading businesses…</span>
+          </div>
+
           <div class="toolbar">
-            <label class="search-box"><span aria-hidden="true">⌕</span><input id="business-search" type="search" placeholder="Search business or subdomain…" autocomplete="off"></label>
+            <label class="search-box">
+              <i data-lucide="search" class="search-icon"></i>
+              <input id="business-search" type="search" placeholder="Search by store name, subdomain, or owner..." autocomplete="off">
+              <span class="search-shortcut">⌘K</span>
+            </label>
             <div class="filter-tabs" role="group" aria-label="Filter businesses by status">
               <button type="button" class="filter-tab is-selected" data-status-filter="ALL">All <span id="filter-count-all">—</span></button>
-              <button type="button" class="filter-tab" data-status-filter="PENDING">Review <span id="filter-count-pending">—</span></button>
+              <button type="button" class="filter-tab" data-status-filter="PENDING">Needs Review <span id="filter-count-pending">—</span></button>
               <button type="button" class="filter-tab" data-status-filter="ACTIVE">Active <span id="filter-count-active">—</span></button>
               <button type="button" class="filter-tab" data-status-filter="SUSPENDED">Suspended <span id="filter-count-suspended">—</span></button>
             </div>
@@ -65,16 +161,53 @@
 
           <div class="table-shell">
             <table>
-              <thead><tr><th>BUSINESS</th><th>STORE ADDRESS</th><th>CATEGORY</th><th>REGISTERED</th><th>STATUS</th><th class="actions-heading">ACTIONS</th></tr></thead>
-              <tbody id="business-rows"><tr><td colspan="6" class="table-message">Loading registered businesses…</td></tr></tbody>
+              <thead>
+                <tr>
+                  <th>BUSINESS</th>
+                  <th>STORE ADDRESS</th>
+                  <th>THEME</th>
+                  <th>CATEGORY</th>
+                  <th>REGISTERED</th>
+                  <th>STATUS</th>
+                  <th class="actions-heading">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="business-rows">
+                <tr><td colspan="7" class="table-message">Loading registered businesses…</td></tr>
+              </tbody>
             </table>
-            <div id="empty-state" class="empty-state" hidden><span>▦</span><strong>No businesses found</strong><p>Try another search or status filter.</p></div>
+            <div id="empty-state" class="empty-state" hidden>
+              <span><i data-lucide="store"></i></span>
+              <strong>No businesses found</strong>
+              <p>Try adjusting your search query or status filter.</p>
+            </div>
           </div>
-          <p class="table-footnote"><span class="secure-dot"></span> Sensitive account actions are recorded and require confirmation.</p>
+          <p class="table-footnote"><span class="secure-dot"></span> Sensitive actions require confirmation and are recorded in the audit log.</p>
         </section>
-        <footer class="admin-footer"><span>Store254 Platform Administration</span><span>Private workspace · <span id="footer-date"></span></span></footer>
+
+        <footer class="admin-footer">
+          <span>Store254 Platform Administration &bull; Private Workspace</span>
+          <span>Cloudflare Workers &bull; Year <span id="footer-date"></span></span>
+        </footer>
       </div>
     </section>
+
+    <!-- Confirmation Modal Dialog -->
+    <div id="confirm-modal" class="modal-backdrop" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <div class="modal-header">
+          <div id="confirm-modal-icon" class="modal-icon">⚠️</div>
+          <div>
+            <h3 id="confirm-modal-title">Confirm Action</h3>
+            <p id="confirm-modal-message">Are you sure you want to proceed?</p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="confirm-cancel-btn" class="modal-btn secondary">Cancel</button>
+          <button type="button" id="confirm-ok-btn" class="modal-btn primary">Confirm</button>
+        </div>
+      </div>
+    </div>
   </main>
   <script src="./scripts/admin/super-admin.js" defer></script>
 </body>
