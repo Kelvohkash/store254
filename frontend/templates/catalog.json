@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "palettes": [
+    { "id": "trust-forest", "name": "Forest", "primary": "#15803d", "background": "#edf5ee" },
+    { "id": "sapphire-blue", "name": "Ocean", "primary": "#08718b", "background": "#e9f2f9" },
+    { "id": "organic-sage", "name": "Sage", "primary": "#66835c", "background": "#f1f4eb" },
+    { "id": "modern-onyx", "name": "Charcoal", "primary": "#334155", "background": "#edf0f3" },
+    { "id": "sunset-amber", "name": "Amber", "primary": "#c46a2d", "background": "#fbf0e5" },
+    { "id": "rose", "name": "Rose", "primary": "#b64269", "background": "#f8edf1" }
+  ],
+  "templates": [
+    { "id": "market-modern", "name": "Market Modern", "description": "Clean, confident everyday shopping.", "defaults": { "archetype": "modern-retailer", "header": "compact-search-first", "card": "grid-card", "hero": "split", "font": "modern", "kicker": "MADE FOR EVERY DAY", "cta": "Explore collection", "title": "Good things,<br>chosen well." } },
+    { "id": "editorial-boutique", "name": "Editorial Boutique", "description": "A considered fashion and beauty edit.", "defaults": { "archetype": "lifestyle-boutique", "header": "centered-brand", "card": "grid-card", "hero": "editorial", "font": "editorial", "kicker": "A CONSIDERED EDIT", "cta": "Discover the edit", "title": "A little more<br>beautiful, every day." } },
+    { "id": "fashion-beauty-cosmetics", "name": "Fashion, Beauty & Cosmetics", "description": "Fashion, beauty and cosmetics storefront.", "stylesheet": "fashion-beauty-cosmetics/template.css", "preview": "fashion-beauty-cosmetics/preview.html", "defaults": { "archetype": "lifestyle-boutique", "header": "centered-brand", "card": "grid-card", "hero": "editorial", "font": "editorial", "kicker": "THE NEW SEASON", "cta": "Discover the edit", "title": "Everyday,<br>considered." } },
+    { "id": "premium-maker", "name": "Premium Maker", "description": "A focused home for signature goods.", "defaults": { "archetype": "single-product-maker", "header": "centered-brand", "card": "horizontal-list-row", "hero": "minimal", "font": "editorial", "kicker": "MADE WITH INTENTION", "cta": "Meet the collection", "title": "Made slowly.<br>Kept forever." } },
+    { "id": "tech-home", "name": "Tech & Home", "description": "Modern essentials for work and home.", "defaults": { "archetype": "modern-retailer", "header": "compact-search-first", "card": "grid-card", "hero": "split", "font": "modern", "kicker": "SMARTER LIVING STARTS HERE", "cta": "Shop essentials", "title": "A smarter home<br>starts here." } },
+    { "id": "service-studio", "name": "Service Studio", "description": "A welcoming page for services and bookings.", "defaults": { "archetype": "service-portfolio", "header": "minimal-nav", "card": "service-card", "hero": "minimal", "font": "modern", "kicker": "PERSONAL SERVICE, BEAUTIFULLY DONE", "cta": "View services", "title": "Good care,<br>made personal." } },
+    { "id": "food-local", "name": "Food & Local", "description": "Fresh food and neighbourhood finds.", "defaults": { "archetype": "modern-retailer", "header": "centered-brand", "card": "grid-card", "hero": "editorial", "font": "rounded", "kicker": "FRESH FROM OUR KITCHEN", "cta": "Order something good", "title": "A little joy,<br>made fresh." } }
+  ]
+}

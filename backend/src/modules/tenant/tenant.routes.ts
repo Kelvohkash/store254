@@ -43,9 +43,10 @@ const updateStoreProfileSchema = z.object({
         .enum(["modern-retailer", "lifestyle-boutique", "single-product-maker", "service-portfolio"])
         .optional(),
       storefrontTemplate: z
-        .enum(["market-modern", "editorial-boutique", "premium-maker", "tech-home", "service-studio", "food-local"])
+        .string()
+        .regex(/^[a-z0-9][a-z0-9-]{0,63}$/i)
         .optional(),
-      storefrontTemplateVersion: z.number().int().positive().max(1).optional(),
+      storefrontTemplateVersion: z.number().int().positive().max(1000).optional(),
       headingFont: z.enum(["modern", "editorial", "rounded"]).optional(),
       productImageRatio: z.enum(["square", "portrait", "landscape"]).optional(),
       heroStyle: z.enum(["split", "editorial", "minimal"]).optional(),

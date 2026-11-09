@@ -57,6 +57,7 @@
     <nav id="review-template-buttons" class="review-templates" aria-label="Choose a template to review">
       <button type="button" data-review-template="market-modern" aria-pressed="false">Market Modern</button>
       <button type="button" data-review-template="editorial-boutique" aria-pressed="false">Editorial Boutique</button>
+      <button type="button" data-review-template="fashion-beauty-cosmetics" aria-pressed="false">Fashion, Beauty &amp; Cosmetics</button>
       <button type="button" data-review-template="premium-maker" aria-pressed="false">Premium Maker</button>
       <button type="button" data-review-template="tech-home" aria-pressed="false">Tech &amp; Home</button>
       <button type="button" data-review-template="service-studio" aria-pressed="false">Service Studio</button>
@@ -130,7 +131,7 @@
   <script src="../scripts/storefront/core.js"></script>
   <script src="../scripts/admin/design.js"></script>
   <script>
-    const reviewTemplates = ["market-modern", "editorial-boutique", "premium-maker", "tech-home", "service-studio", "food-local"];
+    const reviewTemplates = ["market-modern", "editorial-boutique", "fashion-beauty-cosmetics", "premium-maker", "tech-home", "service-studio", "food-local"];
     function reviewTemplate(template) {
       selectStoreTemplate(template);
       const settings = templateDefaults[template];

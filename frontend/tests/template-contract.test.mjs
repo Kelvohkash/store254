@@ -3,31 +3,39 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const templateIds = [
-  "market-modern",
-  "editorial-boutique",
-  "premium-maker",
-  "tech-home",
-  "service-studio",
-  "food-local",
-];
 
-test("every storefront template is selectable, defaulted, applied, and styled", async () => {
-  const [admin, adminDesign, appCore, templates, preview] = await Promise.all([
+test("storefront catalog drives the picker, palette and runtime", async () => {
+  const [catalogText, admin, adminDesign, appCore, preview, fashionBeauty] = await Promise.all([
+    read("../templates/catalog.json"),
     read("../admin.html"),
     read("../scripts/admin/design.js"),
     read("../scripts/storefront/core.js"),
-    read("../styles/storefront-templates.css"),
     read("../styles/admin.css"),
+    read("../templates/fashion-beauty-cosmetics/template.css"),
   ]);
-
-  for (const template of templateIds) {
-    assert.match(admin, new RegExp(`data-template=["']${template}["']`), `${template} missing from editor`);
-    assert.match(adminDesign, new RegExp(`['"]${template}['"]\s*:`), `${template} missing design defaults`);
-    assert.ok(appCore.includes(`"${template}"`), `${template} missing storefront allow-list`);
-    assert.ok(templates.includes(`data-storefront-template="${template}"`), `${template} missing storefront styles`);
-    assert.ok(preview.includes(`data-template="${template}"`), `${template} missing preview styles`);
+  const catalog = JSON.parse(catalogText);
+  assert.ok(catalog.templates.length >= 1);
+  assert.ok(catalog.palettes.length >= 6, "at least six palettes must be available");
+  assert.equal(new Set(catalog.templates.map(({ id }) => id)).size, catalog.templates.length, "template ids must be unique");
+  for (const template of catalog.templates) {
+    assert.match(template.id, /^[a-z0-9][a-z0-9-]{0,63}$/i);
+    assert.ok(template.name && template.defaults, `${template.id} needs a name and shared-shell defaults`);
+    if (template.stylesheet) assert.match(template.stylesheet, /^[a-z0-9][a-z0-9/_-]*\.css$/i);
   }
+  for (const palette of catalog.palettes) {
+    assert.match(palette.primary, /^#[0-9a-f]{6}$/i);
+    assert.match(palette.background, /^#[0-9a-f]{6}$/i);
+  }
+  assert.match(admin, /id="template-choice-grid"/);
+  assert.match(admin, /id="template-palette-choices"/);
+  assert.match(admin, /data-preview-size="mobile"/);
+  assert.match(adminDesign, /fetch\("\/templates\/catalog\.json"/);
+  assert.match(adminDesign, /storefrontTemplateVersion/);
+  assert.match(appCore, /loadStorefrontTemplateCatalog/);
+  assert.match(appCore, /loadStorefrontTemplateStylesheet/);
+  assert.match(fashionBeauty, /var\(--store-primary\)/);
+  assert.match(preview, /template-choice-grid/);
+  assert.match(preview, /data-preview-size="mobile"/);
 });
 
 test("storefront has responsive, contrast, keyboard-focus and reduced-motion guardrails", async () => {

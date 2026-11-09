@@ -202,6 +202,30 @@
   --store-clay: #d97706;
 }
 
+[data-theme="rose"] {
+  --store-primary: #b64269;
+  --store-primary-hover: #943553;
+  --store-primary-subtle: #f8dce6;
+  --store-primary-glow: rgba(182, 66, 105, .28);
+  --store-trust-blue: #7c3f68;
+  --store-trust-blue-dark: #673358;
+  --store-trust-blue-bg: #fbf0f5;
+  --store-trust-blue-line: #efc8d7;
+  --store-urgency-red: #be123c;
+  --store-urgency-red-bg: #fff1f2;
+  --store-urgency-amber: #bd684c;
+  --store-urgency-amber-bg: #fff7ed;
+  --store-paper: #f8edf1;
+  --store-white: #ffffff;
+  --store-ink: #321d27;
+  --store-muted: #755d68;
+  --store-line: #e7cdd7;
+  --store-media-bg: #fcf7f9;
+  --store-green: var(--store-primary);
+  --store-green-dark: var(--store-primary-hover);
+  --store-clay: #b64269;
+}
+
 html { background: var(--store-paper); }
 body {
   background: var(--store-paper) !important;

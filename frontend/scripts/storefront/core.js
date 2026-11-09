@@ -24,6 +24,7 @@ const THEME_PALETTES = {
   "organic-sage": { name: "Organic Sage & Wellness", accent: "#2d6a4f" },
   "modern-onyx": { name: "Modern Onyx & Mint", accent: "#059669" },
   "sunset-amber": { name: "Sunset Amber & Coral", accent: "#d97706" },
+  "rose": { name: "Rose", accent: "#b64269" },
 };
 
 function setThemePalette(palette) {
@@ -67,32 +68,64 @@ const STOREFRONT_LAYOUTS = {
   "service-portfolio": { header: "minimal-nav", card: "service-card" },
 };
 
-function applyStorefrontSettings(settings = {}) {
+let storefrontTemplateCatalogPromise;
+function loadStorefrontTemplateCatalog() {
+  if (!storefrontTemplateCatalogPromise) {
+    storefrontTemplateCatalogPromise = fetch("/templates/catalog.json", { cache: "no-cache" })
+      .then((response) => {
+        if (!response.ok) throw new Error("Template catalog unavailable");
+        return response.json();
+      })
+      .then((catalog) => Array.isArray(catalog.templates) ? catalog : { templates: [] })
+      .catch((error) => {
+        console.error("[Storefront] Could not load template catalog:", error);
+        return { templates: [] };
+      });
+  }
+  return storefrontTemplateCatalogPromise;
+}
+
+async function loadStorefrontTemplateStylesheet(template) {
+  let link = document.getElementById("active-storefront-template-styles");
+  const stylesheet = template?.stylesheet;
+  if (!stylesheet || !/^[a-z0-9][a-z0-9/_-]*\.css$/i.test(stylesheet) || stylesheet.includes("..")) {
+    link?.remove();
+    return;
+  }
+  const href = new URL(`/templates/${stylesheet}`, window.location.origin).href;
+  if (link?.href === href && link.dataset.loaded === "true") return;
+  link?.remove();
+  link = document.createElement("link");
+  link.id = "active-storefront-template-styles";
+  link.rel = "stylesheet";
+  link.href = href;
+  await new Promise((resolve) => {
+    link.addEventListener("load", () => { link.dataset.loaded = "true"; resolve(); }, { once: true });
+    link.addEventListener("error", () => { console.error(`[Storefront] Template style could not be loaded: ${template.id}`); resolve(); }, { once: true });
+    document.head.append(link);
+  });
+}
+
+async function applyStorefrontSettings(settings = {}) {
   settings = settings || {};
   const root = document.documentElement;
-  const archetype = STOREFRONT_LAYOUTS[settings.storefrontArchetype]
-    ? settings.storefrontArchetype
-    : "modern-retailer";
-  const defaults = STOREFRONT_LAYOUTS[archetype];
-  const header = ["compact-search-first", "centered-brand", "minimal-nav"].includes(settings.headerVariant)
-    ? settings.headerVariant
-    : defaults.header;
-  const card = ["grid-card", "horizontal-list-row", "service-card"].includes(settings.productCardStyle)
-    ? settings.productCardStyle
-    : defaults.card;
+  const catalog = await loadStorefrontTemplateCatalog();
+  const requestedId = /^[a-z0-9][a-z0-9-]{0,63}$/i.test(settings.storefrontTemplate || "") ? settings.storefrontTemplate : "";
+  const template = catalog.templates.find((entry) => entry.id === requestedId)
+    || catalog.templates.find((entry) => entry.id === "market-modern")
+    || { id: "market-modern", defaults: {} };
+  const defaults = template.defaults || {};
+  const archetype = STOREFRONT_LAYOUTS[defaults.archetype] ? defaults.archetype : "modern-retailer";
 
   root.dataset.storefrontType = archetype;
-  const template = ["market-modern", "editorial-boutique", "premium-maker", "tech-home", "service-studio", "food-local"].includes(settings.storefrontTemplate)
-    ? settings.storefrontTemplate
-    : ({ "lifestyle-boutique": "editorial-boutique", "single-product-maker": "premium-maker", "service-portfolio": "service-studio" }[archetype] || "market-modern");
-  root.dataset.storefrontTemplate = template;
-  root.dataset.productImageRatio = ["square", "portrait", "landscape"].includes(settings.productImageRatio) ? settings.productImageRatio : "square";
-  root.dataset.cardDensity = ["compact", "comfortable", "spacious"].includes(settings.cardDensity) ? settings.cardDensity : "comfortable";
-  root.dataset.headingFont = ["modern", "editorial", "rounded"].includes(settings.headingFont) ? settings.headingFont : "modern";
-  root.dataset.heroStyle = ["split", "editorial", "minimal"].includes(settings.heroStyle) ? settings.heroStyle : "split";
-  root.dataset.heroFocalPoint = ["center", "left", "right", "top"].includes(settings.heroFocalPoint) ? settings.heroFocalPoint : "center";
-  root.dataset.headerVariant = header;
-  root.dataset.productCardStyle = card;
+  root.dataset.storefrontTemplate = template.id;
+  root.dataset.productImageRatio = "square";
+  root.dataset.cardDensity = "comfortable";
+  root.dataset.headingFont = defaults.font || "modern";
+  root.dataset.heroStyle = defaults.hero || "split";
+  root.dataset.heroFocalPoint = "center";
+  root.dataset.headerVariant = defaults.header || STOREFRONT_LAYOUTS[archetype].header;
+  root.dataset.productCardStyle = defaults.card || STOREFRONT_LAYOUTS[archetype].card;
   setStorefrontBackgroundColor(settings.backgroundColor);
   root.style.removeProperty("--store-primary");
   root.removeAttribute("data-custom-accent");
@@ -103,8 +136,9 @@ function applyStorefrontSettings(settings = {}) {
   const primary = getHexLuminance(getComputedStyle(root).getPropertyValue("--store-primary").trim());
   root.style.setProperty("--store-on-primary", primary > 0.179 ? "#142019" : "#ffffff");
   root.style.setProperty("--store-primary-hover", "color-mix(in srgb, var(--store-primary) 82%, black)");
-  root.style.setProperty("--store-card-radius", template === "editorial-boutique" ? "1.15rem" : template === "tech-home" ? ".65rem" : ".85rem");
-  root.style.setProperty("--store-card-shadow", template === "premium-maker" ? "0 16px 38px rgba(15, 23, 42, .10)" : "0 8px 26px rgba(15, 23, 42, .06)");
+  root.style.setProperty("--store-card-radius", template.id === "editorial-boutique" ? "1.15rem" : template.id === "tech-home" ? ".65rem" : ".85rem");
+  root.style.setProperty("--store-card-shadow", template.id === "premium-maker" ? "0 16px 38px rgba(15, 23, 42, .10)" : "0 8px 26px rgba(15, 23, 42, .06)");
+  await loadStorefrontTemplateStylesheet(template);
 }
 
 function getHexLuminance(color) {

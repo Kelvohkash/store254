@@ -1,0 +1,115 @@
+/* Fashion, Beauty & Cosmetics storefront treatment. */
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] {
+  --store-card-radius: .25rem;
+  --store-card-shadow: none;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner {
+  min-height: 29rem;
+  border: 0;
+  background: radial-gradient(ellipse at 76% 38%, color-mix(in srgb, var(--store-primary) 64%, #ffffff) 0%, transparent 25%), linear-gradient(105deg, color-mix(in srgb, var(--store-primary) 78%, #102c3a) 0%, var(--store-primary) 55%, color-mix(in srgb, var(--store-primary) 78%, #102c3a) 100%);
+  color: #fff;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner::after {
+  position: absolute;
+  top: -14%;
+  right: 10%;
+  width: min(37%, 23rem);
+  height: 130%;
+  border-radius: 48% 48% 8% 8%;
+  background: linear-gradient(105deg, color-mix(in srgb, var(--store-primary) 42%, #172f3d) 0 19%, #b28c7b 20% 36%, color-mix(in srgb, var(--store-primary) 68%, #173b4b) 37% 54%, color-mix(in srgb, var(--store-primary) 80%, #1a4d5b) 55%);
+  content: "";
+  opacity: .88;
+  transform: rotate(9deg);
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner h1 {
+  max-width: 12ch;
+  color: #fff !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-size: clamp(2.8rem, 5.8vw, 5rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -.05em !important;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner #banner-store-desc,
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner .store-address,
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner .store-tagline {
+  color: #d6e9eb !important;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner-copy {
+  position: relative;
+  z-index: 1;
+  padding: 1.2rem;
+  background: transparent;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner .storefront-primary-cta {
+  color: var(--store-primary) !important;
+  background: #fff !important;
+  box-shadow: none;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner:not(.has-banner-image) .store-banner-inner {
+  justify-content: flex-start;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner.has-banner-image {
+  background-image: linear-gradient(90deg, rgba(4, 39, 52, .72), rgba(4, 39, 52, .08)), var(--store-banner-image);
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner.has-banner-image .store-banner-copy,
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner.has-banner-image .store-banner-copy h1,
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner.has-banner-image .store-banner-copy #banner-store-desc,
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner.has-banner-image .store-banner-copy .store-address,
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner.has-banner-image .store-banner-copy .store-tagline {
+  color: #fff !important;
+  text-shadow: 0 2px 12px rgba(4, 39, 52, .45) !important;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] #items-grid .product-card {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] #items-grid .product-card-media {
+  aspect-ratio: 4 / 5;
+  border-radius: .8rem;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"][data-product-image-ratio="portrait"] #items-grid .product-card-media {
+  aspect-ratio: 4 / 5;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] #items-grid .product-card h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] #items-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: .8rem;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] #items-grid .product-card-media {
+  aspect-ratio: 1 / 1.05;
+  border-radius: 0;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] #storefront-view .storefront-content-intro {
+  padding-top: 1.1rem;
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner {
+    min-height: 21rem;
+  }
+  html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] #items-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

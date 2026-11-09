@@ -45,7 +45,7 @@ async function loadStoreProfile() {
     state.activeTenant = res.data.data;
     // Apply the store owner's configured theme palette for every visitor
     setThemePalette(state.activeTenant.settings?.themePalette);
-    applyStorefrontSettings(state.activeTenant.settings);
+    await applyStorefrontSettings(state.activeTenant.settings);
     renderStoreBanner();
     updateWishlistButton();
     await Promise.all([loadCategories(), loadDynamicFilters()]);
