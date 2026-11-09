@@ -27,7 +27,12 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+    if (
+      url.pathname === "/api" ||
+      url.pathname.startsWith("/api/") ||
+      url.pathname === "/auth" ||
+      url.pathname.startsWith("/auth/")
+    ) {
       const apiUrl = new URL(`${url.pathname}${url.search}`, "https://api.internal");
       const headers = new Headers(request.headers);
       headers.set("X-Forwarded-Host", url.host);
@@ -36,7 +41,7 @@ export default {
         new Request(apiUrl, {
           method: request.method,
           headers,
-          body: request.body,
+          body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
           redirect: "manual",
         })
       );
