@@ -1,4 +1,3 @@
-import { cors } from "hono/cors";
 import type { MiddlewareHandler } from "hono";
 import type { AppEnv } from "../types/context";
 
@@ -68,27 +67,27 @@ export function multiTenantCors(): MiddlewareHandler<AppEnv> {
     const isDev = c.env?.ENVIRONMENT === "development";
     const allowedOrigins = configuredOrigins(primaryDomain, c.env?.FRONTEND_ORIGINS);
 
-    const corsMiddleware = cors({
-      origin: (origin) => {
-        if (!origin) return null;
-        if (isAllowedOrigin(origin, primaryDomain, isDev, allowedOrigins)) {
-          return origin;
-        }
-        return null;
-      },
-      allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Request-ID",
-        "X-Tenant-Slug",
-        "X-Custom-Domain",
-      ],
-      exposeHeaders: ["X-Request-ID", "RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset"],
-      credentials: true,
-      maxAge: 86400, // 24 hours preflight cache
-    });
+    const origin = c.req.header("Origin") || "";
+    if (isAllowedOrigin(origin, primaryDomain, isDev, allowedOrigins)) {
+      // Reflect only validated storefront origins. Explicitly handling OPTIONS
+      // keeps preflight requests outside tenant/auth middleware and guarantees
+      // the same CORS headers on both success and error responses.
+      c.header("Access-Control-Allow-Origin", origin);
+      c.header("Access-Control-Allow-Credentials", "true");
+      c.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+      c.header(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, X-Request-ID, X-Tenant-Slug, X-Custom-Domain"
+      );
+      c.header("Access-Control-Expose-Headers", "X-Request-ID, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset");
+      c.header("Access-Control-Max-Age", "86400");
+      c.header("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers");
 
-    return corsMiddleware(c, next);
+      if (c.req.method === "OPTIONS") {
+        return c.body(null, 204);
+      }
+    }
+
+    await next();
   };
 }
