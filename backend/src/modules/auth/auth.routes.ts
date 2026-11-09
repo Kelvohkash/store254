@@ -20,17 +20,14 @@ import { rateLimiter } from "../../security/rate-limiter";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 import { SECURITY_LIMITS } from "../../config/constants";
 import { EmailService } from "../../services/email.service";
-import { verifyGoogleIdToken } from "../../security/google-auth";
+import { requireSecret } from "../../security/secrets";
+import { clearCustomerSessionCookie } from "../../security/session-cookie";
 
 export const authRouter = new Hono<AppEnv>();
 
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-});
-
-const googleAuthSchema = z.object({
-  idToken: z.string().min(10, "Google ID token required"),
 });
 
 const registerCustomerSchema = z.object({
@@ -56,111 +53,28 @@ const resetPasswordSchema = z.object({
     .max(SECURITY_LIMITS.MAX_PASSWORD_LENGTH),
 });
 
-// 1. Sign In / Register with Google (One-Tap / OAuth2)
-authRouter.post(
-  "/google",
-  rateLimiter({ max: 15, windowMs: 60 * 1000 }),
-  zValidator("json", googleAuthSchema),
-  async (c) => {
-    const tenant = c.get("tenant")!;
+authRouter.get("/google/config", (c) => {
+  const clientId = c.env?.GOOGLE_CLIENT_ID?.trim() || "";
+  const clientSecret = c.env?.GOOGLE_CLIENT_SECRET?.trim() || "";
+  const enabled =
+    Boolean(clientId && clientSecret) &&
+    !/^(your_|replace_|placeholder)/i.test(clientId) &&
+    !/^(your_|replace_|placeholder)/i.test(clientSecret);
+  const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
+  return c.json({
+    success: true,
+    data: {
+      enabled,
+      loginUrl: enabled ? `https://${primaryDomain}/auth/google/login` : null,
+    },
+  });
+});
 
-    if (tenant.status === "PENDING") {
-      throw new AppError(
-        "This store is currently pending activation by the Store254 Super Admin team.",
-        403,
-        "STORE_PENDING_ACTIVATION"
-      );
-    }
-
-    const { idToken } = c.req.valid("json");
-
-    // Verify Google ID token signature and claims
-    const googleUser = await verifyGoogleIdToken(idToken, c.env?.GOOGLE_CLIENT_ID);
-
-    if (!c.env?.DB) throw new AppError("Database not ready", 500);
-    const db = createDb(c.env.DB);
-
-    // Look for existing user in this store
-    const [existing] = await db
-      .select()
-      .from(users)
-      .where(and(eq(users.tenantId, tenant.id), eq(users.email, googleUser.email)))
-      .limit(1);
-
-    let userId: string;
-    let isNewUser = false;
-    let userRole = "CUSTOMER" as const;
-
-    if (existing) {
-      if (existing.status !== "ACTIVE") {
-        throw new AppError("Your account has been deactivated. Please contact support.", 403, "ACCOUNT_INACTIVE");
-      }
-
-      userId = existing.id;
-      userRole = existing.role as any;
-
-      // Update Google profile fields and last login
-      await db
-        .update(users)
-        .set({
-          googleId: googleUser.sub,
-          fullName: existing.fullName || googleUser.name,
-          avatarUrl: googleUser.picture || existing.avatarUrl,
-          lastLoginAt: new Date(),
-        })
-        .where(eq(users.id, existing.id));
-    } else {
-      // Auto-provision new customer account
-      userId = generateUUID();
-      isNewUser = true;
-
-      await db.insert(users).values({
-        id: userId,
-        tenantId: tenant.id,
-        email: googleUser.email,
-        passwordHash: `oauth$google$${googleUser.sub}`, // Non-crackable random OAuth marker
-        fullName: googleUser.name,
-        avatarUrl: googleUser.picture || null,
-        googleId: googleUser.sub,
-        role: "CUSTOMER",
-        status: "ACTIVE",
-        lastLoginAt: new Date(),
-      });
-    }
-
-    const secret = c.env?.JWT_SECRET || "default-dev-secret-change-in-production";
-    const token = await createAccessToken(
-      {
-        id: userId,
-        tenantId: tenant.id,
-        email: googleUser.email,
-        role: userRole,
-      },
-      secret
-    );
-
-    return c.json(
-      {
-        success: true,
-        message: isNewUser
-          ? "Welcome! Your customer account has been created with Google."
-          : "Logged in with Google successfully.",
-        data: {
-          isNewUser,
-          user: {
-            id: userId,
-            email: googleUser.email,
-            fullName: googleUser.name,
-            avatarUrl: googleUser.picture,
-            role: userRole,
-          },
-          accessToken: token,
-        },
-      },
-      isNewUser ? 201 : 200
-    );
-  }
-);
+authRouter.post("/logout", (c) => {
+  const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
+  c.header("Set-Cookie", clearCustomerSessionCookie(primaryDomain));
+  return c.json({ success: true, message: "Signed out successfully." });
+});
 
 // Tenant Store Email/Password Login
 authRouter.post(
@@ -217,7 +131,7 @@ authRouter.post(
       .set({ lastLoginAt: new Date() })
       .where(eq(users.id, user.id));
 
-    const secret = c.env?.JWT_SECRET || "default-dev-secret-change-in-production";
+    const secret = requireSecret(c.env?.JWT_SECRET, "JWT_SECRET");
     const token = await createAccessToken(
       {
         id: user.id,
@@ -286,7 +200,7 @@ authRouter.post(
       status: "ACTIVE",
     });
 
-    const secret = c.env?.JWT_SECRET || "default-dev-secret-change-in-production";
+    const secret = requireSecret(c.env?.JWT_SECRET, "JWT_SECRET");
     const token = await createAccessToken(
       {
         id: userId,

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy --minify",
+    "deploy": "npm exec --prefix .. -- wrangler deploy --config backend/wrangler.toml --minify",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply store254-db --local",
     "db:migrate:prod": "wrangler d1 migrations apply store254-db --remote",

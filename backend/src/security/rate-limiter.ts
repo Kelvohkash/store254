@@ -30,6 +30,15 @@ export interface RateLimitOptions {
   keyGenerator?: (c: Parameters<MiddlewareHandler<AppEnv>>[0]) => string;
 }
 
+function cloudflareLimiter(c: Parameters<MiddlewareHandler<AppEnv>>[0], max: number) {
+  // Native Cloudflare counters are shared across Worker instances in a colo.
+  // Keep the isolate-local counter as an additional per-isolate backstop.
+  if (max <= 5) return c.env?.AUTH_STRICT_RATE_LIMITER;
+  if (max <= 10) return c.env?.AUTH_RATE_LIMITER;
+  if (max <= 20) return c.env?.SENSITIVE_RATE_LIMITER;
+  return c.env?.API_RATE_LIMITER;
+}
+
 /**
  * Enterprise Rate Limiting Middleware
  * Uses CF-Connecting-IP and tenant context
@@ -48,7 +57,26 @@ export function rateLimiter(options: RateLimitOptions = {}): MiddlewareHandler<A
       "127.0.0.1";
 
     const customKey = options.keyGenerator ? options.keyGenerator(c) : "";
-    const key = `${clientIp}:${customKey || c.req.path}`;
+    const key = `${clientIp}:${customKey || c.req.path}:${max}:${windowMs}`;
+
+    const distributedLimiter = cloudflareLimiter(c, max);
+    if (distributedLimiter) {
+      const outcome = await distributedLimiter.limit({ key });
+      if (!outcome.success) {
+        c.header("Retry-After", "60");
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: "RATE_LIMIT_EXCEEDED",
+              message: "Too many requests. Please slow down and try again later.",
+              retryAfterSeconds: 60,
+            },
+          },
+          429
+        );
+      }
+    }
 
     const now = Date.now();
     let record = memoryRateLimitMap.get(key);

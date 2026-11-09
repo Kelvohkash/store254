@@ -5,7 +5,29 @@ import type { AppEnv } from "../types/context";
 /**
  * Validates whether an origin is authorized
  */
-function isAllowedOrigin(origin: string, primaryDomain: string, isDev: boolean): boolean {
+function configuredOrigins(primaryDomain: string, configured: string | undefined): Set<string> {
+  const defaults = [`https://${primaryDomain}`, `https://www.${primaryDomain}`];
+  const origins = [...defaults, ...(configured || "").split(",")];
+
+  return new Set(
+    origins
+      .map((value) => {
+        try {
+          return new URL(value.trim()).origin;
+        } catch {
+          return "";
+        }
+      })
+      .filter(Boolean)
+  );
+}
+
+function isAllowedOrigin(
+  origin: string,
+  primaryDomain: string,
+  isDev: boolean,
+  allowedOrigins: Set<string>
+): boolean {
   if (!origin) return false;
 
   try {
@@ -21,17 +43,9 @@ function isAllowedOrigin(origin: string, primaryDomain: string, isDev: boolean):
       return false;
     }
 
-    // Exact match for primary platform domain
-    if (url.hostname === primaryDomain) {
-      return true;
-    }
+    if (allowedOrigins.has(url.origin)) return true;
 
-    // Allow Cloudflare Pages and Workers preview domains
-    if (url.hostname.endsWith(".pages.dev") || url.hostname.endsWith(".workers.dev")) {
-      return true;
-    }
-
-    // Subdomain of primary domain (e.g. alicebabycare.store254.co.ke)
+    // Tenant storefront origins are single-level subdomains of the platform domain.
     const suffix = `.${primaryDomain}`;
     if (url.hostname.endsWith(suffix)) {
       const subdomain = url.hostname.slice(0, -suffix.length);
@@ -52,11 +66,12 @@ export function multiTenantCors(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
     const isDev = c.env?.ENVIRONMENT === "development";
+    const allowedOrigins = configuredOrigins(primaryDomain, c.env?.FRONTEND_ORIGINS);
 
     const corsMiddleware = cors({
       origin: (origin) => {
         if (!origin) return null;
-        if (isAllowedOrigin(origin, primaryDomain, isDev)) {
+        if (isAllowedOrigin(origin, primaryDomain, isDev, allowedOrigins)) {
           return origin;
         }
         return null;

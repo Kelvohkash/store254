@@ -15,6 +15,7 @@ import { tenantMiddleware } from "./middlewares/tenant.middleware";
 import { platformRouter } from "./modules/platform/platform.routes";
 import { platformAdminRouter } from "./modules/platform/admin.routes";
 import { authRouter } from "./modules/auth/auth.routes";
+import { googleGatewayRouter } from "./modules/auth/google-gateway.routes";
 import { categoriesRouter } from "./modules/catalog/categories.routes";
 import { attributesRouter } from "./modules/catalog/attributes.routes";
 import { itemsRouter } from "./modules/catalog/items.routes";
@@ -71,6 +72,7 @@ app.get("/health", (c) => {
 // Platform registration, landing page, and superadmin management
 app.route("/api/platform/admin", platformAdminRouter);
 app.route("/api/platform", platformRouter);
+app.route("/auth/google", googleGatewayRouter);
 
 // Public Safaricom M-Pesa Callback Webhook (Not tied to a single tenant subdomain)
 app.route("/api/payments/mpesa", mpesaRouter);

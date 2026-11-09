@@ -9,6 +9,8 @@ import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
 import { getMpesaOAuthToken } from "../../security/mpesa";
+import { decryptPaymentConfig, encryptPaymentConfig } from "../../security/payment-credentials";
+import { requireSecret } from "../../security/secrets";
 
 export const paymentSettingsRouter = new Hono<AppEnv>();
 
@@ -26,18 +28,12 @@ const updateMpesaSettingsSchema = z.object({
 });
 
 // Helper to mask secret strings
-function maskSecret(val: string | null | undefined): string | null {
-  if (!val) return null;
-  if (val.length <= 8) return "********";
-  return val.substring(0, 4) + "••••••••" + val.substring(val.length - 4);
-}
-
 // Get Merchant Payment Gateway Settings
 paymentSettingsRouter.get("/", async (c) => {
   const tenant = c.get("tenant")!;
   const db = createDb(c.env.DB);
 
-  const [config] = await db
+  let [config] = await db
     .select()
     .from(tenantPaymentConfigs)
     .where(
@@ -63,6 +59,30 @@ paymentSettingsRouter.get("/", async (c) => {
     });
   }
 
+  // Migrate legacy plaintext merchant credentials opportunistically when an
+  // authorized owner/admin opens settings.
+  const encryptionKey = requireSecret(
+    c.env?.PAYMENT_CONFIG_ENCRYPTION_KEY,
+    "PAYMENT_CONFIG_ENCRYPTION_KEY"
+  );
+  const protectedConfig = await encryptPaymentConfig(config, encryptionKey);
+  if (
+    protectedConfig.passkey !== config.passkey ||
+    protectedConfig.consumerKey !== config.consumerKey ||
+    protectedConfig.consumerSecret !== config.consumerSecret
+  ) {
+    await db
+      .update(tenantPaymentConfigs)
+      .set({
+        passkey: protectedConfig.passkey,
+        consumerKey: protectedConfig.consumerKey,
+        consumerSecret: protectedConfig.consumerSecret,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenantPaymentConfigs.id, config.id));
+    config = { ...config, ...protectedConfig };
+  }
+
   return c.json({
     success: true,
     data: {
@@ -70,9 +90,10 @@ paymentSettingsRouter.get("/", async (c) => {
       isEnabled: config.isEnabled,
       shortcodeType: config.shortcodeType,
       shortcode: config.shortcode,
-      consumerKey: maskSecret(config.consumerKey),
-      passkey: maskSecret(config.passkey),
-      isConfigured: Boolean(config.shortcode && config.consumerKey && config.passkey),
+      hasConsumerKey: Boolean(config.consumerKey),
+      hasPasskey: Boolean(config.passkey),
+      hasConsumerSecret: Boolean(config.consumerSecret),
+      isConfigured: Boolean(config.shortcode && config.consumerKey && config.passkey && config.consumerSecret),
       isSandbox: config.isSandbox,
       updatedAt: config.updatedAt,
     },
@@ -84,6 +105,10 @@ paymentSettingsRouter.put("/", zValidator("json", updateMpesaSettingsSchema), as
   const tenant = c.get("tenant")!;
   const body = c.req.valid("json");
   const db = createDb(c.env.DB);
+  const encryptionKey = requireSecret(
+    c.env?.PAYMENT_CONFIG_ENCRYPTION_KEY,
+    "PAYMENT_CONFIG_ENCRYPTION_KEY"
+  );
 
   const [existing] = await db
     .select()
@@ -113,6 +138,14 @@ paymentSettingsRouter.put("/", zValidator("json", updateMpesaSettingsSchema), as
   }
 
   const configId = existing ? existing.id : generateUUID();
+  const nextCredentials = await encryptPaymentConfig(
+    {
+      passkey: body.passkey !== undefined ? body.passkey : existing?.passkey,
+      consumerKey: body.consumerKey !== undefined ? body.consumerKey : existing?.consumerKey,
+      consumerSecret: body.consumerSecret !== undefined ? body.consumerSecret : existing?.consumerSecret,
+    },
+    encryptionKey
+  );
 
   if (existing) {
     await db
@@ -121,10 +154,9 @@ paymentSettingsRouter.put("/", zValidator("json", updateMpesaSettingsSchema), as
         isEnabled: body.isEnabled,
         shortcodeType: body.shortcodeType,
         shortcode: body.shortcode !== undefined ? body.shortcode : existing.shortcode,
-        passkey: body.passkey !== undefined ? body.passkey : existing.passkey,
-        consumerKey: body.consumerKey !== undefined ? body.consumerKey : existing.consumerKey,
-        consumerSecret:
-          body.consumerSecret !== undefined ? body.consumerSecret : existing.consumerSecret,
+        passkey: nextCredentials.passkey || null,
+        consumerKey: nextCredentials.consumerKey || null,
+        consumerSecret: nextCredentials.consumerSecret || null,
         isSandbox: body.isSandbox,
         updatedAt: new Date(),
       })
@@ -137,9 +169,9 @@ paymentSettingsRouter.put("/", zValidator("json", updateMpesaSettingsSchema), as
       isEnabled: body.isEnabled,
       shortcodeType: body.shortcodeType,
       shortcode: body.shortcode || null,
-      passkey: body.passkey || null,
-      consumerKey: body.consumerKey || null,
-      consumerSecret: body.consumerSecret || null,
+      passkey: nextCredentials.passkey || null,
+      consumerKey: nextCredentials.consumerKey || null,
+      consumerSecret: nextCredentials.consumerSecret || null,
       isSandbox: body.isSandbox,
     });
   }
@@ -181,11 +213,17 @@ paymentSettingsRouter.post("/test-connection", async (c) => {
     );
   }
 
+  const encryptionKey = requireSecret(
+    c.env?.PAYMENT_CONFIG_ENCRYPTION_KEY,
+    "PAYMENT_CONFIG_ENCRYPTION_KEY"
+  );
+  const decryptedConfig = await decryptPaymentConfig(config, encryptionKey);
+
   try {
     const token = await getMpesaOAuthToken({
-      consumerKey: config.consumerKey,
-      consumerSecret: config.consumerSecret,
-      passkey: config.passkey || "",
+      consumerKey: decryptedConfig.consumerKey || "",
+      consumerSecret: decryptedConfig.consumerSecret || "",
+      passkey: decryptedConfig.passkey || "",
       shortcode: config.shortcode || "",
       isSandbox: config.isSandbox,
     });

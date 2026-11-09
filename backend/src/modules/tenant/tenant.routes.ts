@@ -37,6 +37,27 @@ const updateStoreProfileSchema = z.object({
         })
         .optional(),
       primaryColor: z.string().regex(/^#([0-9a-fA-F]{3}){1,2}$/).optional(),
+      backgroundColor: z.union([z.string().regex(/^#([0-9a-fA-F]{3}){1,2}$/), z.literal("")]).optional(),
+      themePalette: z.string().optional(),
+      storefrontArchetype: z
+        .enum(["modern-retailer", "lifestyle-boutique", "single-product-maker", "service-portfolio"])
+        .optional(),
+      storefrontTemplate: z
+        .enum(["market-modern", "editorial-boutique", "premium-maker", "tech-home", "service-studio", "food-local"])
+        .optional(),
+      storefrontTemplateVersion: z.number().int().positive().max(1).optional(),
+      headingFont: z.enum(["modern", "editorial", "rounded"]).optional(),
+      productImageRatio: z.enum(["square", "portrait", "landscape"]).optional(),
+      heroStyle: z.enum(["split", "editorial", "minimal"]).optional(),
+      heroFocalPoint: z.enum(["center", "left", "right", "top"]).optional(),
+      cardDensity: z.enum(["compact", "comfortable", "spacious"]).optional(),
+      sectionVisibility: z.object({
+        collectionIntro: z.boolean().optional(),
+        socialLinks: z.boolean().optional(),
+        contactActions: z.boolean().optional(),
+      }).optional(),
+      headerVariant: z.enum(["compact-search-first", "centered-brand", "minimal-nav"]).optional(),
+      productCardStyle: z.enum(["grid-card", "horizontal-list-row", "service-card"]).optional(),
     })
     .optional(),
 });

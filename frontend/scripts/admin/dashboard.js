@@ -1,0 +1,50 @@
+// DASHBOARD
+  // ═══════════════════════════════════════
+  async function loadDashboard() {
+    const [prodRes, orderRes] = await Promise.all([
+      apiFetch('/items?limit=100'),
+      apiFetch('/orders?limit=50'),
+    ]);
+
+    const rawProducts = prodRes.ok ? (prodRes.data?.data?.items || prodRes.data?.data || []) : [];
+    const rawOrders = orderRes.ok ? (orderRes.data?.data?.orders || orderRes.data?.data || []) : [];
+
+    allProducts = Array.isArray(rawProducts) ? rawProducts : [];
+    allOrders = Array.isArray(rawOrders) ? rawOrders : [];
+
+    const pending = allOrders.filter(o => o.status === 'PENDING_PAYMENT' || o.status === 'PROCESSING').length;
+    const revenue = allOrders.filter(o => o.status === 'COMPLETED').reduce((s, o) => s + (o.totalAmount || 0), 0);
+
+    document.getElementById('stat-products').textContent = allProducts.length;
+    document.getElementById('stat-orders').textContent = allOrders.length;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('stat-revenue').textContent = fmt(revenue);
+
+    // Pending badge in sidebar
+    const badge = document.getElementById('sidebar-pending-badge');
+    if (pending > 0) { badge.textContent = pending; badge.classList.remove('hidden'); }
+
+    // Recent orders
+    const container = document.getElementById('dashboard-recent-orders');
+    const recent = [...allOrders].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+    if (recent.length === 0) {
+      container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">No orders yet.</p>';
+    } else {
+      container.innerHTML = recent.map(o => `
+        <div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0 cursor-pointer hover:bg-slate-50 rounded-xl px-2 -mx-2" onclick="openOrderDrawer(${inlineJs(o.id)})">
+          <div>
+            <p class="text-sm font-bold text-slate-900">#${escHtml(o.orderNumber || String(o.id).slice(0,8).toUpperCase())}</p>
+            <p class="text-xs text-slate-400">${escHtml(o.customerEmail || 'Guest')} · ${ago(o.createdAt)}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-black text-slate-900">${fmt(o.totalAmount || 0)}</p>
+            ${statusBadge(o.status)}
+          </div>
+        </div>
+      `).join('');
+    }
+    lucide.createIcons();
+  }
+
+  // ═══════════════════════════════════════
+  

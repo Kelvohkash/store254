@@ -15,7 +15,7 @@ export const categoriesRouter = new Hono<AppEnv>();
 const createCategorySchema = z.object({
   name: z.string().min(1).max(100),
   slug: z.string().optional(),
-  parentId: z.string().uuid().nullable().optional(),
+  parentId: z.string().min(1).nullable().optional(),
   description: z.string().max(500).optional(),
   icon: z.string().max(255).optional(),
   displayOrder: z.number().int().default(0),
@@ -137,5 +137,31 @@ categoriesRouter.post(
       },
       201
     );
+  }
+);
+
+// Delete Category (Store Owners & Admins only)
+categoriesRouter.delete(
+  "/:id",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const { id } = c.req.param();
+    const db = createDb(c.env.DB);
+
+    const [existing] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(and(eq(categories.id, id), eq(categories.tenantId, tenant.id)))
+      .limit(1);
+
+    if (!existing) {
+      throw new AppError("Category not found.", 404, "NOT_FOUND");
+    }
+
+    await db.delete(categories).where(and(eq(categories.id, id), eq(categories.tenantId, tenant.id)));
+
+    return c.json({ success: true, message: "Category deleted successfully." });
   }
 );

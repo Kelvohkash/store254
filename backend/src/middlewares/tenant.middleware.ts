@@ -10,9 +10,55 @@ export interface TenantMiddlewareOptions {
   required?: boolean;
 }
 
+export interface TenantLookup {
+  resolvedSubdomain: string | null;
+  resolvedCustomDomain: string | null;
+}
+
+/**
+ * The API is hosted on a shared hostname, so browser storefront requests must
+ * identify their tenant with X-Tenant-Slug. Direct storefront-host requests
+ * continue to resolve from Host and cannot be overridden by that header.
+ */
+export function resolveTenantLookup(
+  hostname: string,
+  primaryDomain: string,
+  requestedSlug: string | undefined
+): TenantLookup {
+  const normalizedHost = hostname.toLowerCase();
+  const normalizedDomain = primaryDomain.toLowerCase();
+  const apiHost = `api.${normalizedDomain}`;
+  const isLocalHost = normalizedHost === "localhost" || normalizedHost === "127.0.0.1";
+
+  // The browser points at localhost during local development. Allow its
+  // explicit tenant selector to follow the same shared-API resolution path.
+  if (normalizedHost === apiHost || (isLocalHost && requestedSlug)) {
+    return {
+      resolvedSubdomain: sanitizeSubdomain(requestedSlug || ""),
+      resolvedCustomDomain: null,
+    };
+  }
+
+  const suffix = `.${normalizedDomain}`;
+  if (normalizedHost.endsWith(suffix)) {
+    return {
+      resolvedSubdomain: sanitizeSubdomain(normalizedHost.slice(0, -suffix.length)),
+      resolvedCustomDomain: null,
+    };
+  }
+
+  if (normalizedHost && normalizedHost !== normalizedDomain && !isLocalHost) {
+    return { resolvedSubdomain: null, resolvedCustomDomain: normalizedHost };
+  }
+
+  return { resolvedSubdomain: null, resolvedCustomDomain: null };
+}
+
 /**
  * Multi-Tenant Subdomain & Custom Domain Resolution Middleware
- * Resolves tenant dynamically from Host header, X-Tenant-Slug, or query parameter
+ * Resolves storefront-host requests from Host, and shared API requests from a
+ * validated tenant slug header. Authentication still binds tenant tokens to
+ * the resolved tenant ID, preventing cross-tenant token replay.
  */
 export function tenantMiddleware(
   options: TenantMiddlewareOptions = { required: true }
@@ -22,30 +68,11 @@ export function tenantMiddleware(
     const hostHeader = c.req.header("host") || "";
     const hostname = hostHeader.split(":")[0].toLowerCase();
 
-    // 1. Try explicit header/query override (useful for developer testing and mobile apps)
-    const explicitSlug =
-      c.req.header("x-tenant-slug") || c.req.query("tenant") || c.req.header("x-custom-domain");
-
-    let resolvedSubdomain: string | null = null;
-    let resolvedCustomDomain: string | null = null;
-
-    if (explicitSlug) {
-      if (explicitSlug.includes(".")) {
-        resolvedCustomDomain = explicitSlug.toLowerCase();
-      } else {
-        resolvedSubdomain = sanitizeSubdomain(explicitSlug);
-      }
-    } else if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
-      // 2. Extract subdomain from host: e.g. "alicebabycare.store254.co.ke"
-      const suffix = `.${primaryDomain.toLowerCase()}`;
-      if (hostname.endsWith(suffix)) {
-        const extracted = hostname.slice(0, -suffix.length);
-        resolvedSubdomain = sanitizeSubdomain(extracted);
-      } else if (hostname !== primaryDomain.toLowerCase()) {
-        // 3. Custom domain (e.g. "alicebabycare.com")
-        resolvedCustomDomain = hostname;
-      }
-    }
+    const { resolvedSubdomain, resolvedCustomDomain } = resolveTenantLookup(
+      hostname,
+      primaryDomain,
+      c.req.header("x-tenant-slug")
+    );
 
     // Root platform request (e.g. www.store254.co.ke, or platform landing/registration)
     if (!resolvedSubdomain && !resolvedCustomDomain) {

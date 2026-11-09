@@ -36,6 +36,13 @@
       "when": 1794046662444,
       "tag": "0004_new_sharon_ventura",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794137571000,
+      "tag": "0005_payment_capabilities",
+      "breakpoints": true
     }
   ]
 }

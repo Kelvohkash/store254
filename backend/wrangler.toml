@@ -4,11 +4,67 @@ compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 account_id = "29ebb98162982a3dbbd217a589591b10"
 
+# API remains on api.store254.co.ke. The centralized OAuth gateway owns the
+# more-specific root-domain auth path while storefront pages stay on the frontend Worker.
+routes = [
+  { pattern = "api.store254.co.ke/*", zone_name = "store254.co.ke" },
+  { pattern = "store254.co.ke/auth/google/*", zone_name = "store254.co.ke" },
+]
+
+# ─── Plain Environment Variables ────────────────────────────────────────────
+# Non-sensitive config — safe to store here in plaintext
 [vars]
 ENVIRONMENT = "production"
 PRIMARY_DOMAIN = "store254.co.ke"
+FRONTEND_ORIGINS = "https://store254.co.ke,https://www.store254.co.ke"
+GOOGLE_REDIRECT_URI = "https://store254.co.ke/auth/google/callback"
+GOOGLE_CLIENT_ID = "999633376431-0kb2a6s3tjd2992ngpbsutbj707pk95a.apps.googleusercontent.com"
 
-# Cloudflare D1 Database binding
+# ─── Secrets ────────────────────────────────────────────────────────────────
+# DO NOT put secret values here. Set them via Cloudflare Dashboard or CLI:
+#   npx wrangler secret put JWT_SECRET
+#   npx wrangler secret put JWT_REFRESH_SECRET
+#   npx wrangler secret put PLATFORM_ADMIN_USERNAME
+#   npx wrangler secret put PLATFORM_ADMIN_PASSWORD
+#   npx wrangler secret put PLATFORM_ADMIN_JWT_SECRET
+#   npx wrangler secret put MPESA_CONSUMER_KEY
+#   npx wrangler secret put MPESA_CONSUMER_SECRET
+#   npx wrangler secret put MPESA_PASSKEY
+#   npx wrangler secret put MPESA_SHORTCODE
+#   npx wrangler secret put GOOGLE_CLIENT_SECRET
+#   npx wrangler secret put PAYMENT_CONFIG_ENCRYPTION_KEY
+
+# Cloudflare Rate Limiting API bindings provide shared per-colo counters across
+# Worker instances. Keep these namespace IDs unique within this Cloudflare account.
+[[ratelimits]]
+name = "API_RATE_LIMITER"
+namespace_id = "920261108"
+  [ratelimits.simple]
+  limit = 120
+  period = 60
+
+[[ratelimits]]
+name = "AUTH_RATE_LIMITER"
+namespace_id = "920261109"
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
+[[ratelimits]]
+name = "AUTH_STRICT_RATE_LIMITER"
+namespace_id = "920261110"
+  [ratelimits.simple]
+  limit = 5
+  period = 60
+
+[[ratelimits]]
+name = "SENSITIVE_RATE_LIMITER"
+namespace_id = "920261111"
+  [ratelimits.simple]
+  limit = 20
+  period = 60
+
+# ─── Cloudflare D1 Database ─────────────────────────────────────────────────
 [[d1_databases]]
 binding = "DB"
 database_name = "store254-db"

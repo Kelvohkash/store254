@@ -1,0 +1,91 @@
+/* Shared storefront guardrails: readable hero copy and a first-screen-sized layout. */
+html[data-storefront="true"][data-storefront-template] .store-banner {
+  min-height: 0 !important;
+}
+
+html[data-storefront="true"] .store-banner-inner {
+  min-height: clamp(16rem, 37svh, 23rem) !important;
+  padding-block: clamp(1.5rem, 4svh, 2.75rem) !important;
+}
+
+html[data-storefront="true"] .store-banner h1 {
+  max-width: 14ch;
+  font-size: clamp(2.25rem, 4vw, 3.8rem) !important;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+/* Keep white copy legible even when the uploaded hero photo cannot be loaded. */
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image {
+  background-image:
+    linear-gradient(90deg, rgba(16, 24, 20, .72), rgba(16, 24, 20, .08)),
+    var(--store-banner-image) !important;
+}
+
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image .storefront-primary-cta {
+  color: var(--store-ink, #17251f) !important;
+}
+
+/* Editorial layouts place copy on a light glass panel, so use dark text there. */
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy {
+  color: var(--store-ink) !important;
+}
+
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy h1,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy #banner-store-desc,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy .store-address,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy .store-tagline {
+  color: var(--store-ink) !important;
+  text-shadow: none !important;
+}
+
+html[data-storefront="true"] #items-grid .product-card {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+html[data-storefront="true"] #items-grid .product-card:focus-within {
+  outline: 2px solid var(--store-primary);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html[data-storefront="true"] #items-grid .product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 34px rgba(22, 35, 27, .12) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  html[data-storefront="true"] .store-banner-inner {
+    min-height: 16rem !important;
+    align-items: flex-start;
+    gap: .85rem;
+    padding-block: 1.5rem !important;
+  }
+
+  html[data-storefront="true"] .store-banner h1 {
+    max-width: 15ch;
+    font-size: clamp(1.85rem, 8vw, 2.6rem) !important;
+  }
+
+  html[data-storefront="true"] #banner-store-desc {
+    max-width: 38rem;
+    margin-top: .6rem;
+    font-size: .92rem !important;
+    line-height: 1.55;
+  }
+
+  html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, .82);
+    background: rgba(255, 250, 240, .94);
+    box-shadow: 0 12px 32px rgba(20, 29, 22, .12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-storefront="true"] #items-grid .product-card {
+    transition: none;
+  }
+}

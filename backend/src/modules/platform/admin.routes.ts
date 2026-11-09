@@ -1,7 +1,7 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, sql, like, or } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
@@ -10,21 +10,220 @@ import { items } from "../../db/schema/items";
 import { orders } from "../../db/schema/orders";
 import { tenantPaymentConfigs } from "../../db/schema/payment-configs";
 import { AppError } from "../../security/error-handler";
-import { timingSafeEqual } from "../../security/crypto";
+import { hashOtp, timingSafeEqual } from "../../security/crypto";
 import { EmailService } from "../../services/email.service";
+import { sign, verify } from "hono/jwt";
+import { rateLimiter } from "../../security/rate-limiter";
+import { requireSecret } from "../../security/secrets";
+import { encryptPaymentConfig } from "../../security/payment-credentials";
 
 export const platformAdminRouter = new Hono<AppEnv>();
 
-// Super Admin Authentication Guard (API Key or Master Secret)
-platformAdminRouter.use("*", async (c, next) => {
-  const adminKey = c.req.header("x-admin-key") || c.req.header("authorization")?.replace("Bearer ", "");
-  const expectedKey = c.env?.ADMIN_API_KEY || "store254-superadmin-secret-key-change-in-prod";
+const adminLoginSchema = z.object({
+  username: z.string().trim().min(1).max(120),
+  password: z.string().min(1).max(256),
+});
 
-  if (!adminKey || !timingSafeEqual(adminKey, expectedKey)) {
-    throw new AppError("Super Admin authentication failed. Invalid or missing admin key.", 401, "UNAUTHORIZED_ADMIN");
+async function matchesSecret(provided: string, expected: string): Promise<boolean> {
+  const [providedHash, expectedHash] = await Promise.all([hashOtp(provided), hashOtp(expected)]);
+  return timingSafeEqual(providedHash, expectedHash);
+}
+
+function getCookie(c: Context<AppEnv>, name: string): string | null {
+  const cookieHeader = c.req.header("cookie") || "";
+  const match = cookieHeader
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${name}=`));
+  return match ? match.slice(name.length + 1) : null;
+}
+
+function setAdminSessionCookie(c: Context<AppEnv>, token: string): void {
+  const maxAge = 24 * 60 * 60; // 24 hours
+  c.header(
+    "Set-Cookie",
+    `__Host-store254_admin_session=${token}; Path=/; Max-Age=${maxAge}; SameSite=Strict; Secure; HttpOnly`
+  );
+}
+
+function clearAdminSessionCookie(c: Context<AppEnv>): void {
+  c.header(
+    "Set-Cookie",
+    `__Host-store254_admin_session=; Path=/; Max-Age=0; SameSite=Strict; Secure; HttpOnly`
+  );
+}
+
+function assertAdminOrigin(c: Context<AppEnv>): void {
+  const origin = c.req.header("origin");
+  // Allow direct navigation or same-origin requests without explicit Origin header
+  if (!origin) {
+    const secFetchSite = c.req.header("sec-fetch-site");
+    if (secFetchSite === "same-origin" || secFetchSite === "same-site" || secFetchSite === "none") {
+      return;
+    }
   }
 
-  await next();
+  if (origin) {
+    try {
+      const url = new URL(origin);
+      const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
+
+      if (
+        c.env?.ENVIRONMENT === "development" &&
+        (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+      ) {
+        return;
+      }
+
+      // Admin sessions may be initiated only from platform UI domains.
+      if (
+        (url.protocol === "https:" || c.env?.ENVIRONMENT === "development") &&
+        (url.hostname === primaryDomain || url.hostname === `www.${primaryDomain}`)
+      ) {
+        return;
+      }
+
+      // Check additional configured frontend origins
+      const configured = (c.env?.FRONTEND_ORIGINS || "").split(",").map((s) => s.trim());
+      if (
+        (url.protocol === "https:" || c.env?.ENVIRONMENT === "development") &&
+        configured.includes(url.origin)
+      ) {
+        return;
+      }
+    } catch {
+      throw new AppError("A valid platform origin is required.", 403, "INVALID_ORIGIN");
+    }
+
+    throw new AppError("A valid platform origin is required.", 403, "INVALID_ORIGIN");
+  }
+
+  const secFetchSite = c.req.header("sec-fetch-site");
+  if (secFetchSite === "same-origin" || secFetchSite === "same-site" || secFetchSite === "none") {
+    return;
+  }
+
+  throw new AppError("A valid platform origin is required.", 403, "INVALID_ORIGIN");
+}
+
+// 0. Super Admin Status & Identity Endpoint (Publicly callable to inspect session)
+platformAdminRouter.get("/me", async (c) => {
+  assertAdminOrigin(c);
+  const jwtSecret = c.env?.PLATFORM_ADMIN_JWT_SECRET;
+  const token = getCookie(c, "__Host-store254_admin_session");
+
+  if (token && jwtSecret) {
+    try {
+      const payload = await verify(token, jwtSecret, "HS256");
+      if (payload && payload.role === "SUPER_ADMIN" && payload.iss === "store254-platform") {
+        return c.json({
+          success: true,
+          authenticated: true,
+          user: {
+            username: (payload.email as string) || "super-admin",
+            role: "SUPER_ADMIN",
+          },
+        });
+      }
+    } catch {
+      // invalid token
+    }
+  }
+
+  return c.json({
+    success: true,
+    authenticated: false,
+  });
+});
+
+// Super Admin Login (username/password Cloudflare secrets, then HttpOnly session)
+platformAdminRouter.post(
+  "/login",
+  rateLimiter({ max: 15, windowMs: 15 * 60 * 1000 }),
+  zValidator("json", adminLoginSchema),
+  async (c) => {
+    assertAdminOrigin(c);
+    const body = c.req.valid("json");
+    const jwtSecret = requireSecret(c.env?.PLATFORM_ADMIN_JWT_SECRET, "PLATFORM_ADMIN_JWT_SECRET");
+    const adminUsername = c.env?.PLATFORM_ADMIN_USERNAME;
+    const adminPassword = c.env?.PLATFORM_ADMIN_PASSWORD;
+
+    if (!adminUsername || !adminPassword) {
+      throw new AppError("Super Admin login is not configured.", 500, "ADMIN_AUTH_NOT_CONFIGURED");
+    }
+
+    const [usernameMatches, passwordMatches] = await Promise.all([
+      matchesSecret(body.username.toLowerCase(), adminUsername.trim().toLowerCase()),
+      matchesSecret(body.password, adminPassword),
+    ]);
+    if (!usernameMatches || !passwordMatches) {
+      throw new AppError("Invalid username or password.", 401, "UNAUTHORIZED_ADMIN");
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const token = await sign(
+      {
+        sub: "super-admin",
+        email: adminUsername.trim(),
+        role: "SUPER_ADMIN",
+        iss: "store254-platform",
+        iat: now,
+        exp: now + 24 * 60 * 60, // 24 hours
+      },
+      jwtSecret,
+      "HS256"
+    );
+
+    setAdminSessionCookie(c, token);
+
+    return c.json({
+      success: true,
+      message: "Super Admin authenticated successfully.",
+      data: {
+        username: adminUsername.trim(),
+        role: "SUPER_ADMIN",
+      },
+    });
+  }
+);
+
+// Super Admin Sign Out
+platformAdminRouter.post("/logout", async (c) => {
+  assertAdminOrigin(c);
+  clearAdminSessionCookie(c);
+  return c.json({ success: true, message: "Super Admin signed out successfully." });
+});
+
+// ─── Super Admin Authentication Guard for All Subsequent Routes ──────────────
+platformAdminRouter.use("*", async (c, next) => {
+  assertAdminOrigin(c);
+
+  const jwtSecret = c.env?.PLATFORM_ADMIN_JWT_SECRET;
+
+  const token = getCookie(c, "__Host-store254_admin_session");
+
+  if (token && jwtSecret) {
+    try {
+      const payload = await verify(token, jwtSecret, "HS256");
+      if (payload && payload.role === "SUPER_ADMIN" && payload.iss === "store254-platform") {
+        c.set("user", {
+          id: (payload.sub as string) || "super-admin",
+          tenantId: "platform",
+          email: (payload.email as string) || "super-admin@store254.co.ke",
+          role: "SUPER_ADMIN" as any,
+        });
+        return next();
+      }
+    } catch {
+      // Invalid token
+    }
+  }
+
+  throw new AppError(
+    "Super Admin access required. Please sign in with your username and password.",
+    401,
+    "UNAUTHORIZED_ADMIN"
+  );
 });
 
 // 1. List All Stores (with status filtering and search)
@@ -128,8 +327,14 @@ platformAdminRouter.get("/stores/:id", async (c) => {
     .limit(1);
 
   // Counts
-  const itemList = await db.select({ id: items.id }).from(items).where(eq(items.tenantId, store.id));
-  const orderList = await db.select({ id: orders.id, total: orders.totalAmount, status: orders.status }).from(orders).where(eq(orders.tenantId, store.id));
+  const itemList = await db
+    .select({ id: items.id })
+    .from(items)
+    .where(eq(items.tenantId, store.id));
+  const orderList = await db
+    .select({ id: orders.id, total: orders.totalAmount, status: orders.status })
+    .from(orders)
+    .where(eq(orders.tenantId, store.id));
 
   return c.json({
     success: true,
@@ -267,7 +472,9 @@ platformAdminRouter.get("/stats", async (c) => {
   const db = createDb(c.env.DB);
 
   const allStores = await db.select({ status: tenants.status }).from(tenants);
-  const allOrders = await db.select({ totalAmount: orders.totalAmount, status: orders.status }).from(orders);
+  const allOrders = await db
+    .select({ totalAmount: orders.totalAmount, status: orders.status })
+    .from(orders);
 
   const pendingStores = allStores.filter((s) => s.status === "PENDING").length;
   const activeStores = allStores.filter((s) => s.status === "ACTIVE").length;
@@ -292,4 +499,44 @@ platformAdminRouter.get("/stats", async (c) => {
       },
     },
   });
+});
+
+// One-time super-admin-only migration for legacy plaintext merchant credentials.
+// It is safe to run repeatedly; already encrypted values remain unchanged.
+platformAdminRouter.post("/maintenance/encrypt-payment-configs", async (c) => {
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const secret = requireSecret(
+    c.env?.PAYMENT_CONFIG_ENCRYPTION_KEY,
+    "PAYMENT_CONFIG_ENCRYPTION_KEY"
+  );
+  const db = createDb(c.env.DB);
+  const configs = await db.select().from(tenantPaymentConfigs);
+  let updated = 0;
+
+  for (const config of configs) {
+    const encrypted = await encryptPaymentConfig(config, secret);
+    const changed =
+      encrypted.passkey !== config.passkey ||
+      encrypted.consumerKey !== config.consumerKey ||
+      encrypted.consumerSecret !== config.consumerSecret;
+    if (!changed) continue;
+
+    await db
+      .update(tenantPaymentConfigs)
+      .set({
+        passkey: encrypted.passkey,
+        consumerKey: encrypted.consumerKey,
+        consumerSecret: encrypted.consumerSecret,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(tenantPaymentConfigs.id, config.id),
+          eq(tenantPaymentConfigs.tenantId, config.tenantId)
+        )
+      );
+    updated++;
+  }
+
+  return c.json({ success: true, data: { encryptedConfigurations: updated } });
 });

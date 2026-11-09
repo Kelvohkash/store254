@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "npx serve . -l 3000",
-    "deploy": "npx wrangler pages deploy . --project-name=store254-frontend"
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.158.0"
   }
 }

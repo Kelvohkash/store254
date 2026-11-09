@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Store254 - Your Digital Market Place</title>
-  <meta name="description" content="Kenya's premier digital marketplace platform. Launch custom online storefronts with subdomains, dynamic catalogs, and direct M-Pesa payments.">
-  <link rel="icon" type="image/jpeg" href="./assets/logo.jpg">
-  
+  <title>Store254 | Kenyan online stores</title>
+  <meta name="description" content="Browse independent Kenyan stores and shop directly from their online storefronts.">
+  <link rel="icon" type="image/png" href="./assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -31,181 +34,196 @@
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/storefront-templates.css">
+  <link rel="stylesheet" href="./styles/storefront-components.css">
+  <link rel="stylesheet" href="./styles/storefront-quality.css">
+  <link rel="stylesheet" href="./styles/platform-home.css">
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen flex flex-col">
+<body class="text-slate-900 antialiased min-h-screen flex flex-col">
 
   <!-- Toast Notifications Container -->
   <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm"></div>
 
   <!-- Top Navigation Header -->
-  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+  <header class="site-header sticky top-0 z-40">
+    <div class="site-header-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-[4.5rem] flex items-center justify-between gap-3 sm:gap-4">
       
-      <!-- Brand Logo -->
-      <div class="flex items-center gap-4 cursor-pointer" onclick="switchStore('')">
-        <img src="./assets/logo.jpg" alt="Store254" class="h-12 w-auto object-contain">
+      <!-- Store logo, falling back to the Store254 mark when no store logo is configured -->
+      <div id="header-brand" class="flex items-center gap-3 shrink-0">
+        <span id="header-logo-frame" class="header-logo-frame">
+          <img id="header-platform-logo" src="./assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254 — Your Digital Market Place" class="object-contain">
+        </span>
+        <span id="header-store-identity" class="header-store-identity hidden">
+          <span id="header-store-name" class="header-store-name"></span>
+          <span id="header-powered-by" class="header-powered-by">Powered by <strong>Store254</strong></span>
+        </span>
       </div>
 
-      <!-- Store Switcher & Search Bar -->
-      <div class="flex-1 max-w-xl flex items-center gap-2">
-        <select id="store-selector" onchange="switchStore(this.value)" class="text-xs font-bold text-slate-700 bg-slate-100 border-none rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-emerald-500">
-          <option value="">Marketplace Directory</option>
-        </select>
-
-        <div class="relative flex-1">
-          <input type="text" id="search-input" oninput="loadItems()" placeholder="Search products, services, brands..." class="w-full bg-slate-100 text-xs text-slate-900 rounded-xl pl-9 pr-4 py-2.5 border-transparent focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all">
-          <span class="absolute left-3 top-2.5 text-slate-400">
+      <!-- Search Bar (PC & Tablet) -->
+      <div id="desktop-search" class="flex-1 max-w-xl hidden md:flex items-center">
+        <div class="search-field relative flex-1">
+          <input type="text" id="search-input" oninput="loadItems()" placeholder="Search products, services, brands..." class="w-full text-sm text-slate-900 rounded-lg pl-10 pr-4 py-2.5 border focus:bg-white transition-all">
+          <span class="absolute left-3 top-3 text-slate-400">
             <i data-lucide="search" class="w-4 h-4"></i>
           </span>
         </div>
       </div>
 
+      <nav class="platform-nav-links hidden lg:flex items-center gap-5" aria-label="Main navigation">
+        <a href="#platform-stores-section">Explore stores</a>
+        <a href="#platform-template-title">Seller themes</a>
+        <button type="button" class="platform-header-cta" onclick="toggleDrawer('onboard-modal', true)">Open your store <i data-lucide="arrow-up-right"></i></button>
+      </nav>
+
       <!-- Action Navigation Buttons -->
-      <div class="flex items-center gap-3">
-        <!-- Super Admin Button -->
-        <button onclick="toggleDrawer('super-admin-drawer', true)" class="px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-1.5">
-          <i data-lucide="shield" class="w-3.5 h-3.5"></i>
-          <span>Admin</span>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Customer Profile Button -->
+        <button id="customer-profile-toggle" onclick="toggleDrawer('orders-drawer', true)" class="customer-profile-toggle header-action px-3 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors items-center gap-1.5">
+          <i data-lucide="user-round" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Profile</span>
         </button>
 
-        <!-- Customer Orders Button -->
-        <button onclick="toggleDrawer('orders-drawer', true)" class="px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-1.5">
-          <i data-lucide="package" class="w-3.5 h-3.5"></i>
-          <span>Orders</span>
+        <!-- Customer Orders shortcut -->
+        <button onclick="toggleDrawer('orders-drawer', true)" class="header-action customer-orders-shortcut px-3 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors items-center gap-1.5">
+          <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Orders</span>
+        </button>
+
+        <button id="wishlist-toggle" type="button" onclick="toggleWishlistView()" class="wishlist-action px-3 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors items-center gap-1.5" aria-pressed="false">
+          <i data-lucide="heart" class="w-3.5 h-3.5"></i>
+          <span data-wishlist-label>Wishlist</span>
+          <span id="wishlist-count" class="hidden bg-rose-100 text-rose-700 text-[10px] font-black min-w-4 h-4 px-1 rounded-full flex items-center justify-center">0</span>
         </button>
 
         <!-- Cart Button -->
-        <button onclick="toggleDrawer('cart-drawer', true)" class="relative flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all transform active:scale-95">
-          <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
-          <span>Cart</span>
+        <button id="desktop-cart-btn" onclick="toggleDrawer('cart-drawer', true)" class="cart-action relative flex items-center gap-2 text-white text-xs font-semibold px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-colors">
+          <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Cart</span>
           <span id="cart-count-badge" class="hidden bg-white text-emerald-800 text-[11px] font-black w-5 h-5 rounded-full flex items-center justify-center">0</span>
         </button>
       </div>
 
     </div>
+
+    <!-- Mobile Search Bar (Only phone screens) -->
+    <div class="mobile-search md:hidden px-4 pb-3 pt-1 border-t flex gap-2">
+      <div class="relative flex-1">
+        <input type="text" id="mobile-search-input" oninput="syncMobileSearch(this.value)" placeholder="Search products, services..." class="w-full text-sm text-slate-900 rounded-lg pl-9 pr-3 py-2 border focus:bg-white">
+        <span class="absolute left-2.5 top-2 text-slate-400">
+          <i data-lucide="search" class="w-3.5 h-3.5"></i>
+        </span>
+      </div>
+      <button onclick="toggleMobileFilters()" class="px-3 py-2 bg-white text-slate-700 text-xs font-semibold border border-slate-200 rounded-lg flex items-center gap-1.5">
+        <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+        <span>Filters</span>
+      </button>
+    </div>
   </header>
 
   <!-- STOREFRONT BANNER (Visible only when browsing an active store subdomain) -->
-  <section id="store-info-banner" class="hidden bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white py-8 border-b border-slate-700">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-      <div>
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold uppercase tracking-wider mb-2">
-          <i data-lucide="badge-check" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span>Verified Store254 Merchant</span>
-        </div>
-        <h1 id="banner-store-name" class="text-2xl sm:text-3xl font-black tracking-tight">Store Name</h1>
-        <p id="banner-store-subdomain" class="text-xs font-mono text-emerald-400 mt-0.5">subdomain.store254.co.ke</p>
-        <p id="banner-store-desc" class="text-xs text-slate-300 mt-2 max-w-xl">Store description</p>
+  <section id="store-info-banner" class="store-banner hidden">
+    <div class="store-banner-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="store-banner-copy">
+        <p id="banner-store-subdomain" class="store-address">store.store254.co.ke</p>
+        <h1 id="banner-store-name">Store Name</h1>
+        <p id="banner-store-tagline" class="store-tagline hidden"></p>
+        <p id="banner-store-desc">Store description</p>
+        <div id="banner-social-links" class="store-social-links hidden" aria-label="Store social media links"></div>
+        <a id="storefront-primary-cta" class="storefront-primary-cta hidden" href="#items-grid">
+          <span id="storefront-primary-cta-label"></span>
+          <i data-lucide="arrow-down" class="w-4 h-4"></i>
+        </a>
       </div>
-
-      <div class="flex items-center gap-3">
-        <span id="banner-store-phone" class="hidden text-xs bg-white/10 px-3 py-2 rounded-xl text-white font-semibold flex items-center gap-1.5">
-          <i data-lucide="phone" class="w-3.5 h-3.5"></i>
-          <span id="banner-store-phone-text"></span>
-        </span>
-        <button onclick="switchStore('')" class="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5">
-          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-          <span>Marketplace</span>
-        </button>
-        <button onclick="toggleDrawer('onboard-modal', true)" class="px-4 py-2 bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5">
-          <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
-          <span>Launch Your Store</span>
-        </button>
-      </div>
+      <a id="banner-store-call-btn" href="#" class="store-contact hidden">
+        <i data-lucide="phone" class="w-4 h-4"></i>
+        <span id="banner-store-phone-text">Call store</span>
+      </a>
     </div>
   </section>
 
-  <!-- PLATFORM HERO (Visible when in root marketplace directory mode at store254.co.ke) -->
-  <section id="platform-hero" class="py-16 px-4 max-w-7xl mx-auto text-center">
-    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold mb-5">
-      <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-600"></i>
-      <span>Kenya's Premier Digital Marketplace Platform</span>
-    </div>
-    
-    <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight max-w-4xl mx-auto">
-      Empower Your Business With Your Own <span class="text-emerald-600">Subdomain Storefront</span>
-    </h1>
-    
-    <p class="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto mt-4 leading-relaxed">
-      Launch your verified online storefront on Store254 with dedicated subdomains, dynamic catalogs, and direct M-Pesa payments straight to your Till or Paybill.
-    </p>
-
-    <!-- Platform CTAs -->
-    <div class="mt-8 flex flex-wrap justify-center gap-3">
-      <button onclick="toggleDrawer('onboard-modal', true)" class="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
-        <i data-lucide="store" class="w-4 h-4"></i>
-        <span>Launch Your Store Now</span>
-      </button>
-      <button onclick="document.getElementById('platform-stores-section')?.scrollIntoView({ behavior: 'smooth' })" class="px-6 py-3.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 font-bold text-sm rounded-xl transition-colors flex items-center gap-2">
-        <i data-lucide="compass" class="w-4 h-4 text-emerald-600"></i>
-        <span>Explore Verified Merchants</span>
-      </button>
-    </div>
-
-    <!-- Platform Value Proposition Grid -->
-    <div class="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left max-w-5xl mx-auto">
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
-          <i data-lucide="globe" class="w-5 h-5"></i>
+  <section id="platform-hero" class="platform-home max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="platform-intro">
+      <div class="platform-intro-copy">
+        <p class="platform-eyebrow">Store254 <span>/</span> Kenya</p>
+        <h1>Every small hustle has a home here</h1>
+        <p class="platform-summary">Discover independent Kenyan brands and shop directly from the people behind them. Every store has its own home here.</p>
+        <div class="platform-hero-actions">
+        <a href="#platform-stores-section" class="platform-primary platform-primary-link">
+          <span>Explore the marketplace</span>
+          <i data-lucide="arrow-down" class="w-4 h-4"></i>
+        </a>
+        <button onclick="toggleDrawer('onboard-modal', true)" class="platform-secondary">
+          <span>Open your store</span>
+          <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+        </button>
         </div>
-        <h4 class="font-bold text-slate-900 text-sm">Custom Subdomains</h4>
-        <p class="text-xs text-slate-500 mt-1 leading-relaxed">Get your own branded address at <code class="font-mono text-emerald-600 font-semibold">yourstore.store254.co.ke</code>.</p>
+        <div class="platform-hero-proof"><span><i data-lucide="map-pin"></i> Proudly Kenyan</span><span><i data-lucide="store"></i> Independent brands</span><span><i data-lucide="shield-check"></i> Shop with confidence</span></div>
       </div>
-
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
-          <i data-lucide="smartphone" class="w-5 h-5"></i>
-        </div>
-        <h4 class="font-bold text-slate-900 text-sm">Direct M-Pesa (Model B)</h4>
-        <p class="text-xs text-slate-500 mt-1 leading-relaxed">Payments from STK Push go directly to your merchant Till or Paybill shortcode.</p>
-      </div>
-
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
-          <i data-lucide="layers" class="w-5 h-5"></i>
-        </div>
-        <h4 class="font-bold text-slate-900 text-sm">Products & Services</h4>
-        <p class="text-xs text-slate-500 mt-1 leading-relaxed">Sell physical items with dynamic filters or book consultations with time slots.</p>
-      </div>
-
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
-          <i data-lucide="shield-check" class="w-5 h-5"></i>
-        </div>
-        <h4 class="font-bold text-slate-900 text-sm">Verified Security</h4>
-        <p class="text-xs text-slate-500 mt-1 leading-relaxed">Every merchant is vetted and approved by our Super Admin team for buyer trust.</p>
+      <div class="platform-showcase-art" aria-label="A preview of independent Kenyan storefronts">
+        <div class="showcase-glow"></div>
+        <div class="showcase-carousel" aria-label="Featured Kenyan store stories" aria-live="polite"></div>
+        <div class="showcase-carousel-controls" role="group" aria-label="Choose a featured store story"></div>
+        <div class="showcase-float-tag"><span class="showcase-live-dot"></span><span><strong>Local by nature</strong><small>Independent, always</small></span></div>
+        <div class="showcase-stamp">254<br><small>KE</small></div>
       </div>
     </div>
 
-    <!-- Active Stores Grid Section -->
-    <div id="platform-stores-section" class="mt-20 max-w-5xl mx-auto pt-6 border-t border-slate-200">
-      <div class="flex items-center justify-between mb-6">
+    <div class="platform-benefit-strip" aria-label="Why shop on Store254">
+      <article><span class="benefit-number">01 · DIRECT SOURCING</span><h2>Support real creators</h2><p>Meet the craftspeople and independent Kenyan studios behind the things you love.</p></article>
+      <article><span class="benefit-number">02 · YOUR OWN SPACE</span><h2>Every store has a home</h2><p>Browse each seller’s own storefront and discover their full collection.</p></article>
+      <article><span class="benefit-number">03 · MADE FOR KENYA</span><h2>Shop with confidence</h2><p>Familiar local payments and delivery options, built for Kenyan businesses.</p></article>
+    </div>
+
+    <div id="platform-stores-section" class="platform-stores-section">
+      <div class="platform-stores-heading">
         <div>
-          <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
-            <i data-lucide="store" class="w-5 h-5 text-emerald-600"></i>
-            <span>Verified Merchants on Store254</span>
-          </h3>
-          <p class="text-xs text-slate-500 mt-0.5">Explore active stores approved to sell on Store254</p>
+          <p class="platform-eyebrow">The directory · Stores on Store254</p>
+          <h2>Browse storefronts by business</h2>
         </div>
+        <p>Browse storefronts by business.</p>
       </div>
-      <div id="platform-stores-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <div id="platform-stores-grid" class="platform-stores-grid"></div>
     </div>
+
+    <section class="platform-template-gallery" aria-labelledby="platform-template-title">
+      <div class="platform-section-heading"><div><p class="platform-eyebrow">A home that fits your brand</p><h2 id="platform-template-title">Your store should feel like yours.</h2></div><span>Choose a style made for the things you sell, then make it your own.</span></div>
+      <div class="template-gallery-grid">
+        <article class="template-gallery-card gallery-editorial"><div class="gallery-browser"><div class="gallery-browser-bar"><i></i><i></i><i></i><span>yourstore.store254.co.ke</span></div><div class="gallery-site-head"><b>ATELIER / 04</b><span>Collection　 Journal　 About</span></div><div class="gallery-site-hero"><small>THE NEW SEASON</small><strong>Everyday,<br><em>considered.</em></strong><span>Discover the edit　 ↗</span></div><div class="gallery-site-products"><i></i><i></i><i></i></div></div><div class="gallery-card-caption"><span>01</span><div><strong>Editorial Boutique</strong><small>Fashion, beauty and lifestyle</small></div><span class="gallery-card-arrow">↗</span></div></article>
+        <article class="template-gallery-card gallery-tech"><div class="gallery-browser"><div class="gallery-browser-bar"><i></i><i></i><i></i><span>yourstore.store254.co.ke</span></div><div class="gallery-tech-top"><b>NORTH / HOME</b><span>Search　 Support　 Bag</span></div><div class="gallery-tech-hero"><div><small>BETTER LIVING, MADE SIMPLE</small><strong>Make space<br>for smart.</strong><span>Shop the collection　 →</span></div><i></i></div><div class="gallery-tech-products"><i></i><i></i><i></i><i></i></div></div><div class="gallery-card-caption"><span>02</span><div><strong>Tech &amp; Home</strong><small>Electronics, furniture and home</small></div><span class="gallery-card-arrow">↗</span></div></article>
+        <article class="template-gallery-card gallery-service"><div class="gallery-browser"><div class="gallery-browser-bar"><i></i><i></i><i></i><span>yourstore.store254.co.ke</span></div><div class="gallery-service-head"><b>STUDIO / SANA</b><span>Services　 Our work　 Contact</span></div><div class="gallery-service-hero"><small>CARE, WITH INTENTION</small><strong>A little time<br><em>for yourself.</em></strong><span>Explore services　 ↗</span></div><div class="gallery-service-products"><i></i><i></i></div></div><div class="gallery-card-caption"><span>03</span><div><strong>Service Studio</strong><small>Appointments and expertise</small></div><span class="gallery-card-arrow">↗</span></div></article>
+        <article class="template-gallery-card gallery-market"><div class="gallery-browser"><div class="gallery-browser-bar"><i></i><i></i><i></i><span>yourstore.store254.co.ke</span></div><div class="gallery-market-head"><b>GOOD MARKET</b><span>Search　 Categories　 Bag</span></div><div class="gallery-market-hero"><small>GOOD THINGS, CLOSE TO HOME</small><strong>Find your<br>everyday.</strong><span>Shop best sellers　 →</span></div><div class="gallery-market-products"><i></i><i></i><i></i></div></div><div class="gallery-card-caption"><span>04</span><div><strong>Market Modern</strong><small>Everyday retail and groceries</small></div><span class="gallery-card-arrow">↗</span></div></article>
+        <article class="template-gallery-card gallery-maker"><div class="gallery-browser"><div class="gallery-browser-bar"><i></i><i></i><i></i><span>yourstore.store254.co.ke</span></div><div class="gallery-maker-head"><b>FORM / STUDIO</b><span>Objects　 Story</span></div><div class="gallery-maker-hero"><small>MADE SLOWLY, KEPT FOREVER</small><strong>Meet the<br>signature piece.</strong><span>Discover the maker　 ↗</span><i></i></div><div class="gallery-maker-products"><i></i><i></i></div></div><div class="gallery-card-caption"><span>05</span><div><strong>Premium Maker</strong><small>Craft, maker and signature goods</small></div><span class="gallery-card-arrow">↗</span></div></article>
+        <article class="template-gallery-card gallery-food"><div class="gallery-browser"><div class="gallery-browser-bar"><i></i><i></i><i></i><span>yourstore.store254.co.ke</span></div><div class="gallery-food-head"><b>JIKONI / LOCAL</b><span>Menu　 Our story　 Orders</span></div><div class="gallery-food-hero"><small>FRESH FROM OUR KITCHEN</small><strong>Made with<br>a little joy.</strong><span>Order for today　 →</span></div><div class="gallery-food-products"><i></i><i></i><i></i></div></div><div class="gallery-card-caption"><span>06</span><div><strong>Food &amp; Local</strong><small>Food, makers and neighbourhood finds</small></div><span class="gallery-card-arrow">↗</span></div></article>
+      </div>
+      <div class="template-gallery-bottom"><span>Six ready-to-personalise designs for different businesses.</span><button type="button" onclick="toggleDrawer('onboard-modal', true)">Create your storefront <i data-lucide="arrow-up-right"></i></button></div>
+    </section>
+
+    <section class="platform-seller-callout">
+      <div><p class="platform-eyebrow">Your own corner of the internet</p><h2>Start your store in minutes.</h2><p>Choose a storefront style, add your products and connect your M-Pesa details. Your own branded shop is ready to meet its first customers.</p></div>
+      <button onclick="toggleDrawer('onboard-modal', true)" class="platform-primary"><span>Create your storefront</span><i data-lucide="arrow-up-right" class="w-4 h-4"></i></button>
+      <div class="seller-callout-decoration" aria-hidden="true"><span></span><span></span><span></span></div>
+    </section>
   </section>
 
   <!-- STOREFRONT CATALOG VIEW -->
-  <main id="storefront-view" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden">
+  <main id="storefront-view" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 hidden">
+    <section id="storefront-content-intro" class="storefront-content-intro hidden">
+      <p class="platform-eyebrow" id="storefront-content-eyebrow"></p>
+      <h2 id="storefront-content-title"></h2>
+      <p id="storefront-content-copy"></p>
+    </section>
     
-    <!-- Category Navigation Pills -->
-    <div class="mb-8 overflow-x-auto pb-2 scrollbar-none">
-      <div id="category-pills" class="flex items-center gap-2"></div>
+    <!-- Category Navigation Pills (Desktop & Mobile Swipeable) -->
+    <div class="mb-6 sm:mb-8 overflow-x-auto pb-2 scrollbar-none flex items-center justify-between gap-4">
+      <div id="category-pills" class="flex items-center gap-2 flex-nowrap"></div>
     </div>
 
-    <!-- Layout: Filter Sidebar + Items Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <!-- Layout: Filter Sidebar (PC) / Offcanvas (Mobile) + Items Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
       
-      <!-- Filter Sidebar -->
-      <aside class="lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200 h-fit sticky top-28">
+      <!-- Filter Sidebar (PC/Tablet Desktop View) -->
+      <aside id="desktop-filter-sidebar" class="hidden lg:block lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm h-fit sticky top-28">
         <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
           <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
             <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-emerald-600"></i>
@@ -224,23 +242,106 @@
             <span id="price-label-min">KES 0</span>
             <span id="price-label-max">KES 200,000</span>
           </div>
-          <input type="range" id="price-filter-max" onchange="loadItems()" class="w-full accent-emerald-600 cursor-pointer">
+          <input type="range" id="price-filter-max" min="0" max="200000" value="200000" onchange="loadItems()" class="w-full accent-emerald-600 cursor-pointer">
         </div>
 
         <!-- Dynamic Facets Container (Brand, Screen Size, Duration, etc.) -->
         <div id="dynamic-facets-container"></div>
       </aside>
 
-      <!-- Items Grid -->
+      <!-- Items Grid Section -->
       <section class="lg:col-span-3">
-        <div class="flex items-center justify-between mb-4">
-          <span id="items-count-badge" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Catalog Items</span>
+        <!-- Control Header: count, active filters, quick sort -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-200/60">
+          <div class="flex items-center gap-2">
+            <span id="items-count-badge" class="text-xs sm:text-sm font-bold text-slate-800">5 Products Available</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- Mobile Filters trigger button -->
+            <button onclick="toggleMobileFilters(true)" class="lg:hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="filter" class="w-3.5 h-3.5 text-emerald-600"></i>
+              <span>Filters</span>
+            </button>
+
+            <!-- Quick View Toggle or sorting -->
+            <select id="sort-selector" onchange="loadItems()" class="text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-emerald-500 shadow-sm">
+              <option value="featured">Featured First</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+            </select>
+          </div>
         </div>
-        <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+
+        <!-- Responsive Items Grid: 2 columns on Mobile, 4 columns on Desktop -->
+        <div id="items-grid" class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3 xl:gap-4"></div>
       </section>
 
     </div>
   </main>
+
+  <a id="whatsapp-quick-contact" class="whatsapp-quick-contact hidden" target="_blank" rel="noopener noreferrer" aria-label="Contact this store on WhatsApp">
+    <i data-lucide="message-circle" class="w-5 h-5"></i>
+    <span>WhatsApp</span>
+  </a>
+
+  <div id="maker-buy-bar" class="maker-buy-bar hidden">
+    <div>
+      <strong id="maker-buy-title"></strong>
+      <span id="maker-buy-price"></span>
+    </div>
+    <button id="maker-buy-button" type="button" onclick="buyFeaturedProduct()">Buy now</button>
+  </div>
+
+  <!-- MOBILE FILTER BOTTOM SHEET / DRAWER -->
+  <div id="mobile-filter-drawer" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex flex-col justify-end transition-opacity lg:hidden">
+    <div class="bg-white rounded-t-3xl max-h-[85vh] w-full p-6 flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 class="text-sm font-black text-slate-900 flex items-center gap-2">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-emerald-600"></i>
+          <span>Filter Products</span>
+        </h3>
+        <button onclick="toggleMobileFilters(false)" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="overflow-y-auto space-y-5 flex-1 pr-1">
+        <!-- Price Range -->
+        <div>
+          <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Max Price</label>
+          <div class="flex justify-between text-xs font-mono font-bold text-emerald-700 mb-2">
+            <span id="mobile-price-val">KES 200,000</span>
+          </div>
+          <input type="range" id="mobile-price-filter" min="0" max="200000" value="200000" oninput="syncMobilePrice(this.value)" class="w-full accent-emerald-600">
+        </div>
+
+        <!-- Dynamic Mobile Facets Clone -->
+        <div id="mobile-dynamic-facets"></div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 mt-4 flex gap-2">
+        <button onclick="resetFilters(); toggleMobileFilters(false);" class="flex-1 py-2.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">Reset</button>
+        <button onclick="toggleMobileFilters(false); loadItems();" class="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="shopping-signin-modal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="shopping-signin-title">
+    <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h3 id="shopping-signin-title" class="text-base font-black text-slate-900">Save your shopping</h3>
+          <p id="shopping-signin-copy" class="mt-1 text-xs leading-relaxed text-slate-600">Sign in with Google to keep your cart and wishlist with your account. You can continue as a guest too.</p>
+        </div>
+        <button type="button" onclick="closeShoppingSignInPrompt()" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close sign-in prompt">
+          <i data-lucide="x" class="h-5 w-5"></i>
+        </button>
+      </div>
+      <div id="shopping-google-signin" class="customer-google-button mt-4 min-h-10" aria-live="polite">Loading Google sign-in…</div>
+      <button type="button" onclick="closeShoppingSignInPrompt()" class="mt-3 w-full rounded-lg py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50">Continue as guest</button>
+    </div>
+  </div>
 
   <!-- CART & CHECKOUT DRAWER -->
   <div id="cart-drawer" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex justify-end transition-opacity">
@@ -249,7 +350,7 @@
       <div>
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
           <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
-            <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-600"></i>
+            <i data-lucide="shopping-cart" class="w-4 h-4 text-emerald-600"></i>
             <span>Shopping Cart & Checkout</span>
           </h3>
           <button onclick="toggleDrawer('cart-drawer', false)" class="text-slate-400 hover:text-slate-600 p-1">
@@ -292,18 +393,25 @@
 
         <!-- Customer Details -->
         <div class="space-y-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-          <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Customer Details</h4>
-          <input type="text" id="checkout-name" placeholder="Full Name" class="w-full text-xs p-2.5 rounded-lg border border-slate-300">
-          <input type="email" id="checkout-email" placeholder="Email Address" class="w-full text-xs p-2.5 rounded-lg border border-slate-300">
+          <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Customer & Delivery Details</h4>
+          <p class="text-[11px] text-slate-500">Your account name and email fill in automatically when you sign in. Enter your phone number and delivery address below.</p>
+          <input type="text" id="checkout-name" autocomplete="name" placeholder="Full Name" class="w-full text-xs p-2.5 rounded-lg border border-slate-300">
+          <input type="email" id="checkout-email" autocomplete="email" placeholder="Email Address" class="w-full text-xs p-2.5 rounded-lg border border-slate-300">
           <div>
-            <label class="block text-[11px] font-bold text-emerald-800 mb-1">M-Pesa Phone Number</label>
-            <input type="tel" id="checkout-phone" placeholder="0712345678" class="w-full text-xs font-mono font-bold p-2.5 rounded-lg border border-emerald-400 bg-emerald-50/50">
+            <label class="block text-[11px] font-bold text-slate-700 mb-1">Phone Number</label>
+            <input type="tel" id="checkout-phone" placeholder="0712345678" class="w-full text-xs font-mono font-bold p-2.5 rounded-lg border border-slate-300">
+          </div>
+          <div>
+            <label for="checkout-address" class="block text-[11px] font-bold text-slate-700 mb-1">Delivery Address <span class="font-normal text-slate-500">(required for pay on delivery)</span></label>
+            <textarea id="checkout-address" rows="2" maxlength="300" placeholder="Estate, street, building, and nearby landmark" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 resize-y"></textarea>
           </div>
         </div>
       </div>
 
       <!-- Checkout Footer Summary -->
       <div class="border-t border-slate-200 pt-4">
+        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Choose a payment option</h4>
+        <p class="text-[11px] text-slate-500 mb-3">Pay now with M-Pesa or pay the delivery person when your order arrives.</p>
         <div class="flex justify-between text-xs text-slate-600 mb-1.5">
           <span>Subtotal</span>
           <span id="cart-subtotal" class="font-bold text-slate-900">KES 0</span>
@@ -320,6 +428,10 @@
         <button id="btn-pay-mpesa" onclick="initiateMpesaCheckout()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
           <i data-lucide="smartphone" class="w-4 h-4"></i>
           <span>Pay with M-Pesa STK Push</span>
+        </button>
+        <button id="btn-pay-delivery" onclick="initiateCashOnDeliveryCheckout()" class="w-full mt-2 py-3 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2">
+          <i data-lucide="truck" class="w-4 h-4"></i>
+          <span>Place Order · Pay on Delivery</span>
         </button>
       </div>
 
@@ -342,8 +454,18 @@
       <div class="p-6 overflow-y-auto space-y-6 flex-1">
         <!-- Main Product Info -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          <div class="bg-slate-50 rounded-2xl p-4 flex items-center justify-center h-56 border border-slate-100">
-            <img id="item-modal-image" src="" alt="Product" class="max-h-full max-w-full object-contain">
+          <div class="space-y-3">
+            <div id="item-modal-gallery-stage" class="item-modal-gallery-stage">
+              <button id="item-modal-image-prev" type="button" class="item-modal-gallery-nav item-modal-gallery-prev" aria-label="Previous product photo">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+              </button>
+              <img id="item-modal-image" src="" alt="Product photo" class="item-modal-gallery-image">
+              <button id="item-modal-image-next" type="button" class="item-modal-gallery-nav item-modal-gallery-next" aria-label="Next product photo">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+              </button>
+              <span id="item-modal-image-count" class="item-modal-image-count" aria-live="polite"></span>
+            </div>
+            <div id="item-modal-image-thumbnails" class="item-modal-image-thumbnails hidden" aria-label="Product photos"></div>
           </div>
           <div>
             <div id="item-modal-badges" class="flex flex-wrap gap-1.5 mb-2"></div>
@@ -442,61 +564,59 @@
     </div>
   </div>
 
-  <!-- SUPER ADMIN DRAWER -->
-  <div id="super-admin-drawer" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex justify-end">
-    <div class="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col justify-between overflow-y-auto p-6">
-      <div>
-        <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-          <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
-            <i data-lucide="shield" class="w-4 h-4 text-slate-900"></i>
-            <span>Super Admin Platform Manager</span>
-          </h3>
-          <button onclick="toggleDrawer('super-admin-drawer', false)" class="text-slate-400 hover:text-slate-600 p-1">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
-        </div>
-
-        <button onclick="loadSuperAdminStats()" class="w-full mb-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2">
-          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-          <span>Refresh Platform Stats</span>
-        </button>
-
-        <!-- Metrics -->
-        <div class="grid grid-cols-3 gap-3 mb-6">
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
-            <span class="text-[10px] text-slate-400 font-bold uppercase">Total Stores</span>
-            <div id="admin-stat-stores" class="text-lg font-black text-slate-900">-</div>
-          </div>
-          <div class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-center">
-            <span class="text-[10px] text-amber-700 font-bold uppercase">Pending</span>
-            <div id="admin-stat-pending" class="text-lg font-black text-amber-800">-</div>
-          </div>
-          <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-center">
-            <span class="text-[10px] text-emerald-700 font-bold uppercase">GMV (KES)</span>
-            <div id="admin-stat-gmv" class="text-xs font-black text-emerald-800 mt-1">-</div>
-          </div>
-        </div>
-
-        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Registered Stores</h4>
-        <div id="admin-stores-list" class="space-y-2"></div>
-      </div>
-    </div>
-  </div>
-
   <!-- CUSTOMER MY ORDERS DRAWER -->
   <div id="orders-drawer" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex justify-end">
     <div class="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between overflow-y-auto p-6">
       <div>
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
           <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
-            <i data-lucide="package" class="w-4 h-4 text-slate-900"></i>
-            <span>My Orders & Tracking</span>
+            <i data-lucide="user-round" class="w-4 h-4 text-slate-900"></i>
+            <span>Customer Profile</span>
           </h3>
           <button onclick="toggleDrawer('orders-drawer', false)" class="text-slate-400 hover:text-slate-600 p-1">
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
-        <div id="my-orders-container" class="space-y-2"></div>
+        <section id="customer-auth-section" class="customer-auth-section mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div id="customer-signed-out" class="customer-signed-out">
+            <span class="customer-signin-mark" aria-hidden="true">
+              <i data-lucide="store" class="h-6 w-6"></i>
+            </span>
+            <h4 id="customer-signin-title" class="customer-signin-title">Sign in to your store</h4>
+            <p class="customer-signin-copy">Use your Google account to access your profile, orders, and saved items.</p>
+            <div id="google-signin-button" class="customer-google-button min-h-10" aria-live="polite">Loading Google sign-in…</div>
+          </div>
+          <div id="customer-signed-in" class="hidden">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex min-w-0 items-center gap-3">
+                <span id="customer-avatar-fallback" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-emerald-700 ring-1 ring-slate-200">
+                  <i data-lucide="user-round" class="h-5 w-5"></i>
+                </span>
+                <img id="customer-avatar" class="hidden h-11 w-11 shrink-0 rounded-full object-cover" alt="">
+                <div class="min-w-0">
+                  <p id="customer-account-name" class="truncate text-sm font-bold text-slate-900"></p>
+                  <p id="customer-account-email" class="truncate text-xs text-slate-500"></p>
+                </div>
+              </div>
+              <button type="button" onclick="signOutCustomer()" class="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Sign out</button>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-2 border-t border-slate-200 pt-3">
+              <div class="rounded-lg bg-white px-3 py-2">
+                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Orders</p>
+                <p id="customer-order-count" class="mt-0.5 text-sm font-bold text-slate-900">0</p>
+              </div>
+              <div class="rounded-lg bg-white px-3 py-2">
+                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Saved items</p>
+                <p id="customer-wishlist-count" class="mt-0.5 text-sm font-bold text-slate-900">0</p>
+              </div>
+            </div>
+            <p id="customer-member-since" class="mt-3 text-[11px] text-slate-500"></p>
+          </div>
+        </section>
+        <section id="customer-orders-section">
+          <h4 class="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Recent orders</h4>
+          <div id="my-orders-container" class="space-y-2"></div>
+        </section>
       </div>
     </div>
   </div>
@@ -562,55 +682,125 @@
           <span>Submit Store Application</span>
         </button>
       </form>
+
+      <div class="mt-4 pt-4 border-t border-slate-100 text-center">
+        <button onclick="toggleDrawer('onboard-modal', false); toggleDrawer('recovery-modal', true);" class="text-[11px] text-emerald-600 hover:underline font-semibold">
+          Forgot your store password? Recover via OTP &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSWORD RECOVERY MODAL (OTP via recovery@store254.co.ke) -->
+  <div id="recovery-modal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
+          <i data-lucide="key-round" class="w-5 h-5 text-emerald-600"></i>
+          <span>Account Password Recovery</span>
+        </h3>
+        <button onclick="toggleDrawer('recovery-modal', false)" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-500 mb-6 leading-relaxed">
+        Enter your registered store email. We will send a secure 6-digit verification OTP from <strong class="text-slate-700">recovery@store254.co.ke</strong>.
+      </p>
+
+      <!-- Step 1: Request OTP -->
+      <form id="form-recovery-step1" onsubmit="handleRequestOtp(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Registered Store Owner Email</label>
+          <input type="email" id="recovery-email" required placeholder="owner@gmail.com" class="w-full p-2.5 rounded-xl border border-slate-300">
+        </div>
+        <button type="submit" id="btn-request-otp" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+          <i data-lucide="mail" class="w-4 h-4"></i>
+          <span>Send Recovery Code (OTP)</span>
+        </button>
+      </form>
+
+      <!-- Step 2: Verify OTP & Reset Password -->
+      <form id="form-recovery-step2" onsubmit="handleResetPassword(event)" class="space-y-4 text-xs hidden">
+        <div class="p-3 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200">
+          <p class="text-[11px] font-semibold">An OTP code has been dispatched to <span id="recovery-sent-email" class="font-bold font-mono"></span>.</p>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">6-Digit Verification Code</label>
+          <input type="text" id="recovery-otp" required maxlength="6" placeholder="123456" class="w-full p-3 rounded-xl border border-slate-300 text-center font-mono font-bold text-lg tracking-widest">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">New Password (min 8 chars)</label>
+          <input type="password" id="recovery-new-password" required minlength="8" placeholder="••••••••" class="w-full p-2.5 rounded-xl border border-slate-300">
+        </div>
+
+        <button type="submit" id="btn-reset-password" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Verify & Update Password</span>
+        </button>
+
+        <button type="button" onclick="showRecoveryStep(1)" class="w-full py-2 text-slate-500 hover:text-slate-800 text-[11px] font-semibold">
+          &larr; Back to Email Entry
+        </button>
+      </form>
     </div>
   </div>
 
   <!-- Footer -->
-  <footer class="mt-auto bg-white border-t border-slate-200 py-8 text-center text-xs text-slate-500">
+  <footer class="site-footer mt-auto bg-white border-t border-slate-200 py-8 text-center text-xs text-slate-500 pb-20 sm:pb-8">
     <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-2">
-        <img src="./assets/logo.jpg" alt="Store254" class="h-6 w-auto object-contain">
-        <span class="font-semibold text-slate-700">Store254 &bull; Your Digital Market Place</span>
+      <div class="footer-brand flex items-center gap-2">
+        <span class="footer-logo-frame">
+          <img src="./assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254 — Your Digital Market Place" class="object-contain">
+        </span>
+        <span id="footer-platform-copy">Independent Kenyan storefronts</span>
+        <span id="footer-store-name" class="hidden"></span>
+        <span id="footer-powered-by" class="hidden">Powered by <strong>Store254</strong></span>
       </div>
+      <a id="store-admin-footer-btn" href="/admin.html" aria-label="Store Admin" title="Store Admin" class="hidden inline-flex px-3 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors items-center gap-1.5">
+        <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+        <span>Store Admin</span>
+      </a>
       <div>
         &copy; 2026 Store254.co.ke &bull; All Rights Reserved &bull; Nairobi, Kenya
       </div>
     </div>
   </footer>
 
-  <script src="./app.js"></script>
-  <script>
-    async function handleOnboardSubmit(e) {
-      e.preventDefault();
-      const btn = document.getElementById("btn-onboard");
-      btn.disabled = true;
-      btn.textContent = "Submitting...";
+  <!-- MOBILE BOTTOM FLOATING NAVIGATION BAR (Phone view only) -->
+  <div class="mobile-bottom-nav fixed bottom-0 inset-x-0 py-2 px-4 z-40 sm:hidden flex items-center justify-around">
+    <button onclick="document.getElementById('mobile-search-input')?.focus(); window.scrollTo({top:0, behavior:'smooth'})" class="flex flex-col items-center text-slate-500 hover:text-emerald-600">
+      <i data-lucide="search" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold mt-0.5">Search</span>
+    </button>
+    <button id="mobile-customer-profile-toggle" onclick="toggleDrawer('orders-drawer', true)" class="mobile-customer-profile-toggle flex flex-col items-center text-slate-500 hover:text-emerald-600">
+      <i data-lucide="user-round" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold mt-0.5">Profile</span>
+    </button>
+    <button onclick="toggleDrawer('orders-drawer', true)" class="flex flex-col items-center text-slate-500 hover:text-emerald-600">
+      <i data-lucide="package-check" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold mt-0.5">Orders</span>
+    </button>
+    <button id="mobile-wishlist-toggle" onclick="toggleWishlistView()" class="relative hidden flex-col items-center text-slate-500 hover:text-emerald-600" aria-pressed="false">
+      <i data-lucide="heart" class="w-5 h-5"></i>
+      <span data-wishlist-label class="text-[10px] font-bold mt-0.5">Saved</span>
+      <span id="mobile-wishlist-count" class="hidden absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">0</span>
+    </button>
+    <button id="mobile-cart-btn" onclick="toggleDrawer('cart-drawer', true)" class="relative flex flex-col items-center text-emerald-600">
+      <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold mt-0.5">Cart</span>
+      <span id="mobile-cart-badge" class="hidden absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">0</span>
+    </button>
+  </div>
 
-      const payload = {
-        storeName: document.getElementById("onboard-name").value.trim(),
-        subdomain: document.getElementById("onboard-subdomain").value.trim(),
-        businessType: document.getElementById("onboard-type").value,
-        ownerFullName: document.getElementById("onboard-owner-name").value.trim(),
-        ownerEmail: document.getElementById("onboard-email").value.trim(),
-        ownerPassword: document.getElementById("onboard-password").value,
-      };
+  <script src="./scripts/storefront/core.js"></script>
+  <script src="./scripts/storefront/storefront.js"></script>
+  <script src="./scripts/storefront/catalog.js"></script>
+  <script src="./scripts/storefront/checkout.js"></script>
+  <script src="./scripts/storefront/platform.js"></script>
+  <script src="./scripts/storefront/onboarding.js"></script>
 
-      const res = await apiFetch("/api/platform/register-store", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
-      btn.disabled = false;
-      btn.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i> <span>Submit Store Application</span>`;
-      renderIcons();
-
-      if (res.ok && res.data.success) {
-        showToast("Application submitted! Pending Super Admin review.");
-        toggleDrawer("onboard-modal", false);
-      } else {
-        showToast(res.data.error?.message || "Registration failed", "error");
-      }
-    }
-  </script>
 </body>
 </html>

@@ -23,8 +23,8 @@ const variantInputSchema = z.object({
   options: z.record(z.string()).default({}),
 });
 
-const createItemSchema = z.object({
-  categoryId: z.string().uuid().nullable().optional(),
+export const createItemSchema = z.object({
+  categoryId: z.string().min(1).nullable().optional(),
   title: z.string().min(2).max(200),
   slug: z.string().optional(),
   description: z.string().optional(),
@@ -37,7 +37,7 @@ const createItemSchema = z.object({
   trackInventory: z.boolean().default(true),
   stockQuantity: z.number().int().min(0).default(0),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("PUBLISHED"),
-  images: z.array(z.string().url()).default([]),
+  images: z.array(z.string().url()).max(5, "A product can have at most 5 photos.").default([]),
   attributes: z.record(z.unknown()).default({}), // Dynamic attributes { brand: "Samsung", size: "55" }
   metadata: z.record(z.unknown()).default({}),
   variants: z.array(variantInputSchema).default([]),
@@ -204,6 +204,18 @@ itemsRouter.post(
     const body = c.req.valid("json");
     const db = createDb(c.env.DB);
 
+    if (body.categoryId) {
+      const [category] = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(and(eq(categories.id, body.categoryId), eq(categories.tenantId, tenant.id)))
+        .limit(1);
+
+      if (!category) {
+        throw new AppError("Specified category does not exist in this store.", 404, "CATEGORY_NOT_FOUND");
+      }
+    }
+
     const slug = body.slug ? slugify(body.slug) : slugify(body.title);
 
     // Check slug uniqueness
@@ -288,5 +300,96 @@ itemsRouter.post(
       },
       201
     );
+  }
+);
+
+// Update Item (Store Owners & Admins only)
+const updateItemSchema = createItemSchema.partial();
+
+itemsRouter.put(
+  "/:id",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  zValidator("json", updateItemSchema),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const { id } = c.req.param();
+    const body = c.req.valid("json");
+    const db = createDb(c.env.DB);
+
+    // Verify item belongs to this tenant
+    const [existing] = await db
+      .select({ id: items.id })
+      .from(items)
+      .where(and(eq(items.id, id), eq(items.tenantId, tenant.id)))
+      .limit(1);
+
+    if (!existing) {
+      throw new AppError("Item not found.", 404, "NOT_FOUND");
+    }
+
+    if (body.categoryId) {
+      const [category] = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(and(eq(categories.id, body.categoryId), eq(categories.tenantId, tenant.id)))
+        .limit(1);
+
+      if (!category) {
+        throw new AppError("Specified category does not exist in this store.", 404, "CATEGORY_NOT_FOUND");
+      }
+    }
+
+    const updateData: Record<string, unknown> = { updatedAt: new Date() };
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.slug !== undefined) updateData.slug = slugify(body.slug);
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.itemType !== undefined) updateData.itemType = body.itemType;
+    if (body.basePrice !== undefined) updateData.basePrice = body.basePrice;
+    if (body.compareAtPrice !== undefined) updateData.compareAtPrice = body.compareAtPrice;
+    if (body.costPrice !== undefined) updateData.costPrice = body.costPrice;
+    if (body.sku !== undefined) updateData.sku = body.sku;
+    if (body.barcode !== undefined) updateData.barcode = body.barcode;
+    if (body.trackInventory !== undefined) updateData.trackInventory = body.trackInventory;
+    if (body.stockQuantity !== undefined) updateData.stockQuantity = body.stockQuantity;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.images !== undefined) updateData.images = body.images;
+    if (body.attributes !== undefined) updateData.attributes = body.attributes;
+    if (body.metadata !== undefined) updateData.metadata = body.metadata;
+    if (body.categoryId !== undefined) updateData.categoryId = body.categoryId || null;
+
+    await db.update(items).set(updateData).where(and(eq(items.id, id), eq(items.tenantId, tenant.id)));
+
+    const [updated] = await db.select().from(items).where(eq(items.id, id)).limit(1);
+
+    return c.json({ success: true, message: "Product updated successfully.", data: updated });
+  }
+);
+
+// Delete Item (Store Owners & Admins only)
+itemsRouter.delete(
+  "/:id",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const { id } = c.req.param();
+    const db = createDb(c.env.DB);
+
+    const [existing] = await db
+      .select({ id: items.id, title: items.title })
+      .from(items)
+      .where(and(eq(items.id, id), eq(items.tenantId, tenant.id)))
+      .limit(1);
+
+    if (!existing) {
+      throw new AppError("Item not found.", 404, "NOT_FOUND");
+    }
+
+    // Delete variants first (FK constraint)
+    await db.delete(itemVariants).where(eq(itemVariants.itemId, id));
+    await db.delete(items).where(and(eq(items.id, id), eq(items.tenantId, tenant.id)));
+
+    return c.json({ success: true, message: "Product deleted successfully." });
   }
 );

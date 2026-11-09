@@ -5,7 +5,7 @@
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "deploy:backend": "cd backend && npm run deploy",
+    "deploy:backend": "wrangler deploy --config backend/wrangler.toml --minify",
     "deploy:frontend": "cd frontend && npm run deploy",
     "test": "cd backend && npm test",
     "typecheck": "cd backend && npm run typecheck",

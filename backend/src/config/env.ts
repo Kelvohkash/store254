@@ -11,14 +11,20 @@ export interface Env {
   // Environment variables
   ENVIRONMENT: "development" | "staging" | "production";
   PRIMARY_DOMAIN: string;
+  FRONTEND_ORIGINS?: string;
 
   // Secrets
-  JWT_SECRET: string;
+  JWT_SECRET?: string;
   JWT_REFRESH_SECRET?: string;
-  ADMIN_API_KEY?: string;
+  PLATFORM_ADMIN_USERNAME?: string;
+  PLATFORM_ADMIN_PASSWORD?: string;
+  PLATFORM_ADMIN_JWT_SECRET?: string;
+  PAYMENT_CONFIG_ENCRYPTION_KEY?: string;
 
-  // Google OAuth Client ID
+  // Centralized Google OAuth configuration
   GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  GOOGLE_REDIRECT_URI?: string;
 
   // Safaricom M-Pesa Platform Credentials (Optional fallback)
   MPESA_CONSUMER_KEY?: string;
@@ -26,5 +32,10 @@ export interface Env {
   MPESA_PASSKEY?: string;
   MPESA_SHORTCODE?: string;
   MPESA_IS_SANDBOX?: string;
-  MPESA_CALLBACK_SECRET?: string;
+
+  // Cloudflare Rate Limiting API bindings; provisioned in backend/wrangler.toml.
+  API_RATE_LIMITER?: RateLimit;
+  AUTH_RATE_LIMITER?: RateLimit;
+  AUTH_STRICT_RATE_LIMITER?: RateLimit;
+  SENSITIVE_RATE_LIMITER?: RateLimit;
 }

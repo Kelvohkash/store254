@@ -43,6 +43,8 @@ export const orders = sqliteTable(
         trackingUrl?: string;
         dispatchedAt?: string;
         deliveredAt?: string;
+        paymentInstructionsVisible?: boolean;
+        paymentInstructionsShownAt?: string;
         notes?: string;
       }>()
       .default({}),
@@ -121,6 +123,8 @@ export const payments = sqliteTable(
       .default("INITIATED"),
     merchantRequestId: text("merchant_request_id"),
     checkoutRequestId: text("checkout_request_id").unique(),
+    callbackTokenHash: text("callback_token_hash"),
+    statusTokenHash: text("status_token_hash"),
     mpesaReceiptNumber: text("mpesa_receipt_number"),
     transactionDate: integer("transaction_date", { mode: "timestamp" }),
     phoneNumber: text("phone_number"),

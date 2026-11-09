@@ -14,7 +14,8 @@ export interface GoogleTokenPayload {
  */
 export async function verifyGoogleIdToken(
   idToken: string,
-  expectedClientId?: string
+  expectedClientId?: string,
+  expectedNonce?: string
 ): Promise<GoogleTokenPayload> {
   if (!idToken || typeof idToken !== "string") {
     throw new AppError("Google ID token is required.", 400, "INVALID_TOKEN");
@@ -54,6 +55,24 @@ export async function verifyGoogleIdToken(
   // 3. Verify Audience (Client ID) if configured
   if (expectedClientId && data.aud !== expectedClientId) {
     throw new AppError("Google token audience mismatch.", 401, "AUDIENCE_MISMATCH");
+  }
+  if (expectedNonce) {
+    let tokenNonce = data.nonce;
+    if (typeof tokenNonce !== "string") {
+      try {
+        const payloadPart = idToken.split(".")[1];
+        const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(
+          atob(normalized + "=".repeat((4 - (normalized.length % 4)) % 4))
+        ) as { nonce?: string };
+        tokenNonce = payload.nonce;
+      } catch {
+        tokenNonce = undefined;
+      }
+    }
+    if (tokenNonce !== expectedNonce) {
+      throw new AppError("Google token nonce mismatch.", 401, "NONCE_MISMATCH");
+    }
   }
 
   // 4. Verify Email Verification Status

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f4f7f5">
+  <title>Platform Admin — Store254</title>
+  <link rel="icon" type="image/png" href="./assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/super-admin.css">
+</head>
+<body>
+  <div id="admin-loading" class="admin-loading" role="status">Checking your admin session…</div>
+  <main id="admin-app" class="admin-app" hidden>
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="./" aria-label="Store254 marketplace">
+        <img src="./assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254">
+      </a>
+      <div class="sidebar-label">WORKSPACE</div>
+      <a class="sidebar-link is-current" href="#overview"><span class="nav-icon">⌂</span> Overview</a>
+      <a class="sidebar-link" href="#businesses"><span class="nav-icon">▦</span> Businesses <span id="sidebar-store-count" class="sidebar-count">—</span></a>
+      <div class="sidebar-bottom">
+        <div class="session-card"><span class="session-indicator"></span><div><strong>Secure session</strong><small>Super administrator</small></div></div>
+        <button id="logout-button" class="logout-button" type="button"><span>↪</span> Sign out</button>
+      </div>
+    </aside>
+
+    <section class="admin-content">
+      <header class="topbar">
+        <div class="crumb"><span>Store254</span><b>/</b><strong>Platform admin</strong></div>
+        <div class="topbar-actions"><span class="live-label"><i></i> PLATFORM LIVE</span><button id="refresh-button" class="icon-button" type="button" aria-label="Refresh data" title="Refresh">↻</button></div>
+      </header>
+
+      <div class="page-wrap">
+        <section id="overview" class="welcome-row">
+          <div><p class="eyebrow">YOUR MARKETPLACE, AT A GLANCE</p><h1>Good morning, Admin <span>✳</span></h1><p class="page-subtitle">Keep an eye on the businesses growing with Store254.</p></div>
+          <a class="public-site-link" href="./" target="_blank" rel="noopener">View marketplace <span>↗</span></a>
+        </section>
+
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+        <section class="metric-grid" aria-label="Marketplace overview">
+          <article class="metric-card metric-total"><div class="metric-top"><span>Total businesses</span><span class="metric-icon">▦</span></div><strong id="metric-total">—</strong><small>Registered on Store254</small></article>
+          <article class="metric-card metric-active"><div class="metric-top"><span>Active stores</span><span class="metric-icon">✓</span></div><strong id="metric-active">—</strong><small>Live and serving customers</small></article>
+          <article class="metric-card metric-pending"><div class="metric-top"><span>Needs review</span><span class="metric-icon">◷</span></div><strong id="metric-pending">—</strong><small>Waiting for approval</small></article>
+          <article class="metric-card metric-suspended"><div class="metric-top"><span>Suspended</span><span class="metric-icon">Ⅱ</span></div><strong id="metric-suspended">—</strong><small>Currently not live</small></article>
+        </section>
+
+        <section class="activity-banner"><div class="activity-mark">↗</div><div><strong>Marketplace sales volume</strong><p>Paid orders processed across all Store254 businesses</p></div><div class="activity-value"><span id="metric-gmv">KES —</span><small>ALL TIME</small></div></section>
+
+        <section id="businesses" class="business-section">
+          <div class="section-heading"><div><p class="eyebrow">THE STORE DIRECTORY</p><h2>Registered businesses</h2><p class="section-subtitle">Review applications and manage storefront access.</p></div><span id="result-count" class="result-count">Loading businesses…</span></div>
+          <div class="toolbar">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input id="business-search" type="search" placeholder="Search business or subdomain…" autocomplete="off"></label>
+            <div class="filter-tabs" role="group" aria-label="Filter businesses by status">
+              <button type="button" class="filter-tab is-selected" data-status-filter="ALL">All <span id="filter-count-all">—</span></button>
+              <button type="button" class="filter-tab" data-status-filter="PENDING">Review <span id="filter-count-pending">—</span></button>
+              <button type="button" class="filter-tab" data-status-filter="ACTIVE">Active <span id="filter-count-active">—</span></button>
+              <button type="button" class="filter-tab" data-status-filter="SUSPENDED">Suspended <span id="filter-count-suspended">—</span></button>
+            </div>
+          </div>
+
+          <div class="table-shell">
+            <table>
+              <thead><tr><th>BUSINESS</th><th>STORE ADDRESS</th><th>CATEGORY</th><th>REGISTERED</th><th>STATUS</th><th class="actions-heading">ACTIONS</th></tr></thead>
+              <tbody id="business-rows"><tr><td colspan="6" class="table-message">Loading registered businesses…</td></tr></tbody>
+            </table>
+            <div id="empty-state" class="empty-state" hidden><span>▦</span><strong>No businesses found</strong><p>Try another search or status filter.</p></div>
+          </div>
+          <p class="table-footnote"><span class="secure-dot"></span> Sensitive account actions are recorded and require confirmation.</p>
+        </section>
+        <footer class="admin-footer"><span>Store254 Platform Administration</span><span>Private workspace · <span id="footer-date"></span></span></footer>
+      </div>
+    </section>
+  </main>
+  <script src="./scripts/admin/super-admin.js" defer></script>
+</body>
+</html>

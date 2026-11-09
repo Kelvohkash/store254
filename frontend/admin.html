@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Store Admin — Store254</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: '#059669', dark: '#047857', light: '#d1fae5' }
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link rel="stylesheet" href="./styles/admin.css">
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<!-- ═══════════════════════════════════════════════
+     LOGIN SCREEN (shown when not authenticated)
+════════════════════════════════════════════════ -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+        <i data-lucide="store" class="w-7 h-7 text-white"></i>
+      </div>
+      <h1 class="text-2xl font-black text-slate-900">Store Admin</h1>
+      <p id="login-store-name" class="text-sm text-slate-500 mt-1">Sign in to manage your store</p>
+      <a href="/" class="text-xs text-emerald-600 hover:underline mt-1 inline-block">← Back to storefront</a>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-xl border border-slate-200 p-7">
+      <div id="login-error" class="hidden mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-semibold"></div>
+
+      <form onsubmit="handleLogin(event)">
+        <div class="mb-4">
+          <label class="label">Email</label>
+          <input id="login-email" type="email" required class="input" placeholder="owner@example.com" />
+        </div>
+        <div class="mb-6">
+          <label class="label">Password</label>
+          <div class="relative">
+            <input id="login-password" type="password" required class="input pr-10" placeholder="••••••••" />
+            <button type="button" onclick="togglePasswordVis('login-password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <i data-lucide="eye" class="w-4 h-4" id="login-password-icon"></i>
+            </button>
+          </div>
+        </div>
+        <button type="submit" id="login-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition-all flex items-center justify-center gap-2">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Sign In to Admin</span>
+        </button>
+      </form>
+
+      <p class="text-center text-xs text-slate-400 mt-5">
+        Don't have an account?
+        <a href="mailto:support@store254.co.ke" class="text-emerald-600 font-semibold hover:underline">Contact Store254</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ADMIN APP SHELL (shown after login)
+════════════════════════════════════════════════ -->
+<div id="app-shell" class="admin-shell hidden flex overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside id="mobile-sidebar" class="admin-sidebar flex flex-col shrink-0 overflow-y-auto">
+    <!-- Sidebar Header -->
+    <div class="p-5 border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+          <i data-lucide="store" class="w-5 h-5 text-white"></i>
+        </div>
+        <div class="min-w-0">
+          <p id="sidebar-store-name" class="font-black text-slate-900 text-sm truncate">My Store</p>
+          <p class="text-[10px] text-emerald-600 font-semibold">Admin Dashboard</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav Links -->
+    <nav class="flex-1 p-3 space-y-1">
+      <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 pt-2 pb-1">Overview</div>
+      <a class="sidebar-link active" onclick="showPage('dashboard')" id="nav-dashboard">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+      </a>
+
+      <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 pt-4 pb-1">Catalog</div>
+      <a class="sidebar-link" onclick="showPage('products')" id="nav-products">
+        <i data-lucide="package" class="w-4 h-4"></i> Products
+      </a>
+      <a class="sidebar-link" onclick="showPage('categories')" id="nav-categories">
+        <i data-lucide="tag" class="w-4 h-4"></i> Categories
+      </a>
+
+      <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 pt-4 pb-1">Sales</div>
+      <a class="sidebar-link" onclick="showPage('orders')" id="nav-orders">
+        <i data-lucide="shopping-bag" class="w-4 h-4"></i> Orders
+        <span id="sidebar-pending-badge" class="hidden ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full"></span>
+      </a>
+
+      <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 pt-4 pb-1">Settings</div>
+      <a class="sidebar-link" onclick="showPage('settings')" id="nav-settings">
+        <i data-lucide="settings" class="w-4 h-4"></i> Store Settings
+      </a>
+      <a class="sidebar-link" onclick="showPage('payments')" id="nav-payments">
+        <i data-lucide="credit-card" class="w-4 h-4"></i> M-Pesa / Payments
+      </a>
+    </nav>
+
+    <!-- Bottom: User & Logout -->
+    <div class="p-3 border-t border-slate-100">
+      <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 mb-2">
+        <div class="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
+          <i data-lucide="user" class="w-3.5 h-3.5 text-emerald-700"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p id="sidebar-user-name" class="text-xs font-bold text-slate-700 truncate">Owner</p>
+          <p id="sidebar-user-role" class="text-[10px] text-slate-400 truncate">OWNER</p>
+        </div>
+      </div>
+      <a href="/" class="sidebar-link text-slate-500">
+        <i data-lucide="external-link" class="w-4 h-4"></i> View Storefront
+      </a>
+      <button onclick="handleLogout()" class="sidebar-link w-full text-left text-red-500 hover:bg-red-50 hover:text-red-600 mt-1">
+        <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation" onclick="toggleAdminSidebar(false)"></button>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 overflow-y-auto">
+    <!-- Top Bar -->
+    <header class="admin-topbar border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div class="flex items-center gap-3 min-w-0">
+        <button type="button" onclick="toggleAdminSidebar(true)" class="md:hidden w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center" aria-label="Open navigation">
+          <i data-lucide="menu" class="w-4 h-4 text-slate-700"></i>
+        </button>
+        <div>
+          <h1 id="page-title" class="text-xl font-black text-slate-900">Dashboard</h1>
+          <p id="page-subtitle" class="text-xs text-slate-500 mt-0.5"></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="toast-top" class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg"></div>
+        <button onclick="showPage('products'); setTimeout(openAddProductModal, 100)" class="btn-primary">
+          <i data-lucide="plus" class="w-4 h-4"></i> Add Product
+        </button>
+      </div>
+    </header>
+
+    <div class="admin-content p-6">
+
+      <!-- ══════════ DASHBOARD PAGE ══════════ -->
+      <section id="page-dashboard">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Products</p>
+              <div class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="package" class="w-4 h-4 text-emerald-600"></i>
+              </div>
+            </div>
+            <p id="stat-products" class="text-3xl font-black text-slate-900">—</p>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Orders</p>
+              <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="shopping-bag" class="w-4 h-4 text-blue-600"></i>
+              </div>
+            </div>
+            <p id="stat-orders" class="text-3xl font-black text-slate-900">—</p>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Pending</p>
+              <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="clock" class="w-4 h-4 text-amber-600"></i>
+              </div>
+            </div>
+            <p id="stat-pending" class="text-3xl font-black text-slate-900">—</p>
+          </div>
+          <div class="stat-card">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Revenue</p>
+              <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="trending-up" class="w-4 h-4 text-purple-600"></i>
+              </div>
+            </div>
+            <p id="stat-revenue" class="text-3xl font-black text-slate-900">—</p>
+          </div>
+        </div>
+
+        <!-- Recent Orders on Dashboard -->
+        <div class="dashboard-panel">
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-black text-slate-900">Recent Orders</h3>
+            <button onclick="showPage('orders')" class="text-xs font-bold text-emerald-600 hover:underline">View all →</button>
+          </div>
+          <div id="dashboard-recent-orders" class="p-5">
+            <p class="text-sm text-slate-400 text-center py-4">Loading...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ PRODUCTS PAGE ══════════ -->
+      <section id="page-products" class="hidden">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex gap-2">
+            <input id="product-search" type="search" placeholder="Search products..." class="input w-56" oninput="filterProducts()" />
+          </div>
+          <button onclick="openAddProductModal()" class="btn-primary">
+            <i data-lucide="plus" class="w-4 h-4"></i> New Product
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wide">
+              <tr>
+                <th class="px-5 py-3 text-left">Product</th>
+                <th class="px-5 py-3 text-left">Category</th>
+                <th class="px-5 py-3 text-left">Price</th>
+                <th class="px-5 py-3 text-left">Stock</th>
+                <th class="px-5 py-3 text-left">Status</th>
+                <th class="px-5 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="products-table-body" class="divide-y divide-slate-100">
+              <tr><td colspan="6" class="px-5 py-10 text-center text-slate-400">Loading products...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ══════════ CATEGORIES PAGE ══════════ -->
+      <section id="page-categories" class="hidden">
+        <div class="flex items-center justify-between mb-5">
+          <p class="text-sm text-slate-500">Organise your products into categories</p>
+          <button onclick="openAddCategoryModal()" class="btn-primary">
+            <i data-lucide="plus" class="w-4 h-4"></i> New Category
+          </button>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wide">
+              <tr>
+                <th class="px-5 py-3 text-left">Name</th>
+                <th class="px-5 py-3 text-left">Slug</th>
+                <th class="px-5 py-3 text-left">Parent</th>
+                <th class="px-5 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="categories-table-body" class="divide-y divide-slate-100">
+              <tr><td colspan="4" class="px-5 py-10 text-center text-slate-400">Loading categories...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ══════════ ORDERS PAGE ══════════ -->
+      <section id="page-orders" class="hidden">
+        <div class="flex gap-2 mb-5 flex-wrap">
+          <button onclick="filterOrders('')" class="btn-secondary text-xs" id="order-filter-all">All</button>
+          <button onclick="filterOrders('PENDING_PAYMENT')" class="btn-secondary text-xs" id="order-filter-PENDING_PAYMENT">Awaiting payment</button>
+          <button onclick="filterOrders('PROCESSING')" class="btn-secondary text-xs" id="order-filter-PROCESSING">Processing</button>
+          <button onclick="filterOrders('SHIPPED')" class="btn-secondary text-xs" id="order-filter-SHIPPED">Shipped</button>
+          <button onclick="filterOrders('COMPLETED')" class="btn-secondary text-xs" id="order-filter-COMPLETED">Delivered</button>
+          <button onclick="filterOrders('CANCELLED')" class="btn-secondary text-xs" id="order-filter-CANCELLED">Cancelled</button>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wide">
+              <tr>
+                <th class="px-5 py-3 text-left">Order #</th>
+                <th class="px-5 py-3 text-left">Customer</th>
+                <th class="px-5 py-3 text-left">Items</th>
+                <th class="px-5 py-3 text-left">Total</th>
+                <th class="px-5 py-3 text-left">Payment</th>
+                <th class="px-5 py-3 text-left">Status</th>
+                <th class="px-5 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body" class="divide-y divide-slate-100">
+              <tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">Loading orders...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ══════════ SETTINGS PAGE ══════════ -->
+      <section id="page-settings" class="hidden">
+        <div class="max-w-7xl space-y-6">
+          <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_390px] gap-6 items-start">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2">
+              <i data-lucide="paintbrush-vertical" class="w-4 h-4 text-emerald-600"></i> Store Design Studio
+            </h3>
+            <p class="text-xs text-slate-500 mb-5">Choose a look, tune your brand, and preview the result before publishing.</p>
+            <form onsubmit="saveStoreSettings(event)" class="space-y-4">
+              <div>
+                <label class="label">Start with a template</label>
+                <div id="template-choice-grid" class="template-choice-grid" role="group" aria-label="Storefront templates">
+                  <button type="button" class="template-choice is-selected" aria-pressed="true" data-template="market-modern" onclick="selectStoreTemplate('market-modern')"><span class="template-thumb thumb-market"><i></i><i></i><i></i></span><strong>Market Modern</strong><small>Everyday retail</small></button>
+                  <button type="button" class="template-choice" aria-pressed="false" data-template="editorial-boutique" onclick="selectStoreTemplate('editorial-boutique')"><span class="template-thumb thumb-editorial"><i></i><i></i></span><strong>Editorial Boutique</strong><small>Fashion &amp; beauty</small></button>
+                  <button type="button" class="template-choice" aria-pressed="false" data-template="premium-maker" onclick="selectStoreTemplate('premium-maker')"><span class="template-thumb thumb-maker"><i></i><i></i></span><strong>Premium Maker</strong><small>Craft &amp; signature goods</small></button>
+                  <button type="button" class="template-choice" aria-pressed="false" data-template="tech-home" onclick="selectStoreTemplate('tech-home')"><span class="template-thumb thumb-tech"><i></i><i></i><i></i></span><strong>Tech &amp; Home</strong><small>Electronics &amp; furniture</small></button>
+                  <button type="button" class="template-choice" aria-pressed="false" data-template="service-studio" onclick="selectStoreTemplate('service-studio')"><span class="template-thumb thumb-service"><i></i><i></i></span><strong>Service Studio</strong><small>Appointments &amp; services</small></button>
+                  <button type="button" class="template-choice" aria-pressed="false" data-template="food-local" onclick="selectStoreTemplate('food-local')"><span class="template-thumb thumb-food"><i></i><i></i><i></i></span><strong>Food &amp; Local</strong><small>Food &amp; local goods</small></button>
+                </div>
+                <input id="settings-storefront-template" type="hidden" value="market-modern" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label" for="settings-heading-font">Heading style</label>
+                  <select id="settings-heading-font" class="input" onchange="updateDesignPreview()">
+                    <option value="modern">Modern sans</option><option value="editorial">Editorial serif</option><option value="rounded">Soft rounded</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label" for="settings-image-ratio">Product image shape</label>
+                  <select id="settings-image-ratio" class="input" onchange="updateDesignPreview()">
+                    <option value="square">Square</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label" for="settings-hero-style">Hero layout</label>
+                  <select id="settings-hero-style" class="input" onchange="updateDesignPreview()">
+                    <option value="split">Split image and story</option><option value="editorial">Editorial image</option><option value="minimal">Minimal brand</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label" for="settings-hero-focal">Hero image focus</label>
+                  <select id="settings-hero-focal" class="input" onchange="updateDesignPreview()">
+                    <option value="center">Center</option><option value="left">Left side</option><option value="right">Right side</option><option value="top">Upper area</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="label" for="settings-card-density">Product card spacing</label>
+                <select id="settings-card-density" class="input" onchange="updateDesignPreview()">
+                  <option value="comfortable">Comfortable</option><option value="compact">Compact</option><option value="spacious">Spacious</option>
+                </select>
+              </div>
+              <fieldset class="rounded-xl border border-slate-200 p-4">
+                <legend class="px-1 text-xs font-black uppercase tracking-wide text-slate-600">Storefront sections</legend>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <label class="flex items-center gap-2 rounded-lg bg-slate-50 p-2 text-xs font-semibold text-slate-700"><input id="settings-section-intro" type="checkbox" class="rounded border-slate-300" checked /> Collection introduction</label>
+                  <label class="flex items-center gap-2 rounded-lg bg-slate-50 p-2 text-xs font-semibold text-slate-700"><input id="settings-section-social" type="checkbox" class="rounded border-slate-300" checked /> Social links</label>
+                  <label class="flex items-center gap-2 rounded-lg bg-slate-50 p-2 text-xs font-semibold text-slate-700"><input id="settings-section-contact" type="checkbox" class="rounded border-slate-300" checked /> Contact actions</label>
+                </div>
+                <p class="mt-2 text-[11px] text-slate-500">Hide sections that do not fit your store. Your products and checkout stay available.</p>
+              </fieldset>
+              <p id="design-contrast-note" class="design-contrast-note" role="status">Your text and button colours will be checked for readability.</p>
+              <hr class="my-2 border-slate-100" />
+              <h4 class="font-bold text-slate-900">Store profile and content</h4>
+              <div>
+                <label class="label">Store Name</label>
+                <input id="settings-name" type="text" class="input" placeholder="e.g. Alice Baby Care" oninput="updateDesignPreview()" />
+              </div>
+              <div>
+                <label class="label">Tagline</label>
+                <input id="settings-tagline" type="text" class="input" placeholder="e.g. Quality baby products" maxlength="160" />
+              </div>
+              <div>
+                <label class="label">Description</label>
+                <textarea id="settings-description" class="input" rows="3" placeholder="Tell customers about your store..."></textarea>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label">Contact Email</label>
+                  <input id="settings-email" type="email" class="input" placeholder="hello@store.com" />
+                </div>
+                <div>
+                  <label class="label">Contact Phone</label>
+                  <input id="settings-phone" type="tel" class="input" placeholder="0712 345 678" />
+                </div>
+              </div>
+              <div>
+                <label class="label">Physical Address</label>
+                <input id="settings-address" type="text" class="input" placeholder="e.g. Tom Mboya St, Nairobi" />
+              </div>
+              <div>
+                <label class="label">Logo URL</label>
+                <input id="settings-logo" type="url" class="input" placeholder="https://..." oninput="updateDesignPreview()" />
+              </div>
+              <div>
+                <label class="label">Hero Background Image URL</label>
+                <input id="settings-banner" type="url" class="input" placeholder="https://..." oninput="updateDesignPreview()" />
+                <p class="mt-1 text-xs text-slate-500">The image is softened with a gradient so store details stay readable.</p>
+              </div>
+              <input id="settings-storefront-archetype" type="hidden" value="modern-retailer" />
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label">Header Layout</label>
+                  <select id="settings-header-variant" class="input">
+                    <option value="compact-search-first">Compact search first</option>
+                    <option value="centered-brand">Centered brand</option>
+                    <option value="minimal-nav">Minimal navigation</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label">Product Card Style</label>
+                  <select id="settings-product-card-style" class="input" onchange="updateDesignPreview()">
+                    <option value="grid-card">Grid card</option>
+                    <option value="horizontal-list-row">Horizontal list row</option>
+                    <option value="service-card">Service card with CTA</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="label">Storefront Color Theme Palette</label>
+                <select id="settings-theme-palette" class="input" onchange="updatePrimaryColorFromPalette()">
+                  <option value="trust-forest">Trust Emerald & Forest</option>
+                  <option value="sapphire-blue">Sapphire Trust & Blue</option>
+                  <option value="organic-sage">Organic Sage & Wellness</option>
+                  <option value="modern-onyx">Modern Onyx & Mint</option>
+                  <option value="sunset-amber">Sunset Amber & Coral</option>
+                </select>
+                <p class="mt-1 text-xs text-slate-500">Applies this psychology-optimized palette to your store automatically.</p>
+              </div>
+              <div>
+                <label class="label" for="settings-primary-color">Primary Brand Color</label>
+                <div class="flex items-center gap-3">
+                  <input id="settings-primary-color" type="color" class="h-10 w-14 cursor-pointer rounded-lg border border-slate-200 bg-white p-1" value="#15803d" oninput="updateDesignPreview()" />
+                  <span class="text-xs text-slate-500">Overrides the palette accent on buttons, badges, and active states.</span>
+                </div>
+              </div>
+              <div class="rounded-xl border border-slate-200 p-4 space-y-3">
+                <div>
+                  <label class="label" for="settings-background-custom">Storefront Background</label>
+                  <label class="flex items-center gap-2 text-sm text-slate-700">
+                    <input id="settings-background-custom" type="checkbox" class="rounded border-slate-300" onchange="updateBackgroundColorPreview(); updateDesignPreview()" />
+                    <span>Use a custom background color</span>
+                  </label>
+                  <p class="mt-1 text-xs text-slate-500">When enabled, text and surfaces automatically adjust for readability. Leave off to use your selected theme palette.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <input id="settings-background-color" type="color" class="h-10 w-14 cursor-pointer rounded-lg border border-slate-200 bg-white p-1 disabled:cursor-not-allowed disabled:opacity-50" value="#edf5ee" disabled onchange="updateBackgroundColorPreview(); updateDesignPreview()" />
+                  <div id="settings-background-preview" class="flex min-h-12 flex-1 items-center rounded-lg border border-slate-300 px-3 text-sm font-semibold">
+                    Storefront background preview
+                  </div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label">Instagram</label>
+                  <input id="settings-instagram" type="text" class="input" placeholder="@handle" />
+                </div>
+                <div>
+                  <label class="label">WhatsApp</label>
+                  <input id="settings-whatsapp" type="text" class="input" placeholder="254712345678" />
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label">Facebook</label>
+                  <input id="settings-facebook" type="text" class="input" placeholder="page name or URL" />
+                </div>
+                <div>
+                  <label class="label">TikTok</label>
+                  <input id="settings-tiktok" type="text" class="input" placeholder="@handle" />
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
+                <button type="button" class="btn-secondary" onclick="saveStoreDesignDraft()"><i data-lucide="save" class="w-4 h-4"></i> Save draft</button>
+                <button type="submit" class="btn-primary"><i data-lucide="send" class="w-4 h-4"></i> Publish design</button>
+                <span id="design-draft-status" class="text-xs text-slate-500" aria-live="polite"></span>
+              </div>
+            </form>
+          </div>
+          <aside class="design-preview-panel">
+            <div class="design-preview-heading"><div><p class="design-preview-eyebrow">Live preview</p><h4>Storefront at a glance</h4></div><span class="design-preview-live"><i></i> Live</span></div>
+            <div class="design-preview-controls" role="group" aria-label="Preview device size">
+              <button type="button" class="is-active" data-preview-size="desktop" onclick="setDesignPreviewSize('desktop', this)">Desktop</button>
+              <button type="button" data-preview-size="tablet" onclick="setDesignPreviewSize('tablet', this)">Tablet</button>
+              <button type="button" data-preview-size="mobile" onclick="setDesignPreviewSize('mobile', this)">Mobile</button>
+            </div>
+            <div id="design-preview-stage" class="design-preview-stage" data-template="market-modern" data-preview-size="desktop">
+              <div class="design-preview-site">
+                <div class="design-preview-nav"><span class="design-preview-mark">M</span><strong id="design-preview-store">Your Store</strong><span class="design-preview-nav-links">Shop　 About</span><b>Bag 0</b></div>
+                <div class="design-preview-hero"><div><small id="design-preview-kicker">MADE FOR EVERY DAY</small><h5 id="design-preview-title">Good things,<br>chosen well.</h5><p>Thoughtful finds for the way you live.</p><button id="design-preview-button" type="button">Explore collection</button></div><div class="design-preview-hero-art"><span></span><i></i><b></b></div></div>
+                <div class="design-preview-products"><div class="design-preview-section-title"><strong>Customer favourites</strong><span>View all →</span></div><div class="design-preview-product-grid"><article><div class="design-preview-product-art art-one"></div><small>EVERYDAY EDIT</small><strong>Signature product</strong><span>KES 2,450</span></article><article><div class="design-preview-product-art art-two"></div><small>NEW ARRIVAL</small><strong>Thoughtful essential</strong><span>KES 1,850</span></article><article><div class="design-preview-product-art art-three"></div><small>BEST SELLER</small><strong>Made to be kept</strong><span>KES 3,200</span></article></div></div>
+              </div>
+            </div>
+            <p id="design-preview-description" class="design-preview-caption">A complete view of your colours, type, hero, and product cards.</p>
+          </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ PAYMENTS PAGE ══════════ -->
+      <section id="page-payments" class="hidden">
+        <div class="max-w-2xl">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2">
+              <i data-lucide="credit-card" class="w-4 h-4 text-emerald-600"></i> M-Pesa Payment Settings
+            </h3>
+            <p class="text-xs text-slate-500 mb-5">Customers pay directly to your Till/Paybill via STK Push.</p>
+            <form onsubmit="savePaymentSettings(event)" class="space-y-4">
+              <label class="flex items-center gap-2 text-sm font-bold text-slate-800">
+                <input id="payment-enabled" type="checkbox" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                Enable M-Pesa prompts for orders
+              </label>
+              <div>
+                <label class="label">Payment type</label>
+                <select id="payment-shortcode-type" class="input">
+                  <option value="PAYBILL">Paybill</option>
+                  <option value="BUY_GOODS">Till (Buy Goods)</option>
+                </select>
+              </div>
+              <div>
+                <label class="label">M-Pesa Shortcode (Till or Paybill)</label>
+                <input id="payment-shortcode" type="text" class="input" placeholder="e.g. 174379" />
+              </div>
+              <p class="text-xs text-slate-500">Order number is used as the Paybill account reference and shown in customer payment instructions.</p>
+              <div>
+                <label class="label">Consumer Key</label>
+                <input id="payment-consumer-key" type="text" class="input" placeholder="Safaricom API consumer key" />
+              </div>
+              <div>
+                <label class="label">Consumer Secret</label>
+                <input id="payment-consumer-secret" type="password" class="input" placeholder="Safaricom API consumer secret" />
+              </div>
+              <div>
+                <label class="label">Passkey</label>
+                <input id="payment-passkey" type="password" class="input" placeholder="Safaricom Lipa Na M-Pesa passkey" />
+              </div>
+              <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-700 font-semibold">
+                <i data-lucide="shield-alert" class="w-4 h-4 inline-block mr-1"></i>
+                These credentials are stored securely and never exposed to customers.
+              </div>
+              <button type="submit" class="btn-primary">
+                <i data-lucide="save" class="w-4 h-4"></i> Save Payment Settings
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /p-6 -->
+  </main>
+</div><!-- /app-shell -->
+
+<!-- ═══════════════════════════════════════════════
+     ADD / EDIT PRODUCT MODAL
+════════════════════════════════════════════════ -->
+<div id="product-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl my-8">
+    <div class="flex items-center justify-between p-6 border-b border-slate-100">
+      <h2 id="product-modal-title" class="text-lg font-black text-slate-900">Add Product</h2>
+      <button onclick="closeModal('product-modal')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all">
+        <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
+      </button>
+    </div>
+    <form onsubmit="handleSaveProduct(event)" class="p-6 space-y-4">
+      <input type="hidden" id="product-id" />
+      <div>
+        <label class="label">Product Title *</label>
+        <input id="product-title" type="text" required class="input" placeholder="e.g. Baby Walker Deluxe" />
+      </div>
+      <div>
+        <label class="label">Description</label>
+        <textarea id="product-description" class="input" rows="3" placeholder="Describe your product..."></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label">Price (KES) *</label>
+          <input id="product-price" type="number" required min="1" class="input" placeholder="e.g. 2500" />
+        </div>
+        <div>
+          <label class="label">Compare-at Price</label>
+          <input id="product-compare-price" type="number" min="1" class="input" placeholder="e.g. 3200" />
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label">Category</label>
+          <select id="product-category" class="input">
+            <option value="">No Category</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Item Type</label>
+          <select id="product-type" class="input">
+            <option value="PHYSICAL">Physical</option>
+            <option value="SERVICE">Service</option>
+            <option value="DIGITAL">Digital</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label">Stock Quantity</label>
+          <input id="product-stock" type="number" min="0" class="input" placeholder="0" value="0" />
+        </div>
+        <div>
+          <label class="label">SKU</label>
+          <input id="product-sku" type="text" class="input" placeholder="e.g. BW-001" />
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between gap-3">
+          <label class="label mb-1">Product Photos <span class="text-slate-400 font-normal">(one image URL per line)</span></label>
+          <span id="product-image-count" class="text-xs font-bold text-slate-500" aria-live="polite">0/5 photos</span>
+        </div>
+        <textarea id="product-images" oninput="updateProductImageCount()" class="input font-mono text-xs" rows="3" placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"></textarea>
+        <p class="mt-1 text-[11px] text-slate-500">Add up to 5 photos. The first photo is used as the main product image.</p>
+      </div>
+      <div>
+        <label class="label">Status</label>
+        <select id="product-status" class="input">
+          <option value="PUBLISHED">Published</option>
+          <option value="DRAFT">Draft</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+      </div>
+      <div id="product-modal-error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-semibold"></div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" id="product-save-btn" class="btn-primary flex-1 justify-center py-3">
+          <i data-lucide="save" class="w-4 h-4"></i> Save Product
+        </button>
+        <button type="button" onclick="closeModal('product-modal')" class="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ADD / EDIT CATEGORY MODAL
+════════════════════════════════════════════════ -->
+<div id="category-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm">
+    <div class="flex items-center justify-between p-6 border-b border-slate-100">
+      <h2 class="text-lg font-black text-slate-900">New Category</h2>
+      <button onclick="closeModal('category-modal')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+        <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
+      </button>
+    </div>
+    <form onsubmit="handleSaveCategory(event)" class="p-6 space-y-4">
+      <div>
+        <label class="label">Category Name *</label>
+        <input id="category-name" type="text" required class="input" placeholder="e.g. Baby Clothes" />
+      </div>
+      <div>
+        <label class="label">Parent Category</label>
+        <select id="category-parent" class="input">
+          <option value="">None (top-level)</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">Description</label>
+        <input id="category-desc" type="text" class="input" placeholder="Optional short description" />
+      </div>
+      <div id="category-modal-error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-semibold"></div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn-primary flex-1 justify-center py-3">
+          <i data-lucide="save" class="w-4 h-4"></i> Create Category
+        </button>
+        <button type="button" onclick="closeModal('category-modal')" class="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     ORDER DETAIL DRAWER
+════════════════════════════════════════════════ -->
+<div id="order-drawer" class="hidden fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl border-l border-slate-200 z-50 flex flex-col">
+  <div class="flex items-center justify-between p-5 border-b border-slate-100">
+    <h2 class="font-black text-slate-900">Order Details</h2>
+    <button onclick="document.getElementById('order-drawer').classList.add('hidden')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+      <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
+    </button>
+  </div>
+  <div id="order-drawer-content" class="flex-1 overflow-y-auto p-5 space-y-4"></div>
+</div>
+
+<script src="./scripts/admin/core.js"></script>
+<script src="./scripts/admin/dashboard.js"></script>
+<script src="./scripts/admin/catalog.js"></script>
+<script src="./scripts/admin/orders.js"></script>
+<script src="./scripts/admin/design.js"></script>
+<script src="./scripts/admin/payments.js"></script>
+</body>
+</html>
