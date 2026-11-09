@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "node scripts/ci-setup.mjs",
+    "build": "node scripts/ci-setup.mjs",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "deploy:backend": "wrangler deploy --config backend/wrangler.toml --minify",

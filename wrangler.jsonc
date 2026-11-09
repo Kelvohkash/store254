@@ -1,11 +1,21 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "store254-monorepo",
-  "compatibility_date": "2026-11-04",
+  "name": "store254-frontend",
+  "main": "frontend/src/worker.ts",
+  "compatibility_date": "2024-11-01",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "frontend"
-  }
+    "directory": "frontend",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "services": [
+    { "binding": "API", "service": "store254-backend" }
+  ],
+  "routes": [
+    { "pattern": "store254.co.ke/*", "zone_name": "store254.co.ke" },
+    { "pattern": "*.store254.co.ke/*", "zone_name": "store254.co.ke" }
+  ]
 }

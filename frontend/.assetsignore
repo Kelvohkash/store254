@@ -8,6 +8,11 @@
 /_routes.json
 /src/worker.ts
 /wrangler.jsonc
+/package.json
+/package-lock.json
+/postcss.config.cjs
+/tailwind.config.cjs
+/styles/tailwind.css
 /functions
 node_modules
 tests

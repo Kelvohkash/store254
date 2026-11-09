@@ -1,0 +1,1 @@
+ALTER TABLE orders ADD COLUMN inventory_deducted INTEGER NOT NULL DEFAULT 0;

@@ -29,6 +29,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
       - name: Publish backend
         run: npm run deploy:backend
         env:
