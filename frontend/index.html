@@ -45,7 +45,7 @@
       <div id="desktop-search" class="flex-1 max-w-xl hidden md:flex items-center">
         <div class="search-field relative flex-1">
           <input type="text" id="search-input" oninput="debouncedLoadItems()" placeholder="Search products, services, brands..." class="w-full text-sm text-slate-900 rounded-lg pl-10 pr-4 py-2.5 border focus:bg-white transition-all">
-          <span class="absolute left-3 top-3 text-slate-400">
+          <span class="search-field-icon absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center justify-center">
             <i data-lucide="search" class="w-4 h-4"></i>
           </span>
         </div>
@@ -94,7 +94,7 @@
     <div class="mobile-search md:hidden px-4 pb-3 pt-1 border-t flex gap-2">
       <div class="relative flex-1">
         <input type="text" id="mobile-search-input" oninput="syncMobileSearch(this.value)" placeholder="Search products, services..." class="w-full text-sm text-slate-900 rounded-lg pl-9 pr-3 py-2 border focus:bg-white">
-        <span class="absolute left-2.5 top-2 text-slate-400">
+        <span class="search-field-icon absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center justify-center">
           <i data-lucide="search" class="w-3.5 h-3.5"></i>
         </span>
       </div>
@@ -133,15 +133,48 @@
         <p id="banner-store-tagline" class="store-tagline hidden"></p>
         <p id="banner-store-desc">Store description</p>
         <div id="banner-social-links" class="store-social-links hidden" aria-label="Store social media links"></div>
-        <a id="storefront-primary-cta" class="storefront-primary-cta hidden" href="#items-grid">
-          <span id="storefront-primary-cta-label"></span>
-          <i data-lucide="arrow-down" class="w-4 h-4"></i>
-        </a>
+        <div class="store-banner-actions">
+          <a id="storefront-primary-cta" class="storefront-primary-cta hidden" href="#items-grid">
+            <span id="storefront-primary-cta-label"></span>
+            <i data-lucide="arrow-down" class="w-4 h-4"></i>
+          </a>
+          <a id="banner-store-call-btn" href="#" class="store-contact hidden">
+            <i data-lucide="phone" class="w-4 h-4"></i>
+            <span id="banner-store-phone-text">Call store</span>
+          </a>
+        </div>
       </div>
-      <a id="banner-store-call-btn" href="#" class="store-contact hidden">
-        <i data-lucide="phone" class="w-4 h-4"></i>
-        <span id="banner-store-phone-text">Call store</span>
-      </a>
+      <div id="store-banner-showcase" class="store-banner-showcase" aria-hidden="true">
+        <div class="store-showcase-card">
+          <div class="store-showcase-badge">
+            <span class="store-showcase-dot"></span>
+            <span>Verified Store254 Merchant</span>
+          </div>
+          <div class="store-showcase-grid">
+            <div class="store-showcase-metric">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              <div>
+                <strong>Authentic Quality</strong>
+                <small>Curated &amp; verified catalog</small>
+              </div>
+            </div>
+            <div class="store-showcase-metric">
+              <i data-lucide="truck" class="w-4 h-4"></i>
+              <div>
+                <strong>Fast Dispatch</strong>
+                <small>Reliable local delivery</small>
+              </div>
+            </div>
+            <div class="store-showcase-metric">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <div>
+                <strong>Direct Support</strong>
+                <small>Instant order assistance</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -842,10 +875,26 @@
     </button>
   </div>
 
+  <script src="./scripts/storefront/core-utils.js"></script>
+  <script src="./scripts/storefront/state.js"></script>
+  <script src="./scripts/storefront/api.js"></script>
   <script src="./scripts/storefront/core.js"></script>
-  <script src="./scripts/storefront/storefront.js"></script>
+  <script src="./scripts/storefront/core-theme.js"></script>
+  <script src="./scripts/storefront/social.js"></script>
+  <script src="./scripts/storefront/banner.js"></script>
+  <script src="./scripts/storefront/navigation.js"></script>
+  <script src="./scripts/storefront/categories.js"></script>
   <script src="./scripts/storefront/catalog.js"></script>
+  <script src="./scripts/storefront/wishlist.js"></script>
+  <script src="./scripts/storefront/customer.js"></script>
+  <script src="./scripts/storefront/reviews.js"></script>
+  <script src="./scripts/storefront/item-modal.js"></script>
+  <script src="./scripts/storefront/cart.js"></script>
   <script src="./scripts/storefront/checkout.js"></script>
+  <script src="./scripts/storefront/orders.js"></script>
+  <script src="./scripts/storefront/template-previews.js"></script>
+  <script src="./scripts/storefront/template-gallery.js"></script>
+  <script src="./scripts/storefront/storefront.js"></script>
   <script src="./scripts/storefront/platform.js"></script>
   <script src="./scripts/storefront/onboarding.js"></script>
 

@@ -1,0 +1,243 @@
+/* Store254 Custom UI Styles & Animations */
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+}
+
+.pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin-slow {
+  animation: spinSlow 3s linear infinite;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Shimmer placeholder */
+.shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   STORE254 THEME PALETTE ENGINE (Psychology-Driven Commerce)
+   ══════════════════════════════════════════════════════════ */
+
+:root,
+[data-theme="trust-forest"] {
+  /* 1. Trust & Growth (Forest Green + Trust Blue) */
+  --store-primary: #15803d;        /* Forest Green - Growth, Safety & Action */
+  --store-primary-hover: #166534;
+  --store-primary-subtle: #dcfce7; /* Fresh Emerald Mint Wash */
+  --store-primary-glow: rgba(21, 128, 61, 0.28);
+
+  --store-trust-blue: #0284c7;     /* Trust Blue - Reliability, M-Pesa & Support */
+  --store-trust-blue-dark: #0369a1;
+  --store-trust-blue-bg: #f0f9ff;
+  --store-trust-blue-line: #bae6fd;
+
+  --store-urgency-red: #e11d48;    /* Crimson Red - Urgency & Excitement */
+  --store-urgency-red-bg: #fff1f2;
+  --store-urgency-amber: #d97706;  /* Warm Amber - Enthusiasm & Value */
+  --store-urgency-amber-bg: #fffbeb;
+
+  --store-paper: #edf5ee;          /* Noticeable Herbal Green Canvas Tint */
+  --store-white: #ffffff;
+  --store-ink: #0f2415;            /* Deep Forest Charcoal Text */
+  --store-muted: #556b5c;          /* Soft Secondary Tone */
+  --store-line: #c8ded0;           /* Clean Tinted Border Line */
+  --store-media-bg: #f5f9f6;       /* Crisp Neutral Backdrop for Photography */
+  --store-green: var(--store-primary);
+  --store-green-dark: var(--store-primary-hover);
+  --store-clay: #bd684c;
+}
+
+[data-theme="sapphire-blue"] {
+  /* 2. Security & Professionalism (Sapphire Navy + Sky Blue) */
+  --store-primary: #0284c7;        /* Sapphire Ocean Blue - High Trust */
+  --store-primary-hover: #0369a1;
+  --store-primary-subtle: #dbeafe; /* Cool Ocean Blue Wash */
+  --store-primary-glow: rgba(2, 132, 199, 0.32);
+
+  --store-trust-blue: #1d4ed8;
+  --store-trust-blue-dark: #1e40af;
+  --store-trust-blue-bg: #eff6ff;
+  --store-trust-blue-line: #bfdbfe;
+
+  --store-urgency-red: #e11d48;
+  --store-urgency-red-bg: #fff1f2;
+  --store-urgency-amber: #d97706;
+  --store-urgency-amber-bg: #fffbeb;
+
+  --store-paper: #e9f2f9;          /* Noticeable Icy Sapphire Canvas Tint */
+  --store-white: #ffffff;
+  --store-ink: #0c2136;            /* Deep Navy Slate Text */
+  --store-muted: #526c84;
+  --store-line: #bfd9ee;
+  --store-media-bg: #f4f8fc;
+  --store-green: var(--store-primary);
+  --store-green-dark: var(--store-primary-hover);
+  --store-clay: #0284c7;
+}
+
+[data-theme="organic-sage"] {
+  /* 3. Natural Safety & Wellness (Botanical Sage + Soft Terracotta) */
+  --store-primary: #2d6a4f;        /* Deep Botanical Sage */
+  --store-primary-hover: #1b4332;
+  --store-primary-subtle: #e2ede5; /* Organic Sage Wash */
+  --store-primary-glow: rgba(45, 106, 79, 0.30);
+
+  --store-trust-blue: #0284c7;
+  --store-trust-blue-dark: #0369a1;
+  --store-trust-blue-bg: #f0f9ff;
+  --store-trust-blue-line: #bae6fd;
+
+  --store-urgency-red: #c2410c;    /* Warm Terracotta */
+  --store-urgency-red-bg: #fff7ed;
+  --store-urgency-amber: #b45309;  /* Warm Honey */
+  --store-urgency-amber-bg: #fefce8;
+
+  --store-paper: #f4efe4;          /* Warm Artisanal Sand/Linen Canvas */
+  --store-white: #ffffff;
+  --store-ink: #1f2720;
+  --store-muted: #626f63;
+  --store-line: #d8decf;
+  --store-media-bg: #f9f7f2;
+  --store-green: var(--store-primary);
+  --store-green-dark: var(--store-primary-hover);
+  --store-clay: #bd684c;
+}
+
+[data-theme="modern-onyx"] {
+  /* 4. Modern High-Contrast (Onyx Black & Vivid Emerald - Electronics & Luxury) */
+  --store-primary: #059669;        /* Electric Mint Emerald */
+  --store-primary-hover: #047857;
+  --store-primary-subtle: #d1fae5;
+  --store-primary-glow: rgba(5, 150, 105, 0.35);
+
+  --store-trust-blue: #2563eb;     /* Tech Electric Blue */
+  --store-trust-blue-dark: #1d4ed8;
+  --store-trust-blue-bg: #eff6ff;
+  --store-trust-blue-line: #bfdbfe;
+
+  --store-urgency-red: #dc2626;
+  --store-urgency-red-bg: #fef2f2;
+  --store-urgency-amber: #ea580c;
+  --store-urgency-amber-bg: #fff7ed;
+
+  --store-paper: #e6ecf2;          /* Clean High-Contrast Tech Slate */
+  --store-white: #ffffff;
+  --store-ink: #020617;            /* Pitch Charcoal Slate */
+  --store-muted: #475569;
+  --store-line: #cbd5e1;
+  --store-media-bg: #ffffff;
+  --store-green: var(--store-primary);
+  --store-green-dark: var(--store-primary-hover);
+  --store-clay: #dc2626;
+}
+
+[data-theme="sunset-amber"] {
+  /* 5. Urgency & High Energy (Warm Amber Gold & Coral Red) */
+  --store-primary: #d97706;        /* Golden Warm Amber */
+  --store-primary-hover: #b45309;
+  --store-primary-subtle: #fed7aa; /* Warm Peach Amber Wash */
+  --store-primary-glow: rgba(217, 119, 6, 0.32);
+
+  --store-trust-blue: #0284c7;
+  --store-trust-blue-dark: #0369a1;
+  --store-trust-blue-bg: #f0f9ff;
+  --store-trust-blue-line: #bae6fd;
+
+  --store-urgency-red: #e11d48;
+  --store-urgency-red-bg: #fff1f2;
+  --store-urgency-amber: #f59e0b;
+  --store-urgency-amber-bg: #fefce8;
+
+  --store-paper: #fef3e2;          /* Rich Warm Apricot/Peach Amber Glow */
+  --store-white: #ffffff;
+  --store-ink: #2b1d0e;
+  --store-muted: #79664f;
+  --store-line: #fcd7b2;
+  --store-media-bg: #fefaf5;
+  --store-green: var(--store-primary);
+  --store-green-dark: var(--store-primary-hover);
+  --store-clay: #d97706;
+}
+
+[data-theme="rose"] {
+  --store-primary: #b64269;
+  --store-primary-hover: #943553;
+  --store-primary-subtle: #f8dce6;
+  --store-primary-glow: rgba(182, 66, 105, .28);
+  --store-trust-blue: #7c3f68;
+  --store-trust-blue-dark: #673358;
+  --store-trust-blue-bg: #fbf0f5;
+  --store-trust-blue-line: #efc8d7;
+  --store-urgency-red: #be123c;
+  --store-urgency-red-bg: #fff1f2;
+  --store-urgency-amber: #bd684c;
+  --store-urgency-amber-bg: #fff7ed;
+  --store-paper: #f8edf1;
+  --store-white: #ffffff;
+  --store-ink: #321d27;
+  --store-muted: #755d68;
+  --store-line: #e7cdd7;
+  --store-media-bg: #fcf7f9;
+  --store-green: var(--store-primary);
+  --store-green-dark: var(--store-primary-hover);
+  --store-clay: #b64269;
+}
+
+html { background: var(--store-paper); }
+body {
+  background: var(--store-paper) !important;
+  color: var(--store-ink) !important;
+  font-family: "DM Sans", sans-serif !important;
+  letter-spacing: 0 !important;
+}
+body * { letter-spacing: 0 !important; }
+body .rounded-3xl, body .rounded-2xl { border-radius: 8px !important; }
+body .rounded-xl { border-radius: 6px !important; }
+
+h1, h2, h3, h4, .font-black, .font-extrabold {
+  font-family: "Manrope", sans-serif !important;
+  letter-spacing: 0 !important;
+}

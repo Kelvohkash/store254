@@ -73,6 +73,17 @@ html[data-storefront-template="tech-home"] select {
   font: inherit;
 }
 
+html[data-storefront="true"][data-storefront-template="tech-home"] .search-field input,
+html[data-storefront="true"][data-storefront-template="tech-home"] #search-input,
+html[data-storefront-template="tech-home"] .search-field input {
+  padding-left: 2.75rem !important;
+  padding-right: 1rem !important;
+}
+html[data-storefront="true"][data-storefront-template="tech-home"] #mobile-search-input,
+html[data-storefront-template="tech-home"] #mobile-search-input {
+  padding-left: 2.35rem !important;
+}
+
 html[data-storefront-template="tech-home"] #search-input {
   flex: 1;
 }
@@ -83,9 +94,9 @@ html[data-storefront-template="tech-home"] #header-actions-nav {
   gap: 0.5rem;
 }
 
-html[data-storefront-template="tech-home"] button,
-html[data-storefront-template="tech-home"] #storefront-primary-cta,
-html[data-storefront-template="tech-home"] #banner-store-call-btn {
+html[data-storefront-template="tech-home"] button:not(.hidden),
+html[data-storefront-template="tech-home"] #storefront-primary-cta:not(.hidden),
+html[data-storefront-template="tech-home"] #banner-store-call-btn:not(.hidden) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -103,13 +114,13 @@ html[data-storefront-template="tech-home"] #banner-store-call-btn {
 }
 
 html[data-storefront-template="tech-home"] button:hover,
-html[data-storefront-template="tech-home"] #storefront-primary-cta:hover {
+html[data-storefront-template="tech-home"] #storefront-primary-cta:not(.hidden):hover {
   transform: translateY(-1px);
 }
 
 html[data-storefront-template="tech-home"] #desktop-cart-btn,
 html[data-storefront-template="tech-home"] .add-to-cart-btn,
-html[data-storefront-template="tech-home"] #storefront-primary-cta {
+html[data-storefront-template="tech-home"] #storefront-primary-cta:not(.hidden) {
   background-color: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
   border-color: var(--store-primary) !important;
@@ -131,8 +142,14 @@ html[data-storefront-template="tech-home"] #header-store-name {
 }
 
 /* Hero Banner Styling */
-html[data-storefront="true"][data-storefront-template="tech-home"] .store-banner,
-html[data-storefront-template="tech-home"] #store-info-banner {
+html[data-storefront="true"][data-storefront-template="tech-home"] .store-banner {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+}
+
+html[data-storefront-template="tech-home"] #store-info-banner:not(.store-banner) {
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid var(--store-line);
@@ -148,7 +165,7 @@ html[data-storefront-template="tech-home"] #store-info-banner {
       color-mix(in srgb, var(--store-primary) 8%, var(--store-white)) 100%
     ) !important;
   color: var(--store-ink) !important;
-  padding: clamp(2.2rem, 5vw, 4.25rem) clamp(1rem, 4vw, 3rem);
+  padding: clamp(2rem, 4vw, 3.25rem) clamp(1rem, 4vw, 3rem);
   text-align: left;
 }
 
@@ -184,8 +201,8 @@ html[data-storefront-template="tech-home"] #banner-store-tagline {
   font-size: 0.72rem;
 }
 
-html[data-storefront="true"][data-storefront-template="tech-home"] .storefront-primary-cta,
-html[data-storefront-template="tech-home"] #storefront-primary-cta {
+html[data-storefront="true"][data-storefront-template="tech-home"] .storefront-primary-cta:not(.hidden),
+html[data-storefront-template="tech-home"] #storefront-primary-cta:not(.hidden) {
   margin-top: 1rem;
   border-radius: var(--store-btn-radius) !important;
   background-color: var(--store-primary) !important;
