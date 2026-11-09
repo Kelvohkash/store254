@@ -30,7 +30,7 @@
     }
     .preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
     .preview-preset-btn {
-      padding: 0.3rem 0.6rem !important;
+      padding: 0.35rem 0.65rem !important;
       border-radius: 999px !important;
       border: 1px solid #334155 !important;
       background: #1e293b !important;
@@ -55,9 +55,19 @@
       background: linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 18%, var(--store-media-bg)), var(--store-media-bg));
       color: var(--store-primary);
       font-weight: 800;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+    .product-tag-pill {
+      display: inline-block;
+      margin-bottom: 0.35rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--store-pill-radius);
+      background: var(--store-primary-subtle);
+      color: var(--store-primary);
+      font-size: 0.65rem;
+      font-weight: 800;
     }
   </style>
 </head>
@@ -68,8 +78,8 @@
     </div>
     <div class="preview-controls">
       <label>Foreground <input type="color" id="fg-picker" value="#c2410c"></label>
-      <label>Background <input type="color" id="bg-picker" value="#fff8f1"></label>
-      <button type="button" class="preview-preset-btn" onclick="setColors('#c2410c','#fff8f1')">Theme Default</button>
+      <label>Background <input type="color" id="bg-picker" value="#fff7ed"></label>
+      <button type="button" class="preview-preset-btn" onclick="setColors('#c2410c','#fff7ed')">Theme Default</button>
       <button type="button" class="preview-preset-btn" onclick="setColors('#111827','#0f172a')">Test Dark+Dark</button>
       <button type="button" class="preview-preset-btn" onclick="setColors('#f8fafc','#ffffff')">Test Light+Light</button>
       <span id="contrast-status" class="preview-badge">WCAG Auto-Contrast Active</span>
@@ -84,8 +94,8 @@
       </div>
     </div>
     <form id="search-form" onsubmit="event.preventDefault()">
-      <label for="search-input">Search</label>
-      <input type="search" id="search-input" placeholder="Search products, services, categories...">
+      <label for="search-input" style="display:none">Search</label>
+      <input type="search" id="search-input" placeholder="Search food & local catalog...">
     </form>
     <nav id="header-actions-nav">
       <button type="button">Profile</button>
@@ -97,62 +107,91 @@
   <nav id="storefront-category-nav">
     <div id="category-pills">
       <button type="button" aria-selected="true">All Items</button>
-      <button type="button" aria-selected="false">Signature</button>
-      <button type="button" aria-selected="false">New Releases</button>
-      <button type="button" aria-selected="false">Special Offers</button>
+      <button type="button" aria-selected="false">Hot Main Dishes 🍲</button>
+      <button type="button" aria-selected="false">Biryani & Pilau Pots 🍚</button>
+      <button type="button" aria-selected="false">Fresh Juices & Zobo 🍹</button>
+      <button type="button" aria-selected="false">Bakery & Swahili Bites 🥐</button>
     </div>
   </nav>
 
   <section id="store-info-banner">
-    <p id="banner-store-subdomain">FRESH FROM OUR KITCHEN</p>
-    <h2 id="banner-store-name">A little joy, made fresh.</h2>
-    <p id="banner-store-desc">Warm, appetizing menu & market layout for restaurants, bakeries, grocers, and fresh produce.</p>
-    <a id="storefront-primary-cta" href="#items-grid">Order something good</a>
+    <p id="banner-store-subdomain">HOT DISHES & LOCAL FLAVOURS</p>
+    <h2 id="banner-store-name">Taste the heart of local cooking.</h2>
+    <p id="banner-store-desc">Warm culinary canopy header, kitchen specials board, and delicious dish cards for bakeries, kitchens, and produce.</p>
+    <a id="storefront-primary-cta" href="#items-grid">Order takeaway</a>
   </section>
 
   <main id="storefront-view">
     <div id="catalog-layout">
       <aside id="desktop-filter-sidebar">
-        <h4>Dynamic Filters</h4>
+        <h4>👨‍🍳 Kitchen Menu & Specials</h4>
         <fieldset>
-          <legend>Collection</legend>
-          <label><input type="checkbox" checked> Featured Selection</label>
-          <label><input type="checkbox"> Express Delivery</label>
-          <label><input type="checkbox"> Customer Favorites</label>
+          <legend>👨‍🍳 Kitchen Menu & Specials</legend>
+          <label><input type="checkbox" checked> Hot Main Dishes 🍲</label>
+          <label><input type="checkbox"> Biryani & Pilau Pots 🍚</label>
+          <label><input type="checkbox"> Fresh Juices & Zobo 🍹</label>
+          <label><input type="checkbox"> Bakery & Swahili Bites 🥐</label>
+        </fieldset>
+        <fieldset>
+          <legend>Dietary & Spice</legend>
+          <label><input type="checkbox" checked> Chef's Daily Special 👨‍🍳</label>
+          <label><input type="checkbox" checked> Mild Herb Flavor 🌿</label>
+          <label><input type="checkbox"> Extra Swahili Spice 🌶️</label>
+          <label><input type="checkbox"> 100% Vegetarian 🥗</label>
         </fieldset>
       </aside>
+
       <section id="catalog-main-content">
         <div id="items-grid">
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 01</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Chef Choice 🍲</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Signature Collection Piece</h5>
-              <span class="product-price">KES 4,500</span>
+              <span class="product-tag-pill">Chef Choice 🍲</span>
+              <h5 class="product-title">Swahili Beef Biryani with Kachumbari</h5>
+              <span class="product-price">KES 650</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 02</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Fresh Catch 🐟</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Curated Essential Edition</h5>
-              <span class="product-price">KES 6,200</span>
+              <span class="product-tag-pill">Fresh Catch 🐟</span>
+              <h5 class="product-title">Coconut Fish Curry & Fragrant Rice</h5>
+              <span class="product-price">KES 850</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 03</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Daily Special 🔥</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Handpicked Studio Release</h5>
-              <span class="product-price">KES 3,800</span>
+              <span class="product-tag-pill">Daily Special 🔥</span>
+              <h5 class="product-title">Slow-Cooked Pilau Mbuzi Plate</h5>
+              <span class="product-price">KES 700</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
+          <article class="product-card">
+            <figure class="product-card-media"><div class="svg-illustration">Ice Cold 🍹</div></figure>
+            <div class="product-card-body">
+              <span class="product-tag-pill">Ice Cold 🍹</span>
+              <h5 class="product-title">Fresh Chilled Hibiscus Zobo (500ml)</h5>
+              <span class="product-price">KES 250</span>
+            </div>
+            <div class="product-card-actions">
+              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+            </div>
+          </article>
+          
         </div>
       </section>
     </div>
@@ -214,17 +253,21 @@
       root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
       const badge = document.getElementById("contrast-status");
       badge.textContent = adjusted
-        ? "Auto-Balanced to " + primaryHex + " for 100% Visibility"
-        : "Optimal Contrast Verified (" + primaryHex + ")";
+        ? "WCAG Auto-Adjusted (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)"
+        : "WCAG Optimal (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)";
+      badge.style.background = adjusted ? "#b45309" : "#064e3b";
+      badge.style.color = adjusted ? "#fef3c7" : "#6ee7b7";
     }
+
     function setColors(fg, bg) {
       document.getElementById("fg-picker").value = fg;
       document.getElementById("bg-picker").value = bg;
       applyAutoPalette(fg, bg);
     }
-    document.getElementById("fg-picker").addEventListener("input", e => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
-    document.getElementById("bg-picker").addEventListener("input", e => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
-    applyAutoPalette("#c2410c", "#fff8f1");
+
+    document.getElementById("fg-picker").addEventListener("input", (e) => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
+    document.getElementById("bg-picker").addEventListener("input", (e) => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
+    applyAutoPalette("#c2410c", "#fff7ed");
   </script>
 </body>
 </html>

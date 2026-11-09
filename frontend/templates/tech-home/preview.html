@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tech & Home (Professional & Precision Engineered) — Store254 Interactive Theme Preview</title>
+  <title>Tech & Home (Crisp, Bento & Specification-Led) — Store254 Interactive Theme Preview</title>
   <link rel="stylesheet" href="./template.css">
   <style>
     * { box-sizing: border-box; }
@@ -30,7 +30,7 @@
     }
     .preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
     .preview-preset-btn {
-      padding: 0.3rem 0.6rem !important;
+      padding: 0.35rem 0.65rem !important;
       border-radius: 999px !important;
       border: 1px solid #334155 !important;
       background: #1e293b !important;
@@ -55,21 +55,31 @@
       background: linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 18%, var(--store-media-bg)), var(--store-media-bg));
       color: var(--store-primary);
       font-weight: 800;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+    .product-tag-pill {
+      display: inline-block;
+      margin-bottom: 0.35rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--store-pill-radius);
+      background: var(--store-primary-subtle);
+      color: var(--store-primary);
+      font-size: 0.65rem;
+      font-weight: 800;
     }
   </style>
 </head>
 <body>
   <div class="preview-bar">
     <div>
-      <strong>Tech & Home</strong> · <span style="color:#94a3b8">Professional & Precision Engineered</span>
+      <strong>Tech & Home</strong> · <span style="color:#94a3b8">Crisp, Bento & Specification-Led</span>
     </div>
     <div class="preview-controls">
       <label>Foreground <input type="color" id="fg-picker" value="#0284c7"></label>
-      <label>Background <input type="color" id="bg-picker" value="#f1f5f9"></label>
-      <button type="button" class="preview-preset-btn" onclick="setColors('#0284c7','#f1f5f9')">Theme Default</button>
+      <label>Background <input type="color" id="bg-picker" value="#f0f6fa"></label>
+      <button type="button" class="preview-preset-btn" onclick="setColors('#0284c7','#f0f6fa')">Theme Default</button>
       <button type="button" class="preview-preset-btn" onclick="setColors('#111827','#0f172a')">Test Dark+Dark</button>
       <button type="button" class="preview-preset-btn" onclick="setColors('#f8fafc','#ffffff')">Test Light+Light</button>
       <span id="contrast-status" class="preview-badge">WCAG Auto-Contrast Active</span>
@@ -80,12 +90,12 @@
     <div id="header-brand">
       <div id="header-store-identity">
         <h1 id="header-store-name">Tech & Home</h1>
-        <p id="header-store-tagline">Professional & Precision Engineered</p>
+        <p id="header-store-tagline">Crisp, Bento & Specification-Led</p>
       </div>
     </div>
     <form id="search-form" onsubmit="event.preventDefault()">
-      <label for="search-input">Search</label>
-      <input type="search" id="search-input" placeholder="Search products, services, categories...">
+      <label for="search-input" style="display:none">Search</label>
+      <input type="search" id="search-input" placeholder="Search tech & home catalog...">
     </form>
     <nav id="header-actions-nav">
       <button type="button">Profile</button>
@@ -97,62 +107,91 @@
   <nav id="storefront-category-nav">
     <div id="category-pills">
       <button type="button" aria-selected="true">All Items</button>
-      <button type="button" aria-selected="false">Signature</button>
-      <button type="button" aria-selected="false">New Releases</button>
-      <button type="button" aria-selected="false">Special Offers</button>
+      <button type="button" aria-selected="false">Audio & ANC 🎧</button>
+      <button type="button" aria-selected="false">Monitors & 4K 🖥️</button>
+      <button type="button" aria-selected="false">Fast Power & GaN ⚡</button>
+      <button type="button" aria-selected="false">Desk Ergonomics 🖱️</button>
     </div>
   </nav>
 
   <section id="store-info-banner">
-    <p id="banner-store-subdomain">SMARTER LIVING STARTS HERE</p>
-    <h2 id="banner-store-name">A smarter home starts here.</h2>
-    <p id="banner-store-desc">Precision bento-grid storefront for electronics, appliances, hardware, and modern workspaces.</p>
-    <a id="storefront-primary-cta" href="#items-grid">Shop essentials</a>
+    <p id="banner-store-subdomain">NEXT-GEN HARDWARE</p>
+    <h2 id="banner-store-name">Audio, display & smart living.</h2>
+    <p id="banner-store-desc">Bento spec cards, technical hardware chips, and tabular pricing for consumer electronics and modern gear.</p>
+    <a id="storefront-primary-cta" href="#items-grid">Compare specs</a>
   </section>
 
   <main id="storefront-view">
     <div id="catalog-layout">
       <aside id="desktop-filter-sidebar">
-        <h4>Dynamic Filters</h4>
+        <h4>SYSTEM SPECIFICATIONS</h4>
         <fieldset>
-          <legend>Collection</legend>
-          <label><input type="checkbox" checked> Featured Selection</label>
-          <label><input type="checkbox"> Express Delivery</label>
-          <label><input type="checkbox"> Customer Favorites</label>
+          <legend>SYSTEM SPECIFICATIONS</legend>
+          <label><input type="checkbox" checked> Audio & ANC 🎧</label>
+          <label><input type="checkbox"> Monitors & 4K 🖥️</label>
+          <label><input type="checkbox"> Fast Power & GaN ⚡</label>
+          <label><input type="checkbox"> Desk Ergonomics 🖱️</label>
+        </fieldset>
+        <fieldset>
+          <legend>Connectivity Protocol</legend>
+          <label><input type="checkbox" checked> USB-C Thunderbolt 4</label>
+          <label><input type="checkbox" checked> Bluetooth 5.3 Low-Latency</label>
+          <label><input type="checkbox"> MagSafe Fast Induction</label>
+          <label><input type="checkbox"> Wi-Fi 6E Ready</label>
         </fieldset>
       </aside>
+
       <section id="catalog-main-content">
         <div id="items-grid">
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 01</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">40H Battery</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Signature Collection Piece</h5>
-              <span class="product-price">KES 4,500</span>
+              <span class="product-tag-pill">40H Battery</span>
+              <h5 class="product-title">Pro Studio ANC Wireless Headphones (40H)</h5>
+              <span class="product-price">KES 14,500</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 02</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">120Hz · 4K HDR</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Curated Essential Edition</h5>
-              <span class="product-price">KES 6,200</span>
+              <span class="product-tag-pill">120Hz · 4K HDR</span>
+              <h5 class="product-title">Ultra-Wide 4K IPS Ergonomic Monitor 27"</h5>
+              <span class="product-price">KES 42,000</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 03</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">100W Fast GaN</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Handpicked Studio Release</h5>
-              <span class="product-price">KES 3,800</span>
+              <span class="product-tag-pill">100W Fast GaN</span>
+              <h5 class="product-title">100W GaN 4-Port Fast Desktop Charger</h5>
+              <span class="product-price">KES 4,800</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
+          <article class="product-card">
+            <figure class="product-card-media"><div class="svg-illustration">Hot-Swap Switch</div></figure>
+            <div class="product-card-body">
+              <span class="product-tag-pill">Hot-Swap Switch</span>
+              <h5 class="product-title">Mechanical Low-Profile Keyboard (RGB)</h5>
+              <span class="product-price">KES 8,900</span>
+            </div>
+            <div class="product-card-actions">
+              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+            </div>
+          </article>
+          
         </div>
       </section>
     </div>
@@ -214,17 +253,21 @@
       root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
       const badge = document.getElementById("contrast-status");
       badge.textContent = adjusted
-        ? "Auto-Balanced to " + primaryHex + " for 100% Visibility"
-        : "Optimal Contrast Verified (" + primaryHex + ")";
+        ? "WCAG Auto-Adjusted (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)"
+        : "WCAG Optimal (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)";
+      badge.style.background = adjusted ? "#b45309" : "#064e3b";
+      badge.style.color = adjusted ? "#fef3c7" : "#6ee7b7";
     }
+
     function setColors(fg, bg) {
       document.getElementById("fg-picker").value = fg;
       document.getElementById("bg-picker").value = bg;
       applyAutoPalette(fg, bg);
     }
-    document.getElementById("fg-picker").addEventListener("input", e => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
-    document.getElementById("bg-picker").addEventListener("input", e => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
-    applyAutoPalette("#0284c7", "#f1f5f9");
+
+    document.getElementById("fg-picker").addEventListener("input", (e) => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
+    document.getElementById("bg-picker").addEventListener("input", (e) => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
+    applyAutoPalette("#0284c7", "#f0f6fa");
   </script>
 </body>
 </html>

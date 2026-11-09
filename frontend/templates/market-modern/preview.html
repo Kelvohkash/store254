@@ -30,7 +30,7 @@
     }
     .preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
     .preview-preset-btn {
-      padding: 0.3rem 0.6rem !important;
+      padding: 0.35rem 0.65rem !important;
       border-radius: 999px !important;
       border: 1px solid #334155 !important;
       background: #1e293b !important;
@@ -55,9 +55,19 @@
       background: linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 18%, var(--store-media-bg)), var(--store-media-bg));
       color: var(--store-primary);
       font-weight: 800;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+    .product-tag-pill {
+      display: inline-block;
+      margin-bottom: 0.35rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--store-pill-radius);
+      background: var(--store-primary-subtle);
+      color: var(--store-primary);
+      font-size: 0.65rem;
+      font-weight: 800;
     }
   </style>
 </head>
@@ -84,8 +94,8 @@
       </div>
     </div>
     <form id="search-form" onsubmit="event.preventDefault()">
-      <label for="search-input">Search</label>
-      <input type="search" id="search-input" placeholder="Search products, services, categories...">
+      <label for="search-input" style="display:none">Search</label>
+      <input type="search" id="search-input" placeholder="Search market modern catalog...">
     </form>
     <nav id="header-actions-nav">
       <button type="button">Profile</button>
@@ -97,62 +107,91 @@
   <nav id="storefront-category-nav">
     <div id="category-pills">
       <button type="button" aria-selected="true">All Items</button>
-      <button type="button" aria-selected="false">Signature</button>
-      <button type="button" aria-selected="false">New Releases</button>
-      <button type="button" aria-selected="false">Special Offers</button>
+      <button type="button" aria-selected="false">Everyday Home 🏠</button>
+      <button type="button" aria-selected="false">Fresh Pantry & Coffee ☕</button>
+      <button type="button" aria-selected="false">Tech Essentials 🔌</button>
+      <button type="button" aria-selected="false">Lifestyle & Travel ✈️</button>
     </div>
   </nav>
 
   <section id="store-info-banner">
     <p id="banner-store-subdomain">MADE FOR EVERY DAY</p>
     <h2 id="banner-store-name">Good things, chosen well.</h2>
-    <p id="banner-store-desc">Clean, confident everyday shopping with a balanced split hero and elevated cards.</p>
+    <p id="banner-store-desc">Clean, confident everyday shopping with a balanced split hero, search-first header, and elevated cards.</p>
     <a id="storefront-primary-cta" href="#items-grid">Explore collection</a>
   </section>
 
   <main id="storefront-view">
     <div id="catalog-layout">
       <aside id="desktop-filter-sidebar">
-        <h4>Dynamic Filters</h4>
+        <h4>Aisle & Category</h4>
         <fieldset>
-          <legend>Collection</legend>
-          <label><input type="checkbox" checked> Featured Selection</label>
-          <label><input type="checkbox"> Express Delivery</label>
-          <label><input type="checkbox"> Customer Favorites</label>
+          <legend>Aisle & Category</legend>
+          <label><input type="checkbox" checked> Everyday Home 🏠</label>
+          <label><input type="checkbox"> Fresh Pantry & Coffee ☕</label>
+          <label><input type="checkbox"> Tech Essentials 🔌</label>
+          <label><input type="checkbox"> Lifestyle & Travel ✈️</label>
+        </fieldset>
+        <fieldset>
+          <legend>Merchant Trust</legend>
+          <label><input type="checkbox" checked> Verified Merchant ✓</label>
+          <label><input type="checkbox" checked> Instant M-Pesa STK</label>
+          <label><input type="checkbox"> Same-Day Dispatch</label>
+          <label><input type="checkbox"> Free Returns</label>
         </fieldset>
       </aside>
+
       <section id="catalog-main-content">
         <div id="items-grid">
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 01</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">★ 4.9 (128)</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Signature Collection Piece</h5>
-              <span class="product-price">KES 4,500</span>
+              <span class="product-tag-pill">★ 4.9 (128)</span>
+              <h5 class="product-title">Organic Arabica Single-Origin Coffee Beans</h5>
+              <span class="product-price">KES 1,200</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 02</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">★ 4.8 (94)</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Curated Essential Edition</h5>
-              <span class="product-price">KES 6,200</span>
+              <span class="product-tag-pill">★ 4.8 (94)</span>
+              <h5 class="product-title">Minimalist Stainless Steel Insulated Flask</h5>
+              <span class="product-price">KES 1,850</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 03</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">★ 5.0 (62)</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Handpicked Studio Release</h5>
-              <span class="product-price">KES 3,800</span>
+              <span class="product-tag-pill">★ 5.0 (62)</span>
+              <h5 class="product-title">Durable Reinforced Canvas Daypack</h5>
+              <span class="product-price">KES 3,400</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
+          <article class="product-card">
+            <figure class="product-card-media"><div class="svg-illustration">★ 4.9 (87)</div></figure>
+            <div class="product-card-body">
+              <span class="product-tag-pill">★ 4.9 (87)</span>
+              <h5 class="product-title">Organic Soy Wax Candle in Amber Jar</h5>
+              <span class="product-price">KES 1,400</span>
+            </div>
+            <div class="product-card-actions">
+              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+            </div>
+          </article>
+          
         </div>
       </section>
     </div>
@@ -214,16 +253,20 @@
       root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
       const badge = document.getElementById("contrast-status");
       badge.textContent = adjusted
-        ? "Auto-Balanced to " + primaryHex + " for 100% Visibility"
-        : "Optimal Contrast Verified (" + primaryHex + ")";
+        ? "WCAG Auto-Adjusted (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)"
+        : "WCAG Optimal (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)";
+      badge.style.background = adjusted ? "#b45309" : "#064e3b";
+      badge.style.color = adjusted ? "#fef3c7" : "#6ee7b7";
     }
+
     function setColors(fg, bg) {
       document.getElementById("fg-picker").value = fg;
       document.getElementById("bg-picker").value = bg;
       applyAutoPalette(fg, bg);
     }
-    document.getElementById("fg-picker").addEventListener("input", e => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
-    document.getElementById("bg-picker").addEventListener("input", e => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
+
+    document.getElementById("fg-picker").addEventListener("input", (e) => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
+    document.getElementById("bg-picker").addEventListener("input", (e) => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
     applyAutoPalette("#15803d", "#edf5ee");
   </script>
 </body>

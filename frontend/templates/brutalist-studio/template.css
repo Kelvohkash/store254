@@ -17,7 +17,6 @@ html[data-storefront-template="brutalist-studio"] {
   font-family: var(--store-font-body);
 }
 
-/* Base Structural Layout for Pure Semantic HTML (store-tenant.html) & Live Shell */
 html[data-storefront-template="brutalist-studio"] body {
   margin: 0;
   background-color: var(--store-paper) !important;
@@ -39,13 +38,6 @@ html[data-storefront-template="brutalist-studio"] #header-brand {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-}
-
-html[data-storefront-template="brutalist-studio"] #header-store-logo {
-  width: 2.75rem;
-  height: 2.75rem;
-  object-fit: contain;
-  border-radius: var(--store-btn-radius);
 }
 
 html[data-storefront-template="brutalist-studio"] #header-store-name {
@@ -70,23 +62,9 @@ html[data-storefront-template="brutalist-studio"] #search-form {
   gap: 0.4rem;
 }
 
-html[data-storefront-template="brutalist-studio"] #search-form label,
-html[data-storefront-template="brutalist-studio"] #mobile-search-bar label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-}
-
 html[data-storefront-template="brutalist-studio"] input[type="search"],
 html[data-storefront-template="brutalist-studio"] input[type="text"],
-html[data-storefront-template="brutalist-studio"] input[type="email"],
-html[data-storefront-template="brutalist-studio"] input[type="tel"],
-html[data-storefront-template="brutalist-studio"] input[type="number"],
-html[data-storefront-template="brutalist-studio"] input[type="date"],
-html[data-storefront-template="brutalist-studio"] select,
-html[data-storefront-template="brutalist-studio"] textarea {
+html[data-storefront-template="brutalist-studio"] select {
   padding: 0.6rem 0.85rem;
   border: 1px solid var(--store-line);
   border-radius: var(--store-btn-radius);
@@ -107,8 +85,7 @@ html[data-storefront-template="brutalist-studio"] #header-actions-nav {
 
 html[data-storefront-template="brutalist-studio"] button,
 html[data-storefront-template="brutalist-studio"] #storefront-primary-cta,
-html[data-storefront-template="brutalist-studio"] #banner-store-call-btn,
-html[data-storefront-template="brutalist-studio"] #whatsapp-quick-contact {
+html[data-storefront-template="brutalist-studio"] #banner-store-call-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -132,12 +109,7 @@ html[data-storefront-template="brutalist-studio"] #storefront-primary-cta:hover 
 
 html[data-storefront-template="brutalist-studio"] #desktop-cart-btn,
 html[data-storefront-template="brutalist-studio"] .add-to-cart-btn,
-html[data-storefront-template="brutalist-studio"] #storefront-primary-cta,
-html[data-storefront-template="brutalist-studio"] #btn-pay-mpesa,
-html[data-storefront-template="brutalist-studio"] #item-modal-btn-cart,
-html[data-storefront-template="brutalist-studio"] #maker-buy-button,
-html[data-storefront-template="brutalist-studio"] #apply-desktop-filters-btn,
-html[data-storefront-template="brutalist-studio"] #mobile-apply-filters-btn {
+html[data-storefront-template="brutalist-studio"] #storefront-primary-cta {
   background-color: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
   border-color: var(--store-primary) !important;
@@ -150,18 +122,38 @@ html[data-storefront-template="brutalist-studio"] #site-header {
   background: var(--store-white) !important;
   color: var(--store-ink) !important;
   border-top: 0 !important;
-  border-bottom: 3px solid var(--store-ink) !important;
+  border-bottom: 3.5px solid var(--store-ink) !important;
   box-shadow: none !important;
 }
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] .site-header::before { display: none; }
+html[data-storefront="true"][data-storefront-template="brutalist-studio"] #header-store-name,
+html[data-storefront-template="brutalist-studio"] #header-store-name {
+  font-weight: 950 !important;
+  letter-spacing: -0.04em !important;
+  text-transform: uppercase;
+}
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] .header-action,
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] .cart-action,
+html[data-storefront="true"][data-storefront-template="brutalist-studio"] #desktop-cart-btn,
 html[data-storefront-template="brutalist-studio"] #header-actions-nav button {
   border-radius: 0px !important;
-  border: 2px solid var(--store-ink) !important;
-  box-shadow: 3px 3px 0 var(--store-ink) !important;
+  border: 2.5px solid var(--store-ink) !important;
+  box-shadow: 3.5px 3.5px 0 var(--store-ink) !important;
   text-transform: uppercase;
-  font-weight: 800 !important;
+  font-weight: 900 !important;
+  background: var(--store-white) !important;
+  color: var(--store-ink) !important;
+}
+html[data-storefront="true"][data-storefront-template="brutalist-studio"] #desktop-cart-btn,
+html[data-storefront-template="brutalist-studio"] #desktop-cart-btn {
+  background: var(--store-primary) !important;
+  color: var(--store-on-primary) !important;
+}
+html[data-storefront="true"][data-storefront-template="brutalist-studio"] .search-field input,
+html[data-storefront-template="brutalist-studio"] #search-input {
+  border: 2.5px solid var(--store-ink) !important;
+  border-radius: 0 !important;
+  font-family: ui-monospace, monospace !important;
 }
 
 /* Hero Banner Styling */
@@ -227,7 +219,7 @@ html[data-storefront-template="brutalist-studio"] #storefront-primary-cta {
   border-color: var(--store-primary) !important;
 }
 
-/* Category Pills Bar */
+/* Category Navigation Bar */
 html[data-storefront-template="brutalist-studio"] #storefront-category-nav {
   padding: 0.85rem clamp(1rem, 4vw, 3rem);
   border-bottom: 1px solid var(--store-line);
@@ -251,28 +243,40 @@ html[data-storefront-template="brutalist-studio"] #category-pills button[aria-se
   border-color: var(--store-primary) !important;
 }
 
-/* Main Catalog Layout (Sidebar + Product Grid) */
+/* Catalog Layout */
 html[data-storefront-template="brutalist-studio"] #storefront-view {
-  max-width: 84rem;
+  max-width: 86rem;
   margin: 0 auto;
-  padding: 2rem clamp(1rem, 4vw, 3rem);
+  padding: 2.2rem clamp(1rem, 4vw, 3rem);
 }
 
 html[data-storefront-template="brutalist-studio"] #catalog-layout {
   display: grid;
-  grid-template-columns: 17rem minmax(0, 1fr);
+  grid-template-columns: 18rem minmax(0, 1fr);
   gap: 2rem;
   align-items: start;
 }
 
+/* Bespoke Filter Sidebar */
+
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] #desktop-filter-sidebar,
 html[data-storefront-template="brutalist-studio"] #desktop-filter-sidebar {
-  background-color: var(--store-white) !important;
+  border: 3px solid var(--store-ink) !important;
+  border-radius: 0px !important;
+  background: var(--store-white) !important;
+  box-shadow: 6px 6px 0 var(--store-ink) !important;
+  padding: 1.5rem !important;
+}
+html[data-storefront="true"][data-storefront-template="brutalist-studio"] #desktop-filter-sidebar h3,
+html[data-storefront-template="brutalist-studio"] #desktop-filter-sidebar h4 {
+  font-family: ui-monospace, monospace !important;
+  font-size: 0.8rem !important;
+  font-weight: 950 !important;
+  text-transform: uppercase;
   color: var(--store-ink) !important;
-  border: 1px solid var(--store-line) !important;
-  border-top: 3px solid var(--store-primary) !important;
-  border-radius: var(--store-card-radius) !important;
-  padding: 1.25rem;
+}
+html[data-storefront="true"][data-storefront-template="brutalist-studio"] #desktop-filter-sidebar input[type="range"] {
+  accent-color: var(--store-primary) !important;
 }
 
 html[data-storefront-template="brutalist-studio"] #desktop-filter-sidebar fieldset {
@@ -282,7 +286,7 @@ html[data-storefront-template="brutalist-studio"] #desktop-filter-sidebar fields
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 
 html[data-storefront-template="brutalist-studio"] #desktop-filter-sidebar legend {
@@ -294,22 +298,12 @@ html[data-storefront-template="brutalist-studio"] #desktop-filter-sidebar legend
   padding-bottom: 0.35rem;
 }
 
-html[data-storefront-template="brutalist-studio"] #catalog-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--store-line);
-}
-
+/* Items Grid */
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] #items-grid,
 html[data-storefront-template="brutalist-studio"] #items-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1.15rem;
+  gap: 1.25rem;
 }
 
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] #items-grid .product-card-media,
@@ -321,16 +315,9 @@ html[data-storefront-template="brutalist-studio"] .product-card-media {
   position: relative;
 }
 
-html[data-storefront-template="brutalist-studio"] .product-card-media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
 html[data-storefront-template="brutalist-studio"] .product-card-body,
 html[data-storefront-template="brutalist-studio"] .product-card-actions {
-  padding: 0.85rem 1rem;
+  padding: 0.95rem 1.1rem;
 }
 
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] .product-card-title,
@@ -344,7 +331,7 @@ html[data-storefront-template="brutalist-studio"] .product-title {
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] .product-card-price,
 html[data-storefront-template="brutalist-studio"] .product-price {
   color: var(--store-ink) !important;
-  font-weight: 800;
+  font-weight: 850;
   font-size: 1.1rem;
 }
 
@@ -356,38 +343,39 @@ html[data-storefront-template="brutalist-studio"] .add-to-cart-btn {
   color: var(--store-on-primary) !important;
 }
 
-/* Template-Specific Card Surface Treatment */
+/* Bespoke Card Treatment */
 
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] #storefront-view .product-card,
 html[data-storefront-template="brutalist-studio"] .product-card {
-  border: 2px solid var(--store-ink) !important;
+  border: 2.5px solid var(--store-ink) !important;
   border-radius: 0px !important;
   background: var(--store-white) !important;
   box-shadow: 5px 5px 0 var(--store-ink) !important;
+  transition: transform 160ms ease, box-shadow 160ms ease !important;
 }
 html[data-storefront="true"][data-storefront-template="brutalist-studio"] #storefront-view .product-card:hover,
 html[data-storefront-template="brutalist-studio"] .product-card:hover {
-  transform: translate(-2px, -2px) !important;
-  box-shadow: 7px 7px 0 var(--store-primary) !important;
+  transform: translate(-3px, -3px) !important;
+  box-shadow: 8px 8px 0 var(--store-primary) !important;
 }
-
-/* Dialogs, Drawers & Footer */
-html[data-storefront-template="brutalist-studio"] dialog {
-  border: 1px solid var(--store-line);
-  border-radius: var(--store-card-radius);
-  background-color: var(--store-white);
-  color: var(--store-ink);
-  max-width: 36rem;
-  width: 92vw;
-  padding: 1.5rem;
+html[data-storefront="true"][data-storefront-template="brutalist-studio"] .product-card-title,
+html[data-storefront-template="brutalist-studio"] .product-title {
+  text-transform: uppercase;
+  font-weight: 900 !important;
 }
-
-html[data-storefront-template="brutalist-studio"] #site-footer {
-  margin-top: 4rem;
-  padding: 2.5rem clamp(1rem, 4vw, 3rem);
-  border-top: 1px solid var(--store-line);
-  background-color: var(--store-white);
-  color: var(--store-muted);
+html[data-storefront="true"][data-storefront-template="brutalist-studio"] .product-card-price,
+html[data-storefront-template="brutalist-studio"] .product-price {
+  font-family: ui-monospace, monospace !important;
+  color: var(--store-primary) !important;
+  font-weight: 900 !important;
+}
+html[data-storefront="true"][data-storefront-template="brutalist-studio"] .product-card-add,
+html[data-storefront-template="brutalist-studio"] .add-to-cart-btn {
+  border-radius: 0 !important;
+  border: 2px solid var(--store-ink) !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  box-shadow: 3px 3px 0 var(--store-ink) !important;
 }
 
 @media (max-width: 900px) {

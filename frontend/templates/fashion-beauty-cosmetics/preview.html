@@ -30,7 +30,7 @@
     }
     .preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
     .preview-preset-btn {
-      padding: 0.3rem 0.6rem !important;
+      padding: 0.35rem 0.65rem !important;
       border-radius: 999px !important;
       border: 1px solid #334155 !important;
       background: #1e293b !important;
@@ -55,9 +55,19 @@
       background: linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 18%, var(--store-media-bg)), var(--store-media-bg));
       color: var(--store-primary);
       font-weight: 800;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+    .product-tag-pill {
+      display: inline-block;
+      margin-bottom: 0.35rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--store-pill-radius);
+      background: var(--store-primary-subtle);
+      color: var(--store-primary);
+      font-size: 0.65rem;
+      font-weight: 800;
     }
   </style>
 </head>
@@ -84,8 +94,8 @@
       </div>
     </div>
     <form id="search-form" onsubmit="event.preventDefault()">
-      <label for="search-input">Search</label>
-      <input type="search" id="search-input" placeholder="Search products, services, categories...">
+      <label for="search-input" style="display:none">Search</label>
+      <input type="search" id="search-input" placeholder="Search fashion, beauty and cosmetics catalog...">
     </form>
     <nav id="header-actions-nav">
       <button type="button">Profile</button>
@@ -97,62 +107,91 @@
   <nav id="storefront-category-nav">
     <div id="category-pills">
       <button type="button" aria-selected="true">All Items</button>
-      <button type="button" aria-selected="false">Signature</button>
-      <button type="button" aria-selected="false">New Releases</button>
-      <button type="button" aria-selected="false">Special Offers</button>
+      <button type="button" aria-selected="false">Skincare & Serums ✨</button>
+      <button type="button" aria-selected="false">Velvet Lip & Color 💄</button>
+      <button type="button" aria-selected="false">Artisanal Fragrance 🌸</button>
+      <button type="button" aria-selected="false">Body Glow & Bronze ☀️</button>
     </div>
   </nav>
 
   <section id="store-info-banner">
     <p id="banner-store-subdomain">THE NEW SEASON</p>
     <h2 id="banner-store-name">Everyday, considered.</h2>
-    <p id="banner-store-desc">A photo-led fashion storefront with a bold brand bar, category ribbon, and editorial product cards.</p>
+    <p id="banner-store-desc">A photo-led fashion storefront with a bold brand ribbon, secondary category bar, and editorial runway cards.</p>
     <a id="storefront-primary-cta" href="#items-grid">Discover the edit</a>
   </section>
 
   <main id="storefront-view">
     <div id="catalog-layout">
       <aside id="desktop-filter-sidebar">
-        <h4>Dynamic Filters</h4>
+        <h4>Beauty Studio</h4>
         <fieldset>
-          <legend>Collection</legend>
-          <label><input type="checkbox" checked> Featured Selection</label>
-          <label><input type="checkbox"> Express Delivery</label>
-          <label><input type="checkbox"> Customer Favorites</label>
+          <legend>Beauty Studio</legend>
+          <label><input type="checkbox" checked> Skincare & Serums ✨</label>
+          <label><input type="checkbox"> Velvet Lip & Color 💄</label>
+          <label><input type="checkbox"> Artisanal Fragrance 🌸</label>
+          <label><input type="checkbox"> Body Glow & Bronze ☀️</label>
+        </fieldset>
+        <fieldset>
+          <legend>Formula Guarantee</legend>
+          <label><input type="checkbox" checked> Hyaluronic & Niacinamide</label>
+          <label><input type="checkbox" checked> Clean & Vegan Certified</label>
+          <label><input type="checkbox"> Waterproof Long-Wear</label>
+          <label><input type="checkbox"> Dermatologist Tested</label>
         </fieldset>
       </aside>
+
       <section id="catalog-main-content">
         <div id="items-grid">
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 01</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">All-Day Radiance</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Signature Collection Piece</h5>
-              <span class="product-price">KES 4,500</span>
+              <span class="product-tag-pill">All-Day Radiance</span>
+              <h5 class="product-title">Illuminating Peptide Glow Serum (30ml)</h5>
+              <span class="product-price">KES 3,600</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 02</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Hydrating Matte</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Curated Essential Edition</h5>
-              <span class="product-price">KES 6,200</span>
+              <span class="product-tag-pill">Hydrating Matte</span>
+              <h5 class="product-title">Matte Velvet Lip Color in Spiced Rose</h5>
+              <span class="product-price">KES 1,850</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 03</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">50ml Reserve</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Handpicked Studio Release</h5>
-              <span class="product-price">KES 3,800</span>
+              <span class="product-tag-pill">50ml Reserve</span>
+              <h5 class="product-title">Solar Amber & Bergamot Eau de Parfum</h5>
+              <span class="product-price">KES 8,500</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
+          <article class="product-card">
+            <figure class="product-card-media"><div class="svg-illustration">Natural Glow</div></figure>
+            <div class="product-card-body">
+              <span class="product-tag-pill">Natural Glow</span>
+              <h5 class="product-title">Golden Shimmer Body Nectar Oil</h5>
+              <span class="product-price">KES 2,900</span>
+            </div>
+            <div class="product-card-actions">
+              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+            </div>
+          </article>
+          
         </div>
       </section>
     </div>
@@ -214,16 +253,20 @@
       root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
       const badge = document.getElementById("contrast-status");
       badge.textContent = adjusted
-        ? "Auto-Balanced to " + primaryHex + " for 100% Visibility"
-        : "Optimal Contrast Verified (" + primaryHex + ")";
+        ? "WCAG Auto-Adjusted (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)"
+        : "WCAG Optimal (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)";
+      badge.style.background = adjusted ? "#b45309" : "#064e3b";
+      badge.style.color = adjusted ? "#fef3c7" : "#6ee7b7";
     }
+
     function setColors(fg, bg) {
       document.getElementById("fg-picker").value = fg;
       document.getElementById("bg-picker").value = bg;
       applyAutoPalette(fg, bg);
     }
-    document.getElementById("fg-picker").addEventListener("input", e => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
-    document.getElementById("bg-picker").addEventListener("input", e => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
+
+    document.getElementById("fg-picker").addEventListener("input", (e) => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
+    document.getElementById("bg-picker").addEventListener("input", (e) => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
     applyAutoPalette("#08718b", "#f4f8fa");
   </script>
 </body>

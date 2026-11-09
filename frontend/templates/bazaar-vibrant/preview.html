@@ -30,7 +30,7 @@
     }
     .preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
     .preview-preset-btn {
-      padding: 0.3rem 0.6rem !important;
+      padding: 0.35rem 0.65rem !important;
       border-radius: 999px !important;
       border: 1px solid #334155 !important;
       background: #1e293b !important;
@@ -55,9 +55,19 @@
       background: linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 18%, var(--store-media-bg)), var(--store-media-bg));
       color: var(--store-primary);
       font-weight: 800;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+    .product-tag-pill {
+      display: inline-block;
+      margin-bottom: 0.35rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--store-pill-radius);
+      background: var(--store-primary-subtle);
+      color: var(--store-primary);
+      font-size: 0.65rem;
+      font-weight: 800;
     }
   </style>
 </head>
@@ -84,8 +94,8 @@
       </div>
     </div>
     <form id="search-form" onsubmit="event.preventDefault()">
-      <label for="search-input">Search</label>
-      <input type="search" id="search-input" placeholder="Search products, services, categories...">
+      <label for="search-input" style="display:none">Search</label>
+      <input type="search" id="search-input" placeholder="Search dynamic bazaar catalog...">
     </form>
     <nav id="header-actions-nav">
       <button type="button">Profile</button>
@@ -97,62 +107,91 @@
   <nav id="storefront-category-nav">
     <div id="category-pills">
       <button type="button" aria-selected="true">All Items</button>
-      <button type="button" aria-selected="false">Signature</button>
-      <button type="button" aria-selected="false">New Releases</button>
-      <button type="button" aria-selected="false">Special Offers</button>
+      <button type="button" aria-selected="false">Artisanal Kiondo Totes 🧺</button>
+      <button type="button" aria-selected="false">Safari Leather Sandals 🩴</button>
+      <button type="button" aria-selected="false">Beaded Chokers & Cuffs ✨</button>
+      <button type="button" aria-selected="false">Pure Spices & Honey 🍯</button>
     </div>
   </nav>
 
   <section id="store-info-banner">
     <p id="banner-store-subdomain">TOP DEALS & NEW FINDS</p>
     <h2 id="banner-store-name">Everything you need, right here.</h2>
-    <p id="banner-store-desc">High-energy merchant marketplace with pill-framed navigation, quick-buy badges, and dense discovery.</p>
+    <p id="banner-store-desc">High-energy merchant marketplace with floating pill navigation, quick-buy badges, and dense discovery.</p>
     <a id="storefront-primary-cta" href="#items-grid">Browse deals</a>
   </section>
 
   <main id="storefront-view">
     <div id="catalog-layout">
       <aside id="desktop-filter-sidebar">
-        <h4>Dynamic Filters</h4>
+        <h4>Bazaar Categories</h4>
         <fieldset>
-          <legend>Collection</legend>
-          <label><input type="checkbox" checked> Featured Selection</label>
-          <label><input type="checkbox"> Express Delivery</label>
-          <label><input type="checkbox"> Customer Favorites</label>
+          <legend>Bazaar Categories</legend>
+          <label><input type="checkbox" checked> Artisanal Kiondo Totes 🧺</label>
+          <label><input type="checkbox"> Safari Leather Sandals 🩴</label>
+          <label><input type="checkbox"> Beaded Chokers & Cuffs ✨</label>
+          <label><input type="checkbox"> Pure Spices & Honey 🍯</label>
+        </fieldset>
+        <fieldset>
+          <legend>Flash Promotions</legend>
+          <label><input type="checkbox" checked> Same-Day Nairobi Delivery ⚡</label>
+          <label><input type="checkbox" checked> Buy 2 Get 1 Free 🔥</label>
+          <label><input type="checkbox"> Direct from Artisan 🇰🇪</label>
+          <label><input type="checkbox"> Free Gift Included 🎁</label>
         </fieldset>
       </aside>
+
       <section id="catalog-main-content">
         <div id="items-grid">
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 01</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Direct Maker</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Signature Collection Piece</h5>
-              <span class="product-price">KES 4,500</span>
+              <span class="product-tag-pill">Direct Maker</span>
+              <h5 class="product-title">Hand-Woven Sisal & Leather Kiondo Tote</h5>
+              <span class="product-price">KES 2,600</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 02</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Hand-Beaded</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Curated Essential Edition</h5>
-              <span class="product-price">KES 6,200</span>
+              <span class="product-tag-pill">Hand-Beaded</span>
+              <h5 class="product-title">Traditional Maasai Beaded Choker & Cuff</h5>
+              <span class="product-price">KES 1,800</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 03</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Pure Leather</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Handpicked Studio Release</h5>
-              <span class="product-price">KES 3,800</span>
+              <span class="product-tag-pill">Pure Leather</span>
+              <h5 class="product-title">Genuine Leather Safari Gladiator Sandals</h5>
+              <span class="product-price">KES 2,950</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
+          <article class="product-card">
+            <figure class="product-card-media"><div class="svg-illustration">Fresh Harvest</div></figure>
+            <div class="product-card-body">
+              <span class="product-tag-pill">Fresh Harvest</span>
+              <h5 class="product-title">Pure Coastal Turmeric & Ginger Blend (250g)</h5>
+              <span class="product-price">KES 650</span>
+            </div>
+            <div class="product-card-actions">
+              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+            </div>
+          </article>
+          
         </div>
       </section>
     </div>
@@ -214,16 +253,20 @@
       root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
       const badge = document.getElementById("contrast-status");
       badge.textContent = adjusted
-        ? "Auto-Balanced to " + primaryHex + " for 100% Visibility"
-        : "Optimal Contrast Verified (" + primaryHex + ")";
+        ? "WCAG Auto-Adjusted (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)"
+        : "WCAG Optimal (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)";
+      badge.style.background = adjusted ? "#b45309" : "#064e3b";
+      badge.style.color = adjusted ? "#fef3c7" : "#6ee7b7";
     }
+
     function setColors(fg, bg) {
       document.getElementById("fg-picker").value = fg;
       document.getElementById("bg-picker").value = bg;
       applyAutoPalette(fg, bg);
     }
-    document.getElementById("fg-picker").addEventListener("input", e => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
-    document.getElementById("bg-picker").addEventListener("input", e => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
+
+    document.getElementById("fg-picker").addEventListener("input", (e) => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
+    document.getElementById("bg-picker").addEventListener("input", (e) => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
     applyAutoPalette("#d97706", "#fffbeb");
   </script>
 </body>

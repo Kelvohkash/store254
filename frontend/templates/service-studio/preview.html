@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Service Studio (Professional, Calm & Trustworthy) — Store254 Interactive Theme Preview</title>
+  <title>Service Studio (Architectural, Consultation & Booking) — Store254 Interactive Theme Preview</title>
   <link rel="stylesheet" href="./template.css">
   <style>
     * { box-sizing: border-box; }
@@ -30,7 +30,7 @@
     }
     .preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
     .preview-preset-btn {
-      padding: 0.3rem 0.6rem !important;
+      padding: 0.35rem 0.65rem !important;
       border-radius: 999px !important;
       border: 1px solid #334155 !important;
       background: #1e293b !important;
@@ -55,21 +55,31 @@
       background: linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 18%, var(--store-media-bg)), var(--store-media-bg));
       color: var(--store-primary);
       font-weight: 800;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+    .product-tag-pill {
+      display: inline-block;
+      margin-bottom: 0.35rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--store-pill-radius);
+      background: var(--store-primary-subtle);
+      color: var(--store-primary);
+      font-size: 0.65rem;
+      font-weight: 800;
     }
   </style>
 </head>
 <body>
   <div class="preview-bar">
     <div>
-      <strong>Service Studio</strong> · <span style="color:#94a3b8">Professional, Calm & Trustworthy</span>
+      <strong>Service Studio</strong> · <span style="color:#94a3b8">Architectural, Consultation & Booking</span>
     </div>
     <div class="preview-controls">
-      <label>Foreground <input type="color" id="fg-picker" value="#0f766e"></label>
-      <label>Background <input type="color" id="bg-picker" value="#f0fdfa"></label>
-      <button type="button" class="preview-preset-btn" onclick="setColors('#0f766e','#f0fdfa')">Theme Default</button>
+      <label>Foreground <input type="color" id="fg-picker" value="#78350f"></label>
+      <label>Background <input type="color" id="bg-picker" value="#fdf8f4"></label>
+      <button type="button" class="preview-preset-btn" onclick="setColors('#78350f','#fdf8f4')">Theme Default</button>
       <button type="button" class="preview-preset-btn" onclick="setColors('#111827','#0f172a')">Test Dark+Dark</button>
       <button type="button" class="preview-preset-btn" onclick="setColors('#f8fafc','#ffffff')">Test Light+Light</button>
       <span id="contrast-status" class="preview-badge">WCAG Auto-Contrast Active</span>
@@ -80,12 +90,12 @@
     <div id="header-brand">
       <div id="header-store-identity">
         <h1 id="header-store-name">Service Studio</h1>
-        <p id="header-store-tagline">Professional, Calm & Trustworthy</p>
+        <p id="header-store-tagline">Architectural, Consultation & Booking</p>
       </div>
     </div>
     <form id="search-form" onsubmit="event.preventDefault()">
-      <label for="search-input">Search</label>
-      <input type="search" id="search-input" placeholder="Search products, services, categories...">
+      <label for="search-input" style="display:none">Search</label>
+      <input type="search" id="search-input" placeholder="Search service studio catalog...">
     </form>
     <nav id="header-actions-nav">
       <button type="button">Profile</button>
@@ -97,62 +107,91 @@
   <nav id="storefront-category-nav">
     <div id="category-pills">
       <button type="button" aria-selected="true">All Items</button>
-      <button type="button" aria-selected="false">Signature</button>
-      <button type="button" aria-selected="false">New Releases</button>
-      <button type="button" aria-selected="false">Special Offers</button>
+      <button type="button" aria-selected="false">Creative Direction 🎨</button>
+      <button type="button" aria-selected="false">Photography & Studio 📸</button>
+      <button type="button" aria-selected="false">Brand Strategy 💡</button>
+      <button type="button" aria-selected="false">Intensive Workshops 👥</button>
     </div>
   </nav>
 
   <section id="store-info-banner">
-    <p id="banner-store-subdomain">PERSONAL SERVICE, BEAUTIFULLY DONE</p>
-    <h2 id="banner-store-name">Good care, made personal.</h2>
-    <p id="banner-store-desc">A welcoming booking and consultation storefront for salons, clinics, studios, and professional agencies.</p>
-    <a id="storefront-primary-cta" href="#items-grid">View services</a>
+    <p id="banner-store-subdomain">SPACE TO CREATE & COLLABORATE</p>
+    <h2 id="banner-store-name">Expertise, craft & guidance.</h2>
+    <p id="banner-store-desc">Warm stone tones, consultation appointment cards, and session scheduling for agencies and studios.</p>
+    <a id="storefront-primary-cta" href="#items-grid">Book session</a>
   </section>
 
   <main id="storefront-view">
     <div id="catalog-layout">
       <aside id="desktop-filter-sidebar">
-        <h4>Dynamic Filters</h4>
+        <h4>Studio Services</h4>
         <fieldset>
-          <legend>Collection</legend>
-          <label><input type="checkbox" checked> Featured Selection</label>
-          <label><input type="checkbox"> Express Delivery</label>
-          <label><input type="checkbox"> Customer Favorites</label>
+          <legend>Studio Services</legend>
+          <label><input type="checkbox" checked> Creative Direction 🎨</label>
+          <label><input type="checkbox"> Photography & Studio 📸</label>
+          <label><input type="checkbox"> Brand Strategy 💡</label>
+          <label><input type="checkbox"> Intensive Workshops 👥</label>
+        </fieldset>
+        <fieldset>
+          <legend>Session Duration</legend>
+          <label><input type="checkbox" checked> 30 Min Discovery Call</label>
+          <label><input type="checkbox" checked> 60 Min Deep Dive Video</label>
+          <label><input type="checkbox"> Half-Day On-Site Hire</label>
+          <label><input type="checkbox"> Full Project Package</label>
         </fieldset>
       </aside>
+
       <section id="catalog-main-content">
         <div id="items-grid">
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 01</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">60 Min Session</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Signature Collection Piece</h5>
-              <span class="product-price">KES 4,500</span>
+              <span class="product-tag-pill">60 Min Session</span>
+              <h5 class="product-title">Comprehensive Brand Audit & Strategy</h5>
+              <span class="product-price">KES 12,000</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 02</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Half-Day Hire</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Curated Essential Edition</h5>
-              <span class="product-price">KES 6,200</span>
+              <span class="product-tag-pill">Half-Day Hire</span>
+              <h5 class="product-title">Commercial Photography Studio Hire</h5>
+              <span class="product-price">KES 24,000</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
           <article class="product-card">
-            <figure class="product-card-media"><div class="svg-illustration">Featured 03</div></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Full Package</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Handpicked Studio Release</h5>
-              <span class="product-price">KES 3,800</span>
+              <span class="product-tag-pill">Full Package</span>
+              <h5 class="product-title">UX Design Sprint & Product Review</h5>
+              <span class="product-price">KES 35,000</span>
             </div>
             <div class="product-card-actions">
               <button type="button" class="add-to-cart-btn">Add to Cart</button>
             </div>
           </article>
+          
+          <article class="product-card">
+            <figure class="product-card-media"><div class="svg-illustration">30 Min Online</div></figure>
+            <div class="product-card-body">
+              <span class="product-tag-pill">30 Min Online</span>
+              <h5 class="product-title">1-on-1 Creative Direction Advisory</h5>
+              <span class="product-price">KES 7,500</span>
+            </div>
+            <div class="product-card-actions">
+              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+            </div>
+          </article>
+          
         </div>
       </section>
     </div>
@@ -214,17 +253,21 @@
       root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
       const badge = document.getElementById("contrast-status");
       badge.textContent = adjusted
-        ? "Auto-Balanced to " + primaryHex + " for 100% Visibility"
-        : "Optimal Contrast Verified (" + primaryHex + ")";
+        ? "WCAG Auto-Adjusted (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)"
+        : "WCAG Optimal (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)";
+      badge.style.background = adjusted ? "#b45309" : "#064e3b";
+      badge.style.color = adjusted ? "#fef3c7" : "#6ee7b7";
     }
+
     function setColors(fg, bg) {
       document.getElementById("fg-picker").value = fg;
       document.getElementById("bg-picker").value = bg;
       applyAutoPalette(fg, bg);
     }
-    document.getElementById("fg-picker").addEventListener("input", e => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
-    document.getElementById("bg-picker").addEventListener("input", e => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
-    applyAutoPalette("#0f766e", "#f0fdfa");
+
+    document.getElementById("fg-picker").addEventListener("input", (e) => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
+    document.getElementById("bg-picker").addEventListener("input", (e) => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
+    applyAutoPalette("#78350f", "#fdf8f4");
   </script>
 </body>
 </html>
