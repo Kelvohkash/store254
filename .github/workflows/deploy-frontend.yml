@@ -1,9 +1,11 @@
-name: Deploy to Cloudflare
+name: Deploy frontend to Cloudflare
 
 on:
   push:
     branches:
       - master
+    paths:
+      - "frontend/**"
   workflow_dispatch:
 
 permissions:
@@ -28,26 +30,6 @@ jobs:
       - name: Publish frontend
         run: npx wrangler deploy --config wrangler.jsonc
         working-directory: frontend
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: 29ebb98162982a3dbbd217a589591b10
-
-  deploy-backend:
-    name: Deploy backend Worker
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - run: npm ci
-
-      - name: Publish backend
-        run: npm run deploy:backend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: 29ebb98162982a3dbbd217a589591b10
