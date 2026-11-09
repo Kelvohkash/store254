@@ -1,8 +1,14 @@
 /* Store254 marketplace landing page, tuned to the supplied design reference. */
 html:not([data-storefront="true"]) body:has(#platform-hero) { background:#f6f8f6 !important; color:#18241d; }
 html:not([data-storefront="true"]) body:has(#platform-hero) .site-header { background:rgba(255,255,255,.96) !important; border-bottom:1px solid #e5eee7; box-shadow:0 3px 14px rgba(24,55,35,.06); }
-.site-header-inner { min-height:4.5rem; gap:1rem; }
-@media(min-width:1024px) { html:not([data-storefront="true"]) body:has(#platform-hero) .site-header-inner > div:last-child { display:none; } }
+.site-header-inner { height:4rem !important; min-height:4rem; gap:1rem; }
+html:not([data-storefront="true"]) body:has(#platform-hero) .site-header-inner > div:last-child { display:none; }
+html:not([data-storefront="true"]) body:has(#platform-hero) #desktop-search { display:none !important; }
+#mobile-menu-toggle { display:none; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; border:1px solid #dce9df; border-radius:.7rem; background:#fff; color:#26392d; }
+.platform-mobile-menu { display:none; }
+#platform-hero.platform-home { width:100%; max-width:none; margin:0; padding:0; }
+#platform-hero .platform-intro { width:100%; margin:0; border-right:0 !important; border-left:0 !important; border-radius:0; }
+#platform-hero .platform-template-gallery { width:100%; margin:0; border-right:0; border-left:0; border-radius:0; }
 #header-brand { min-width:10rem; }
 #header-platform-logo { object-fit:contain; }
 #desktop-search { max-width:25rem; }
@@ -11,6 +17,7 @@ html:not([data-storefront="true"]) body:has(#platform-hero) .site-header { backg
 .platform-nav-links a:hover,.platform-nav-links button:hover { color:#07834e; }
 .platform-nav-links .platform-header-cta { display:inline-flex; align-items:center; gap:.35rem; padding:.62rem .95rem; border:0; border-radius:999px; color:#fff !important; background:#07834e; box-shadow:0 4px 12px rgba(8,131,78,.2); font-size:.68rem; font-weight:800; }
 .platform-nav-links .platform-header-cta:hover { color:#fff !important; background:#066d42; }
+.mobile-headline-break { display:none; }
 html:not([data-storefront="true"]) .search-field input { border-radius:999px !important; background:#f8fbf8 !important; border-color:#dceee1 !important; }
 html:not([data-storefront="true"]) .search-field input:focus { background:#fff !important; border-color:#72bf8b !important; box-shadow:0 0 0 3px rgba(7,131,78,.1) !important; }
 html:not([data-storefront="true"]) #desktop-cart-btn { display:none !important; }
@@ -18,7 +25,7 @@ html:not([data-storefront="true"]) #desktop-cart-btn { display:none !important; 
 .platform-intro { position:relative; display:grid; grid-template-columns:minmax(0,1.12fr) minmax(19rem,.88fr); align-items:center; gap:2rem; min-height:27rem; overflow:hidden; padding:clamp(1.5rem,4vw,3.25rem); border:1px solid #dcefe2 !important; border-radius:1.35rem; background:linear-gradient(90deg,rgba(250,253,250,.91) 0%,rgba(250,253,250,.8) 46%,rgba(250,253,250,.43) 100%),url("../assets/background.jfif") center/cover no-repeat !important; box-shadow:0 12px 32px rgba(29,76,48,.07),inset 0 1px rgba(255,255,255,.9) !important; }
 .platform-intro-copy { position:relative; z-index:1; max-width:42rem; padding:0; }
 .platform-intro .platform-eyebrow { margin:0 0 1rem; color:#07834e !important; letter-spacing:.12em; font-size:.68rem; }
-.platform-intro h1 { max-width:11ch; margin:0; color:#172820 !important; font:700 clamp(2.7rem,5.1vw,4.65rem)/.99 "Manrope",sans-serif; letter-spacing:-.065em; }
+.platform-intro h1 { max-width:12ch; margin:0; color:#172820 !important; font:700 clamp(2.7rem,5.1vw,4.65rem)/.99 "Manrope",sans-serif; letter-spacing:-.065em; }
 .platform-intro h1 span { color:#07834e !important; }
 .platform-intro h1 .hero-heading-ink { color:#172820 !important; }
 .platform-intro h1 .hero-heading-accent { color:#c8463b !important; }
@@ -114,6 +121,12 @@ html:not([data-storefront="true"]) #desktop-cart-btn { display:none !important; 
 @media(prefers-reduced-motion:reduce) { .showcase-main-card,.template-gallery-card,.platform-primary,.platform-secondary { transition:none !important; } }
 
 @media(max-width:640px) {
+  .site-header-inner { height:3.5rem !important; min-height:3.5rem; }
+  html:not([data-storefront="true"]) body:has(#platform-hero) #mobile-menu-toggle { display:grid; }
+  html:not([data-storefront="true"]) body:has(#platform-hero) .platform-mobile-menu:not([hidden]) { display:flex; flex-direction:column; gap:.25rem; padding:.6rem 1rem .8rem; border-top:1px solid #edf1ed; background:#fff; }
+  .platform-mobile-menu a,.platform-mobile-menu button { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:2.75rem; padding:.65rem .75rem; border:0; border-radius:.6rem; background:transparent; color:#26392d; font-size:.85rem; font-weight:700; text-align:left; text-decoration:none; }
+  .platform-mobile-menu button { background:#07834e; color:#fff; }
+  .platform-mobile-menu button:hover { background:#066d42; }
   html:not([data-storefront="true"]) body:has(#platform-hero) .mobile-search { display:none !important; }
   html:not([data-storefront="true"]) body:has(#platform-hero) .mobile-bottom-nav .mobile-search-link,
   html:not([data-storefront="true"]) body:has(#platform-hero) .mobile-bottom-nav .mobile-orders-link { display:none !important; }
@@ -121,5 +134,13 @@ html:not([data-storefront="true"]) #desktop-cart-btn { display:none !important; 
   #platform-hero .platform-intro { width:100%; margin:0; padding:1.1rem 1rem .7rem; border-right:0 !important; border-left:0 !important; border-radius:0; }
   #platform-hero .platform-intro-copy { width:100%; max-width:none; }
   #platform-hero .platform-intro h1 { width:100%; max-width:none; font-size:clamp(1.25rem,7vw,2rem); line-height:1.08; white-space:normal; }
+  #platform-hero .desktop-headline-break { display:none; }
   #platform-hero .mobile-headline-break { display:block; }
+}
+
+@media(min-width:641px) and (max-width:1023px) {
+  html:not([data-storefront="true"]) body:has(#platform-hero) #mobile-menu-toggle { display:grid; }
+  html:not([data-storefront="true"]) body:has(#platform-hero) .platform-mobile-menu:not([hidden]) { display:flex; flex-direction:column; gap:.25rem; padding:.6rem 1rem .8rem; border-top:1px solid #edf1ed; background:#fff; }
+  .platform-mobile-menu a,.platform-mobile-menu button { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:2.75rem; padding:.65rem .75rem; border:0; border-radius:.6rem; background:transparent; color:#26392d; font-size:.85rem; font-weight:700; text-align:left; text-decoration:none; }
+  .platform-mobile-menu button { background:#07834e; color:#fff; }
 }

@@ -14,6 +14,20 @@ function safeShowcaseImageUrl(value) {
   }
 }
 
+function togglePlatformMobileMenu(show) {
+  const menu = document.getElementById("platform-mobile-menu");
+  const button = document.getElementById("mobile-menu-toggle");
+  const icon = document.getElementById("mobile-menu-icon");
+  if (!menu || !button) return;
+
+  const open = typeof show === "boolean" ? show : menu.hidden;
+  menu.hidden = !open;
+  button.setAttribute("aria-expanded", String(open));
+  button.setAttribute("aria-label", open ? "Close navigation menu" : "Open navigation menu");
+  icon?.setAttribute("data-lucide", open ? "x" : "menu");
+  renderIcons();
+}
+
 function renderFeaturedStoreShowcase(stores) {
   const carousel = document.querySelector(".showcase-carousel");
   const controls = document.querySelector(".showcase-carousel-controls");

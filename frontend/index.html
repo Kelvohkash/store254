@@ -75,6 +75,10 @@
         <button type="button" class="platform-header-cta" onclick="toggleDrawer('onboard-modal', true)">Open your store <i data-lucide="arrow-up-right"></i></button>
       </nav>
 
+      <button id="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="platform-mobile-menu" aria-expanded="false" onclick="togglePlatformMobileMenu()">
+        <i id="mobile-menu-icon" data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+
       <!-- Action Navigation Buttons -->
       <div class="flex items-center gap-2 sm:gap-3">
         <!-- Customer Profile Button -->
@@ -118,6 +122,11 @@
         <span>Filters</span>
       </button>
     </div>
+
+    <nav id="platform-mobile-menu" class="platform-mobile-menu" aria-label="Mobile navigation" hidden>
+      <a href="#platform-template-title" onclick="togglePlatformMobileMenu(false)">Seller themes</a>
+      <button type="button" onclick="togglePlatformMobileMenu(false); toggleDrawer('onboard-modal', true)">Open your store <i data-lucide="arrow-up-right" class="w-4 h-4"></i></button>
+    </nav>
   </header>
 
   <!-- STOREFRONT BANNER (Visible only when browsing an active store subdomain) -->
@@ -145,7 +154,7 @@
     <div class="platform-intro">
       <div class="platform-intro-copy">
         <p class="platform-eyebrow">Store254 <span>/</span> Kenya</p>
-        <h1><span class="hero-heading-green">Every small hustle<br class="mobile-headline-break"> has a home here</span></h1>
+        <h1><span class="hero-heading-ink">Every hustle<br class="desktop-headline-break"><br class="mobile-headline-break">has a home<br class="desktop-headline-break"> here</span></h1>
         <p class="platform-summary">Discover independent Kenyan brands and shops directly from the people behind them every local shop has its own digital storefront.</p>
         <div class="platform-hero-actions">
         <button onclick="toggleDrawer('onboard-modal', true)" class="platform-primary">
