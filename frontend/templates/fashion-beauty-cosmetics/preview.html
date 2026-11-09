@@ -1,313 +1,203 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-storefront="true" data-storefront-template="fashion-beauty-cosmetics">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Fashion, beauty and cosmetics storefront template preview for Store254.">
   <title>Fashion, Beauty and Cosmetics — Store254 Template Preview</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./template.css">
   <style>
-    :root { 
-      color-scheme: light; 
-      font-family: "DM Sans", sans-serif; 
-      color: #1a1a1a; 
-      background: #f4f4f5; 
+    :root {
+      --store-primary: #15803d;
+      --store-primary-hover: #166534;
+      --store-primary-subtle: #dcfce7;
+      --store-on-primary: #ffffff;
+      --store-paper: #edf5ee;
+      --store-white: #ffffff;
+      --store-ink: #0f2415;
+      --store-muted: #4b6353;
+      --store-line: #c8ded0;
+      --store-media-bg: #f3f8f4;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; padding: clamp(1rem, 3vw, 2.5rem); }
-    .preview-wrap { width: min(100%, 1100px); margin: auto; }
-    
-    .preview-note { display: flex; justify-content: space-between; align-items: center; margin: 0 0 1rem; color: #666; font-size: .8rem; }
-    .preview-note a { color: #075d78; font-weight: 700; text-decoration: none; }
-    .preview-note a:hover { text-decoration: underline; }
-
-    .preview-tools { display:flex; align-items:center; gap:.4rem; margin-bottom:1rem; background: #fff; padding: .5rem .8rem; border-radius: 10px; border: 1px solid #e4e4e7; }
-    .preview-tools strong { margin-right:auto; color:#52525b; font-size:.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .preview-tools button { padding:.4rem .8rem; border:1px solid #d4d4d8; border-radius:6px; color:#3f3f46; background:#fff; font:600 .75rem "DM Sans",sans-serif; cursor:pointer; transition: all 0.2s; }
-    .preview-tools button:hover { background: #f4f4f5; }
-    .preview-tools button[aria-pressed="true"] { border-color:#075d78; color:#fff; background:#075d78; }
-
-    .store-window { border: 1px solid #e4e4e7; border-radius: 12px; background: #fff; box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.07); overflow: hidden; transition: width .3s cubic-bezier(0.16, 1, 0.3, 1); }
-    .preview-wrap[data-view="mobile"] .store-window { width: min(100%, 390px); margin-inline:auto; }
-    .preview-wrap[data-view="mobile"] .nav-links, .preview-wrap[data-view="mobile"] .nav-actions { display:none; }
-    .preview-wrap[data-view="mobile"] .nav-search { margin-left:auto; max-width: 140px; }
-    .preview-wrap[data-view="mobile"] .store-nav { gap:.5rem; padding: .5rem; }
-    .preview-wrap[data-view="mobile"] .mobile-actions { display:flex; }
-    .preview-wrap[data-view="mobile"] .hero { min-height: 20rem; }
-    .preview-wrap[data-view="mobile"] .hero-copy { max-width: 100%; }
-
-    .browser-bar { display:flex; align-items:center; gap:.3rem; height:2rem; padding:0 .8rem; color:#a1a1aa; font-size:.65rem; background: #fafafa; border-bottom: 1px solid #f4f4f5; }
-    .browser-bar i { width:.45rem; height:.45rem; border-radius:50%; background:#d4d4d8; }
-    .browser-bar span { margin-left:.5rem; font-family: monospace; }
-
-    .store-nav { display:flex; align-items:center; min-height:4.2rem; gap:1.5rem; padding:0 1.5rem; color:#18181b; background:#fff; border-bottom: 1px solid #f4f4f5; }
-    .brand { display:flex; align-items:center; gap:.6rem; font-size:1rem; font-weight:800; letter-spacing: -0.02em; }
-    .brand-mark { display:grid; width:2.2rem; height:2.2rem; place-items:center; border-radius:50%; color:#fff; background:#075d78; font:600 1.1rem "Playfair Display",Georgia,serif; }
-    .brand small { display:block; color:#71717a; font-size:.55rem; font-weight:500; letter-spacing: 0.05em; text-transform: uppercase; }
-    
-    .nav-links { display:flex; gap: 1.5rem; margin-left:1rem; color:#3f3f46; font-size:.75rem; font-weight:600; letter-spacing: 0.03em; cursor: pointer; }
-    .nav-links span:hover { color: #075d78; }
-    
-    .nav-search { flex:1; max-width:20rem; margin:0 auto; }
-    .nav-search input { width:100%; padding:.55rem .9rem; border:1px solid #e4e4e7; border-radius:20px; color:#18181b; background:#fafafa; font:500 .75rem "DM Sans",sans-serif; outline: none; transition: border-color 0.2s; }
-    .nav-search input:focus { border-color: #075d78; background: #fff; }
-
-    .nav-actions { display:flex; gap:.4rem; align-items:center; }
-    .nav-actions button { display:flex; align-items:center; gap:.3rem; padding:.45rem .8rem; border:1px solid #e4e4e7; border-radius:8px; color:#3f3f46; background:#fff; font:600 .7rem "DM Sans",sans-serif; cursor:pointer; transition: all 0.2s; }
-    .nav-actions button:hover { border-color:#075d78; color:#075d78; background: #f8fafc; }
-    .mobile-actions { display:none; }
-
-    .hero { position:relative; display:flex; min-height: 28rem; align-items:center; padding: 3rem; color:#fff; background: linear-gradient(105deg,#063e50ee 0%,#075c72bb 60%), url("https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1800&q=85") center/cover; }
-    .hero-copy { position:relative; z-index:1; max-width: 50%; }
-    .hero small { font-size:.7rem; font-weight:700; letter-spacing:.2em; color:#93c5fd; text-transform: uppercase; }
-    .hero h1 { margin:.5rem 0 1rem; font-family: "Playfair Display", Georgia, serif; font-size: clamp(2rem, 4vw, 3.5rem); line-height: 1.1; font-weight: 600; letter-spacing: -0.02em; }
-    .hero p { margin:0 0 1.5rem; color:#e2e8f0; font-size:.95rem; line-height: 1.5; }
-    .hero-actions { display:flex; gap:.75rem; }
-    .hero-actions a { padding:.65rem 1.2rem; border-radius: 6px; font-size:.75rem; font-weight:700; text-decoration:none; transition: opacity 0.2s; }
-    .hero-actions a:first-child { color:#075d78; background:#fff; }
-    .hero-actions a:last-child { border:1px solid rgba(255,255,255,0.4); color:#fff; }
-    .hero-actions a:hover { opacity: 0.9; }
-
-    .benefits { display:grid; grid-template-columns:repeat(5,1fr); gap:1rem; padding:1.5rem 2rem; background: #fafafa; border-bottom: 1px solid #f4f4f5; text-align:center; }
-    .benefits span { font-size:.7rem; font-weight:600; color: #52525b; }
-    .benefits span::before { display:block; margin-bottom:.2rem; color:#075d78; content:"✦"; font-size:.9rem; }
-
-    .promo-grid { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:1rem; padding: 2rem; background: #fff; }
-    .promo { position:relative; display:flex; min-height: 16rem; align-items:flex-end; border-radius: 10px; overflow:hidden; padding: 1.5rem; color:#fff; background: linear-gradient(0deg,rgba(0,0,0,0.6) 0%, transparent 60%), url("https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=800&q=80") center/cover; transition: transform 0.3s ease; }
-    .promo:hover { transform: translateY(-3px); }
-    .promo:nth-child(2) { background-image: linear-gradient(0deg,rgba(0,0,0,0.6) 0%, transparent 60%), url("https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80"); }
-    .promo:nth-child(3) { background-image: linear-gradient(0deg,rgba(0,0,0,0.6) 0%, transparent 60%), url("https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=800&q=80"); }
-    .promo-copy small { font-size:.6rem; font-weight:700; letter-spacing:.15em; text-transform: uppercase; color: #cbd5e1; }
-    .promo h2 { margin:.3rem 0 .8rem; font-family: "Playfair Display", Georgia, serif; font-size: 1.25rem; font-weight: 600; line-height: 1.2; }
-    .promo a { display:inline-block; padding:.4rem .8rem; color:#18181b; background:#fff; border-radius: 4px; font-size:.65rem; font-weight:700; text-decoration:none; }
-
-    .featured { padding: 2rem; background:#fff; }
-    .featured-heading { margin-bottom: 1.5rem; text-align:center; }
-    .featured-heading small { color:#075d78; font-size:.7rem; font-weight:700; letter-spacing:.15em; text-transform: uppercase; }
-    .featured-heading h2 { margin:.3rem 0 0; font-family: "Playfair Display", Georgia, serif; font-size: 1.8rem; font-weight: 600; }
-
-    .product-grid { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap: 1.2rem; }
-    .product { cursor: pointer; group }
-    .product-art { position:relative; aspect-ratio: 4/5; border-radius: 8px; overflow:hidden; background:#f4f4f5; margin-bottom: .6rem; }
-    .product-art img { width:100%; height:100%; object-fit:cover; transition:transform .4s cubic-bezier(0.16, 1, 0.3, 1); }
-    .product:hover .product-art img { transform:scale(1.05); }
-    .product-badge { position:absolute; top:.5rem; right:.5rem; display:grid; width:1.5rem; height:1.5rem; place-items:center; border-radius:50%; color:#fff; background:rgba(0,0,0,0.5); backdrop-filter: blur(4px); font-size:.7rem; }
-    .product h3 { margin: 0 0 .2rem; font-size:.85rem; font-weight: 600; color: #27272a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .product p { margin:0; color:#71717a; font-size:.8rem; font-weight: 500; }
-
-    .product-modal[hidden], .demo-panel[hidden] { display:none; }
-    .product-modal { position:fixed; z-index:50; inset:0; display:grid; place-items:center; padding:1rem; background:rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
-    .modal-card { position:relative; display:grid; grid-template-columns: 1fr 1fr; width:min(100%, 700px); max-height:90vh; overflow:auto; border-radius:16px; background:#fff; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-    .modal-card > img { width:100%; height:100%; min-height:350px; object-fit:cover; background:#f4f4f5; }
-    .modal-copy { padding: 2rem; display: flex; flex-direction: column; justify-content: center; }
-    .modal-close { position:absolute; top:1rem; right:1rem; width:2.2rem; height:2.2rem; border:0; border-radius:50%; background:#f4f4f5; font-size:1.2rem; cursor:pointer; display: grid; place-items: center; transition: background 0.2s; }
-    .modal-close:hover { background: #e4e4e7; }
-    .modal-copy small { color:#075d78; font-weight:700; letter-spacing:.1em; text-transform: uppercase; font-size: .65rem; }
-    .modal-copy h2 { font-family: "Playfair Display", Georgia, serif; font-size: 1.8rem; margin: .4rem 0; font-weight: 600; }
-    .modal-price { font-size: 1.25rem; font-weight: 700; color: #18181b; margin-bottom: 1rem; }
-    .modal-copy p { color:#52525b; font-size:.85rem; line-height:1.6; margin-bottom: 1.5rem; }
-    .modal-copy button, .panel-action { width:100%; padding:.8rem; border:0; border-radius:8px; color:#fff; background:#075d78; font:600 .85rem "DM Sans",sans-serif; cursor:pointer; transition: opacity 0.2s; }
-    .modal-copy button:hover { opacity: 0.9; }
-    .modal-copy .secondary-action { border:1px solid #e4e4e7; color:#18181b; background:#fff; margin-top: .5rem; }
-    .modal-copy .secondary-action:hover { background: #f4f4f5; }
-
-    .demo-panel { position:fixed; z-index:60; inset:0 0 0 auto; width:min(100%, 400px); padding:1.5rem; background:#fff; box-shadow:-20px 0 50px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
-    .demo-panel header { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f4f4f5; padding-bottom:1rem; margin-bottom: 1rem; }
-    .demo-panel header button { border:0; background:transparent; font-size:1.4rem; cursor:pointer; color: #71717a; }
-    .demo-panel h2 { font-family: "Playfair Display", Georgia, serif; font-size: 1.4rem; font-weight: 600; margin: 0; }
-    .demo-panel p { color:#71717a; font-size:.85rem; line-height:1.5; }
-    .demo-panel .panel-line { display:flex; justify-content:space-between; padding:1rem 0; border-bottom:1px solid #f4f4f5; font-size:.9rem; font-weight: 500; }
-
-    @media(max-width: 900px) {
-      .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .benefits { display: none; }
+    .preview-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      background: #0f172a;
+      color: #f8fafc;
+      font: 600 0.8rem system-ui, sans-serif;
     }
-    @media(max-width: 650px) { 
-      .nav-links, .nav-actions { display:none; } 
-      .nav-search { margin-left:auto; } 
-      .store-nav { gap:.5rem; padding: 0 1rem; } 
-      .mobile-actions { display:flex; justify-content:space-around; padding:.6rem; border-top:1px solid #f4f4f5; background: #fff; } 
-      .mobile-actions button { border:0; color:#3f3f46; background:transparent; font:600 .7rem "DM Sans",sans-serif; cursor:pointer; } 
-      .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
-      .promo-grid { grid-template-columns: 1fr; }
-      .modal-card { grid-template-columns: 1fr; width: 100%; height: 100%; border-radius: 0; }
-      .modal-card > img { min-height: 250px; }
+    .preview-bar input[type="color"] {
+      width: 2rem;
+      height: 1.75rem;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .preview-controls { display: flex; align-items: center; gap: 0.85rem; }
+    .preview-badge {
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: #1e293b;
+      color: #38bdf8;
+      font-size: 0.72rem;
     }
   </style>
 </head>
 <body>
-  <main class="preview-wrap">
-    <div class="preview-note">
-      <span>Fashion, Beauty and Cosmetics Template</span>
-      <a href="/admin.html">Back to store settings</a>
+  <div class="preview-bar">
+    <div><strong>Fashion, Beauty and Cosmetics</strong> · <span style="opacity:.8">A photo-led fashion storefront with a bold brand bar, category ribbon, and editorial product cards.</span></div>
+    <div class="preview-controls">
+      <label>Foreground <input type="color" id="fg-picker" value="#15803d"></label>
+      <label>Background <input type="color" id="bg-picker" value="#edf5ee"></label>
+      <span id="contrast-status" class="preview-badge">WCAG Auto-Contrast Active</span>
     </div>
-    
-    <div class="preview-tools" role="group" aria-label="Preview device size">
-      <strong>Storefront preview</strong>
-      <button type="button" data-view="desktop" aria-pressed="true">Desktop / PC</button>
-      <button type="button" data-view="mobile" aria-pressed="false">Phone</button>
+  </div>
+
+  <header id="site-header">
+    <div id="header-brand">
+      <div id="header-store-identity">
+        <h1 id="header-store-name">Fashion, Beauty and Cosmetics Store</h1>
+        <p id="header-store-tagline">THE NEW SEASON</p>
+      </div>
     </div>
+    <form id="search-form" onsubmit="event.preventDefault()">
+      <input type="search" id="search-input" placeholder="Search products, services, categories...">
+    </form>
+    <nav id="header-actions-nav">
+      <button type="button">Profile</button>
+      <button type="button">Wishlist (2)</button>
+      <button type="button" id="desktop-cart-btn">Cart (3)</button>
+    </nav>
+  </header>
 
-    <section class="store-window" aria-label="Fashion and beauty storefront">
-      <div class="browser-bar"><i></i><i></i><i></i><span>yourstore.store254.co.ke</span></div>
-      
-      <nav class="store-nav">
-        <strong class="brand"><span class="brand-mark">E</span><span>Editorial<small>Boutique</small></span></strong>
-        <div class="nav-links"><span>NEW</span><span>WOMEN</span><span>BEAUTY</span><span>ACCESSORIES</span></div>
-        <label class="nav-search"><input type="search" placeholder="Search products..." aria-label="Search products"></label>
-        <div class="nav-actions">
-          <button type="button" data-panel="profile">Profile</button>
-          <button type="button" data-panel="orders">Orders</button>
-          <button type="button" data-panel="wishlist">Wishlist</button>
-          <button type="button" data-panel="cart">Bag (<span data-cart-count>0</span>)</button>
-        </div>
-      </nav>
+  <nav id="storefront-category-nav">
+    <div id="category-pills">
+      <button type="button" aria-selected="true">All Items</button>
+      <button type="button" aria-selected="false">Featured</button>
+      <button type="button" aria-selected="false">New Arrivals</button>
+      <button type="button" aria-selected="false">Services</button>
+    </div>
+  </nav>
 
-      <div class="mobile-actions">
-        <button type="button" data-panel="profile">Profile</button>
-        <button type="button" data-panel="orders">Orders</button>
-        <button type="button" data-panel="wishlist">Wishlist</button>
-        <button type="button" data-panel="cart">Bag (<span data-cart-count>0</span>)</button>
-      </div>
+  <section id="store-info-banner">
+    <p id="banner-store-subdomain">THE NEW SEASON</p>
+    <h2 id="banner-store-name">Everyday, considered.</h2>
+    <p id="banner-store-desc">A photo-led fashion storefront with a bold brand bar, category ribbon, and editorial product cards.</p>
+    <a id="storefront-primary-cta" href="#items-grid">Discover the edit</a>
+  </section>
 
-      <section class="hero">
-        <div class="hero-copy">
-          <small>The New Season</small>
-          <h1>Everyday, considered.</h1>
-          <p>Discover thoughtfully curated essentials designed for modern living and style.</p>
-          <div class="hero-actions">
-            <a href="#featured">Explore The Edit</a>
-            <a href="#offers">New Arrivals</a>
-          </div>
+  <main id="storefront-view">
+    <div id="catalog-layout">
+      <aside id="desktop-filter-sidebar">
+        <h4>Dynamic Filters</h4>
+        <fieldset>
+          <legend>Category</legend>
+          <label><input type="checkbox" checked> Signature Collection</label>
+          <label><input type="checkbox"> Limited Release</label>
+          <label><input type="checkbox"> Bookable Services</label>
+        </fieldset>
+      </aside>
+      <section id="catalog-main-content">
+        <div id="items-grid">
+          <article class="product-card">
+            <figure class="product-card-media"></figure>
+            <div class="product-card-body">
+              <h5 class="product-title">Signature Store Item One</h5>
+              <span class="product-price">KES 4,500</span>
+            </div>
+            <div class="product-card-actions">
+              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product-card">
+            <figure class="product-card-media"></figure>
+            <div class="product-card-body">
+              <h5 class="product-title">Curated Essential Two</h5>
+              <span class="product-price">KES 6,200</span>
+            </div>
+            <div class="product-card-actions">
+              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product-card">
+            <figure class="product-card-media"></figure>
+            <div class="product-card-body">
+              <h5 class="product-title">Artisan Edition Three</h5>
+              <span class="product-price">KES 3,800</span>
+            </div>
+            <div class="product-card-actions">
+              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+            </div>
+          </article>
         </div>
       </section>
-
-      <div class="benefits" aria-label="Shopping benefits">
-        <span>Free Countrywide Delivery</span>
-        <span>Secure M-Pesa & Card Checkout</span>
-        <span>Authentic Designer Pieces</span>
-        <span>Easy 7-Day Returns</span>
-        <span>Local Support</span>
-      </div>
-
-      <section class="promo-grid" id="offers" aria-label="Featured collections">
-        <article class="promo"><div class="promo-copy"><small>Collection</small><h2>Step into the new season</h2><a href="#featured">View Edit</a></div></article>
-        <article class="promo"><div class="promo-copy"><small>Beauty</small><h2>Signature looks made for you</h2><a href="#featured">Discover</a></div></article>
-        <article class="promo"><div class="promo-copy"><small>Accessories</small><h2>Details that complete the look</h2><a href="#featured">Shop Now</a></div></article>
-      </section>
-
-      <section class="featured" id="featured">
-        <div class="featured-heading">
-          <small>Curated Selection</small>
-          <h2>Trending Pieces</h2>
-        </div>
-        <div class="product-grid">
-          <article class="product" tabindex="0" role="button" data-product="City Runner Sneaker"><div class="product-art"><img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&amp;fit=crop&amp;w=700&amp;q=85" alt="City runner sneaker"><span class="product-badge">+</span></div><h3>City Runner Sneaker</h3><p>KES 4,800</p></article>
-          <article class="product" tabindex="0" role="button" data-product="Minimalist Leather Tote"><div class="product-art"><img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&amp;fit=crop&amp;w=700&amp;q=85" alt="Minimalist Leather Tote"><span class="product-badge">+</span></div><h3>Minimalist Leather Tote</h3><p>KES 5,200</p></article>
-          <article class="product" tabindex="0" role="button" data-product="Evening Silhouette Dress"><div class="product-art"><img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&amp;fit=crop&amp;w=700&amp;q=85" alt="Evening silhouette dress"><span class="product-badge">+</span></div><h3>Evening Silhouette</h3><p>KES 3,600</p></article>
-          <article class="product" tabindex="0" role="button" data-product="Soft Step Neutrals"><div class="product-art"><img src="https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&amp;fit=crop&amp;w=700&amp;q=85" alt="Soft step neutrals"><span class="product-badge">+</span></div><h3>Soft Step Neutrals</h3><p>KES 4,200</p></article>
-          <article class="product" tabindex="0" role="button" data-product="Classic Tailored Blazer"><div class="product-art"><img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&amp;fit=crop&amp;w=700&amp;q=85" alt="Classic tailored blazer"><span class="product-badge">+</span></div><h3>Tailored Blazer</h3><p>KES 6,500</p></article>
-        </div>
-      </section>
-    </section>
-
-    <section class="product-modal" id="product-modal" hidden aria-modal="true" role="dialog" aria-labelledby="modal-title">
-      <div class="modal-card">
-        <button type="button" class="modal-close" data-close aria-label="Close product details">×</button>
-        <img id="modal-image" src="" alt="">
-        <div class="modal-copy">
-          <small>In Stock</small>
-          <h2 id="modal-title"></h2>
-          <div class="modal-price" id="modal-price"></div>
-          <p>Crafted with premium materials for a seamless everyday fit. Ready for fast delivery right to your door.</p>
-          <button type="button" id="modal-add">Add to Shopping Bag</button>
-          <button type="button" class="secondary-action" id="modal-wishlist">Save to Wishlist</button>
-        </div>
-      </div>
-    </section>
-
-    <aside class="demo-panel" id="demo-panel" hidden>
-      <header><h2 id="panel-title">Your Bag</h2><button type="button" data-close aria-label="Close panel">×</button></header>
-      <div id="panel-content" style="flex:1;"></div>
-    </aside>
+    </div>
   </main>
 
   <script>
-    const wrap = document.querySelector('.preview-wrap');
-    const products = [...document.querySelectorAll('.product')];
-    const modal = document.getElementById('product-modal');
-    const panel = document.getElementById('demo-panel');
-    let chosenProduct = products[0];
-    let bagCount = 0;
-
-    document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
-      wrap.dataset.view = button.dataset.view;
-      document.querySelectorAll('[data-view]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
-    }));
-
-    function openProduct(product) {
-      chosenProduct = product;
-      document.getElementById('modal-title').textContent = product.dataset.product;
-      document.getElementById('modal-price').textContent = product.querySelector('p').textContent;
-      const source = product.querySelector('img');
-      const image = document.getElementById('modal-image');
-      image.src = source.src;
-      image.alt = source.alt;
-      modal.hidden = false;
+    function hexToRgb(hex) {
+      const clean = hex.replace("#", "");
+      const full = clean.length === 3 ? [...clean].map(c => c + c).join("") : clean;
+      return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
     }
-
-    products.forEach(product => {
-      product.addEventListener('click', () => openProduct(product));
-      product.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openProduct(product); } });
-    });
-
-    function closeWindows() { modal.hidden = true; panel.hidden = true; }
-    document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', closeWindows));
-    modal.addEventListener('click', event => { if (event.target === modal) closeWindows(); });
-
-    document.getElementById('modal-add').addEventListener('click', () => {
-      bagCount += 1;
-      document.querySelectorAll('[data-cart-count]').forEach(count => count.textContent = bagCount);
-      modal.hidden = true;
-      showPanel('cart');
-    });
-
-    document.getElementById('modal-wishlist').addEventListener('click', event => {
-      event.currentTarget.textContent = '✓ Saved to Wishlist';
-      event.currentTarget.style.borderColor = '#075d78';
-      event.currentTarget.style.color = '#075d78';
-    });
-
-    function showPanel(kind) {
-      modal.hidden = true;
-      panel.hidden = false;
-      const title = document.getElementById('panel-title');
-      const content = document.getElementById('panel-content');
-      const names = { profile:'Your Profile', orders:'Recent Orders', wishlist:'Your Wishlist', cart:'Shopping Bag', checkout:'Checkout' };
-      title.textContent = names[kind] || 'Account';
-      
-      if (kind === 'cart' || kind === 'checkout') {
-        content.innerHTML = bagCount ? `<div class="panel-line"><span>${chosenProduct.dataset.product} × ${bagCount}</span><strong>${chosenProduct.querySelector('p').textContent}</strong></div><p style="margin-top:1rem;">Taxes and shipping calculated at checkout.</p><button class="panel-action" type="button" style="margin-top:2rem;" data-checkout>Proceed to Checkout</button>` : '<p>Your bag is currently empty.</p>';
-        content.querySelector('[data-checkout]')?.addEventListener('click', () => alert('Proceeding to secure checkout integration...'));
-      } else if (kind === 'wishlist') {
-        content.innerHTML = '<p>Items you save to your wishlist will appear here for easy access.</p>';
-      } else if (kind === 'orders') {
-        content.innerHTML = '<p>You have no active order history right now.</p>';
-      } else {
-        content.innerHTML = '<p>Sign in with your email or phone number to manage store preferences.</p>';
+    function rgbToHex(r, g, b) {
+      return "#" + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+    }
+    function luminance([r, g, b]) {
+      const a = [r, g, b].map(v => {
+        v /= 255;
+        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+    }
+    function contrast(rgb1, rgb2) {
+      const l1 = luminance(rgb1), l2 = luminance(rgb2);
+      return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    }
+    function mix(rgb1, rgb2, w1) {
+      return rgb1.map((c, i) => c * w1 + rgb2[i] * (1 - w1));
+    }
+    function applyAutoPalette(fgHex, bgHex) {
+      const bgRgb = hexToRgb(bgHex);
+      const rawFgRgb = hexToRgb(fgHex);
+      const bgLum = luminance(bgRgb);
+      const isDark = bgLum <= 0.18;
+      const surfaceRgb = isDark ? mix(bgRgb, [255, 255, 255], 0.88) : [255, 255, 255];
+      let safeFg = rawFgRgb;
+      let adjusted = false;
+      if (contrast(safeFg, bgRgb) < 4.5 || contrast(safeFg, surfaceRgb) < 4.5) {
+        adjusted = true;
+        const target = isDark ? [255, 255, 255] : [0, 0, 0];
+        for (let step = 0.05; step <= 0.95; step += 0.05) {
+          const candidate = mix(rawFgRgb, target, 1 - step);
+          if (contrast(candidate, bgRgb) >= 4.5 && contrast(candidate, surfaceRgb) >= 4.5) {
+            safeFg = candidate;
+            break;
+          }
+        }
       }
+      const primaryHex = rgbToHex(...safeFg);
+      const onPrimary = contrast([255, 255, 255], safeFg) >= contrast([12, 18, 28], safeFg) ? "#ffffff" : "#0c121c";
+      const root = document.documentElement;
+      root.style.setProperty("--store-paper", bgHex);
+      root.style.setProperty("--store-white", rgbToHex(...surfaceRgb));
+      root.style.setProperty("--store-primary", primaryHex);
+      root.style.setProperty("--store-on-primary", onPrimary);
+      root.style.setProperty("--store-ink", isDark ? "#f8fafc" : "#0f172a");
+      root.style.setProperty("--store-muted", isDark ? "#cbd5e1" : "#475569");
+      root.style.setProperty("--store-line", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.78) : mix(bgRgb, [0, 0, 0], 0.84))));
+      root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
+      document.getElementById("contrast-status").textContent = adjusted
+        ? "Auto-Adjusted for High Visibility (" + primaryHex + ")"
+        : "Optimal Contrast Verified";
     }
-
-    document.querySelectorAll('[data-panel]').forEach(button => button.addEventListener('click', () => showPanel(button.dataset.panel)));
-
-    document.querySelector('.nav-search input').addEventListener('input', event => {
-      const query = event.target.value.trim().toLowerCase();
-      products.forEach(product => { product.style.display = product.dataset.product.toLowerCase().includes(query) ? 'block' : 'none'; });
-    });
-
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeWindows(); });
+    document.getElementById("fg-picker").addEventListener("input", e => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
+    document.getElementById("bg-picker").addEventListener("input", e => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
   </script>
 </body>
 </html>

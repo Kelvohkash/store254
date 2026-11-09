@@ -61,3 +61,44 @@ test("marketplace landing has distinct premium surfaces and mobile-safe styling"
   assert.match(home, /@media\s*\(max-width:\s*640px\)/);
   assert.match(home, /prefers-reduced-motion:\s*reduce/);
 });
+
+test("every catalog template has a generated stylesheet and preview in templates folder using automatic color tokens", async () => {
+  const catalog = JSON.parse(await read("../templates/catalog.json"));
+  assert.ok(catalog.templates.length >= 10, "expected at least 10 generated templates");
+  for (const template of catalog.templates) {
+    assert.ok(template.stylesheet, `${template.id} must have a generated stylesheet`);
+    assert.ok(template.preview, `${template.id} must have a generated preview`);
+    const css = await read(`../templates/${template.stylesheet}`);
+    const previewHtml = await read(`../templates/${template.preview}`);
+    assert.match(css, /var\(--store-primary\)/, `${template.id} css must use --store-primary`);
+    assert.match(css, /var\(--store-paper\)/, `${template.id} css must use --store-paper`);
+    assert.match(css, /var\(--store-ink\)/, `${template.id} css must use --store-ink`);
+    assert.match(css, /var\(--store-on-primary\)/, `${template.id} css must use --store-on-primary`);
+    assert.match(previewHtml, new RegExp(`data-storefront-template="${template.id}"`));
+  }
+});
+
+test("automatic color visibility engine resolves dark-on-dark and light-on-light selections safely", async () => {
+  const appCore = await read("../scripts/storefront/core.js");
+  const fnMatch = appCore.match(/function normalizeHexColor[\s\S]*?function resolveStorefrontColorTokens[\s\S]*?^\}/m);
+  assert.ok(fnMatch, "resolveStorefrontColorTokens must be defined in core.js");
+  const runner = new Function(`${fnMatch[0]}; return { resolveStorefrontColorTokens, getHexContrastRatio };`)();
+
+  // 1. Dark foreground + Dark background
+  const darkOnDark = runner.resolveStorefrontColorTokens("#111827", "#0f172a");
+  assert.equal(darkOnDark.isDark, true);
+  assert.equal(darkOnDark.wasAdjusted, true);
+  assert.ok(darkOnDark.contrastOnPaper >= 4.5, `Expected >=4.5 contrast on dark paper, got ${darkOnDark.contrastOnPaper}`);
+  assert.ok(darkOnDark.contrastOnSurface >= 4.5, `Expected >=4.5 contrast on dark surface, got ${darkOnDark.contrastOnSurface}`);
+  assert.ok(runner.getHexContrastRatio(darkOnDark.ink, darkOnDark.paper) >= 7, "Body ink must be high-contrast on dark background");
+  assert.ok(runner.getHexContrastRatio(darkOnDark.onPrimary, darkOnDark.primary) >= 4.5, "Button text must be legible on primary");
+
+  // 2. Light foreground + Light background
+  const lightOnLight = runner.resolveStorefrontColorTokens("#f8fafc", "#ffffff");
+  assert.equal(lightOnLight.isDark, false);
+  assert.equal(lightOnLight.wasAdjusted, true);
+  assert.ok(lightOnLight.contrastOnPaper >= 4.5, `Expected >=4.5 contrast on light paper, got ${lightOnLight.contrastOnPaper}`);
+  assert.ok(lightOnLight.contrastOnSurface >= 4.5, `Expected >=4.5 contrast on light surface, got ${lightOnLight.contrastOnSurface}`);
+  assert.ok(runner.getHexContrastRatio(lightOnLight.ink, lightOnLight.paper) >= 7, "Body ink must be high-contrast on light background");
+  assert.ok(runner.getHexContrastRatio(lightOnLight.onPrimary, lightOnLight.primary) >= 4.5, "Button text must be legible on primary");
+});

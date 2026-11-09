@@ -6,15 +6,15 @@ description: Add or update Store254 storefront templates that use the shared liv
 
 This folder contains Store254 storefront templates. Templates may redesign or replace any part of the storefront, including the header, navigation, filters, product listing, and page layout. Every existing customer option and action must remain available somewhere in the storefront: live products, prices, descriptions, product options, dynamic filters, featured products, search, profile, orders, wishlist, cart, and checkout. Reuse their existing state and handlers where possible; do not create template-specific product data or duplicate commerce behavior.
 
-## Add a template
+## Add or regenerate templates with the Blueprint Generator
 
-1. Create a lowercase, hyphenated folder under `frontend/templates/`, for example `coastal-market/`.
-2. Add an entry to `frontend/templates/catalog.json` with a unique `id`, customer-facing `name`, short `description`, and `defaults` for `archetype`, `header`, `card`, `hero`, and `font`. `kicker`, `title`, and `cta` supply preview copy. Keep those defaults compatible with the current shared data engine; the template stylesheet can fully change how they appear.
-3. Add a catalog entry for each theme. The public landing page gallery and new-store onboarding read from this catalog, so a catalog addition must be startable by new customers without hand-editing a second list. Include a `previewImage` URL or a `preview` page when a tailored gallery preview is available; the gallery still renders a usable card when neither is supplied.
-4. Optionally add `template.css` in the template folder and set `stylesheet` to its relative path in the catalog. Scope selectors to `html[data-storefront="true"][data-storefront-template="your-id"]`. Use shared color variables such as `--store-primary`, `--store-paper`, `--store-white`, `--store-ink`, and `--store-muted` so any of the six palettes can be applied.
-5. A template may rearrange or replace markup and controls. Preserve every user-facing action from the shared storefront somewhere, including search, profile, orders, wishlist, cart, checkout, dynamic filters, category selection, and product detail. Keep actions connected to their existing state and handlers, maintain keyboard and phone usability, and do not require template-specific catalog data.
-6. Optionally add `preview.html` for a complete visual reference. The admin preview reads template defaults and palette from the catalog. Avoid hard-coded template allow-lists in the admin, storefront runtime, or public gallery.
-7. Confirm catalog JSON validity, template contract checks, and any page-specific responsive or interaction checks.
+1. Open `frontend/templates/generate-templates.mjs` and add a blueprint object to `TEMPLATE_BLUEPRINTS` (specifying `id`, `name`, `description`, `previewImage`, `defaults`, and `tokens` such as `headerStyle`, `cardVariant`, `cardRadius`, `buttonRadius`, `mediaRatio`, and `gridColumnsDesktop`).
+2. Run `node frontend/templates/generate-templates.mjs` to automatically generate:
+   - `frontend/templates/<id>/template.css` (scoped to both the live storefront `html[data-storefront="true"][data-storefront-template="<id>"]` and standalone `store-tenant.html` `html[data-storefront-template="<id>"]`)
+   - `frontend/templates/<id>/preview.html` (interactive preview with live Foreground & Background color pickers)
+   - `frontend/templates/catalog.json` (updated catalog and palettes)
+3. All generated templates rely purely on the automatic contrast-safe CSS variables (`--store-primary`, `--store-primary-hover`, `--store-primary-subtle`, `--store-on-primary`, `--store-paper`, `--store-white`, `--store-surface-subtle`, `--store-ink`, `--store-muted`, `--store-line`, `--store-media-bg`) resolved by `resolveStorefrontColorTokens(foregroundHex, backgroundHex)` so that even if a user picks a dark foreground on a dark background (or light on light), visibility and WCAG contrast are automatically preserved.
+4. Run `node --test frontend/tests/template-contract.test.mjs` to verify catalog validity, generated files, and automatic contrast guardrails.
 
 ## Six shared palettes
 

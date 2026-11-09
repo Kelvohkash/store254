@@ -87,6 +87,14 @@ function selectThemePalette(paletteId) {
   document.getElementById("settings-theme-palette").value = palette.id;
   document.getElementById("settings-primary-color").value = palette.primary;
   document.getElementById("settings-background-color").value = palette.background;
+  const fgPicker = document.getElementById("settings-primary-color-picker");
+  const bgPicker = document.getElementById("settings-background-color-picker");
+  const fgHex = document.getElementById("foreground-color-hex");
+  const bgHex = document.getElementById("background-color-hex");
+  if (fgPicker) fgPicker.value = palette.primary;
+  if (bgPicker) bgPicker.value = palette.background;
+  if (fgHex) fgHex.textContent = palette.primary;
+  if (bgHex) bgHex.textContent = palette.background;
   document.querySelectorAll(".template-palette-choice").forEach((button) => {
     const selected = button.dataset.palette === palette.id;
     button.classList.toggle("is-selected", selected);
@@ -94,6 +102,89 @@ function selectThemePalette(paletteId) {
   });
   document.getElementById("selected-palette-name").textContent = palette.name;
   updateDesignPreview();
+}
+
+function selectCustomStoreColors(foregroundColor, backgroundColor) {
+  const fg = /^#[0-9a-f]{6}$/i.test(foregroundColor || "") ? foregroundColor.toLowerCase() : "#15803d";
+  const bg = /^#[0-9a-f]{6}$/i.test(backgroundColor || "") ? backgroundColor.toLowerCase() : "#edf5ee";
+  document.getElementById("settings-primary-color").value = fg;
+  document.getElementById("settings-background-color").value = bg;
+  const fgPicker = document.getElementById("settings-primary-color-picker");
+  const bgPicker = document.getElementById("settings-background-color-picker");
+  const fgHex = document.getElementById("foreground-color-hex");
+  const bgHex = document.getElementById("background-color-hex");
+  if (fgPicker) fgPicker.value = fg;
+  if (bgPicker) bgPicker.value = bg;
+  if (fgHex) fgHex.textContent = fg;
+  if (bgHex) bgHex.textContent = bg;
+
+  const matchedPalette = storefrontTemplateCatalog.palettes.find(
+    (entry) => entry.primary.toLowerCase() === fg && entry.background.toLowerCase() === bg
+  );
+  document.querySelectorAll(".template-palette-choice").forEach((button) => {
+    const selected = Boolean(matchedPalette && button.dataset.palette === matchedPalette.id);
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  const paletteLabel = document.getElementById("selected-palette-name");
+  if (paletteLabel) {
+    paletteLabel.textContent = matchedPalette ? matchedPalette.name : "Custom (Auto-Contrast)";
+  }
+  updateDesignPreview();
+}
+
+function resolveAdminColorTokens(foregroundHex, backgroundHex) {
+  const toRgb = (hex) => {
+    const clean = String(hex || "#000000").replace("#", "");
+    const full = clean.length === 3 ? [...clean].map((c) => c + c).join("") : clean;
+    return [0, 2, 4].map((offset) => parseInt(full.slice(offset, offset + 2), 16));
+  };
+  const toHex = ([r, g, b]) =>
+    `#${[r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("")}`;
+  const mix = (a, b, w) => [a[0] * w + b[0] * (1 - w), a[1] * w + b[1] * (1 - w), a[2] * w + b[2] * (1 - w)];
+  const lum = (rgb) =>
+    rgb
+      .map((c) => {
+        const v = c / 255;
+        return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      })
+      .reduce((sum, val, i) => sum + val * [0.2126, 0.7152, 0.0722][i], 0);
+  const contrast = (a, b) => {
+    const l1 = lum(a);
+    const l2 = lum(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  };
+
+  const bgRgb = toRgb(backgroundHex);
+  const rawFgRgb = toRgb(foregroundHex);
+  const isDark = lum(bgRgb) <= 0.18;
+  const surfaceRgb = isDark ? mix(bgRgb, [255, 255, 255], 0.88) : [255, 255, 255];
+
+  let safeFgRgb = rawFgRgb;
+  let wasAdjusted = false;
+  if (contrast(safeFgRgb, bgRgb) < 4.5 || contrast(safeFgRgb, surfaceRgb) < 4.5) {
+    wasAdjusted = true;
+    const pole = isDark ? [255, 255, 255] : [0, 0, 0];
+    for (let step = 0.04; step <= 0.96; step += 0.04) {
+      const candidate = mix(rawFgRgb, pole, 1 - step);
+      if (contrast(candidate, bgRgb) >= 4.5 && contrast(candidate, surfaceRgb) >= 4.5) {
+        safeFgRgb = candidate;
+        break;
+      }
+    }
+  }
+
+  const primary = toHex(safeFgRgb);
+  const onPrimary = contrast([255, 255, 255], safeFgRgb) >= contrast([12, 18, 28], safeFgRgb) ? "#ffffff" : "#0c121c";
+  const ink = isDark ? "#f8fafc" : "#0f172a";
+
+  return {
+    primary,
+    background: toHex(bgRgb),
+    ink,
+    onPrimary,
+    wasAdjusted,
+  };
 }
 
 function setDesignPreviewSize(size, button) {
@@ -114,13 +205,24 @@ function updateDesignPreview() {
     || storefrontTemplateCatalog.palettes[0];
   if (!template || !palette) return;
 
+  const rawPrimary = document.getElementById("settings-primary-color")?.value || palette.primary;
+  const rawBg = document.getElementById("settings-background-color")?.value || palette.background;
+  const resolved = resolveAdminColorTokens(rawPrimary, rawBg);
+
   const defaults = template.defaults || {};
-  const storeName = currentStoreDesign.name || "Your Store";
+  const storeName = document.getElementById("settings-name")?.value.trim() || currentStoreDesign.name || "Your Store";
   stage.dataset.template = template.id;
-  stage.style.setProperty("--preview-primary", palette.primary);
-  stage.style.setProperty("--preview-bg", palette.background);
-  stage.style.setProperty("--preview-ink", getContrastTextColor(palette.background));
-  stage.style.setProperty("--preview-on-primary", getContrastTextColor(palette.primary));
+  stage.style.setProperty("--preview-primary", resolved.primary);
+  stage.style.setProperty("--preview-bg", resolved.background);
+  stage.style.setProperty("--preview-ink", resolved.ink);
+  stage.style.setProperty("--preview-on-primary", resolved.onPrimary);
+  const contrastNote = document.getElementById("design-contrast-note");
+  if (contrastNote) {
+    contrastNote.textContent = resolved.wasAdjusted
+      ? `Visibility Guardrail Active: ${rawPrimary} on ${rawBg} was automatically balanced to ${resolved.primary} so all text and buttons remain 100% readable.`
+      : `High-contrast pair verified (${resolved.primary} on ${resolved.background}). All text, surfaces, and buttons are automatically styled.`;
+    contrastNote.classList.toggle("is-warning", resolved.wasAdjusted);
+  }
   stage.dataset.headingFont = defaults.font || "modern";
   stage.dataset.heroStyle = defaults.hero || "split";
   stage.dataset.cardStyle = defaults.card || "grid-card";
@@ -192,6 +294,13 @@ async function loadSettings() {
     : "trust-forest";
   selectStoreTemplate(savedTemplate);
   selectThemePalette(savedPalette);
+  if (settings.primaryColor || settings.backgroundColor) {
+    const paletteObj = storefrontTemplateCatalog.palettes.find((p) => p.id === savedPalette) || storefrontTemplateCatalog.palettes[0];
+    selectCustomStoreColors(
+      settings.primaryColor || paletteObj.primary,
+      settings.backgroundColor || paletteObj.background
+    );
+  }
 }
 
 async function saveStoreSettings(event) {

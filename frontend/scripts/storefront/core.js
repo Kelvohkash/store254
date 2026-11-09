@@ -19,48 +19,222 @@ function renderIcons() {
   }
 }
 
-// 1.5 Theme Palette Engine (Psychology-Driven Colors)
+// 1.5 Theme Palette & Automatic Contrast-Safe Color Engine
 const THEME_PALETTES = {
-  "trust-forest": { name: "Trust Emerald & Forest", accent: "#15803d" },
-  "sapphire-blue": { name: "Sapphire Trust & Blue", accent: "#0284c7" },
-  "organic-sage": { name: "Organic Sage & Wellness", accent: "#2d6a4f" },
-  "modern-onyx": { name: "Modern Onyx & Mint", accent: "#059669" },
-  "sunset-amber": { name: "Sunset Amber & Coral", accent: "#d97706" },
-  "rose": { name: "Rose", accent: "#b64269" },
+  "trust-forest": { name: "Trust Emerald & Forest", accent: "#15803d", background: "#edf5ee" },
+  "sapphire-blue": { name: "Sapphire Trust & Blue", accent: "#08718b", background: "#e9f2f9" },
+  "organic-sage": { name: "Organic Sage & Wellness", accent: "#66835c", background: "#f1f4eb" },
+  "modern-onyx": { name: "Modern Onyx & Mint", accent: "#334155", background: "#edf0f3" },
+  "sunset-amber": { name: "Sunset Amber & Coral", accent: "#c46a2d", background: "#fbf0e5" },
+  "rose": { name: "Rose", accent: "#b64269", background: "#f8edf1" },
+  "midnight-gold": { name: "Midnight Gold", accent: "#f59e0b", background: "#0f172a" },
+  "obsidian-emerald": { name: "Obsidian Emerald", accent: "#10b981", background: "#111827" },
+  "royal-velvet": { name: "Royal Velvet", accent: "#a855f7", background: "#18122b" },
+  "terracotta-sand": { name: "Terracotta Sand", accent: "#c2410c", background: "#fdf6ee" },
 };
+
+function normalizeHexColor(input, fallback = "#15803d") {
+  const match = String(input || "").trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!match) return fallback;
+  const raw = match[1].toLowerCase();
+  return `#${raw.length === 3 ? [...raw].map((c) => c + c).join("") : raw}`;
+}
+
+function hexToRgbChannels(hex) {
+  const normalized = normalizeHexColor(hex, "#000000").slice(1);
+  return [
+    parseInt(normalized.slice(0, 2), 16),
+    parseInt(normalized.slice(2, 4), 16),
+    parseInt(normalized.slice(4, 6), 16),
+  ];
+}
+
+function rgbChannelsToHex([r, g, b]) {
+  return `#${[r, g, b]
+    .map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+function mixHexColors(hexA, hexB, weightA = 0.5) {
+  const a = hexToRgbChannels(hexA);
+  const b = hexToRgbChannels(hexB);
+  const w = Math.max(0, Math.min(1, weightA));
+  return rgbChannelsToHex([
+    a[0] * w + b[0] * (1 - w),
+    a[1] * w + b[1] * (1 - w),
+    a[2] * w + b[2] * (1 - w),
+  ]);
+}
+
+function getHexLuminance(color) {
+  const [r, g, b] = hexToRgbChannels(color).map((channel) => {
+    const c = channel / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function getHexContrastRatio(hexA, hexB) {
+  const lumA = getHexLuminance(hexA);
+  const lumB = getHexLuminance(hexB);
+  const brightest = Math.max(lumA, lumB);
+  const darkest = Math.min(lumA, lumB);
+  return (brightest + 0.05) / (darkest + 0.05);
+}
+
+/**
+ * Automatically derives a complete set of contrast-safe storefront tokens from
+ * ANY user-selected foreground color and background color (including dark+dark
+ * or light+light combinations) so visibility is never compromised.
+ */
+function resolveStorefrontColorTokens(foregroundHex, backgroundHex) {
+  const rawPrimary = normalizeHexColor(foregroundHex, "#15803d");
+  const rawBackground = normalizeHexColor(backgroundHex, "#edf5ee");
+  const bgLuminance = getHexLuminance(rawBackground);
+  const isDark = bgLuminance <= 0.18;
+
+  // 1. Page canvas & elevated card surface
+  const paper = bgLuminance > 0.96
+    ? mixHexColors(rawBackground, rawPrimary, 0.96)
+    : rawBackground;
+  const white = isDark
+    ? mixHexColors(paper, "#ffffff", 0.88)
+    : "#ffffff";
+  const surfaceSubtle = isDark
+    ? mixHexColors(paper, "#ffffff", 0.93)
+    : mixHexColors(paper, "#ffffff", 0.45);
+
+  // 2. Ensure foreground/primary color is always visible against both paper and card surface
+  let primary = rawPrimary;
+  let wasAdjusted = false;
+  const minAccentContrast = 4.5;
+  if (
+    getHexContrastRatio(primary, paper) < minAccentContrast ||
+    getHexContrastRatio(primary, white) < minAccentContrast
+  ) {
+    wasAdjusted = true;
+    const pole = isDark ? "#ffffff" : "#000000";
+    for (let step = 0.04; step <= 0.96; step += 0.04) {
+      const candidate = mixHexColors(rawPrimary, pole, 1 - step);
+      if (
+        getHexContrastRatio(candidate, paper) >= minAccentContrast &&
+        getHexContrastRatio(candidate, white) >= minAccentContrast
+      ) {
+        primary = candidate;
+        break;
+      }
+    }
+    // Ultimate fallback if both surfaces straddle mid-tone
+    if (
+      getHexContrastRatio(primary, paper) < 3.5 ||
+      getHexContrastRatio(primary, white) < 3.5
+    ) {
+      primary = isDark ? "#f8fafc" : "#0f172a";
+    }
+  }
+
+  // 3. Button text on primary (--store-on-primary)
+  const onPrimary =
+    getHexContrastRatio("#ffffff", primary) >= getHexContrastRatio("#090d16", primary)
+      ? "#ffffff"
+      : "#090d16";
+
+  // 4. Primary hover, subtle wash, and glow
+  const primaryHover = isDark
+    ? mixHexColors(primary, "#ffffff", 0.82)
+    : mixHexColors(primary, "#000000", 0.82);
+  const primarySubtle = isDark
+    ? mixHexColors(paper, primary, 0.78)
+    : mixHexColors("#ffffff", primary, 0.88);
+  const [pr, pg, pb] = hexToRgbChannels(primary);
+  const primaryGlow = `rgba(${pr}, ${pg}, ${pb}, ${isDark ? 0.36 : 0.26})`;
+
+  // 5. High-contrast body ink & muted secondary copy
+  const ink = isDark
+    ? mixHexColors("#f8fafc", primary, 0.92)
+    : mixHexColors("#0f172a", primary, 0.92);
+  let muted = isDark
+    ? mixHexColors("#cbd5e1", primary, 0.90)
+    : mixHexColors("#475569", primary, 0.90);
+  if (getHexContrastRatio(muted, white) < 4.5) {
+    muted = isDark ? "#cbd5e1" : "#334155";
+  }
+
+  // 6. Borders & media frame backdrop
+  const line = isDark
+    ? mixHexColors(paper, "#ffffff", 0.78)
+    : mixHexColors(paper, "#0f172a", 0.84);
+  const mediaBg = isDark
+    ? mixHexColors(paper, "#ffffff", 0.92)
+    : mixHexColors(paper, "#ffffff", 0.55);
+
+  return {
+    rawPrimary,
+    rawBackground,
+    primary,
+    primaryHover,
+    primarySubtle,
+    primaryGlow,
+    onPrimary,
+    paper,
+    white,
+    surfaceSubtle,
+    ink,
+    muted,
+    line,
+    mediaBg,
+    isDark,
+    wasAdjusted,
+    contrastOnPaper: Number(getHexContrastRatio(primary, paper).toFixed(2)),
+    contrastOnSurface: Number(getHexContrastRatio(primary, white).toFixed(2)),
+  };
+}
+
+if (typeof window !== "undefined") {
+  window.resolveStorefrontColorTokens = resolveStorefrontColorTokens;
+  window.getHexContrastRatio = getHexContrastRatio;
+}
+
+function applyResolvedColorTokensToRoot(tokens) {
+  const root = document.documentElement;
+  root.style.setProperty("--store-primary", tokens.primary);
+  root.style.setProperty("--store-primary-hover", tokens.primaryHover);
+  root.style.setProperty("--store-primary-subtle", tokens.primarySubtle);
+  root.style.setProperty("--store-primary-glow", tokens.primaryGlow);
+  root.style.setProperty("--store-on-primary", tokens.onPrimary);
+  root.style.setProperty("--store-paper", tokens.paper);
+  root.style.setProperty("--store-white", tokens.white);
+  root.style.setProperty("--store-surface-subtle", tokens.surfaceSubtle);
+  root.style.setProperty("--store-ink", tokens.ink);
+  root.style.setProperty("--store-muted", tokens.muted);
+  root.style.setProperty("--store-line", tokens.line);
+  root.style.setProperty("--store-media-bg", tokens.mediaBg);
+  root.style.setProperty("--store-green", tokens.primary);
+  root.style.setProperty("--store-green-dark", tokens.primaryHover);
+  root.dataset.backgroundTone = tokens.isDark ? "dark" : "light";
+  root.setAttribute("data-custom-accent", "true");
+}
 
 function setThemePalette(palette) {
   const selected = THEME_PALETTES[palette] ? palette : "trust-forest";
+  const entry = THEME_PALETTES[selected];
   const root = document.documentElement;
   root.setAttribute("data-theme", selected);
-  for (const property of ["--store-paper", "--store-white", "--store-ink", "--store-muted", "--store-line", "--store-media-bg", "--store-on-primary", "--store-card-radius", "--store-card-shadow", "--store-primary-hover"]) {
-    root.style.removeProperty(property);
-  }
-  delete root.dataset.backgroundTone;
+  const tokens = resolveStorefrontColorTokens(entry.accent, entry.background);
+  applyResolvedColorTokensToRoot(tokens);
 }
 
-function setStorefrontBackgroundColor(color) {
+function setStorefrontBackgroundColor(color, foregroundColor) {
   const root = document.documentElement;
-  const value = String(color || "");
-  const match = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (!match) return;
-
-  const hex = match[1].length === 3
-    ? [...match[1]].map((digit) => digit + digit).join("")
-    : match[1];
-  const channels = [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255);
-  const luminance = channels
-    .map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
-    .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
-  const dark = luminance <= 0.179;
-
-  root.style.setProperty("--store-paper", value);
-  root.style.setProperty("--store-ink", dark ? "#f8fafc" : "#0f172a");
-  root.style.setProperty("--store-muted", dark ? "#cbd5e1" : "#475569");
-  root.style.setProperty("--store-white", dark ? `color-mix(in srgb, ${value}, white 12%)` : "#ffffff");
-  root.style.setProperty("--store-line", dark ? `color-mix(in srgb, ${value}, white 28%)` : `color-mix(in srgb, ${value}, black 18%)`);
-  root.style.setProperty("--store-media-bg", dark ? `color-mix(in srgb, ${value}, white 8%)` : `color-mix(in srgb, ${value}, white 55%)`);
-  root.dataset.backgroundTone = dark ? "dark" : "light";
+  const bgMatch = String(color || "").match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!bgMatch) return;
+  const currentPrimary =
+    foregroundColor ||
+    root.style.getPropertyValue("--store-primary").trim() ||
+    getComputedStyle(root).getPropertyValue("--store-primary").trim() ||
+    "#15803d";
+  const tokens = resolveStorefrontColorTokens(currentPrimary, color);
+  applyResolvedColorTokensToRoot(tokens);
 }
 
 const STOREFRONT_LAYOUTS = {
@@ -128,28 +302,20 @@ async function applyStorefrontSettings(settings = {}) {
   root.dataset.heroFocalPoint = "center";
   root.dataset.headerVariant = defaults.header || STOREFRONT_LAYOUTS[archetype].header;
   root.dataset.productCardStyle = defaults.card || STOREFRONT_LAYOUTS[archetype].card;
-  setStorefrontBackgroundColor(settings.backgroundColor);
-  root.style.removeProperty("--store-primary");
-  root.removeAttribute("data-custom-accent");
-  if (/^#(?:[0-9a-f]{3}){1,2}$/i.test(settings.primaryColor || "")) {
-    root.style.setProperty("--store-primary", settings.primaryColor);
-    root.setAttribute("data-custom-accent", "true");
-  }
-  const primary = getHexLuminance(getComputedStyle(root).getPropertyValue("--store-primary").trim());
-  root.style.setProperty("--store-on-primary", primary > 0.179 ? "#142019" : "#ffffff");
-  root.style.setProperty("--store-primary-hover", "color-mix(in srgb, var(--store-primary) 82%, black)");
+
+  const paletteEntry = THEME_PALETTES[settings.themePalette] || THEME_PALETTES["trust-forest"];
+  const fgColor = /^#(?:[0-9a-f]{3}){1,2}$/i.test(settings.primaryColor || "")
+    ? settings.primaryColor
+    : paletteEntry.accent;
+  const bgColor = /^#(?:[0-9a-f]{3}){1,2}$/i.test(settings.backgroundColor || "")
+    ? settings.backgroundColor
+    : paletteEntry.background;
+  const tokens = resolveStorefrontColorTokens(fgColor, bgColor);
+  applyResolvedColorTokensToRoot(tokens);
+
   root.style.setProperty("--store-card-radius", template.id === "editorial-boutique" ? "1.15rem" : template.id === "tech-home" ? ".65rem" : ".85rem");
   root.style.setProperty("--store-card-shadow", template.id === "premium-maker" ? "0 16px 38px rgba(15, 23, 42, .10)" : "0 8px 26px rgba(15, 23, 42, .06)");
   await loadStorefrontTemplateStylesheet(template);
-}
-
-function getHexLuminance(color) {
-  const match = String(color).match(/#([0-9a-f]{3}|[0-9a-f]{6})/i);
-  if (!match) return 0.1;
-  const hex = match[1].length === 3 ? [...match[1]].map((digit) => digit + digit).join("") : match[1];
-  const channels = [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255);
-  return channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
-    .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
 }
 
 function setHeaderLogo(src = DEFAULT_STORE_LOGO, alt = "Store254") {

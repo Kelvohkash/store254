@@ -6,7 +6,7 @@ html[data-storefront="true"] #storefront-view .product-card {
   box-shadow: var(--store-card-shadow, 0 8px 26px rgba(15,23,42,.06)) !important;
 }
 html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner:not(.has-banner-image) {
-  background: linear-gradient(125deg, color-mix(in srgb, var(--store-primary) 10%, #fff), #fff 58%, color-mix(in srgb, var(--store-primary) 8%, #eaf2eb));
+  background: linear-gradient(125deg, color-mix(in srgb, var(--store-primary) 14%, var(--store-paper)), var(--store-white) 58%, color-mix(in srgb, var(--store-primary) 10%, var(--store-paper)));
 }
 html[data-storefront="true"] .storefront-primary-cta,
 html[data-storefront="true"] #storefront-view .bg-emerald-600,
@@ -19,7 +19,7 @@ html[data-storefront="true"] #items-grid .product-card-media img { width: 100%; 
 html[data-storefront="true"][data-storefront-template="editorial-boutique"] .store-banner {
   min-height: 28rem;
   border: 0;
-  background: linear-gradient(125deg, color-mix(in srgb,var(--store-primary) 12%,#f8f4ed), #fffaf2 62%, color-mix(in srgb,var(--store-primary) 8%,#e9dfd2));
+  background: linear-gradient(125deg, color-mix(in srgb, var(--store-primary) 14%, var(--store-paper)), var(--store-white) 62%, color-mix(in srgb, var(--store-primary) 8%, var(--store-paper)));
 }
 html[data-storefront="true"][data-storefront-template="editorial-boutique"] .store-banner h1 { max-width: 13ch; font-family: Georgia,"Times New Roman",serif !important; font-size: clamp(3rem,6vw,5.4rem); font-weight: 500; line-height: .98; }
 html[data-storefront="true"][data-storefront-template="editorial-boutique"] .product-card { border: 0 !important; box-shadow: none !important; background: transparent !important; }
@@ -27,27 +27,27 @@ html[data-storefront="true"][data-storefront-template="editorial-boutique"] #ite
 html[data-storefront="true"][data-storefront-template="premium-maker"] .store-banner {
   min-height: 31rem;
   border: 0;
-  background: radial-gradient(ellipse at 82% 32%, color-mix(in srgb,var(--store-primary) 70%,#62725d), #17231b 68%);
-  color: #fff;
+  background: radial-gradient(ellipse at 82% 32%, color-mix(in srgb, var(--store-primary) 26%, var(--store-paper)), var(--store-paper) 68%);
+  color: var(--store-ink);
 }
 html[data-storefront="true"][data-storefront-template="premium-maker"] .store-banner h1,
 html[data-storefront="true"][data-storefront-template="premium-maker"] .store-banner #banner-store-desc,
 html[data-storefront="true"][data-storefront-template="premium-maker"] .store-banner .store-address,
-html[data-storefront="true"][data-storefront-template="premium-maker"] .store-banner .store-tagline { color: #fff !important; }
+html[data-storefront="true"][data-storefront-template="premium-maker"] .store-banner .store-tagline { color: var(--store-ink) !important; }
 html[data-storefront="true"][data-storefront-template="premium-maker"] .store-banner h1 { max-width: 12ch; font-family: Georgia,"Times New Roman",serif !important; font-size: clamp(3rem,6vw,5.7rem); font-weight: 500; }
 html[data-storefront="true"][data-storefront-template="premium-maker"] .store-banner.has-banner-image { background-image: linear-gradient(90deg,rgba(12,19,14,.78),rgba(12,19,14,.12)),var(--store-banner-image); }
 html[data-storefront="true"][data-storefront-template="premium-maker"] #items-grid .product-card-media { aspect-ratio: 4 / 5; }
-html[data-storefront="true"][data-storefront-template="tech-home"] .store-banner { min-height: 25rem; border: 0; background: linear-gradient(120deg,#e9f0f5,#f8fafb 52%,color-mix(in srgb,var(--store-primary) 14%,#eef5f7)); }
+html[data-storefront="true"][data-storefront-template="tech-home"] .store-banner { min-height: 25rem; border: 0; background: linear-gradient(120deg, var(--store-paper), var(--store-white) 52%, color-mix(in srgb, var(--store-primary) 14%, var(--store-paper))); }
 html[data-storefront="true"][data-storefront-template="tech-home"] .store-banner h1 { max-width: 12ch; font-size: clamp(2.8rem,5.5vw,5rem); letter-spacing: -.055em !important; }
 html[data-storefront="true"][data-storefront-template="tech-home"] #items-grid .product-card-media { aspect-ratio: 1 / 1; border-radius: .7rem; }
 html[data-storefront="true"][data-storefront-template="tech-home"] .product-card { border: 1px solid var(--store-line) !important; }
-html[data-storefront="true"][data-storefront-template="service-studio"] .store-banner { min-height: 27rem; border: 0; background: linear-gradient(120deg,color-mix(in srgb,var(--store-primary) 12%,#faf7f2),#fff 62%); }
+html[data-storefront="true"][data-storefront-template="service-studio"] .store-banner { min-height: 27rem; border: 0; background: linear-gradient(120deg, color-mix(in srgb, var(--store-primary) 14%, var(--store-paper)), var(--store-white) 62%); }
 html[data-storefront="true"][data-storefront-template="service-studio"] .store-banner h1 { max-width: 12ch; font-family: Georgia,"Times New Roman",serif !important; font-size: clamp(3rem,6vw,5rem); font-weight: 500; }
 html[data-storefront="true"][data-storefront-template="service-studio"] #items-grid .product-card { border-radius: 1.2rem !important; }
 html[data-storefront="true"][data-storefront-template="service-studio"] #items-grid .product-card-media { aspect-ratio: 4 / 3; }
-html[data-storefront="true"][data-storefront-template="food-local"] .store-banner { min-height: 25rem; border: 0; background: linear-gradient(115deg,color-mix(in srgb,var(--store-primary) 12%,#fbf2e3),#fffaf0 58%,#f3e0c5); }
+html[data-storefront="true"][data-storefront-template="food-local"] .store-banner { min-height: 25rem; border: 0; background: linear-gradient(115deg, color-mix(in srgb, var(--store-primary) 14%, var(--store-paper)), var(--store-white) 58%, color-mix(in srgb, var(--store-primary) 8%, var(--store-paper))); }
 html[data-storefront="true"][data-storefront-template="food-local"] .store-banner h1 { max-width: 13ch; font-family: Georgia,"Times New Roman",serif !important; font-size: clamp(3rem,6vw,5rem); font-weight: 600; }
-html[data-storefront="true"][data-storefront-template="food-local"] .store-banner:not(.has-banner-image) { background: radial-gradient(ellipse at 88% 15%, #f2c97e 0, transparent 28%), linear-gradient(115deg, color-mix(in srgb,var(--store-primary) 12%,#fbf2e3), #fffaf0 58%, #f3e0c5); }
+html[data-storefront="true"][data-storefront-template="food-local"] .store-banner:not(.has-banner-image) { background: radial-gradient(ellipse at 88% 15%, color-mix(in srgb, var(--store-primary) 24%, var(--store-paper)) 0, transparent 28%), linear-gradient(115deg, color-mix(in srgb, var(--store-primary) 14%, var(--store-paper)), var(--store-white) 58%, color-mix(in srgb, var(--store-primary) 8%, var(--store-paper))); }
 html[data-storefront="true"][data-storefront-template="food-local"] #items-grid .product-card-media { aspect-ratio: 4 / 3; border-radius: 1.1rem; }
 html[data-storefront="true"][data-product-image-ratio="portrait"] #items-grid .product-card-media { aspect-ratio: 4 / 5; }
 html[data-storefront="true"][data-product-image-ratio="landscape"] #items-grid .product-card-media { aspect-ratio: 4 / 3; }
@@ -63,7 +63,7 @@ html[data-storefront="true"][data-hero-style="minimal"] .store-banner h1,
 html[data-storefront="true"][data-hero-style="minimal"] #banner-store-desc { margin-inline:auto; }
 html[data-storefront="true"][data-hero-style="editorial"] .store-banner { min-height:30rem; }
 html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image { background-position:center 42%; }
-html[data-storefront="true"][data-hero-style="editorial"] .store-banner-copy { max-width:40rem; padding:1.4rem; border-radius:1rem; background:rgba(255,255,255,.83); backdrop-filter:blur(10px); }
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner-copy { max-width:40rem; padding:1.4rem; border-radius:1rem; background:color-mix(in srgb, var(--store-white) 86%, transparent); backdrop-filter:blur(10px); }
 html[data-storefront="true"] .store-banner.has-banner-image { background-position:center,var(--store-banner-position,center) !important; }
 
 /* Store254 marketplace home: vivid Kenyan-market colors with a compact, responsive first screen. */

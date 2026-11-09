@@ -353,6 +353,23 @@
                 <div>
                   <div class="flex items-center justify-between gap-3"><label class="label">Choose a colour</label><span id="selected-palette-name" class="text-xs font-semibold text-slate-500">Forest</span></div>
                   <div id="template-palette-choices" class="template-palette-choices" role="group" aria-label="Storefront colour palettes"></div>
+                  <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                    <label class="flex items-center justify-between gap-3 text-xs font-bold text-slate-700 cursor-pointer">
+                      <span>Foreground (Brand Accent)</span>
+                      <span class="flex items-center gap-2">
+                        <code id="foreground-color-hex" class="text-[11px] font-mono text-slate-500">#15803d</code>
+                        <input id="settings-primary-color-picker" type="color" value="#15803d" oninput="selectCustomStoreColors(this.value, document.getElementById('settings-background-color-picker').value)" class="w-8 h-8 rounded cursor-pointer border border-slate-300 bg-white p-0.5" aria-label="Foreground brand colour" />
+                      </span>
+                    </label>
+                    <label class="flex items-center justify-between gap-3 text-xs font-bold text-slate-700 cursor-pointer">
+                      <span>Background (Canvas)</span>
+                      <span class="flex items-center gap-2">
+                        <code id="background-color-hex" class="text-[11px] font-mono text-slate-500">#edf5ee</code>
+                        <input id="settings-background-color-picker" type="color" value="#edf5ee" oninput="selectCustomStoreColors(document.getElementById('settings-primary-color-picker').value, this.value)" class="w-8 h-8 rounded cursor-pointer border border-slate-300 bg-white p-0.5" aria-label="Background canvas colour" />
+                      </span>
+                    </label>
+                  </div>
+                  <p id="design-contrast-note" class="design-contrast-note" aria-live="polite">All text, card surfaces, and button colours automatically adapt for 100% visibility.</p>
                 </div>
 
                 <!-- Store Identity & Branding -->
