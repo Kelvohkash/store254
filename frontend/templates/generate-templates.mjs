@@ -26,6 +26,7 @@ export const PALETTES = [
   { id: "modern-onyx", name: "Charcoal", primary: "#334155", background: "#edf0f3" },
   { id: "sunset-amber", name: "Amber", primary: "#c46a2d", background: "#fbf0e5" },
   { id: "rose", name: "Rose", primary: "#b64269", background: "#f8edf1" },
+  { id: "berry-blossom", name: "Blossom", primary: "#db2777", background: "#fdf2f8" },
   { id: "midnight-gold", name: "Midnight", primary: "#f59e0b", background: "#0f172a" },
   { id: "obsidian-emerald", name: "Obsidian", primary: "#10b981", background: "#111827" },
   { id: "royal-velvet", name: "Velvet", primary: "#a855f7", background: "#18122b" },
@@ -36,8 +37,10 @@ export const TEMPLATE_BLUEPRINTS = [
   {
     id: "market-modern",
     name: "Market Modern",
+    mood: "Professional & Everyday Retail",
     description: "Clean, confident everyday shopping with a balanced split hero and elevated cards.",
     previewImage: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#15803d", bg: "#edf5ee" },
     defaults: {
       archetype: "modern-retailer",
       header: "compact-search-first",
@@ -51,7 +54,7 @@ export const TEMPLATE_BLUEPRINTS = [
     tokens: {
       fontHeading: '"Manrope", system-ui, sans-serif',
       fontBody: '"DM Sans", system-ui, sans-serif',
-      cardRadius: "0.95rem",
+      cardRadius: "1rem",
       buttonRadius: "0.75rem",
       pillRadius: "9999px",
       mediaRatio: "1 / 1",
@@ -65,8 +68,10 @@ export const TEMPLATE_BLUEPRINTS = [
   {
     id: "editorial-boutique",
     name: "Editorial Boutique",
+    mood: "Tasteful & Poetic Fashion",
     description: "A considered fashion and lifestyle lookbook with serif typography and portrait frames.",
     previewImage: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#8c583a", bg: "#faf6f0" },
     defaults: {
       archetype: "lifestyle-boutique",
       header: "centered-brand",
@@ -80,7 +85,7 @@ export const TEMPLATE_BLUEPRINTS = [
     tokens: {
       fontHeading: 'Georgia, "Playfair Display", "Times New Roman", serif',
       fontBody: '"DM Sans", system-ui, sans-serif',
-      cardRadius: "1.15rem",
+      cardRadius: "1.2rem",
       buttonRadius: "9999px",
       pillRadius: "9999px",
       mediaRatio: "4 / 5",
@@ -94,8 +99,10 @@ export const TEMPLATE_BLUEPRINTS = [
   {
     id: "fashion-beauty-cosmetics",
     name: "Fashion, Beauty and Cosmetics",
+    mood: "Glamorous & Photo-Led",
     description: "A photo-led fashion storefront with a bold brand bar, category ribbon, and editorial product cards.",
     previewImage: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#08718b", bg: "#f4f8fa" },
     defaults: {
       archetype: "lifestyle-boutique",
       header: "centered-brand",
@@ -109,9 +116,9 @@ export const TEMPLATE_BLUEPRINTS = [
     tokens: {
       fontHeading: 'Georgia, "Playfair Display", "Times New Roman", serif',
       fontBody: '"DM Sans", system-ui, sans-serif',
-      cardRadius: "0.25rem",
-      buttonRadius: "0.25rem",
-      pillRadius: "0.25rem",
+      cardRadius: "0.35rem",
+      buttonRadius: "0.35rem",
+      pillRadius: "0.35rem",
       mediaRatio: "4 / 5",
       heroAlign: "left",
       headerStyle: "primary-solid-ribbon",
@@ -121,39 +128,74 @@ export const TEMPLATE_BLUEPRINTS = [
     },
   },
   {
-    id: "premium-maker",
-    name: "Premium Maker",
-    description: "An architectural studio showcase for signature craft, horizontal story rows, and bespoke goods.",
-    previewImage: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1100&q=85",
+    id: "cute-boutique",
+    name: "Sweet & Cute Boutique",
+    mood: "Cute, Playful & Charming",
+    description: "Bubbly pill frames, soft floating halos, and bouncy interactions for baby care, gifts, stationery, and sweet treats.",
+    previewImage: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#db2777", bg: "#fdf2f8" },
     defaults: {
-      archetype: "single-product-maker",
+      archetype: "lifestyle-boutique",
       header: "centered-brand",
-      card: "horizontal-list-row",
+      card: "grid-card",
       hero: "minimal",
-      font: "editorial",
-      kicker: "MADE WITH INTENTION",
-      cta: "Meet the collection",
-      title: "Made slowly.<br>Kept forever.",
+      font: "rounded",
+      kicker: "MADE WITH LOVE & SPARKLE",
+      cta: "Shop cute finds",
+      title: "Little things<br>that make you smile.",
+    },
+    tokens: {
+      fontHeading: '"DM Sans", ui-rounded, "Nunito", system-ui, sans-serif',
+      fontBody: '"DM Sans", system-ui, sans-serif',
+      cardRadius: "1.65rem",
+      buttonRadius: "9999px",
+      pillRadius: "9999px",
+      mediaRatio: "1 / 1",
+      heroAlign: "center",
+      headerStyle: "floating-pill",
+      cardVariant: "cute-bubbly",
+      gridColumnsDesktop: "repeat(4, minmax(0, 1fr))",
+      gridGap: "1.25rem",
+    },
+  },
+  {
+    id: "food-local",
+    name: "Food & Local",
+    mood: "Tasty, Warm & Appetizing",
+    description: "Warm, appetizing menu & market layout for restaurants, bakeries, grocers, and fresh produce.",
+    previewImage: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#c2410c", bg: "#fff8f1" },
+    defaults: {
+      archetype: "modern-retailer",
+      header: "centered-brand",
+      card: "grid-card",
+      hero: "editorial",
+      font: "rounded",
+      kicker: "FRESH FROM OUR KITCHEN",
+      cta: "Order something good",
+      title: "A little joy,<br>made fresh.",
     },
     tokens: {
       fontHeading: 'Georgia, "Playfair Display", serif',
       fontBody: '"DM Sans", system-ui, sans-serif',
-      cardRadius: "1rem",
+      cardRadius: "1.4rem",
       buttonRadius: "9999px",
       pillRadius: "9999px",
       mediaRatio: "4 / 3",
-      heroAlign: "center",
-      headerStyle: "minimal-atelier",
-      cardVariant: "horizontal-showcase",
-      gridColumnsDesktop: "repeat(2, minmax(0, 1fr))",
-      gridGap: "1.4rem",
+      heroAlign: "left",
+      headerStyle: "warm-canopy",
+      cardVariant: "tasty-menu",
+      gridColumnsDesktop: "repeat(3, minmax(0, 1fr))",
+      gridGap: "1.3rem",
     },
   },
   {
     id: "tech-home",
     name: "Tech & Home",
-    description: "Precision bento-grid storefront for electronics, appliances, and modern living essentials.",
+    mood: "Professional & Precision Engineered",
+    description: "Precision bento-grid storefront for electronics, appliances, hardware, and modern workspaces.",
     previewImage: "https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#0284c7", bg: "#f1f5f9" },
     defaults: {
       archetype: "modern-retailer",
       header: "compact-search-first",
@@ -167,7 +209,7 @@ export const TEMPLATE_BLUEPRINTS = [
     tokens: {
       fontHeading: '"Manrope", system-ui, sans-serif',
       fontBody: '"DM Sans", system-ui, sans-serif',
-      cardRadius: "0.6rem",
+      cardRadius: "0.65rem",
       buttonRadius: "0.5rem",
       pillRadius: "0.45rem",
       mediaRatio: "1 / 1",
@@ -175,14 +217,16 @@ export const TEMPLATE_BLUEPRINTS = [
       headerStyle: "bento-tech",
       cardVariant: "bento-spec",
       gridColumnsDesktop: "repeat(4, minmax(0, 1fr))",
-      gridGap: "0.9rem",
+      gridGap: "0.95rem",
     },
   },
   {
     id: "service-studio",
     name: "Service Studio",
-    description: "A welcoming booking and consultation storefront for salons, clinics, studios, and agencies.",
+    mood: "Professional, Calm & Trustworthy",
+    description: "A welcoming booking and consultation storefront for salons, clinics, studios, and professional agencies.",
     previewImage: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#0f766e", bg: "#f0fdfa" },
     defaults: {
       archetype: "service-portfolio",
       header: "minimal-nav",
@@ -208,39 +252,74 @@ export const TEMPLATE_BLUEPRINTS = [
     },
   },
   {
-    id: "food-local",
-    name: "Food & Local",
-    description: "Warm, appetizing menu & market layout for restaurants, bakeries, grocers, and fresh produce.",
-    previewImage: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1100&q=85",
+    id: "premium-maker",
+    name: "Premium Maker",
+    mood: "Artisanal & Master Crafted",
+    description: "An architectural studio showcase for signature craft, horizontal story rows, and bespoke goods.",
+    previewImage: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#f59e0b", bg: "#141b17" },
     defaults: {
-      archetype: "modern-retailer",
+      archetype: "single-product-maker",
       header: "centered-brand",
-      card: "grid-card",
-      hero: "editorial",
-      font: "rounded",
-      kicker: "FRESH FROM OUR KITCHEN",
-      cta: "Order something good",
-      title: "A little joy,<br>made fresh.",
+      card: "horizontal-list-row",
+      hero: "minimal",
+      font: "editorial",
+      kicker: "MADE WITH INTENTION",
+      cta: "Meet the collection",
+      title: "Made slowly.<br>Kept forever.",
     },
     tokens: {
-      fontHeading: '"DM Sans", ui-rounded, system-ui, sans-serif',
+      fontHeading: 'Georgia, "Playfair Display", serif',
       fontBody: '"DM Sans", system-ui, sans-serif',
-      cardRadius: "1.35rem",
+      cardRadius: "1rem",
       buttonRadius: "9999px",
       pillRadius: "9999px",
       mediaRatio: "4 / 3",
-      heroAlign: "left",
-      headerStyle: "warm-canopy",
-      cardVariant: "soft-menu",
+      heroAlign: "center",
+      headerStyle: "minimal-atelier",
+      cardVariant: "horizontal-showcase",
+      gridColumnsDesktop: "repeat(2, minmax(0, 1fr))",
+      gridGap: "1.4rem",
+    },
+  },
+  {
+    id: "luxury-atelier",
+    name: "Luxury Atelier",
+    mood: "Refined, Tasteful & Executive",
+    description: "Ultra-refined gallery with generous breathing room, hairline dividers, and tall showcase frames.",
+    previewImage: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#52525b", bg: "#fafaf9" },
+    defaults: {
+      archetype: "lifestyle-boutique",
+      header: "centered-brand",
+      card: "grid-card",
+      hero: "minimal",
+      font: "editorial",
+      kicker: "PRIVATE COLLECTION",
+      cta: "Enter the gallery",
+      title: "Timeless craft,<br>quiet luxury.",
+    },
+    tokens: {
+      fontHeading: 'Georgia, "Playfair Display", serif',
+      fontBody: '"DM Sans", system-ui, sans-serif',
+      cardRadius: "0.2rem",
+      buttonRadius: "0.2rem",
+      pillRadius: "0.2rem",
+      mediaRatio: "4 / 5",
+      heroAlign: "center",
+      headerStyle: "minimal-atelier",
+      cardVariant: "hairline-gallery",
       gridColumnsDesktop: "repeat(3, minmax(0, 1fr))",
-      gridGap: "1.2rem",
+      gridGap: "1.85rem",
     },
   },
   {
     id: "brutalist-studio",
     name: "Neo-Brutalist Studio",
+    mood: "Bold, Edgy & Streetwear",
     description: "Bold architectural grid with crisp 2px ink borders, offset hard shadows, and streetwear punch.",
     previewImage: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#dc2626", bg: "#fefce8" },
     defaults: {
       archetype: "modern-retailer",
       header: "compact-search-first",
@@ -266,39 +345,12 @@ export const TEMPLATE_BLUEPRINTS = [
     },
   },
   {
-    id: "luxury-atelier",
-    name: "Luxury Atelier",
-    description: "Ultra-refined gallery with generous breathing room, hairline dividers, and tall showcase frames.",
-    previewImage: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1100&q=85",
-    defaults: {
-      archetype: "lifestyle-boutique",
-      header: "centered-brand",
-      card: "grid-card",
-      hero: "minimal",
-      font: "editorial",
-      kicker: "PRIVATE COLLECTION",
-      cta: "Enter the gallery",
-      title: "Timeless craft,<br>quiet luxury.",
-    },
-    tokens: {
-      fontHeading: 'Georgia, "Playfair Display", serif',
-      fontBody: '"DM Sans", system-ui, sans-serif',
-      cardRadius: "0.15rem",
-      buttonRadius: "0.15rem",
-      pillRadius: "0.15rem",
-      mediaRatio: "4 / 5",
-      heroAlign: "center",
-      headerStyle: "minimal-atelier",
-      cardVariant: "hairline-gallery",
-      gridColumnsDesktop: "repeat(3, minmax(0, 1fr))",
-      gridGap: "1.85rem",
-    },
-  },
-  {
     id: "bazaar-vibrant",
     name: "Dynamic Bazaar",
+    mood: "Energetic & High-Conversion",
     description: "High-energy merchant marketplace with pill-framed navigation, quick-buy badges, and dense discovery.",
     previewImage: "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=1100&q=85",
+    defaultColors: { fg: "#d97706", bg: "#fffbeb" },
     defaults: {
       archetype: "modern-retailer",
       header: "compact-search-first",
@@ -320,13 +372,13 @@ export const TEMPLATE_BLUEPRINTS = [
       headerStyle: "floating-pill",
       cardVariant: "bazaar-pop",
       gridColumnsDesktop: "repeat(4, minmax(0, 1fr))",
-      gridGap: "0.85rem",
+      gridGap: "0.9rem",
     },
   },
 ];
 
 function generateTemplateCss(template) {
-  const { id, name, tokens } = template;
+  const { id, name, mood, tokens } = template;
   const scope = `html[data-storefront="true"][data-storefront-template="${id}"]`;
   const standaloneScope = `html[data-storefront-template="${id}"]`;
 
@@ -445,10 +497,10 @@ ${scope} .site-header,
 ${standaloneScope} #site-header {
   margin: 0.65rem auto 0;
   max-width: min(96%, 80rem);
-  border: 1px solid var(--store-line) !important;
+  border: 1.5px solid color-mix(in srgb, var(--store-primary) 24%, var(--store-line)) !important;
   border-radius: 9999px !important;
   background: color-mix(in srgb, var(--store-white) 92%, transparent) !important;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 12px 32px -8px var(--store-primary-glow, rgba(15, 23, 42, 0.08)) !important;
   backdrop-filter: blur(16px);
 }
 ${scope} .site-header::before { display: none; }`;
@@ -466,7 +518,7 @@ ${scope} #header-store-name,
 ${standaloneScope} #header-store-name {
   font-family: ${tokens.fontHeading} !important;
   font-size: 1.15rem !important;
-  letter-spacing: 0.06em !important;
+  letter-spacing: 0.08em !important;
   text-transform: uppercase;
 }`;
   } else if (tokens.headerStyle === "bento-tech") {
@@ -476,6 +528,14 @@ ${standaloneScope} #site-header {
   background: var(--store-white) !important;
   border-top: 3px solid var(--store-primary) !important;
   border-bottom: 1px solid var(--store-line) !important;
+}`;
+  } else if (tokens.headerStyle === "warm-canopy") {
+    headerCss = `
+${scope} .site-header,
+${standaloneScope} #site-header {
+  background: color-mix(in srgb, var(--store-white) 92%, var(--store-primary-subtle)) !important;
+  border-top: 4px solid var(--store-primary) !important;
+  border-bottom: 1px dashed color-mix(in srgb, var(--store-primary) 35%, var(--store-line)) !important;
 }`;
   } else {
     headerCss = `
@@ -504,6 +564,48 @@ ${standaloneScope} .product-card-media {
 ${scope} .product-card-content,
 ${standaloneScope} .product-card-body {
   padding-inline: 0.25rem !important;
+}`;
+  } else if (tokens.cardVariant === "cute-bubbly") {
+    cardCss = `
+${scope} #storefront-view .product-card,
+${standaloneScope} .product-card {
+  border: 2px solid color-mix(in srgb, var(--store-primary) 26%, var(--store-line)) !important;
+  border-radius: ${tokens.cardRadius} !important;
+  background: var(--store-white) !important;
+  box-shadow: 0 10px 0 -2px color-mix(in srgb, var(--store-primary) 18%, var(--store-line)), 0 14px 28px -8px var(--store-primary-glow) !important;
+  transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 240ms ease !important;
+}
+${scope} #storefront-view .product-card:hover,
+${standaloneScope} .product-card:hover {
+  transform: translateY(-5px) rotate(-0.4deg) !important;
+}
+${scope} #items-grid .product-card-media,
+${standaloneScope} .product-card-media {
+  margin: 0.55rem 0.55rem 0 !important;
+  width: calc(100% - 1.1rem) !important;
+  border-radius: calc(${tokens.cardRadius} - 0.45rem) !important;
+  border: 1px solid color-mix(in srgb, var(--store-primary) 16%, var(--store-line)) !important;
+}`;
+  } else if (tokens.cardVariant === "tasty-menu") {
+    cardCss = `
+${scope} #storefront-view .product-card,
+${standaloneScope} .product-card {
+  border: 1.5px solid color-mix(in srgb, var(--store-primary) 22%, var(--store-line)) !important;
+  border-radius: ${tokens.cardRadius} !important;
+  background: var(--store-white) !important;
+  box-shadow: 0 14px 32px -12px rgba(24, 18, 10, 0.12) !important;
+}
+${scope} .product-card-footer,
+${standaloneScope} .product-card-actions {
+  border-top: 1.5px dashed color-mix(in srgb, var(--store-primary) 30%, var(--store-line)) !important;
+}
+${scope} .product-card-price,
+${standaloneScope} .product-price {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 9999px;
+  background: var(--store-primary-subtle);
+  color: var(--store-primary) !important;
 }`;
   } else if (tokens.cardVariant === "sharp-runway") {
     cardCss = `
@@ -593,6 +695,7 @@ ${standaloneScope} .product-card {
 
   return `/* ==========================================================================
    Store254 Generated Storefront Theme: ${name} (${id})
+   Mood: ${mood}
    Auto-generated by frontend/templates/generate-templates.mjs
    100% Contrast-Safe & Automatic Foreground/Background Color Adaptation
    ========================================================================== */
@@ -705,7 +808,7 @@ ${standaloneScope} #whatsapp-quick-contact {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 1.05rem;
   border-radius: var(--store-btn-radius);
   border: 1px solid var(--store-line);
   background-color: var(--store-white);
@@ -714,7 +817,12 @@ ${standaloneScope} #whatsapp-quick-contact {
   font-size: 0.82rem;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+${standaloneScope} button:hover,
+${standaloneScope} #storefront-primary-cta:hover {
+  transform: translateY(-1px);
 }
 
 ${standaloneScope} #desktop-cart-btn,
@@ -739,14 +847,19 @@ ${standaloneScope} #store-info-banner {
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid var(--store-line);
-  background: linear-gradient(
-    130deg,
-    color-mix(in srgb, var(--store-primary) 16%, var(--store-paper)) 0%,
-    var(--store-paper) 58%,
-    color-mix(in srgb, var(--store-primary) 8%, var(--store-white)) 100%
-  ) !important;
+  background: radial-gradient(
+      circle at 86% 20%,
+      color-mix(in srgb, var(--store-primary) 22%, transparent) 0%,
+      transparent 42%
+    ),
+    linear-gradient(
+      130deg,
+      color-mix(in srgb, var(--store-primary) 14%, var(--store-paper)) 0%,
+      var(--store-paper) 58%,
+      color-mix(in srgb, var(--store-primary) 8%, var(--store-white)) 100%
+    ) !important;
   color: var(--store-ink) !important;
-  padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem);
+  padding: clamp(2.2rem, 5vw, 4.25rem) clamp(1rem, 4vw, 3rem);
   text-align: ${tokens.heroAlign};
 }
 
@@ -754,15 +867,16 @@ ${scope} .store-banner h1,
 ${standaloneScope} #banner-store-name {
   font-family: var(--store-font-heading) !important;
   color: var(--store-ink) !important;
-  font-size: clamp(2.15rem, 4.5vw, 3.75rem) !important;
+  font-size: clamp(2.2rem, 4.5vw, 3.85rem) !important;
   line-height: 1.06 !important;
-  margin: 0.35rem 0 0.75rem;
+  margin: 0.4rem 0 0.8rem;
 }
 
 ${scope} .store-banner #banner-store-desc,
 ${standaloneScope} #banner-store-desc {
   color: var(--store-muted) !important;
   max-width: 42rem;
+  font-size: 1rem;
   ${tokens.heroAlign === "center" ? "margin-inline: auto;" : ""}
 }
 
@@ -770,15 +884,20 @@ ${scope} .store-banner .store-address,
 ${scope} .store-banner .store-tagline,
 ${standaloneScope} #banner-store-subdomain,
 ${standaloneScope} #banner-store-tagline {
+  display: inline-block;
+  padding: 0.28rem 0.75rem;
+  border-radius: var(--store-pill-radius);
+  background: color-mix(in srgb, var(--store-primary) 14%, var(--store-white));
   color: var(--store-primary) !important;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
 }
 
 ${scope} .storefront-primary-cta,
 ${standaloneScope} #storefront-primary-cta {
+  margin-top: 1rem;
   border-radius: var(--store-btn-radius) !important;
   background-color: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
@@ -896,6 +1015,7 @@ ${standaloneScope} .product-title {
   color: var(--store-ink) !important;
   font-family: var(--store-font-heading);
   margin: 0.25rem 0;
+  font-size: 1rem;
 }
 
 ${scope} .product-card-price,
@@ -907,6 +1027,7 @@ ${standaloneScope} .product-price {
 
 ${scope} .product-card-add,
 ${standaloneScope} .add-to-cart-btn {
+  width: 100%;
   border-radius: var(--store-btn-radius) !important;
   background-color: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
@@ -947,28 +1068,18 @@ ${standaloneScope} #site-footer {
 }
 
 function generatePreviewHtml(template) {
-  const { id, name, description, defaults, tokens } = template;
+  const { id, name, mood, description, defaults, defaultColors } = template;
+  const fgInit = defaultColors?.fg || "#15803d";
+  const bgInit = defaultColors?.bg || "#edf5ee";
   const titleText = String(defaults.title || name).replace(/<br\s*\/?>/gi, " ");
   return `<!doctype html>
 <html lang="en" data-storefront="true" data-storefront-template="${id}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${name} — Store254 Template Preview</title>
+  <title>${name} (${mood}) — Store254 Interactive Theme Preview</title>
   <link rel="stylesheet" href="./template.css">
   <style>
-    :root {
-      --store-primary: #15803d;
-      --store-primary-hover: #166534;
-      --store-primary-subtle: #dcfce7;
-      --store-on-primary: #ffffff;
-      --store-paper: #edf5ee;
-      --store-white: #ffffff;
-      --store-ink: #0f2415;
-      --store-muted: #4b6353;
-      --store-line: #c8ded0;
-      --store-media-bg: #f3f8f4;
-    }
     * { box-sizing: border-box; }
     .preview-bar {
       display: flex;
@@ -979,32 +1090,62 @@ function generatePreviewHtml(template) {
       padding: 0.75rem 1.25rem;
       background: #0f172a;
       color: #f8fafc;
-      font: 600 0.8rem system-ui, sans-serif;
+      font: 600 0.78rem system-ui, sans-serif;
+      border-bottom: 1px solid #1e293b;
     }
     .preview-bar input[type="color"] {
-      width: 2rem;
-      height: 1.75rem;
+      width: 1.9rem;
+      height: 1.65rem;
       border: 1px solid #475569;
       border-radius: 4px;
       background: transparent;
       cursor: pointer;
+      vertical-align: middle;
     }
-    .preview-controls { display: flex; align-items: center; gap: 0.85rem; }
+    .preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
+    .preview-preset-btn {
+      padding: 0.3rem 0.6rem !important;
+      border-radius: 999px !important;
+      border: 1px solid #334155 !important;
+      background: #1e293b !important;
+      color: #e2e8f0 !important;
+      font-size: 0.7rem !important;
+      cursor: pointer;
+    }
+    .preview-preset-btn:hover { background: #334155 !important; }
     .preview-badge {
-      padding: 0.25rem 0.6rem;
+      padding: 0.25rem 0.65rem;
       border-radius: 999px;
-      background: #1e293b;
-      color: #38bdf8;
-      font-size: 0.72rem;
+      background: #064e3b;
+      color: #6ee7b7;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .svg-illustration {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 18%, var(--store-media-bg)), var(--store-media-bg));
+      color: var(--store-primary);
+      font-weight: 800;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
   </style>
 </head>
 <body>
   <div class="preview-bar">
-    <div><strong>${name}</strong> · <span style="opacity:.8">${description}</span></div>
+    <div>
+      <strong>${name}</strong> · <span style="color:#94a3b8">${mood}</span>
+    </div>
     <div class="preview-controls">
-      <label>Foreground <input type="color" id="fg-picker" value="#15803d"></label>
-      <label>Background <input type="color" id="bg-picker" value="#edf5ee"></label>
+      <label>Foreground <input type="color" id="fg-picker" value="${fgInit}"></label>
+      <label>Background <input type="color" id="bg-picker" value="${bgInit}"></label>
+      <button type="button" class="preview-preset-btn" onclick="setColors('${fgInit}','${bgInit}')">Theme Default</button>
+      <button type="button" class="preview-preset-btn" onclick="setColors('#111827','#0f172a')">Test Dark+Dark</button>
+      <button type="button" class="preview-preset-btn" onclick="setColors('#f8fafc','#ffffff')">Test Light+Light</button>
       <span id="contrast-status" class="preview-badge">WCAG Auto-Contrast Active</span>
     </div>
   </div>
@@ -1012,11 +1153,12 @@ function generatePreviewHtml(template) {
   <header id="site-header">
     <div id="header-brand">
       <div id="header-store-identity">
-        <h1 id="header-store-name">${name} Store</h1>
-        <p id="header-store-tagline">${defaults.kicker}</p>
+        <h1 id="header-store-name">${name}</h1>
+        <p id="header-store-tagline">${mood}</p>
       </div>
     </div>
     <form id="search-form" onsubmit="event.preventDefault()">
+      <label for="search-input">Search</label>
       <input type="search" id="search-input" placeholder="Search products, services, categories...">
     </form>
     <nav id="header-actions-nav">
@@ -1029,9 +1171,9 @@ function generatePreviewHtml(template) {
   <nav id="storefront-category-nav">
     <div id="category-pills">
       <button type="button" aria-selected="true">All Items</button>
-      <button type="button" aria-selected="false">Featured</button>
-      <button type="button" aria-selected="false">New Arrivals</button>
-      <button type="button" aria-selected="false">Services</button>
+      <button type="button" aria-selected="false">Signature</button>
+      <button type="button" aria-selected="false">New Releases</button>
+      <button type="button" aria-selected="false">Special Offers</button>
     </div>
   </nav>
 
@@ -1047,18 +1189,18 @@ function generatePreviewHtml(template) {
       <aside id="desktop-filter-sidebar">
         <h4>Dynamic Filters</h4>
         <fieldset>
-          <legend>Category</legend>
-          <label><input type="checkbox" checked> Signature Collection</label>
-          <label><input type="checkbox"> Limited Release</label>
-          <label><input type="checkbox"> Bookable Services</label>
+          <legend>Collection</legend>
+          <label><input type="checkbox" checked> Featured Selection</label>
+          <label><input type="checkbox"> Express Delivery</label>
+          <label><input type="checkbox"> Customer Favorites</label>
         </fieldset>
       </aside>
       <section id="catalog-main-content">
         <div id="items-grid">
           <article class="product-card">
-            <figure class="product-card-media"></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Featured 01</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Signature Store Item One</h5>
+              <h5 class="product-title">Signature Collection Piece</h5>
               <span class="product-price">KES 4,500</span>
             </div>
             <div class="product-card-actions">
@@ -1066,9 +1208,9 @@ function generatePreviewHtml(template) {
             </div>
           </article>
           <article class="product-card">
-            <figure class="product-card-media"></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Featured 02</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Curated Essential Two</h5>
+              <h5 class="product-title">Curated Essential Edition</h5>
               <span class="product-price">KES 6,200</span>
             </div>
             <div class="product-card-actions">
@@ -1076,9 +1218,9 @@ function generatePreviewHtml(template) {
             </div>
           </article>
           <article class="product-card">
-            <figure class="product-card-media"></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Featured 03</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Artisan Edition Three</h5>
+              <h5 class="product-title">Handpicked Studio Release</h5>
               <span class="product-price">KES 3,800</span>
             </div>
             <div class="product-card-actions">
@@ -1124,7 +1266,7 @@ function generatePreviewHtml(template) {
       if (contrast(safeFg, bgRgb) < 4.5 || contrast(safeFg, surfaceRgb) < 4.5) {
         adjusted = true;
         const target = isDark ? [255, 255, 255] : [0, 0, 0];
-        for (let step = 0.05; step <= 0.95; step += 0.05) {
+        for (let step = 0.04; step <= 0.96; step += 0.04) {
           const candidate = mix(rawFgRgb, target, 1 - step);
           if (contrast(candidate, bgRgb) >= 4.5 && contrast(candidate, surfaceRgb) >= 4.5) {
             safeFg = candidate;
@@ -1138,17 +1280,25 @@ function generatePreviewHtml(template) {
       root.style.setProperty("--store-paper", bgHex);
       root.style.setProperty("--store-white", rgbToHex(...surfaceRgb));
       root.style.setProperty("--store-primary", primaryHex);
+      root.style.setProperty("--store-primary-subtle", rgbToHex(...(isDark ? mix(bgRgb, safeFg, 0.78) : mix([255, 255, 255], safeFg, 0.88))));
       root.style.setProperty("--store-on-primary", onPrimary);
       root.style.setProperty("--store-ink", isDark ? "#f8fafc" : "#0f172a");
       root.style.setProperty("--store-muted", isDark ? "#cbd5e1" : "#475569");
       root.style.setProperty("--store-line", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.78) : mix(bgRgb, [0, 0, 0], 0.84))));
       root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
-      document.getElementById("contrast-status").textContent = adjusted
-        ? "Auto-Adjusted for High Visibility (" + primaryHex + ")"
-        : "Optimal Contrast Verified";
+      const badge = document.getElementById("contrast-status");
+      badge.textContent = adjusted
+        ? "Auto-Balanced to " + primaryHex + " for 100% Visibility"
+        : "Optimal Contrast Verified (" + primaryHex + ")";
+    }
+    function setColors(fg, bg) {
+      document.getElementById("fg-picker").value = fg;
+      document.getElementById("bg-picker").value = bg;
+      applyAutoPalette(fg, bg);
     }
     document.getElementById("fg-picker").addEventListener("input", e => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
     document.getElementById("bg-picker").addEventListener("input", e => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
+    applyAutoPalette("${fgInit}", "${bgInit}");
   </script>
 </body>
 </html>
@@ -1171,6 +1321,7 @@ export async function generateAllTemplates() {
     catalogEntries.push({
       id: template.id,
       name: template.name,
+      mood: template.mood,
       description: template.description,
       previewImage: template.previewImage,
       stylesheet: `${template.id}/template.css`,

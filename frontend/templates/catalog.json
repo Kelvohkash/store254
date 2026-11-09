@@ -38,6 +38,12 @@
       "background": "#f8edf1"
     },
     {
+      "id": "berry-blossom",
+      "name": "Blossom",
+      "primary": "#db2777",
+      "background": "#fdf2f8"
+    },
+    {
       "id": "midnight-gold",
       "name": "Midnight",
       "primary": "#f59e0b",
@@ -66,6 +72,7 @@
     {
       "id": "market-modern",
       "name": "Market Modern",
+      "mood": "Professional & Everyday Retail",
       "description": "Clean, confident everyday shopping with a balanced split hero and elevated cards.",
       "previewImage": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1100&q=85",
       "stylesheet": "market-modern/template.css",
@@ -84,6 +91,7 @@
     {
       "id": "editorial-boutique",
       "name": "Editorial Boutique",
+      "mood": "Tasteful & Poetic Fashion",
       "description": "A considered fashion and lifestyle lookbook with serif typography and portrait frames.",
       "previewImage": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1100&q=85",
       "stylesheet": "editorial-boutique/template.css",
@@ -102,6 +110,7 @@
     {
       "id": "fashion-beauty-cosmetics",
       "name": "Fashion, Beauty and Cosmetics",
+      "mood": "Glamorous & Photo-Led",
       "description": "A photo-led fashion storefront with a bold brand bar, category ribbon, and editorial product cards.",
       "previewImage": "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1100&q=85",
       "stylesheet": "fashion-beauty-cosmetics/template.css",
@@ -118,27 +127,48 @@
       }
     },
     {
-      "id": "premium-maker",
-      "name": "Premium Maker",
-      "description": "An architectural studio showcase for signature craft, horizontal story rows, and bespoke goods.",
-      "previewImage": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "premium-maker/template.css",
-      "preview": "premium-maker/preview.html",
+      "id": "cute-boutique",
+      "name": "Sweet & Cute Boutique",
+      "mood": "Cute, Playful & Charming",
+      "description": "Bubbly pill frames, soft floating halos, and bouncy interactions for baby care, gifts, stationery, and sweet treats.",
+      "previewImage": "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "cute-boutique/template.css",
+      "preview": "cute-boutique/preview.html",
       "defaults": {
-        "archetype": "single-product-maker",
+        "archetype": "lifestyle-boutique",
         "header": "centered-brand",
-        "card": "horizontal-list-row",
+        "card": "grid-card",
         "hero": "minimal",
-        "font": "editorial",
-        "kicker": "MADE WITH INTENTION",
-        "cta": "Meet the collection",
-        "title": "Made slowly.<br>Kept forever."
+        "font": "rounded",
+        "kicker": "MADE WITH LOVE & SPARKLE",
+        "cta": "Shop cute finds",
+        "title": "Little things<br>that make you smile."
+      }
+    },
+    {
+      "id": "food-local",
+      "name": "Food & Local",
+      "mood": "Tasty, Warm & Appetizing",
+      "description": "Warm, appetizing menu & market layout for restaurants, bakeries, grocers, and fresh produce.",
+      "previewImage": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "food-local/template.css",
+      "preview": "food-local/preview.html",
+      "defaults": {
+        "archetype": "modern-retailer",
+        "header": "centered-brand",
+        "card": "grid-card",
+        "hero": "editorial",
+        "font": "rounded",
+        "kicker": "FRESH FROM OUR KITCHEN",
+        "cta": "Order something good",
+        "title": "A little joy,<br>made fresh."
       }
     },
     {
       "id": "tech-home",
       "name": "Tech & Home",
-      "description": "Precision bento-grid storefront for electronics, appliances, and modern living essentials.",
+      "mood": "Professional & Precision Engineered",
+      "description": "Precision bento-grid storefront for electronics, appliances, hardware, and modern workspaces.",
       "previewImage": "https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=1100&q=85",
       "stylesheet": "tech-home/template.css",
       "preview": "tech-home/preview.html",
@@ -156,7 +186,8 @@
     {
       "id": "service-studio",
       "name": "Service Studio",
-      "description": "A welcoming booking and consultation storefront for salons, clinics, studios, and agencies.",
+      "mood": "Professional, Calm & Trustworthy",
+      "description": "A welcoming booking and consultation storefront for salons, clinics, studios, and professional agencies.",
       "previewImage": "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=1100&q=85",
       "stylesheet": "service-studio/template.css",
       "preview": "service-studio/preview.html",
@@ -172,44 +203,28 @@
       }
     },
     {
-      "id": "food-local",
-      "name": "Food & Local",
-      "description": "Warm, appetizing menu & market layout for restaurants, bakeries, grocers, and fresh produce.",
-      "previewImage": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "food-local/template.css",
-      "preview": "food-local/preview.html",
+      "id": "premium-maker",
+      "name": "Premium Maker",
+      "mood": "Artisanal & Master Crafted",
+      "description": "An architectural studio showcase for signature craft, horizontal story rows, and bespoke goods.",
+      "previewImage": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "premium-maker/template.css",
+      "preview": "premium-maker/preview.html",
       "defaults": {
-        "archetype": "modern-retailer",
+        "archetype": "single-product-maker",
         "header": "centered-brand",
-        "card": "grid-card",
-        "hero": "editorial",
-        "font": "rounded",
-        "kicker": "FRESH FROM OUR KITCHEN",
-        "cta": "Order something good",
-        "title": "A little joy,<br>made fresh."
-      }
-    },
-    {
-      "id": "brutalist-studio",
-      "name": "Neo-Brutalist Studio",
-      "description": "Bold architectural grid with crisp 2px ink borders, offset hard shadows, and streetwear punch.",
-      "previewImage": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "brutalist-studio/template.css",
-      "preview": "brutalist-studio/preview.html",
-      "defaults": {
-        "archetype": "modern-retailer",
-        "header": "compact-search-first",
-        "card": "grid-card",
-        "hero": "split",
-        "font": "modern",
-        "kicker": "LIMITED EDITION ARCHIVE",
-        "cta": "Shop the drop",
-        "title": "Bold form.<br>Zero compromise."
+        "card": "horizontal-list-row",
+        "hero": "minimal",
+        "font": "editorial",
+        "kicker": "MADE WITH INTENTION",
+        "cta": "Meet the collection",
+        "title": "Made slowly.<br>Kept forever."
       }
     },
     {
       "id": "luxury-atelier",
       "name": "Luxury Atelier",
+      "mood": "Refined, Tasteful & Executive",
       "description": "Ultra-refined gallery with generous breathing room, hairline dividers, and tall showcase frames.",
       "previewImage": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1100&q=85",
       "stylesheet": "luxury-atelier/template.css",
@@ -226,8 +241,28 @@
       }
     },
     {
+      "id": "brutalist-studio",
+      "name": "Neo-Brutalist Studio",
+      "mood": "Bold, Edgy & Streetwear",
+      "description": "Bold architectural grid with crisp 2px ink borders, offset hard shadows, and streetwear punch.",
+      "previewImage": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "brutalist-studio/template.css",
+      "preview": "brutalist-studio/preview.html",
+      "defaults": {
+        "archetype": "modern-retailer",
+        "header": "compact-search-first",
+        "card": "grid-card",
+        "hero": "split",
+        "font": "modern",
+        "kicker": "LIMITED EDITION ARCHIVE",
+        "cta": "Shop the drop",
+        "title": "Bold form.<br>Zero compromise."
+      }
+    },
+    {
       "id": "bazaar-vibrant",
       "name": "Dynamic Bazaar",
+      "mood": "Energetic & High-Conversion",
       "description": "High-energy merchant marketplace with pill-framed navigation, quick-buy badges, and dense discovery.",
       "previewImage": "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=1100&q=85",
       "stylesheet": "bazaar-vibrant/template.css",

@@ -81,26 +81,44 @@
     .template-choice.is-selected { border-color: #147653; box-shadow: 0 0 0 2px rgba(20,118,83,.14); background: #f6fbf7; }
     .template-choice strong,.template-choice small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .template-choice small { white-space:normal; display:-webkit-box; min-height:2em; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-    .template-choice strong { margin-top: .45rem; color: #17251f; font-size: .7rem; }
+    .template-choice strong { margin-top: .35rem; color: #17251f; font-size: .72rem; }
     .template-choice small { margin-top: .1rem; color: #68786f; font-size: .62rem; }
+    .template-mood-badge { display: inline-block; margin-top: .42rem; padding: .14rem .45rem; border-radius: 999px; background: #edf4ef; color: #1e5b3f; font-style: normal; font-size: .56rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .template-choice[data-template="cute-boutique"] .template-mood-badge { background: #fdf2f8; color: #be185d; }
+    .template-choice[data-template="food-local"] .template-mood-badge { background: #fff7ed; color: #9a3412; }
+    .template-choice[data-template="luxury-atelier"] .template-mood-badge,
+    .template-choice[data-template="premium-maker"] .template-mood-badge { background: #f5efe6; color: #6b4c35; }
+    .template-choice[data-template="brutalist-studio"] .template-mood-badge,
+    .template-choice[data-template="bazaar-vibrant"] .template-mood-badge { background: #fef2f2; color: #b91c1c; }
     .template-thumb { position: relative; display: flex; height: 3.3rem; align-items: end; gap: .18rem; overflow: hidden; padding: .35rem; border-radius: 8px; background: #eef3ed; }
     .template-thumb::before { position: absolute; top: .32rem; right: .3rem; left: .3rem; height: .35rem; border-radius: 99px; background: rgba(255,255,255,.85); content: ''; }
     .template-thumb i { display: block; width: 30%; height: 55%; border-radius: 4px; background: #8bab91; }
     .template-thumb[data-template="fashion-beauty-cosmetics"] { background:linear-gradient(110deg,#083e50,#08718b); }
     .template-thumb[data-template="fashion-beauty-cosmetics"]::before { background:rgba(255,255,255,.88); }
     .template-thumb[data-template="fashion-beauty-cosmetics"] i { background:linear-gradient(145deg,#e8d3c4,#b58d78); }
+    .template-thumb[data-template="cute-boutique"] { background:linear-gradient(135deg,#fce7f3,#f3e8ff); border-radius:12px; }
+    .template-thumb[data-template="cute-boutique"]::before { background:rgba(255,255,255,.94); }
+    .template-thumb[data-template="cute-boutique"] i { border-radius:9px; background:linear-gradient(145deg,#f472b6,#db2777); }
     .template-thumb[data-template="market-modern"] { background:#eaf0eb; }
     .template-thumb[data-template="market-modern"] i { background:linear-gradient(145deg,#a6c2a9,#4c7e5d); }
     .template-thumb[data-template="editorial-boutique"] { background:#f1e9e0; }
     .template-thumb[data-template="editorial-boutique"] i { background:linear-gradient(145deg,#e3cbb5,#a27d61); }
     .template-thumb[data-template="premium-maker"] { background:#25332b; }
     .template-thumb[data-template="premium-maker"] i { background:linear-gradient(145deg,#d8c4a0,#9a7651); }
+    .template-thumb[data-template="luxury-atelier"] { background:linear-gradient(135deg,#191614,#2d2520); }
+    .template-thumb[data-template="luxury-atelier"]::before { background:rgba(235,221,203,.72); }
+    .template-thumb[data-template="luxury-atelier"] i { border-radius:1px; background:linear-gradient(145deg,#e5d0b1,#9c7a54); }
     .template-thumb[data-template="tech-home"] { background:#dce7ed; }
     .template-thumb[data-template="tech-home"] i { background:linear-gradient(145deg,#a9c9d9,#51748b); }
     .template-thumb[data-template="service-studio"] { background:#eee9e2; }
     .template-thumb[data-template="service-studio"] i { background:linear-gradient(145deg,#e0c4b9,#a87c70); }
     .template-thumb[data-template="food-local"] { background:#f6ebd8; }
     .template-thumb[data-template="food-local"] i { background:linear-gradient(145deg,#efca7a,#b96845); }
+    .template-thumb[data-template="brutalist-studio"] { background:#f4f4f0; border:1.5px solid #18181b; border-radius:2px; }
+    .template-thumb[data-template="brutalist-studio"]::before { border-radius:0; background:#18181b; }
+    .template-thumb[data-template="brutalist-studio"] i { border-radius:0; background:#ef4444; box-shadow:2px 2px 0 #18181b; }
+    .template-thumb[data-template="bazaar-vibrant"] { background:linear-gradient(125deg,#fffbeb,#fef3c7); }
+    .template-thumb[data-template="bazaar-vibrant"] i { background:linear-gradient(145deg,#fb923c,#ea580c); }
     .template-palette-choices { display:flex; flex-wrap:wrap; gap:.55rem; }
     .template-palette-choice { display:flex; min-width:5rem; flex-direction:column; align-items:center; gap:.35rem; padding:.5rem .65rem; border:1px solid #e1e8e2; border-radius:12px; color:#59675f; background:#fff; font-size:.65rem; font-weight:700; cursor:pointer; }
     .template-palette-choice:hover { border-color:#9bb5a5; }
@@ -192,6 +210,18 @@
     .design-preview-stage[data-template="food-local"] .design-preview-hero { background:linear-gradient(120deg,#fff5df,#f5e2c0); }
     .design-preview-stage[data-template="food-local"] .design-preview-hero-art { border-radius:48% 48% 12px 12px; background:radial-gradient(circle at 72% 20%,#ffe2a5 0 10%,transparent 11%),linear-gradient(145deg,#c96c45,#e7b767 48%,#74894f); }
     .design-preview-stage[data-template="food-local"] .design-preview-product-art { background:linear-gradient(145deg,#f7dfaa,#d88959); }
+    .design-preview-stage[data-template="cute-boutique"] .design-preview-site { border-radius:22px; }
+    .design-preview-stage[data-template="cute-boutique"] .design-preview-hero { background:radial-gradient(circle at 85% 20%,rgba(244,114,182,.25),transparent 45%),linear-gradient(135deg,#fff5f9,#fce7f3); }
+    .design-preview-stage[data-template="cute-boutique"] .design-preview-hero-art { border-radius:999px; background:linear-gradient(145deg,#fbcfe8,#f472b6 58%,#c084fc); }
+    .design-preview-stage[data-template="cute-boutique"] .design-preview-product-grid article { border-radius:14px; border:1.5px solid rgba(219,39,119,.18); }
+    .design-preview-stage[data-template="cute-boutique"] .design-preview-product-art { border-radius:11px; background:linear-gradient(145deg,#fce7f3,#f9a8d4); }
+    .design-preview-stage[data-template="luxury-atelier"] .design-preview-site { border-radius:2px; }
+    .design-preview-stage[data-template="luxury-atelier"] .design-preview-hero { background:linear-gradient(135deg,#1c1917,#292524); color:#faf7f2; }
+    .design-preview-stage[data-template="luxury-atelier"] .design-preview-hero p { color:#d6d3d1; }
+    .design-preview-stage[data-template="luxury-atelier"] .design-preview-hero-art { border-radius:2px; background:linear-gradient(145deg,#e7d5be,#8c6d46); }
+    .design-preview-stage[data-template="brutalist-studio"] .design-preview-site { border-radius:0; border:2px solid #18181b; }
+    .design-preview-stage[data-template="brutalist-studio"] .design-preview-product-grid article { border-radius:0; border:1.5px solid #18181b; box-shadow:2px 2px 0 #18181b; }
+    .design-preview-stage[data-template="bazaar-vibrant"] .design-preview-hero { background:linear-gradient(125deg,#fffbeb,#ffedd5); }
     @media(max-width:900px) { .design-preview-panel { position:static; } }
     @media(max-width:480px) { .template-choice-grid .template-choice { flex-basis:78%; } .template-palette-choice { min-width:4.5rem; } }
     .design-preview-stage[data-preview-size="mobile"] .design-preview-site { width:66%; min-width:190px; margin:auto; }

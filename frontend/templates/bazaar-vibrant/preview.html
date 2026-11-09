@@ -3,21 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dynamic Bazaar — Store254 Template Preview</title>
+  <title>Dynamic Bazaar (Energetic & High-Conversion) — Store254 Interactive Theme Preview</title>
   <link rel="stylesheet" href="./template.css">
   <style>
-    :root {
-      --store-primary: #15803d;
-      --store-primary-hover: #166534;
-      --store-primary-subtle: #dcfce7;
-      --store-on-primary: #ffffff;
-      --store-paper: #edf5ee;
-      --store-white: #ffffff;
-      --store-ink: #0f2415;
-      --store-muted: #4b6353;
-      --store-line: #c8ded0;
-      --store-media-bg: #f3f8f4;
-    }
     * { box-sizing: border-box; }
     .preview-bar {
       display: flex;
@@ -28,32 +16,62 @@
       padding: 0.75rem 1.25rem;
       background: #0f172a;
       color: #f8fafc;
-      font: 600 0.8rem system-ui, sans-serif;
+      font: 600 0.78rem system-ui, sans-serif;
+      border-bottom: 1px solid #1e293b;
     }
     .preview-bar input[type="color"] {
-      width: 2rem;
-      height: 1.75rem;
+      width: 1.9rem;
+      height: 1.65rem;
       border: 1px solid #475569;
       border-radius: 4px;
       background: transparent;
       cursor: pointer;
+      vertical-align: middle;
     }
-    .preview-controls { display: flex; align-items: center; gap: 0.85rem; }
+    .preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
+    .preview-preset-btn {
+      padding: 0.3rem 0.6rem !important;
+      border-radius: 999px !important;
+      border: 1px solid #334155 !important;
+      background: #1e293b !important;
+      color: #e2e8f0 !important;
+      font-size: 0.7rem !important;
+      cursor: pointer;
+    }
+    .preview-preset-btn:hover { background: #334155 !important; }
     .preview-badge {
-      padding: 0.25rem 0.6rem;
+      padding: 0.25rem 0.65rem;
       border-radius: 999px;
-      background: #1e293b;
-      color: #38bdf8;
-      font-size: 0.72rem;
+      background: #064e3b;
+      color: #6ee7b7;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .svg-illustration {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 18%, var(--store-media-bg)), var(--store-media-bg));
+      color: var(--store-primary);
+      font-weight: 800;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
   </style>
 </head>
 <body>
   <div class="preview-bar">
-    <div><strong>Dynamic Bazaar</strong> · <span style="opacity:.8">High-energy merchant marketplace with pill-framed navigation, quick-buy badges, and dense discovery.</span></div>
+    <div>
+      <strong>Dynamic Bazaar</strong> · <span style="color:#94a3b8">Energetic & High-Conversion</span>
+    </div>
     <div class="preview-controls">
-      <label>Foreground <input type="color" id="fg-picker" value="#15803d"></label>
-      <label>Background <input type="color" id="bg-picker" value="#edf5ee"></label>
+      <label>Foreground <input type="color" id="fg-picker" value="#d97706"></label>
+      <label>Background <input type="color" id="bg-picker" value="#fffbeb"></label>
+      <button type="button" class="preview-preset-btn" onclick="setColors('#d97706','#fffbeb')">Theme Default</button>
+      <button type="button" class="preview-preset-btn" onclick="setColors('#111827','#0f172a')">Test Dark+Dark</button>
+      <button type="button" class="preview-preset-btn" onclick="setColors('#f8fafc','#ffffff')">Test Light+Light</button>
       <span id="contrast-status" class="preview-badge">WCAG Auto-Contrast Active</span>
     </div>
   </div>
@@ -61,11 +79,12 @@
   <header id="site-header">
     <div id="header-brand">
       <div id="header-store-identity">
-        <h1 id="header-store-name">Dynamic Bazaar Store</h1>
-        <p id="header-store-tagline">TOP DEALS & NEW FINDS</p>
+        <h1 id="header-store-name">Dynamic Bazaar</h1>
+        <p id="header-store-tagline">Energetic & High-Conversion</p>
       </div>
     </div>
     <form id="search-form" onsubmit="event.preventDefault()">
+      <label for="search-input">Search</label>
       <input type="search" id="search-input" placeholder="Search products, services, categories...">
     </form>
     <nav id="header-actions-nav">
@@ -78,9 +97,9 @@
   <nav id="storefront-category-nav">
     <div id="category-pills">
       <button type="button" aria-selected="true">All Items</button>
-      <button type="button" aria-selected="false">Featured</button>
-      <button type="button" aria-selected="false">New Arrivals</button>
-      <button type="button" aria-selected="false">Services</button>
+      <button type="button" aria-selected="false">Signature</button>
+      <button type="button" aria-selected="false">New Releases</button>
+      <button type="button" aria-selected="false">Special Offers</button>
     </div>
   </nav>
 
@@ -96,18 +115,18 @@
       <aside id="desktop-filter-sidebar">
         <h4>Dynamic Filters</h4>
         <fieldset>
-          <legend>Category</legend>
-          <label><input type="checkbox" checked> Signature Collection</label>
-          <label><input type="checkbox"> Limited Release</label>
-          <label><input type="checkbox"> Bookable Services</label>
+          <legend>Collection</legend>
+          <label><input type="checkbox" checked> Featured Selection</label>
+          <label><input type="checkbox"> Express Delivery</label>
+          <label><input type="checkbox"> Customer Favorites</label>
         </fieldset>
       </aside>
       <section id="catalog-main-content">
         <div id="items-grid">
           <article class="product-card">
-            <figure class="product-card-media"></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Featured 01</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Signature Store Item One</h5>
+              <h5 class="product-title">Signature Collection Piece</h5>
               <span class="product-price">KES 4,500</span>
             </div>
             <div class="product-card-actions">
@@ -115,9 +134,9 @@
             </div>
           </article>
           <article class="product-card">
-            <figure class="product-card-media"></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Featured 02</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Curated Essential Two</h5>
+              <h5 class="product-title">Curated Essential Edition</h5>
               <span class="product-price">KES 6,200</span>
             </div>
             <div class="product-card-actions">
@@ -125,9 +144,9 @@
             </div>
           </article>
           <article class="product-card">
-            <figure class="product-card-media"></figure>
+            <figure class="product-card-media"><div class="svg-illustration">Featured 03</div></figure>
             <div class="product-card-body">
-              <h5 class="product-title">Artisan Edition Three</h5>
+              <h5 class="product-title">Handpicked Studio Release</h5>
               <span class="product-price">KES 3,800</span>
             </div>
             <div class="product-card-actions">
@@ -173,7 +192,7 @@
       if (contrast(safeFg, bgRgb) < 4.5 || contrast(safeFg, surfaceRgb) < 4.5) {
         adjusted = true;
         const target = isDark ? [255, 255, 255] : [0, 0, 0];
-        for (let step = 0.05; step <= 0.95; step += 0.05) {
+        for (let step = 0.04; step <= 0.96; step += 0.04) {
           const candidate = mix(rawFgRgb, target, 1 - step);
           if (contrast(candidate, bgRgb) >= 4.5 && contrast(candidate, surfaceRgb) >= 4.5) {
             safeFg = candidate;
@@ -187,17 +206,25 @@
       root.style.setProperty("--store-paper", bgHex);
       root.style.setProperty("--store-white", rgbToHex(...surfaceRgb));
       root.style.setProperty("--store-primary", primaryHex);
+      root.style.setProperty("--store-primary-subtle", rgbToHex(...(isDark ? mix(bgRgb, safeFg, 0.78) : mix([255, 255, 255], safeFg, 0.88))));
       root.style.setProperty("--store-on-primary", onPrimary);
       root.style.setProperty("--store-ink", isDark ? "#f8fafc" : "#0f172a");
       root.style.setProperty("--store-muted", isDark ? "#cbd5e1" : "#475569");
       root.style.setProperty("--store-line", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.78) : mix(bgRgb, [0, 0, 0], 0.84))));
       root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
-      document.getElementById("contrast-status").textContent = adjusted
-        ? "Auto-Adjusted for High Visibility (" + primaryHex + ")"
-        : "Optimal Contrast Verified";
+      const badge = document.getElementById("contrast-status");
+      badge.textContent = adjusted
+        ? "Auto-Balanced to " + primaryHex + " for 100% Visibility"
+        : "Optimal Contrast Verified (" + primaryHex + ")";
+    }
+    function setColors(fg, bg) {
+      document.getElementById("fg-picker").value = fg;
+      document.getElementById("bg-picker").value = bg;
+      applyAutoPalette(fg, bg);
     }
     document.getElementById("fg-picker").addEventListener("input", e => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
     document.getElementById("bg-picker").addEventListener("input", e => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
+    applyAutoPalette("#d97706", "#fffbeb");
   </script>
 </body>
 </html>

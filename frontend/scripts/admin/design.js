@@ -31,9 +31,17 @@ function renderTemplateChoices() {
 
     const name = document.createElement("strong");
     name.textContent = template.name;
+    if (template.mood) {
+      const moodBadge = document.createElement("em");
+      moodBadge.className = "template-mood-badge";
+      moodBadge.textContent = template.mood;
+      button.append(image, moodBadge, name);
+    } else {
+      button.append(image, name);
+    }
     const description = document.createElement("small");
     description.textContent = template.description || "Storefront template";
-    button.append(image, name, description);
+    button.append(description);
     button.addEventListener("click", () => selectStoreTemplate(template.id));
     grid.append(button);
   });
