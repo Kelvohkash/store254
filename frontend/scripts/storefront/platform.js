@@ -19,8 +19,15 @@ function renderFeaturedStoreShowcase(stores) {
   const controls = document.querySelector(".showcase-carousel-controls");
   if (!carousel || !controls) return;
 
-  // Shuffle the active directory entries so the hero rotates its featured stores between visits.
-  const featured = [...stores];
+  // Keep the hero card deck visible even before any stores are active or when the directory is offline.
+  const hasLiveStores = stores.length > 0;
+  const featured = hasLiveStores ? [...stores] : [
+    { name: "Your store could be here", businessType: "Independent Kenyan brand", settings: { tagline: "A home for your hustle" } },
+    { name: "Made by a local creator", businessType: "Kenyan maker", settings: { tagline: "Thoughtful finds, made nearby" } },
+    { name: "Your neighborhood shop", businessType: "Everyday essentials", settings: { tagline: "Discover something local" } },
+  ];
+  const ownerBadge = document.querySelector(".showcase-float-tag");
+  if (ownerBadge) ownerBadge.hidden = !hasLiveStores;
   for (let i = featured.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [featured[i], featured[j]] = [featured[j], featured[i]];

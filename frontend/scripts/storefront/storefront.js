@@ -83,6 +83,7 @@ function initializeShowcaseCarousel() {
     activeIndex = (index + slides.length) % slides.length;
     slides.forEach((slide, slideIndex) => {
       const active = slideIndex === activeIndex;
+      slide.dataset.stackPosition = String((slideIndex - activeIndex + slides.length) % slides.length);
       slide.classList.toggle("is-active", active);
       slide.setAttribute("aria-hidden", String(!active));
     });
