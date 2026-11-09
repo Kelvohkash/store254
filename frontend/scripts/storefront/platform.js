@@ -22,9 +22,9 @@ function renderFeaturedStoreShowcase(stores) {
   // Keep the hero card deck visible even before any stores are active or when the directory is offline.
   const hasLiveStores = stores.length > 0;
   const featured = hasLiveStores ? [...stores] : [
-    { name: "Launch your local online store in minutes", businessType: "Independent Kenyan brand", settings: { tagline: "Launch your local online store in minutes" } },
-    { name: "Your store. Your domain. Your customers.", businessType: "Kenyan maker", settings: { tagline: "Your store. Your domain. Your customers." } },
-    { name: "Your neighborhood shop", businessType: "Everything your business has to offer in one place.", settings: { tagline: "Everything your business has to offer in one place." } },
+    { name: "Launch your local online store in minutes", settings: {} },
+    { name: "Your store. Your domain. Your customers.", settings: {} },
+    { name: "Everything your business has to offer in one place.", settings: {} },
   ];
   const ownerBadge = document.querySelector(".showcase-float-tag");
   if (ownerBadge) ownerBadge.hidden = !hasLiveStores;
@@ -41,7 +41,6 @@ function renderFeaturedStoreShowcase(stores) {
     const imageUrl = safeShowcaseImageUrl(settings.bannerUrl) || FEATURED_STORE_FALLBACK_IMAGES[index % FEATURED_STORE_FALLBACK_IMAGES.length];
     const name = store.name || "Independent Kenyan store";
     const ownerName = typeof store.ownerName === "string" && store.ownerName.trim() ? store.ownerName.trim() : "Store owner";
-    const detail = settings.tagline || settings.description || (store.businessType || "Independent store").replace(/_/g, " ");
     const validSlug = /^[a-z0-9-]+$/i.test(store.subdomain || "");
 
     const slide = document.createElement("article");
@@ -68,9 +67,7 @@ function renderFeaturedStoreShowcase(stores) {
     const identity = document.createElement("div");
     const title = document.createElement("strong");
     title.textContent = name;
-    const subtitle = document.createElement("small");
-    subtitle.textContent = detail;
-    identity.append(title, subtitle);
+    identity.append(title);
     details.append(identity);
     if (validSlug) {
       const link = document.createElement("a");
@@ -109,11 +106,11 @@ function renderFeaturedStoreShowcase(stores) {
 // 17. Platform Mode: Load All Stores
 async function loadPlatformStores() {
   const container = document.getElementById("platform-stores-grid");
-  if (!container) return;
 
   const res = await apiFetch("/api/platform/stores");
   const stores = (res.ok && res.data.success && Array.isArray(res.data.data)) ? res.data.data : [];
   renderFeaturedStoreShowcase(stores);
+  if (!container) return;
 
   if (stores.length === 0) {
     container.innerHTML = `

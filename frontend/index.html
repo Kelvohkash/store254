@@ -71,7 +71,6 @@
       </div>
 
       <nav class="platform-nav-links hidden lg:flex items-center gap-5" aria-label="Main navigation">
-        <a href="#platform-stores-section">Explore stores</a>
         <a href="#platform-template-title">Seller themes</a>
         <button type="button" class="platform-header-cta" onclick="toggleDrawer('onboard-modal', true)">Open your store <i data-lucide="arrow-up-right"></i></button>
       </nav>
@@ -146,19 +145,14 @@
     <div class="platform-intro">
       <div class="platform-intro-copy">
         <p class="platform-eyebrow">Store254 <span>/</span> Kenya</p>
-        <h1><span class="hero-heading-ink">Every small </span><span class="hero-heading-green">hustle</span><span class="hero-heading-ink"> has a </span><span class="hero-heading-green">home</span><span class="hero-heading-ink"> here</span></h1>
+        <h1><span class="hero-heading-green">Every small hustle<br class="mobile-headline-break"> has a home here</span></h1>
         <p class="platform-summary">Discover independent Kenyan brands and shops directly from the people behind them every local shop has its own digital storefront.</p>
         <div class="platform-hero-actions">
-        <a href="#platform-stores-section" class="platform-primary platform-primary-link">
-          <span>Explore the marketplace</span>
-          <i data-lucide="arrow-down" class="w-4 h-4"></i>
-        </a>
-        <button onclick="toggleDrawer('onboard-modal', true)" class="platform-secondary">
+        <button onclick="toggleDrawer('onboard-modal', true)" class="platform-primary">
           <span>Open your store</span>
           <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
         </button>
         </div>
-        <div class="platform-hero-proof"><span><i data-lucide="map-pin"></i> Proudly Kenyan</span><span><i data-lucide="store"></i> Independent brands</span><span><i data-lucide="shield-check"></i> Shop with confidence</span></div>
       </div>
       <div class="platform-showcase-art" aria-label="A preview of independent Kenyan storefronts">
         <div class="showcase-glow"></div>
@@ -167,23 +161,6 @@
         <div class="showcase-float-tag" hidden><span class="showcase-live-dot"></span><span><strong>Created by</strong><small id="featured-store-owner">Store owner</small></span></div>
         <div class="showcase-stamp">254<br><small>KE</small></div>
       </div>
-    </div>
-
-    <div class="platform-benefit-strip" aria-label="Why shop on Store254">
-      <article><span class="benefit-number">1. DIRECT CONNECTION</span><h2>Sell directly to your customers.</h2><p>Build direct relationships with your customers and cut out the middleman.</p></article>
-      <article><span class="benefit-number">02 · BRANDED STOREFRONT</span><h2>Your brand gets its own domain.</h2><p>Get a dedicated link (<code>yourbusiness.store254.co.ke</code>) to showcase your full product lineup in one sleek, professional space.</p></article>
-      <article><span class="benefit-number">03 · LOCAL INFRASTRUCTURE</span><h2>Built for how we trade.</h2><p>Integrated M-Pesa payments and reliable local delivery options designed for your everyday workflow.</p></article>
-    </div>
-
-    <div id="platform-stores-section" class="platform-stores-section">
-      <div class="platform-stores-heading">
-        <div>
-          <p class="platform-eyebrow">The directory · Stores on Store254</p>
-          <h2>Browse storefronts by business</h2>
-        </div>
-        <p>Browse storefronts by business.</p>
-      </div>
-      <div id="platform-stores-grid" class="platform-stores-grid"></div>
     </div>
 
     <section class="platform-template-gallery" aria-labelledby="platform-template-title">
@@ -199,11 +176,6 @@
       <div class="template-gallery-bottom"><span>Six ready-to-personalise designs for different businesses.</span><button type="button" onclick="toggleDrawer('onboard-modal', true)">Create your storefront <i data-lucide="arrow-up-right"></i></button></div>
     </section>
 
-    <section class="platform-seller-callout">
-      <div><p class="platform-eyebrow">Your own corner of the internet</p><h2>Start your store in minutes.</h2><p>Choose a storefront style, add your products and connect your M-Pesa details. Your own branded shop is ready to meet its first customers.</p></div>
-      <button onclick="toggleDrawer('onboard-modal', true)" class="platform-primary"><span>Create your storefront</span><i data-lucide="arrow-up-right" class="w-4 h-4"></i></button>
-      <div class="seller-callout-decoration" aria-hidden="true"><span></span><span></span><span></span></div>
-    </section>
   </section>
 
   <!-- STOREFRONT CATALOG VIEW -->
@@ -771,7 +743,7 @@
 
   <!-- MOBILE BOTTOM FLOATING NAVIGATION BAR (Phone view only) -->
   <div class="mobile-bottom-nav fixed bottom-0 inset-x-0 py-2 px-4 z-40 sm:hidden flex items-center justify-around">
-    <button onclick="document.getElementById('mobile-search-input')?.focus(); window.scrollTo({top:0, behavior:'smooth'})" class="flex flex-col items-center text-slate-500 hover:text-emerald-600">
+    <button onclick="document.getElementById('mobile-search-input')?.focus(); window.scrollTo({top:0, behavior:'smooth'})" class="mobile-search-link flex flex-col items-center text-slate-500 hover:text-emerald-600">
       <i data-lucide="search" class="w-5 h-5"></i>
       <span class="text-[10px] font-bold mt-0.5">Search</span>
     </button>
@@ -779,7 +751,7 @@
       <i data-lucide="user-round" class="w-5 h-5"></i>
       <span class="text-[10px] font-bold mt-0.5">Profile</span>
     </button>
-    <button onclick="toggleDrawer('orders-drawer', true)" class="flex flex-col items-center text-slate-500 hover:text-emerald-600">
+    <button onclick="toggleDrawer('orders-drawer', true)" class="mobile-orders-link flex flex-col items-center text-slate-500 hover:text-emerald-600">
       <i data-lucide="package-check" class="w-5 h-5"></i>
       <span class="text-[10px] font-bold mt-0.5">Orders</span>
     </button>
