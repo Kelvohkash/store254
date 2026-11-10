@@ -48,11 +48,19 @@ test("storefront has responsive, contrast, keyboard-focus and reduced-motion gua
 });
 
 test("marketplace landing has distinct premium surfaces and mobile-safe styling", async () => {
-  const [home, html] = await Promise.all([
+  const [home, html, drawers] = await Promise.all([
     read("../styles/platform-home.css"),
     read("../index.html"),
+    read("../styles/base/drawers-modals.css"),
   ]);
   assert.match(html, /styles\/platform-home\.css/);
+  assert.match(html, /mobile-bottom-nav[^>]*md:hidden/);
+  assert.match(drawers, /\.mobile-bottom-nav,\s*#mobile-bottom-nav\s*\{\s*display:\s*none\s*!important;/);
+  assert.match(drawers, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.mobile-bottom-nav/);
+  assert.match(home, /html:not\(\[data-storefront="true"\]\)\s*\.mobile-bottom-nav[\s\S]*?display:\s*none\s*!important;/);
+  assert.match(home, /html:not\(\[data-storefront="true"\]\)\s*#desktop-search[\s\S]*?display:\s*none\s*!important;/);
+  assert.match(home, /html:not\(\[data-storefront="true"\]\)\s*\.customer-orders-shortcut[\s\S]*?display:\s*none\s*!important;/);
+  assert.match(home, /html:not\(\[data-storefront="true"\]\)\s*#wishlist-toggle[\s\S]*?display:\s*none\s*!important;/);
   assert.match(home, /body:has\(#platform-hero\)[\s\S]*?background:\s*#f6f8f6/);
   assert.match(home, /\.platform-intro[\s\S]*?linear-gradient\([^;]*#fff/);
   assert.match(home, /\.platform-benefit-strip[\s\S]*?grid-template-columns:\s*repeat\(3/);

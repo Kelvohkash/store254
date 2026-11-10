@@ -4,6 +4,22 @@ html:not([data-storefront="true"]) body:has(#platform-hero) .site-header { backg
 .site-header-inner { height:4rem !important; min-height:4rem; gap:1rem; }
 html:not([data-storefront="true"]) body:has(#platform-hero) .site-header-inner > div:last-child { display:none; }
 html:not([data-storefront="true"]) body:has(#platform-hero) #desktop-search { display:none !important; }
+
+/* Platform Home (store254.co.ke): remove bottom navigation, search, orders, and saved wishlist */
+html:not([data-storefront="true"]) .mobile-bottom-nav,
+html:not([data-storefront="true"]) #mobile-bottom-nav,
+html:not([data-storefront="true"]) #desktop-search,
+html:not([data-storefront="true"]) .mobile-search,
+html:not([data-storefront="true"]) .mobile-search-link,
+html:not([data-storefront="true"]) #mobile-nav-search-btn,
+html:not([data-storefront="true"]) .customer-orders-shortcut,
+html:not([data-storefront="true"]) .mobile-orders-link,
+html:not([data-storefront="true"]) #mobile-orders-shortcut,
+html:not([data-storefront="true"]) #wishlist-toggle,
+html:not([data-storefront="true"]) #mobile-wishlist-toggle,
+html:not([data-storefront="true"]) .wishlist-action {
+  display: none !important;
+}
 #mobile-menu-toggle { display:none; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; border:1px solid #dce9df; border-radius:.7rem; background:#fff; color:#26392d; }
 .platform-mobile-menu { display:none; }
 #platform-hero.platform-home { width:100%; max-width:none; margin:0; padding:0; }
@@ -285,9 +301,8 @@ html:not([data-storefront="true"]) #desktop-cart-btn { display:none !important; 
   .platform-mobile-menu a,.platform-mobile-menu button { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:2.75rem; padding:.65rem .75rem; border:0; border-radius:.6rem; background:transparent; color:#26392d; font-size:.85rem; font-weight:700; text-align:left; text-decoration:none; }
   .platform-mobile-menu button { background:#07834e; color:#fff; }
   .platform-mobile-menu button:hover { background:#066d42; }
-  html:not([data-storefront="true"]) body:has(#platform-hero) .mobile-search { display:none !important; }
-  html:not([data-storefront="true"]) body:has(#platform-hero) .mobile-bottom-nav .mobile-search-link,
-  html:not([data-storefront="true"]) body:has(#platform-hero) .mobile-bottom-nav .mobile-orders-link { display:none !important; }
+  html:not([data-storefront="true"]) body:has(#platform-hero) .mobile-search,
+  html:not([data-storefront="true"]) body:has(#platform-hero) .mobile-bottom-nav { display:none !important; }
   #platform-hero.platform-home { width:100%; max-width:none; margin:0; padding:0; }
   #platform-hero .platform-intro { width:100%; margin:0; padding:1.1rem 1rem .7rem; border-right:0 !important; border-left:0 !important; border-radius:0; }
   #platform-hero .platform-intro-copy { width:100%; max-width:none; }

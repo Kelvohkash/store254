@@ -470,8 +470,8 @@ ${cardCss}
     padding: 0.4rem 0.25rem calc(0.4rem + env(safe-area-inset-bottom, 0px)) !important;
     z-index: 40 !important;
   }
-  .mobile-bottom-nav button,
-  ${standaloneScope} #mobile-bottom-nav button {
+  .mobile-bottom-nav button:not(.hidden):not([hidden]),
+  ${standaloneScope} #mobile-bottom-nav button:not(.hidden):not([hidden]) {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
