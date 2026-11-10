@@ -170,7 +170,9 @@ html[data-storefront-template="fashion-and-design"] #site-header {
   background: var(--store-paper) !important;
   border-bottom: 3px double var(--store-line) !important;
   box-shadow: 0 4px 18px -4px rgba(28, 19, 14, 0.04) !important;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] .site-header::before {
@@ -302,21 +304,23 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .sto
 }
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-banner-content {
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-banner-content,
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner .store-banner-copy,
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner #store-banner-content {
   width: min(100%, 46rem) !important;
   max-width: 46rem !important;
   text-align: center !important;
-  background: rgba(255, 255, 255, 0.76) !important;
-  border: 1px solid rgba(255, 255, 255, 0.82) !important;
-  outline: 1px solid color-mix(in srgb, var(--store-primary) 38%, transparent) !important;
-  box-shadow: 0 24px 60px rgba(28, 19, 14, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(145%);
-  backdrop-filter: blur(18px) saturate(145%);
+  background: rgba(255, 255, 255, 0.58) !important;
+  border: 1px solid rgba(255, 255, 255, 0.88) !important;
+  outline: 1px solid color-mix(in srgb, var(--store-primary) 42%, transparent) !important;
+  box-shadow: 0 24px 60px rgba(28, 19, 14, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.96) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(160%) !important;
+  backdrop-filter: blur(22px) saturate(160%) !important;
 }
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner.has-banner-image {
   background-image:
-    linear-gradient(135deg, rgba(28, 19, 14, 0.2), rgba(28, 19, 14, 0.08)),
+    linear-gradient(120deg, rgba(154, 52, 18, 0.34) 0%, rgba(180, 83, 9, 0.12) 46%, rgba(28, 19, 14, 0.4) 100%),
     var(--store-banner-image),
     url("/assets/background.jfif") !important;
   background-position: center !important;
@@ -325,7 +329,7 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .sto
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner.has-banner-image {
   background-image:
-    linear-gradient(135deg, rgba(28, 19, 14, 0.2), rgba(28, 19, 14, 0.08)),
+    linear-gradient(120deg, rgba(154, 52, 18, 0.34) 0%, rgba(180, 83, 9, 0.12) 46%, rgba(28, 19, 14, 0.4) 100%),
     var(--store-banner-image),
     url("/assets/background.jfif") !important;
   background-position: center !important;
@@ -334,7 +338,7 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] #sto
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner:not(.has-banner-image) {
   background-image:
-    linear-gradient(135deg, rgba(28, 19, 14, 0.24), rgba(28, 19, 14, 0.08)),
+    linear-gradient(120deg, rgba(154, 52, 18, 0.34) 0%, rgba(180, 83, 9, 0.12) 46%, rgba(28, 19, 14, 0.4) 100%),
     url("/assets/background.jfif") !important;
   background-position: center 42% !important;
   background-size: cover !important;
@@ -343,7 +347,7 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .sto
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner:not(.has-banner-image) {
   background-image:
-    linear-gradient(135deg, rgba(28, 19, 14, 0.24), rgba(28, 19, 14, 0.08)),
+    linear-gradient(120deg, rgba(154, 52, 18, 0.34) 0%, rgba(180, 83, 9, 0.12) 46%, rgba(28, 19, 14, 0.4) 100%),
     url("/assets/background.jfif") !important;
   background-position: center 42% !important;
   background-size: cover !important;
