@@ -51,34 +51,53 @@
       font-weight: 800;
     }
 
-    /* ── Sticky nav stack ── */
-    #site-header {
+    /* ============================================
+       DESKTOP: Sticky filter sidebar within catalog
+       ============================================ */
+    #desktop-filter-sidebar {
       position: sticky;
-      top: 0;
-      z-index: 1000;
+      top: 72px;
+      align-self: flex-start;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
     }
-    #mobile-search-bar {
-      position: sticky;
-      top: 60px;
-      z-index: 999;
-      background: #fff;
-      border-bottom: 1px solid #e5e7eb;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
+
+    /* Desktop: category nav flows naturally (above hero, not sticky) */
+    @media (min-width: 768px) {
+      #storefront-category-nav {
+        position: relative;
+        z-index: 10;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      #mobile-search-bar {
+        display: none !important;
+      }
     }
-    #storefront-category-nav {
-      position: sticky;
-      top: 60px;
-      z-index: 998;
-      background: #fff;
-      border-bottom: 1px solid #e5e7eb;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    }
+
+    /* ============================================
+       MOBILE: Sticky top bar + category nav stack
+       ============================================ */
     @media (max-width: 767px) {
-      #mobile-search-bar { top: 56px; z-index: 999; display: flex; }
-      #storefront-category-nav { top: calc(56px + 48px); z-index: 998; }
+      #desktop-filter-sidebar {
+        display: none !important;
+      }
+      #site-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+      #mobile-search-bar {
+        position: sticky;
+        top: 56px;
+        z-index: 999;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex !important;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+      }
       #mobile-search-bar input[type="search"] {
         flex: 1;
         padding: 0.45rem 0.75rem;
@@ -100,7 +119,14 @@
         align-items: center;
         gap: 0.35rem;
       }
-      #desktop-filter-sidebar { display: none !important; }
+      #storefront-category-nav {
+        position: sticky;
+        top: calc(56px + 48px);
+        z-index: 998;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      }
     }
     /* ── Mobile Filter Modal ── */
     #mobile-filter-drawer {
