@@ -61,6 +61,9 @@ async function apiFetch(endpoint, options = {}) {
     }
     return { status: res.status, ok: res.ok, data };
   } catch (err) {
+    if (err?.name === "AbortError") {
+      return { ok: false, status: 0, data: { success: false, error: { message: "Request aborted" } } };
+    }
     console.error(`[API Error] ${endpoint}:`, err);
     return { ok: false, status: 0, data: { success: false, error: { message: "Network connection failed" } } };
   }

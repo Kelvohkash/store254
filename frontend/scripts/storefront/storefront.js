@@ -40,16 +40,20 @@ async function loadStoreProfile() {
   document.getElementById("storefront-view")?.classList.remove("hidden");
   // Show Store Admin button on store subdomains, NEVER show Super Admin
   document.getElementById("store-admin-footer-btn")?.classList.remove("hidden");
-  const res = await apiFetch("/api/store");
+  if (typeof renderSkeletonCards === "function") renderSkeletonCards();
+  const [res] = await Promise.all([
+    apiFetch("/api/store"),
+    loadCategories(),
+    loadDynamicFilters(),
+    loadItems(),
+  ]);
   if (res.ok && res.data.success) {
     state.activeTenant = res.data.data;
     // Apply the store owner's configured theme palette for every visitor
     setThemePalette(state.activeTenant.settings?.themePalette);
-    await applyStorefrontSettings(state.activeTenant.settings);
+    applyStorefrontSettings(state.activeTenant.settings);
     renderStoreBanner();
     updateWishlistButton();
-    await Promise.all([loadCategories(), loadDynamicFilters()]);
-    await loadItems();
   } else {
     const reason = res.data?.error?.message;
     showToast(reason || `We couldn’t load the ${state.activeTenantSlug} storefront. Please try again shortly.`, "error");
@@ -121,7 +125,7 @@ function initializeShowcaseCarousel() {
 function syncMobileSearch(val) {
   const pcInput = document.getElementById("search-input");
   if (pcInput) pcInput.value = val;
-  loadItems();
+  debouncedLoadItems();
 }
 
 function toggleMobileFilters(show) {

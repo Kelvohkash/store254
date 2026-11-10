@@ -6,10 +6,44 @@
   border-top: 1px solid var(--store-line);
   background: color-mix(in srgb, var(--store-white) 97%, transparent);
   box-shadow: 0 -3px 14px rgba(29, 41, 36, 0.04);
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  align-items: center !important;
+  justify-items: center !important;
+  padding: 0.4rem 0.25rem calc(0.4rem + env(safe-area-inset-bottom, 0px)) !important;
+  z-index: 40 !important;
 }
-.mobile-bottom-nav button { color: var(--store-muted) !important; }
+.mobile-bottom-nav button {
+  color: var(--store-muted) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 0.25rem 0.15rem !important;
+  border: 0 !important;
+  background: transparent !important;
+  text-align: center !important;
+}
+.mobile-bottom-nav button i,
+.mobile-bottom-nav button svg {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  flex-shrink: 0 !important;
+}
+.mobile-bottom-nav button span {
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  margin-top: 0.2rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+}
 .mobile-bottom-nav button:last-child { color: var(--store-green) !important; }
-html[data-storefront="true"] #mobile-wishlist-toggle { display: flex; }
+html[data-storefront="true"] #mobile-wishlist-toggle { display: flex !important; }
 #mobile-wishlist-toggle[aria-pressed="true"] { color: var(--store-primary) !important; }
 
 /* Site Footer */
@@ -37,25 +71,60 @@ html[data-storefront="true"] #mobile-wishlist-toggle { display: flex; }
 
 /* Responsive Media Queries */
 @media (max-width: 767px) {
-  html[data-storefront="true"] .wishlist-action { display: none; }
-  html[data-storefront="true"] .customer-profile-toggle { display: none; }
-  html[data-storefront="true"] .customer-orders-shortcut { display: none; }
-  .site-header-inner { min-height: 3.8rem; }
-  .site-header-inner { gap: 0.45rem; }
-  #header-brand { flex: 1 1 0; gap: 0.55rem; min-width: 0; }
-  .header-logo-frame { width: 7.25rem; height: 1.85rem; padding: 0; }
+  body,
+  html[data-storefront="true"] body {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  html[data-storefront="true"] .customer-profile-toggle { display: none !important; }
+  html[data-storefront="true"] .customer-orders-shortcut { display: none !important; }
+  .site-header-inner { min-height: 3.4rem; gap: 0.45rem; }
+  #header-brand { flex: 1 1 auto; gap: 0.55rem; min-width: 0; overflow: hidden; }
+  .header-logo-frame { width: 2.2rem !important; height: 2.2rem !important; padding: 0.18rem !important; }
   #header-platform-logo { flex: 0 0 auto; }
-  #header-store-identity { max-width: 100%; }
-  .header-store-name { font-size: 0.76rem; }
-  .header-powered-by { font-size: 0.56rem; }
+  #header-store-identity { flex: 1 1 auto; min-width: 0; max-width: none; overflow: hidden; }
+  .header-store-name { font-size: 0.94rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-powered-by { font-size: 0.62rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .site-header-inner > .flex.items-center.gap-2 { flex: 0 0 auto; gap: 0.4rem; }
   .site-header-inner > .flex.items-center.gap-2 > button { padding-left: 0.55rem; padding-right: 0.55rem; }
+
+  /* Floating quick action buttons: positioned safely above the bottom navigation */
+  .whatsapp-quick-contact,
+  #whatsapp-quick-contact,
+  .floating-action-btn,
+  .pwa-install-btn,
+  #pwa-install-btn,
+  [data-floating-action] {
+    position: fixed !important;
+    right: 0.85rem !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem) !important;
+    width: 2.6rem !important;
+    height: 2.6rem !important;
+    padding: 0.5rem !important;
+    border-radius: 9999px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22) !important;
+    z-index: 45 !important;
+  }
+  .whatsapp-quick-contact span,
+  #whatsapp-quick-contact span {
+    display: none !important;
+  }
+  .whatsapp-quick-contact svg,
+  .whatsapp-quick-contact i,
+  #whatsapp-quick-contact svg,
+  #whatsapp-quick-contact i {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+  }
+
   .store-banner.has-banner-image {
     background-image:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.42) 0%, rgba(15, 23, 42, 0.24) 60%, rgba(15, 23, 42, 0.1) 100%),
+      linear-gradient(180deg, rgba(10, 18, 14, 0.82) 0%, rgba(10, 18, 14, 0.65) 50%, rgba(10, 18, 14, 0.85) 100%),
       var(--store-banner-image);
   }
-  .store-banner-inner { min-height: auto; padding-top: 1.6rem; padding-bottom: 1.6rem; align-items: start; flex-direction: column; gap: 1rem; }
+  .store-banner-inner { min-height: 16rem; padding-top: 1.6rem; padding-bottom: 1.6rem; align-items: start; flex-direction: column; gap: 0.85rem; }
   .store-banner h1 { font-size: 1.8rem; line-height: 1.15; }
   #banner-store-desc { margin-top: 0.6rem; font-size: 0.86rem; }
   .store-contact { align-self: start; }

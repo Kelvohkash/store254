@@ -110,6 +110,7 @@ const state = {
   selectedPriceRange: { min: 0, max: 200000 },
   facets: [],
   items: [],
+  allStoreItems: null,
   cart: getInitialCart(),
   appliedCoupon: null,
   customerToken: getInitialCustomerStorage("token", "store254_customer_token"),

@@ -111,6 +111,7 @@ filtersRouter.get("/", async (c) => {
     });
   }
 
+  c.header("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
   return c.json({
     success: true,
     data: {

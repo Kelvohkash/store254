@@ -269,3 +269,182 @@ html[data-storefront="true"] #header-platform-logo {
   object-fit: contain !important;
   border-radius: 0.5rem;
 }
+
+/* ═════ MOBILE (<= 767px) STOREFRONT HEADER GUARDRAILS ═════ */
+@media (max-width: 767px) {
+  /* Flat sticky header: remove pill/curved shape and margins */
+  .site-header,
+  html[data-storefront="true"] .site-header,
+  html[data-storefront-template] .site-header,
+  html[data-storefront-template] #site-header {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--store-line, #e2e8f0) !important;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05) !important;
+    z-index: 40 !important;
+  }
+  .site-header-inner,
+  html[data-storefront="true"] .site-header-inner {
+    height: auto !important;
+    min-height: 3.4rem !important;
+    padding: 0.45rem 0.9rem !important;
+    gap: 0.5rem !important;
+    border-radius: 0 !important;
+  }
+
+  /* Row 1: compact logo + brand taking remaining space with ellipsis only when needed */
+  #header-brand,
+  html[data-storefront="true"] #header-brand {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    gap: 0.55rem !important;
+    overflow: hidden !important;
+  }
+  .header-logo-frame,
+  html[data-storefront="true"] .header-logo-frame {
+    width: 2.2rem !important;
+    height: 2.2rem !important;
+    padding: 0.18rem !important;
+    border-radius: 0.55rem !important;
+    flex-shrink: 0 !important;
+  }
+  #header-store-identity,
+  html[data-storefront="true"] #header-store-identity {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    overflow: hidden !important;
+  }
+  .header-store-name,
+  html[data-storefront="true"] #header-store-name {
+    font-size: 0.94rem !important;
+    font-weight: 750 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .header-powered-by,
+  html[data-storefront="true"] #header-powered-by {
+    font-size: 0.62rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Row 1 action buttons: hide Profile and Orders from header (handled by bottom nav), keep Cart & icon-only Wishlist */
+  html[data-storefront="true"] .customer-profile-toggle,
+  html[data-storefront="true"] #customer-profile-toggle,
+  html[data-storefront="true"] .customer-orders-shortcut,
+  html[data-storefront-template] .customer-profile-toggle,
+  html[data-storefront-template] #customer-profile-toggle,
+  html[data-storefront-template] .customer-orders-shortcut {
+    display: none !important;
+  }
+  html[data-storefront="true"] .wishlist-action,
+  html[data-storefront-template] .wishlist-action,
+  html[data-storefront-template] #wishlist-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.3rem !important;
+    height: 2.3rem !important;
+    min-width: 2.3rem !important;
+    padding: 0 !important;
+    border-radius: 0.65rem !important;
+  }
+  .wishlist-action [data-wishlist-label],
+  .wishlist-action span:not(#wishlist-count),
+  #wishlist-toggle span:not(#wishlist-count) {
+    display: none !important;
+  }
+  #desktop-cart-btn,
+  html[data-storefront="true"] #desktop-cart-btn,
+  html[data-storefront-template] #desktop-cart-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 2.3rem !important;
+    height: 2.3rem !important;
+    min-width: 2.3rem !important;
+    padding: 0 !important;
+    border-radius: 9999px !important;
+  }
+  #desktop-cart-btn span:not(#cart-count-badge),
+  html[data-storefront="true"] #desktop-cart-btn span:not(#cart-count-badge) {
+    display: none !important;
+  }
+
+  /* Row 2: search input + Filters button with no overlap and search icon correctly inside input */
+  .mobile-search {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.45rem 0.9rem 0.65rem !important;
+    border-top: 1px solid var(--store-line, #e2e8f0) !important;
+    border-bottom: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-sizing: border-box !important;
+  }
+  .mobile-search > div,
+  .mobile-search > .relative {
+    position: relative !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  .mobile-search input,
+  #mobile-search-input {
+    width: 100% !important;
+    height: 2.5rem !important;
+    border-radius: 0.65rem !important;
+    border: 1px solid var(--store-line, #e2e8f0) !important;
+    background: var(--store-white, #ffffff) !important;
+    color: var(--store-ink, #0f172a) !important;
+    padding-left: 2.35rem !important;
+    padding-right: 0.75rem !important;
+    font-size: 0.85rem !important;
+    box-sizing: border-box !important;
+  }
+  .mobile-search .search-field-icon {
+    position: absolute !important;
+    left: 0.75rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    pointer-events: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--store-muted, #94a3b8) !important;
+    z-index: 2 !important;
+  }
+  .mobile-search button {
+    flex: 0 0 auto !important;
+    height: 2.5rem !important;
+    padding: 0 0.85rem !important;
+    border-radius: 0.65rem !important;
+    border: 1px solid var(--store-line, #e2e8f0) !important;
+    background: var(--store-white, #ffffff) !important;
+    color: var(--store-ink, #0f172a) !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.35rem !important;
+    white-space: nowrap !important;
+  }
+}
+

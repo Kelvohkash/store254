@@ -122,7 +122,7 @@ if (typeof window !== "undefined") {
 let storefrontTemplateCatalogPromise;
 function loadStorefrontTemplateCatalog() {
   if (!storefrontTemplateCatalogPromise) {
-    storefrontTemplateCatalogPromise = fetch("/templates/catalog.json", { cache: "no-cache" })
+    storefrontTemplateCatalogPromise = fetch("/templates/catalog.json")
       .then((response) => {
         if (!response.ok) throw new Error("Template catalog unavailable");
         return response.json();

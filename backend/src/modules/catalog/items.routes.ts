@@ -62,7 +62,7 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
   const db = createDb(c.env.DB);
 
   const page = Math.max(1, parseInt(query.page || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "20", 10)));
+  const limit = Math.min(200, Math.max(1, parseInt(query.limit || "50", 10)));
   const offset = (page - 1) * limit;
 
   const isMerchant =
@@ -191,6 +191,10 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
       }
       return true;
     });
+  }
+
+  if (!isMerchant) {
+    c.header("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   }
 
   return c.json({

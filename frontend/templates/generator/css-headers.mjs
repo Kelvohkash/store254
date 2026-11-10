@@ -1,15 +1,28 @@
 export function buildHeaderCss(tokens, scope, standaloneScope) {
   if (tokens.headerStyle === "floating-pill") {
     return `
-${scope} .site-header,
-${standaloneScope} #site-header {
-  margin: 0.75rem auto;
-  max-width: min(96%, 82rem);
-  border: 2px solid color-mix(in srgb, var(--store-primary) 28%, var(--store-line)) !important;
-  border-radius: 9999px !important;
-  background: color-mix(in srgb, var(--store-white) 94%, transparent) !important;
-  box-shadow: 0 12px 36px -8px var(--store-primary-glow, rgba(15, 23, 42, 0.08)) !important;
-  backdrop-filter: blur(16px);
+@media (min-width: 768px) {
+  ${scope} .site-header,
+  ${standaloneScope} #site-header {
+    margin: 0.75rem auto;
+    max-width: min(96%, 82rem);
+    border: 2px solid color-mix(in srgb, var(--store-primary) 28%, var(--store-line)) !important;
+    border-radius: 9999px !important;
+    background: color-mix(in srgb, var(--store-white) 94%, transparent) !important;
+    box-shadow: 0 12px 36px -8px var(--store-primary-glow, rgba(15, 23, 42, 0.08)) !important;
+    backdrop-filter: blur(16px);
+  }
+}
+@media (max-width: 767px) {
+  ${scope} .site-header,
+  ${standaloneScope} #site-header {
+    margin: 0 !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+  }
 }
 ${scope} .site-header::before { display: none; }
 ${scope} .header-action,
@@ -176,6 +189,17 @@ ${standaloneScope} #site-header {
   border-top: 0 !important;
   border-bottom: 1px solid color-mix(in srgb, var(--store-ink) 8%, var(--store-line)) !important;
   box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05) !important;
+}
+@media (max-width: 767px) {
+  ${scope} .site-header,
+  ${standaloneScope} #site-header {
+    margin: 0 !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-top: 0 !important;
+  }
 }
 ${scope} .site-header::before { display: none; }
 ${scope} #desktop-search .search-field input,

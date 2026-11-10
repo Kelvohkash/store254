@@ -1,7 +1,11 @@
 // Helper to safely render Lucide icons
-function renderIcons() {
+function renderIcons(target) {
   if (typeof lucide !== "undefined" && lucide.createIcons) {
-    lucide.createIcons();
+    if (target && (target instanceof Element || target instanceof DocumentFragment)) {
+      lucide.createIcons({ root: target });
+    } else {
+      lucide.createIcons();
+    }
   }
 }
 

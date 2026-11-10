@@ -166,10 +166,22 @@ html[data-storefront-type="service-portfolio"] .storefront-content-intro {
     padding-top: 3rem;
     padding-bottom: 3rem;
   }
-  .whatsapp-quick-contact { right: 0.75rem; bottom: 4.5rem; padding: 0.7rem; }
-  html[data-storefront-type="single-product-maker"] .whatsapp-quick-contact { bottom: 9rem; }
+  .whatsapp-quick-contact {
+    right: 0.85rem;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem) !important;
+    width: 2.6rem;
+    height: 2.6rem;
+    padding: 0.5rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  html[data-storefront-type="single-product-maker"] .whatsapp-quick-contact {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 9rem) !important;
+  }
   .whatsapp-quick-contact span { display: none; }
-  .maker-buy-bar { right: 0.65rem; bottom: 4.5rem; left: 0.65rem; }
+  .maker-buy-bar { right: 0.65rem; bottom: calc(env(safe-area-inset-bottom, 0px) + 4.5rem); left: 0.65rem; }
   .maker-buy-bar strong { max-width: 46vw; }
 }
 

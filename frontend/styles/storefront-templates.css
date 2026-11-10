@@ -24,11 +24,15 @@ html[data-storefront="true"][data-storefront-template="market-modern"] .store-ba
   box-shadow: 0 14px 36px -12px rgba(15, 23, 42, 0.07);
 }
 
-html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner .store-banner-actions #storefront-primary-cta {
+html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner:not(.has-banner-image) .store-banner-actions #storefront-primary-cta {
   background: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
   border-color: var(--store-primary) !important;
   box-shadow: 0 4px 14px color-mix(in srgb, var(--store-primary) 30%, transparent) !important;
+}
+
+html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner.has-banner-image .store-banner-actions #storefront-primary-cta {
+  color: var(--store-ink, #17251f) !important;
 }
 
 html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner .store-banner-actions #banner-store-call-btn {
