@@ -66,6 +66,150 @@
       padding: 0.15rem 0.45rem;
       border-radius: 0.25rem;
     }
+
+    /* ── Sticky nav stack ── */
+    #site-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    #mobile-search-bar {
+      position: sticky;
+      top: 60px;
+      z-index: 999;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+    }
+    #storefront-category-nav {
+      position: sticky;
+      top: 60px;
+      z-index: 998;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    @media (max-width: 767px) {
+      #mobile-search-bar { top: 56px; z-index: 999; }
+      #storefront-category-nav { top: calc(56px + 48px); z-index: 998; }
+      #mobile-search-bar input[type="search"] {
+        flex: 1;
+        padding: 0.45rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        outline: none;
+      }
+      #mobile-filter-open-btn {
+        white-space: nowrap;
+        padding: 0.45rem 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #d1d5db;
+        background: #f3f4f6;
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      #mobile-search-bar { display: none; }
+    }
+    @media (max-width: 767px) {
+      #mobile-search-bar { display: flex; }
+      #desktop-filter-sidebar { display: none !important; }
+    }
+    /* ── Mobile Filter Modal ── */
+    #mobile-filter-drawer {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: min(92vw, 420px);
+      max-height: 85vh;
+      border-radius: 1rem;
+      border: none;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      z-index: 10000;
+    }
+    #mobile-filter-drawer:not([open]) { display: none; }
+    #mobile-filter-drawer::backdrop {
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+    }
+    #mobile-filter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #e5e7eb;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    #mobile-filter-header h3 { margin: 0; font-size: 1.1rem; }
+    #mobile-filter-close-btn {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+      color: #6b7280;
+    }
+    #mobile-filter-body {
+      overflow-y: auto;
+      flex: 1;
+      padding: 1rem 1.25rem;
+      background: #f9fafb;
+    }
+    #mobile-filter-body fieldset {
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      background: #fff;
+    }
+    #mobile-filter-body legend {
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0 0.35rem;
+    }
+    #mobile-filter-body label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #mobile-filter-footer {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.875rem 1.25rem;
+      border-top: 1px solid #e5e7eb;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    #mobile-reset-filters-btn, #mobile-apply-filters-btn {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #d1d5db;
+    }
+    #mobile-apply-filters-btn {
+      background: var(--store-primary, #0ea5e9);
+      color: #fff;
+      border-color: transparent;
+    }
   </style>
 </head>
 <body>
@@ -103,6 +247,15 @@
       </button>
     </nav>
   </header>
+
+  <!-- Mobile Search + Filter Bar -->
+  <div id="mobile-search-bar">
+    <input type="search" placeholder="Search catalog..." aria-label="Search catalog" />
+    <button type="button" id="mobile-filter-open-btn" aria-haspopup="dialog" aria-controls="mobile-filter-drawer">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filters
+    </button>
+  </div>
 
   <!-- Category Filter Bar -->
   <nav id="storefront-category-nav">
@@ -332,10 +485,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>
       <span>Catalog</span>
     </button>
-    <button type="button" aria-label="Search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <span>Search</span>
-    </button>
     <button type="button" aria-label="Wishlist">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
       <span>Wishlist</span>
@@ -351,5 +500,65 @@
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
     <span>Chat on WhatsApp</span>
   </a>
+
+  <!-- Mobile Filter Drawer -->
+  <dialog id="mobile-filter-drawer" aria-labelledby="mobile-filters-title">
+    <header id="mobile-filter-header">
+      <h3 id="mobile-filters-title">Filter Catalog</h3>
+      <button type="button" id="mobile-filter-close-btn" aria-label="Close filters">&#x2715;</button>
+    </header>
+    <div id="mobile-filter-body">
+      <fieldset>
+        <legend>Device Category</legend>
+        <label><input type="checkbox" checked /> Smartphones &amp; Tablets</label>
+        <label><input type="checkbox" /> Laptops &amp; Computers</label>
+        <label><input type="checkbox" /> Smart TVs &amp; Audio</label>
+        <label><input type="checkbox" /> Powerbanks &amp; Accessories</label>
+      </fieldset>
+      <fieldset>
+        <legend>Kenya Warranty &amp; Trust</legend>
+        <label><input type="checkbox" checked /> 24 Months Kenya Warranty</label>
+        <label><input type="checkbox" checked /> Brand New Sealed Box</label>
+        <label><input type="checkbox" /> Instant M-Pesa STK Push</label>
+        <label><input type="checkbox" /> Same-Day CBD / Sarit Pick-up</label>
+      </fieldset>
+      <fieldset>
+        <legend>Connectivity &amp; Power</legend>
+        <label><input type="checkbox" checked /> 5G &amp; Wi-Fi 6E Ready</label>
+        <label><input type="checkbox" /> USB-C Fast GaN Charging</label>
+        <label><input type="checkbox" /> Active Noise Cancellation (ANC)</label>
+        <label><input type="checkbox" /> 4K HDR10+ / Dolby Atmos</label>
+      </fieldset>
+    </div>
+    <footer id="mobile-filter-footer">
+      <button type="button" id="mobile-reset-filters-btn">Reset</button>
+      <button type="button" id="mobile-apply-filters-btn">Apply Filters</button>
+    </footer>
+  </dialog>
+
+  <script>
+    (function() {
+      function openMobileFilters() {
+        var dlg = document.getElementById('mobile-filter-drawer');
+        if (dlg) dlg.showModal();
+      }
+      function closeMobileFilters() {
+        var dlg = document.getElementById('mobile-filter-drawer');
+        if (dlg) dlg.close();
+      }
+      var openBtn = document.getElementById('mobile-filter-open-btn');
+      if (openBtn) openBtn.onclick = openMobileFilters;
+      var closeBtn = document.getElementById('mobile-filter-close-btn');
+      if (closeBtn) closeBtn.onclick = closeMobileFilters;
+      var applyBtn = document.getElementById('mobile-apply-filters-btn');
+      if (applyBtn) applyBtn.onclick = closeMobileFilters;
+      var dlg = document.getElementById('mobile-filter-drawer');
+      if (dlg) {
+        dlg.addEventListener('click', function(e) {
+          if (e.target === dlg) closeMobileFilters();
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

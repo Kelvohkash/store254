@@ -70,6 +70,146 @@
       border: 0;
       cursor: pointer;
     }
+
+    /* ── Sticky nav stack ── */
+    #site-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    #mobile-search-bar {
+      position: sticky;
+      top: 60px;
+      z-index: 999;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+    }
+    #storefront-category-nav {
+      position: sticky;
+      top: 60px;
+      z-index: 998;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    @media (max-width: 767px) {
+      #mobile-search-bar { top: 56px; z-index: 999; display: flex; }
+      #storefront-category-nav { top: calc(56px + 48px); z-index: 998; }
+      #mobile-search-bar input[type="search"] {
+        flex: 1;
+        padding: 0.45rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        outline: none;
+      }
+      #mobile-filter-open-btn {
+        white-space: nowrap;
+        padding: 0.45rem 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #d1d5db;
+        background: #f3f4f6;
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      #desktop-filter-sidebar { display: none !important; }
+    }
+    /* ── Mobile Filter Modal ── */
+    #mobile-filter-drawer {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: min(92vw, 420px);
+      max-height: 85vh;
+      border-radius: 1rem;
+      border: none;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      z-index: 10000;
+    }
+    #mobile-filter-drawer:not([open]) { display: none; }
+    #mobile-filter-drawer::backdrop {
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+    }
+    #mobile-filter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #e5e7eb;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    #mobile-filter-header h3 { margin: 0; font-size: 1.1rem; }
+    #mobile-filter-close-btn {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+      color: #6b7280;
+    }
+    #mobile-filter-body {
+      overflow-y: auto;
+      flex: 1;
+      padding: 1rem 1.25rem;
+      background: #f9fafb;
+    }
+    #mobile-filter-body fieldset {
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      background: #fff;
+    }
+    #mobile-filter-body legend {
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0 0.35rem;
+    }
+    #mobile-filter-body label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #mobile-filter-footer {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.875rem 1.25rem;
+      border-top: 1px solid #e5e7eb;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    #mobile-reset-filters-btn, #mobile-apply-filters-btn {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #d1d5db;
+    }
+    #mobile-apply-filters-btn {
+      background: var(--store-primary, #0ea5e9);
+      color: #fff;
+      border-color: transparent;
+    }
   </style>
 </head>
 <body>
@@ -113,6 +253,15 @@
       </button>
     </nav>
   </header>
+
+  <!-- Mobile Search + Filter Bar -->
+  <div id="mobile-search-bar">
+    <input type="search" placeholder="Search catalog..." aria-label="Search catalog" />
+    <button type="button" id="mobile-filter-open-btn" aria-haspopup="dialog" aria-controls="mobile-filter-drawer">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filters
+    </button>
+  </div>
 
   <!-- Category Navigation Bar -->
   <nav id="storefront-category-nav">
@@ -345,5 +494,58 @@
     </svg>
     <span>WhatsApp</span>
   </button>
+  <!-- Mobile Filter Drawer -->
+  <dialog id="mobile-filter-drawer" aria-labelledby="mobile-filters-title">
+    <header id="mobile-filter-header">
+      <h3 id="mobile-filters-title">Filter Menu</h3>
+      <button type="button" id="mobile-filter-close-btn" aria-label="Close filters">&#x2715;</button>
+    </header>
+    <div id="mobile-filter-body">
+      <fieldset>
+        <legend>Menu Categories</legend>
+        <label><input type="checkbox" /> Hot Meals &amp; Platters</label>
+        <label><input type="checkbox" /> Fresh Farm Groceries</label>
+        <label><input type="checkbox" /> Bakery &amp; Cakes</label>
+        <label><input type="checkbox" /> Drinks &amp; Juices</label>
+      </fieldset>
+      <fieldset>
+        <legend>Kitchen &amp; Diet Notes</legend>
+        <label><input type="checkbox" checked /> Chef's Daily Special</label>
+        <label><input type="checkbox" /> Mild Swahili Herb</label>
+        <label><input type="checkbox" /> Sizzling Extra Chili</label>
+        <label><input type="checkbox" checked /> 100% Farm Fresh Mama Mboga</label>
+        <label><input type="checkbox" /> 30-Min Express Dispatch</label>
+      </fieldset>
+    </div>
+    <footer id="mobile-filter-footer">
+      <button type="button" id="mobile-reset-filters-btn">Reset</button>
+      <button type="button" id="mobile-apply-filters-btn">Apply Filters</button>
+    </footer>
+  </dialog>
+
+  <script>
+    (function() {
+      function openMobileFilters() {
+        var dlg = document.getElementById('mobile-filter-drawer');
+        if (dlg) dlg.showModal();
+      }
+      function closeMobileFilters() {
+        var dlg = document.getElementById('mobile-filter-drawer');
+        if (dlg) dlg.close();
+      }
+      var openBtn = document.getElementById('mobile-filter-open-btn');
+      if (openBtn) openBtn.onclick = openMobileFilters;
+      var closeBtn = document.getElementById('mobile-filter-close-btn');
+      if (closeBtn) closeBtn.onclick = closeMobileFilters;
+      var applyBtn = document.getElementById('mobile-apply-filters-btn');
+      if (applyBtn) applyBtn.onclick = closeMobileFilters;
+      var dlg = document.getElementById('mobile-filter-drawer');
+      if (dlg) {
+        dlg.addEventListener('click', function(e) {
+          if (e.target === dlg) closeMobileFilters();
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
