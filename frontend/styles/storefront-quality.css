@@ -18,8 +18,29 @@ html[data-storefront="true"] .store-banner h1 {
 /* Keep white copy legible even when the uploaded hero photo cannot be loaded. */
 html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image {
   background-image:
-    linear-gradient(90deg, rgba(16, 24, 20, .72), rgba(16, 24, 20, .08)),
+    linear-gradient(180deg, rgba(10, 18, 14, 0.82) 0%, rgba(10, 18, 14, 0.65) 50%, rgba(10, 18, 14, 0.85) 100%),
     var(--store-banner-image) !important;
+  color: #ffffff !important;
+}
+
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image:not([data-hero-style="editorial"]) h1 {
+  color: #ffffff !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75) !important;
+}
+
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image:not([data-hero-style="editorial"]) #banner-store-desc {
+  color: #f1f5f9 !important;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.75) !important;
+}
+
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image:not([data-hero-style="editorial"]) .store-address,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image:not([data-hero-style="editorial"]) .store-tagline {
+  color: #ffffff !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) !important;
 }
 
 html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image .storefront-primary-cta {
@@ -56,16 +77,27 @@ html[data-storefront="true"] #items-grid .product-card:focus-within {
 }
 
 @media (max-width: 767px) {
+  html[data-storefront="true"] .store-banner {
+    text-align: left;
+  }
+
   html[data-storefront="true"] .store-banner-inner {
     min-height: 16rem !important;
     align-items: flex-start;
     gap: .85rem;
     padding-block: 1.5rem !important;
+    text-align: left;
+  }
+
+  html[data-storefront="true"] .store-banner-copy {
+    text-align: left;
+    width: 100%;
   }
 
   html[data-storefront="true"] .store-banner h1 {
     max-width: 15ch;
     font-size: clamp(1.85rem, 8vw, 2.6rem) !important;
+    text-align: left;
   }
 
   html[data-storefront="true"] #banner-store-desc {
@@ -73,6 +105,25 @@ html[data-storefront="true"] #items-grid .product-card:focus-within {
     margin-top: .6rem;
     font-size: .92rem !important;
     line-height: 1.55;
+    text-align: left;
+  }
+
+  html[data-storefront="true"] .store-banner-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.65rem;
+    margin-top: 1rem;
+  }
+
+  html[data-storefront="true"] .store-banner-actions .storefront-primary-cta,
+  html[data-storefront="true"] .store-banner-actions #banner-store-call-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 2.75rem;
+    font-size: 0.88rem;
+    box-sizing: border-box;
+    text-align: center;
   }
 
   html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy {

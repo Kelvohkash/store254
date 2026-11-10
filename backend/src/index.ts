@@ -103,6 +103,7 @@ tenantScope.use("*", tenantMiddleware({ required: true }));
 // Storefront public metadata
 tenantScope.get("/store", (c) => {
   const tenant = c.get("tenant")!;
+  c.header("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   return c.json({
     success: true,
     data: tenant,

@@ -70,3 +70,9 @@ binding = "DB"
 database_name = "store254-db"
 database_id = "02484baf-0725-47fc-83c2-cf4f1a54db47"
 migrations_dir = "drizzle"
+
+# ─── Cloudflare R2 Media Bucket ─────────────────────────────────────────────
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "store254"
+

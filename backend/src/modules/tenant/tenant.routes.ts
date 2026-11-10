@@ -13,17 +13,17 @@ import { generateUUID } from "../../security/crypto";
 
 export const tenantSettingsRouter = new Hono<AppEnv>();
 
-const optionalUrlOrMediaPath = z
-  .string()
-  .max(500)
-  .refine(
-    (val) =>
-      val === "" ||
-      val.startsWith("/api/media/") ||
-      val.startsWith("data:image/") ||
-      /^https?:\/\/.+/i.test(val),
-    "Must be a valid image URL or uploaded media path"
-  )
+export const MEDIA_PATH_REGEX = /^\/api\/media\/[^/\s]+\/[^/\s]+$/;
+
+const optionalMediaPath = z
+  .union([
+    z.string().max(500).refine(
+      (val) => val === "" || MEDIA_PATH_REGEX.test(val),
+      "Must be an uploaded media path in the format /api/media/<tenantId>/<file> or empty"
+    ),
+    z.literal(""),
+    z.null(),
+  ])
   .optional();
 
 // Update Store Profile & Branding Schema
@@ -35,8 +35,8 @@ const updateStoreProfileSchema = z.object({
     .optional(),
   settings: z
     .object({
-      logoUrl: optionalUrlOrMediaPath,
-      bannerUrl: optionalUrlOrMediaPath,
+      logoUrl: optionalMediaPath,
+      bannerUrl: optionalMediaPath,
       tagline: z.string().max(160).optional(),
       description: z.string().max(1000).optional(),
       contactEmail: z.union([z.string().email(), z.literal("")]).optional(),
@@ -220,12 +220,25 @@ tenantSettingsRouter.get(
   }
 );
 
-// Upload Store/Product Image to Cloudflare R2 (or Data URI fallback in local dev)
+// Upload Store/Product Image to Cloudflare R2
 tenantSettingsRouter.post(
   "/media",
   authMiddleware(true),
   requireRole(["OWNER", "ADMIN"]),
   async (c) => {
+    if (!c.env?.MEDIA_BUCKET) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "STORAGE_UNAVAILABLE",
+            message: "Media storage is not configured or unavailable.",
+          },
+        },
+        503
+      );
+    }
+
     const tenant = c.get("tenant")!;
     const formData = await c.req.formData().catch(() => null);
     if (!formData) {
@@ -266,33 +279,16 @@ tenantSettingsRouter.post(
     const buffer = await file.arrayBuffer();
     const key = `${tenant.id}/${generateUUID()}.${ext}`;
 
-    if (c.env?.MEDIA_BUCKET) {
-      await c.env.MEDIA_BUCKET.put(key, buffer, {
-        httpMetadata: {
-          contentType: file.type,
-          cacheControl: "public, max-age=31536000, immutable",
-        },
-      });
-      return c.json({
-        success: true,
-        data: {
-          url: `/api/media/${key}`,
-          key,
-        },
-      });
-    }
-
-    // Local development fallback when R2 bucket is not bound
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    const base64 = btoa(binary);
+    await c.env.MEDIA_BUCKET.put(key, buffer, {
+      httpMetadata: {
+        contentType: file.type,
+        cacheControl: "public, max-age=31536000, immutable",
+      },
+    });
     return c.json({
       success: true,
       data: {
-        url: `data:${file.type};base64,${base64}`,
+        url: `/api/media/${key}`,
         key,
       },
     });

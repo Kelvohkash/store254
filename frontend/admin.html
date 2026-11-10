@@ -394,23 +394,29 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <div class="flex items-center justify-between mb-1">
-                        <label class="label mb-0">Logo URL</label>
-                        <label class="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer">
-                          Upload Logo
-                          <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-logo', this)" />
-                        </label>
+                        <label class="label mb-0">Logo</label>
+                        <div class="flex items-center gap-2">
+                          <label class="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer">
+                            Upload Logo
+                            <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-logo', this)" />
+                          </label>
+                          <button type="button" onclick="document.getElementById('settings-logo').value=''; if(typeof updateDesignPreview==='function') updateDesignPreview();" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
+                        </div>
                       </div>
-                      <input id="settings-logo" type="text" class="input text-xs" placeholder="https://... or upload image" />
+                      <input id="settings-logo" type="text" readonly class="input text-xs bg-slate-50 cursor-not-allowed text-slate-600" placeholder="Upload logo using button above" />
                     </div>
                     <div>
                       <div class="flex items-center justify-between mb-1">
-                        <label class="label mb-0">Hero Banner URL</label>
-                        <label class="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer">
-                          Upload Banner
-                          <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-banner', this)" />
-                        </label>
+                        <label class="label mb-0">Hero Banner</label>
+                        <div class="flex items-center gap-2">
+                          <label class="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer">
+                            Upload Banner
+                            <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-banner', this)" />
+                          </label>
+                          <button type="button" onclick="document.getElementById('settings-banner').value=''; if(typeof updateDesignPreview==='function') updateDesignPreview();" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
+                        </div>
                       </div>
-                      <input id="settings-banner" type="text" class="input text-xs" placeholder="https://... or upload image" />
+                      <input id="settings-banner" type="text" readonly class="input text-xs bg-slate-50 cursor-not-allowed text-slate-600" placeholder="Upload banner using button above" />
                     </div>
                   </div>
                 </div>
@@ -615,8 +621,8 @@
           </div>
         </div>
         <div id="product-image-previews" class="grid grid-cols-5 gap-2 mb-2 empty:hidden"></div>
-        <textarea id="product-images" oninput="updateProductImageCount()" class="input font-mono text-xs" rows="2" placeholder="Paste image URLs (one per line) or click 'Upload Photos' above"></textarea>
-        <p class="mt-1 text-[11px] text-slate-500">Add up to 5 photos. The first photo is used as the main product image.</p>
+        <input type="hidden" id="product-images" />
+        <p class="mt-1 text-[11px] text-slate-500">Upload up to 5 photos. The first photo is used as the main product image.</p>
       </div>
       <!-- Product Variants Builder -->
       <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/60 space-y-3">
@@ -761,9 +767,16 @@
 </div>
 
 <script src="./scripts/admin/core.js"></script>
+<script src="./scripts/admin/navigation.js"></script>
 <script src="./scripts/admin/dashboard.js"></script>
+<script src="./scripts/admin/categories.js"></script>
+<script src="./scripts/admin/promotions.js"></script>
+<script src="./scripts/admin/product-editor.js"></script>
 <script src="./scripts/admin/catalog.js"></script>
 <script src="./scripts/admin/orders.js"></script>
+<script src="./scripts/admin/design-colors.js"></script>
+<script src="./scripts/admin/design-preview.js"></script>
+<script src="./scripts/admin/design-branding.js"></script>
 <script src="./scripts/admin/design.js"></script>
 <script src="./scripts/admin/payments.js"></script>
 </body>

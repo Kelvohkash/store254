@@ -8,8 +8,8 @@ export interface Env {
   // Cloudflare KV binding (optional, for persistent rate-limiting/cache)
   CACHE_KV?: KVNamespace;
 
-  // Cloudflare R2 bucket binding (optional, for product & store media uploads)
-  MEDIA_BUCKET?: R2Bucket;
+  // Cloudflare R2 bucket binding (for product & store media uploads)
+  MEDIA_BUCKET: R2Bucket;
 
   // Environment variables
   ENVIRONMENT: "development" | "staging" | "production";

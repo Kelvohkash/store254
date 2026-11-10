@@ -23,15 +23,14 @@ const variantInputSchema = z.object({
   options: z.record(z.string()).default({}),
 });
 
-const imageUrlOrMediaPath = z
+export const MEDIA_PATH_REGEX = /^\/api\/media\/[^/\s]+\/[^/\s]+$/;
+
+const mediaPathSchema = z
   .string()
   .max(2_000_000)
   .refine(
-    (val) =>
-      val.startsWith("/api/media/") ||
-      val.startsWith("data:image/") ||
-      /^https?:\/\/.+/i.test(val),
-    "Invalid image URL or media path"
+    (val) => MEDIA_PATH_REGEX.test(val),
+    "Images must be uploaded media paths in the format /api/media/<tenantId>/<file>"
   );
 
 export const createItemSchema = z.object({
@@ -48,7 +47,7 @@ export const createItemSchema = z.object({
   trackInventory: z.boolean().default(true),
   stockQuantity: z.number().int().min(0).default(0),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("PUBLISHED"),
-  images: z.array(imageUrlOrMediaPath).max(5, "A product can have at most 5 photos.").default([]),
+  images: z.array(mediaPathSchema).max(5, "A product can have at most 5 photos.").default([]),
   attributes: z.record(z.unknown()).default({}), // Dynamic attributes { brand: "Samsung", size: "55" }
   metadata: z.record(z.unknown()).default({}),
   variants: z.array(variantInputSchema).default([]),
@@ -62,7 +61,7 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
   const db = createDb(c.env.DB);
 
   const page = Math.max(1, parseInt(query.page || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "20", 10)));
+  const limit = Math.min(200, Math.max(1, parseInt(query.limit || "50", 10)));
   const offset = (page - 1) * limit;
 
   const isMerchant =
@@ -191,6 +190,10 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
       }
       return true;
     });
+  }
+
+  if (!isMerchant) {
+    c.header("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   }
 
   return c.json({
@@ -346,7 +349,10 @@ itemsRouter.post(
 );
 
 // Update Item (Store Owners & Admins only)
-const updateItemSchema = createItemSchema.partial();
+const updateItemImageSchema = z.string().max(2_000_000);
+const updateItemSchema = createItemSchema.partial().extend({
+  images: z.array(updateItemImageSchema).max(5, "A product can have at most 5 photos.").optional(),
+});
 
 itemsRouter.put(
   "/:id",
@@ -361,13 +367,28 @@ itemsRouter.put(
 
     // Verify item belongs to this tenant
     const [existing] = await db
-      .select({ id: items.id })
+      .select({ id: items.id, images: items.images })
       .from(items)
       .where(and(eq(items.id, id), eq(items.tenantId, tenant.id)))
       .limit(1);
 
     if (!existing) {
       throw new AppError("Item not found.", 404, "NOT_FOUND");
+    }
+
+    if (body.images !== undefined) {
+      const existingImages = new Set(
+        Array.isArray(existing.images) ? (existing.images as string[]) : []
+      );
+      for (const img of body.images) {
+        if (!existingImages.has(img) && !MEDIA_PATH_REGEX.test(img)) {
+          throw new AppError(
+            `Invalid image path: ${img}. New images must be uploaded media paths in the format /api/media/<tenantId>/<file>`,
+            400,
+            "INVALID_IMAGE_PATH"
+          );
+        }
+      }
     }
 
     if (body.categoryId) {

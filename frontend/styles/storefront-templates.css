@@ -6,7 +6,46 @@ html[data-storefront="true"] #storefront-view .product-card {
   box-shadow: var(--store-card-shadow, 0 8px 26px rgba(15,23,42,.06)) !important;
 }
 html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner:not(.has-banner-image) {
-  background: linear-gradient(125deg, color-mix(in srgb, var(--store-primary) 14%, var(--store-paper)), var(--store-white) 58%, color-mix(in srgb, var(--store-primary) 10%, var(--store-paper)));
+  background: var(--store-paper) !important;
+  border-bottom: 0 !important;
+  padding: clamp(1rem, 2vw, 1.5rem) clamp(1rem, 3vw, 2rem) 0.5rem !important;
+}
+
+html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner:not(.has-banner-image) .store-banner-inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  min-height: 15rem !important;
+  padding: clamp(1.75rem, 3.2vw, 2.6rem) clamp(1.5rem, 3.5vw, 3rem) !important;
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--store-primary) 16%, var(--store-line));
+  background: radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--store-primary) 20%, transparent) 0%, transparent 45%),
+    radial-gradient(circle at 72% 88%, color-mix(in srgb, var(--store-primary) 12%, transparent) 0%, transparent 40%),
+    linear-gradient(125deg, var(--store-white) 0%, color-mix(in srgb, var(--store-primary) 6%, var(--store-paper)) 55%, color-mix(in srgb, var(--store-primary) 14%, var(--store-paper)) 100%);
+  box-shadow: 0 14px 36px -12px rgba(15, 23, 42, 0.07);
+}
+
+html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner:not(.has-banner-image) .store-banner-actions #storefront-primary-cta {
+  background: var(--store-primary) !important;
+  color: var(--store-on-primary) !important;
+  border-color: var(--store-primary) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--store-primary) 30%, transparent) !important;
+}
+
+html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner.has-banner-image .store-banner-actions #storefront-primary-cta {
+  color: var(--store-ink, #17251f) !important;
+}
+
+html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner .store-banner-actions #banner-store-call-btn {
+  background: var(--store-white) !important;
+  color: var(--store-ink) !important;
+  border: 1px solid var(--store-line) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+html[data-storefront="true"][data-storefront-template="market-modern"] .store-banner .store-banner-actions #banner-store-call-btn:hover {
+  background: color-mix(in srgb, var(--store-primary) 6%, var(--store-white)) !important;
+  border-color: var(--store-primary) !important;
+  color: var(--store-primary) !important;
 }
 html[data-storefront="true"] .storefront-primary-cta,
 html[data-storefront="true"] #storefront-view .bg-emerald-600,
