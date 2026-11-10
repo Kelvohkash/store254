@@ -4,6 +4,92 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Store Tenant Storefront</title>
+  <style>
+    /* Sticky header stack */
+    #site-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    #mobile-search-bar {
+      position: sticky;
+      top: var(--header-height, 60px);
+      z-index: 999;
+      background: inherit;
+    }
+    #storefront-category-nav {
+      position: sticky;
+      top: var(--header-height, 60px);
+      z-index: 998;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    /* On mobile, stack mobile-search-bar + category nav */
+    @media (max-width: 767px) {
+      #mobile-search-bar {
+        top: var(--mobile-header-height, 56px);
+        z-index: 999;
+      }
+      #storefront-category-nav {
+        top: calc(var(--mobile-header-height, 56px) + 52px); /* below search bar */
+        z-index: 998;
+      }
+    }
+
+    #mobile-filter-drawer {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: min(92vw, 420px);
+      max-height: 85vh;
+      border-radius: 1rem;
+      border: none;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      z-index: 10000;
+    }
+    #mobile-filter-drawer:not([open]) {
+      display: none;
+    }
+    #mobile-filter-drawer::backdrop {
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+    }
+    #mobile-filter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #e5e7eb;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    #mobile-filter-body {
+      overflow-y: auto;
+      flex: 1;
+      padding: 1rem 1.25rem;
+      background: #f9fafb;
+    }
+    #mobile-filter-footer {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.875rem 1.25rem;
+      border-top: 1px solid #e5e7eb;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    #mobile-filter-footer button {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 
@@ -83,7 +169,7 @@
       id="mobile-search-input" 
       placeholder="Search catalog..." 
     />
-    <button type="button" id="mobile-filter-open-btn" aria-controls="mobile-filter-drawer" aria-label="Open filter options">
+    <button type="button" id="mobile-filter-open-btn" onclick="openMobileFilters()" aria-controls="mobile-filter-drawer" aria-label="Open filter options">
       <span>Filters</span>
     </button>
   </div>
@@ -269,7 +355,7 @@
 
           <div id="catalog-toolbar-actions">
             <!-- Mobile Filters Sheet Trigger -->
-            <button type="button" id="mobile-filter-trigger" aria-controls="mobile-filter-drawer" aria-label="Open mobile filters">
+            <button type="button" id="mobile-filter-trigger" onclick="openMobileFilters()" aria-controls="mobile-filter-drawer" aria-label="Open mobile filters">
               <span>Filter Results</span>
             </button>
 
@@ -395,7 +481,7 @@
   <dialog id="mobile-filter-drawer" aria-labelledby="mobile-filters-title">
     <header id="mobile-filter-header">
       <h3 id="mobile-filters-title">Filters</h3>
-      <button type="button" id="mobile-filter-close-btn" aria-label="Close filters">
+      <button type="button" id="mobile-filter-close-btn" onclick="closeMobileFilters()" aria-label="Close filters">
         <span>Close</span>
       </button>
     </header>
@@ -416,13 +502,61 @@
         />
       </fieldset>
 
-      <!-- Target container for cloned dynamic mobile facets -->
-      <div id="mobile-dynamic-facets"></div>
+      <!-- Target container for dynamic mobile facets -->
+      <div id="mobile-dynamic-facets">
+        <!-- Category Dynamic Filter -->
+        <fieldset class="facet-group" id="mobile-facet-categories">
+          <legend>Category</legend>
+          <label><input type="checkbox" name="category" value="apparel" checked /> Apparel</label>
+          <label><input type="checkbox" name="category" value="shoes" /> Shoes &amp; Footwear</label>
+          <label><input type="checkbox" name="category" value="beauty" /> Beauty &amp; Skincare</label>
+          <label><input type="checkbox" name="category" value="accessories" /> Bags &amp; Accessories</label>
+          <label><input type="checkbox" name="category" value="services" /> Custom Booking &amp; Services</label>
+        </fieldset>
+
+        <!-- Brand / Maker Dynamic Filter -->
+        <fieldset class="facet-group" id="mobile-facet-brands">
+          <legend>Brand / Label</legend>
+          <label><input type="checkbox" name="brand" value="nairobi-craft" /> Nairobi Craft</label>
+          <label><input type="checkbox" name="brand" value="savannah-luxe" /> Savannah Luxe</label>
+          <label><input type="checkbox" name="brand" value="mara-leather" /> Mara Leather</label>
+          <label><input type="checkbox" name="brand" value="rift-botanicals" /> Rift Botanicals</label>
+        </fieldset>
+
+        <!-- Size Variant Filter -->
+        <fieldset class="facet-group" id="mobile-facet-sizes">
+          <legend>Size</legend>
+          <label><input type="checkbox" name="size" value="xs" /> XS</label>
+          <label><input type="checkbox" name="size" value="s" /> S</label>
+          <label><input type="checkbox" name="size" value="m" /> M</label>
+          <label><input type="checkbox" name="size" value="l" /> L</label>
+          <label><input type="checkbox" name="size" value="xl" /> XL</label>
+          <label><input type="checkbox" name="size" value="xxl" /> XXL</label>
+        </fieldset>
+
+        <!-- Color Variant Filter -->
+        <fieldset class="facet-group" id="mobile-facet-colors">
+          <legend>Color</legend>
+          <label><input type="checkbox" name="color" value="black" /> Black</label>
+          <label><input type="checkbox" name="color" value="white" /> White</label>
+          <label><input type="checkbox" name="color" value="brown" /> Brown / Tan</label>
+          <label><input type="checkbox" name="color" value="emerald" /> Emerald Green</label>
+          <label><input type="checkbox" name="color" value="blue" /> Deep Blue</label>
+        </fieldset>
+
+        <!-- Availability & Status Toggles -->
+        <fieldset class="facet-group" id="mobile-facet-status">
+          <legend>Availability &amp; Offers</legend>
+          <label><input type="checkbox" name="in_stock_only" id="mobile-filter-in-stock" checked /> In Stock Only</label>
+          <label><input type="checkbox" name="on_sale_only" id="mobile-filter-on-sale" /> On Special Offer / Discount</label>
+          <label><input type="checkbox" name="is_service" id="mobile-filter-services" /> Bookable Services Only</label>
+        </fieldset>
+      </div>
     </div>
 
     <footer id="mobile-filter-footer">
       <button type="button" id="mobile-reset-filters-btn" onclick="resetFilters()">Reset</button>
-      <button type="button" id="mobile-apply-filters-btn">Apply Filters</button>
+      <button type="button" id="mobile-apply-filters-btn" onclick="closeMobileFilters()">Apply Filters</button>
     </footer>
   </dialog>
 
@@ -806,9 +940,6 @@
   <!-- MOBILE BOTTOM FLOATING NAVIGATION BAR      -->
   <!-- ========================================== -->
   <nav id="mobile-bottom-nav" class="md:hidden" aria-label="Mobile Navigation Bar">
-    <button type="button" id="mobile-nav-search-btn" onclick="document.getElementById('mobile-search-input')?.focus(); window.scrollTo({top:0, behavior:'smooth'});">
-      <span>Search</span>
-    </button>
     <button type="button" id="mobile-customer-profile-toggle" onclick="toggleDrawer('orders-drawer', true)">
       <span>Profile</span>
     </button>
@@ -857,5 +988,39 @@
     </div>
   </footer>
 
+  <script>
+    // Mobile filter modal controls
+    (function() {
+      function openMobileFilters() {
+        var dlg = document.getElementById('mobile-filter-drawer');
+        if (dlg) dlg.showModal();
+      }
+      function closeMobileFilters() {
+        var dlg = document.getElementById('mobile-filter-drawer');
+        if (dlg) dlg.close();
+      }
+      window.openMobileFilters = openMobileFilters;
+      window.closeMobileFilters = closeMobileFilters;
+      // Wire filter open button
+      var openBtn = document.getElementById('mobile-filter-open-btn');
+      if (openBtn) openBtn.onclick = openMobileFilters;
+      // Wire close button
+      var closeBtn = document.getElementById('mobile-filter-close-btn');
+      if (closeBtn) closeBtn.onclick = closeMobileFilters;
+      // Wire apply button
+      var applyBtn = document.getElementById('mobile-apply-filters-btn');
+      if (applyBtn) applyBtn.onclick = closeMobileFilters;
+      // Also wire mobile-filter-trigger (catalog toolbar trigger)
+      var triggerBtn = document.getElementById('mobile-filter-trigger');
+      if (triggerBtn) triggerBtn.onclick = openMobileFilters;
+      // Close on backdrop click
+      var dlg = document.getElementById('mobile-filter-drawer');
+      if (dlg) {
+        dlg.addEventListener('click', function(e) {
+          if (e.target === dlg) closeMobileFilters();
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
