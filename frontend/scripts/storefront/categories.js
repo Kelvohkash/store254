@@ -3,6 +3,8 @@
 async function loadCategories() {
   const res = await apiFetch("/api/categories");
   const container = document.getElementById("category-pills");
+  const mobileCategoryContainer = document.getElementById("mobile-category-pills");
+  const mobileCategorySection = document.getElementById("mobile-category-filter-section");
   const headerContainer = document.getElementById("storefront-header-categories");
   const mobileHeaderContainer = document.getElementById("fashion-mobile-categories");
   const headerNav = document.getElementById("storefront-fashion-nav");
@@ -10,29 +12,46 @@ async function loadCategories() {
 
   if (res.ok && res.data.success) {
     state.categories = res.data.data;
+    const isFashionTemplate = document.documentElement.dataset.storefrontTemplate === "fashion-and-design";
+    const isHeaderFashionTemplate = document.documentElement.dataset.storefrontTemplate === "fashion-beauty-cosmetics";
     let html = `
       <button onclick="selectCategory('')" class="category-pill ${
         state.selectedCategory === ""
           ? "category-pill-active"
           : "category-pill-inactive"
-      }">All Categories</button>
+      }" aria-selected="${state.selectedCategory === ""}" type="button">All Categories</button>
     `;
 
     for (const cat of state.categories) {
       const isSelected = state.selectedCategory === cat.slug;
+      const children = cat.children || [];
+      if (isFashionTemplate) {
+        const expanded = isSelected || children.some((sub) => state.selectedCategory === sub.slug);
+        html += `<div class="category-filter-group">
+          <button onclick="selectCategory('${escapeHtml(cat.slug)}')" class="category-pill ${isSelected ? "category-pill-active" : "category-pill-inactive"}" aria-selected="${isSelected}" aria-expanded="${expanded}" type="button">${escapeHtml(cat.name)}${children.length ? `<span class="category-expand-indicator" aria-hidden="true">${expanded ? "−" : "+"}</span>` : ""}</button>`;
+        if (children.length > 0 && expanded) {
+          html += `<div class="category-subcategory-list" aria-label="${escapeHtml(cat.name)} subcategories">`;
+          for (const sub of children) {
+            const isSubSelected = state.selectedCategory === sub.slug;
+            html += `<button onclick="selectCategory('${escapeHtml(sub.slug)}')" class="category-subpill ${isSubSelected ? "category-subpill-active" : "category-subpill-inactive"}" aria-selected="${isSubSelected}" type="button">${escapeHtml(sub.name)}</button>`;
+          }
+          html += `</div>`;
+        }
+        html += `</div>`;
+        continue;
+      }
+
       html += `
         <button onclick="selectCategory('${escapeHtml(cat.slug)}')" class="category-pill ${
-        isSelected
-          ? "category-pill-active"
-          : "category-pill-inactive"
-      }">
+        isSelected ? "category-pill-active" : "category-pill-inactive"
+      }" aria-selected="${isSelected}" type="button">
           ${escapeHtml(cat.name)}
         </button>
       `;
 
-      // Render nested subcategories
-      if (cat.children && cat.children.length > 0) {
-        for (const sub of cat.children) {
+      // Other templates retain their current flat category listing.
+      if (children.length > 0) {
+        for (const sub of children) {
           const isSubSelected = state.selectedCategory === sub.slug;
           html += `
             <button onclick="selectCategory('${escapeHtml(sub.slug)}')" class="category-subpill ${
@@ -48,25 +67,25 @@ async function loadCategories() {
     }
 
     container.innerHTML = html;
-    const isFashionTemplate = document.documentElement.dataset.storefrontTemplate === "fashion-beauty-cosmetics";
-    if (headerContainer) headerContainer.innerHTML = isFashionTemplate ? html : "";
-    if (mobileHeaderContainer) mobileHeaderContainer.innerHTML = isFashionTemplate ? html : "";
-    headerNav?.classList.toggle("hidden", !isFashionTemplate);
+    if (mobileCategoryContainer) mobileCategoryContainer.innerHTML = isFashionTemplate ? html : "";
+    mobileCategorySection?.classList.toggle("hidden", !isFashionTemplate);
+    if (headerContainer) headerContainer.innerHTML = isHeaderFashionTemplate ? html : "";
+    if (mobileHeaderContainer) mobileHeaderContainer.innerHTML = isHeaderFashionTemplate ? html : "";
+    headerNav?.classList.toggle("hidden", !isHeaderFashionTemplate);
   }
 }
 
 function selectCategory(slug) {
   state.selectedCategory = slug;
   loadCategories();
-  loadDynamicFilters();
-  loadItems();
+  Promise.all([loadDynamicFilters(), loadItems()]).then(scrollCatalogItemsIntoView);
 }
 
 let searchDebounceTimer = null;
 function debouncedLoadItems() {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(() => {
-    loadItems();
+    loadItems().then(scrollCatalogItemsIntoView);
   }, 280);
 }
 
@@ -154,5 +173,5 @@ function toggleFilter(code, value, checked) {
     }
   }
 
-  loadItems();
+  loadItems().then(scrollCatalogItemsIntoView);
 }

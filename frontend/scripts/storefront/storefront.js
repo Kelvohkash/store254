@@ -49,6 +49,7 @@ async function loadStoreProfile() {
   if (res.ok && res.data.success) {
     state.activeTenant = res.data.data;
     await applyStorefrontSettings(state.activeTenant.settings);
+    await loadCategories();
     renderStoreBanner();
     document.getElementById("storefront-view")?.classList.remove("hidden");
     updateWishlistButton();
@@ -138,6 +139,15 @@ function toggleMobileFilters(show) {
     const dest = document.getElementById("mobile-dynamic-facets");
     if (src && dest) {
       dest.innerHTML = src.innerHTML;
+    }
+    const sourceCategories = document.getElementById("category-pills");
+    const mobileCategories = document.getElementById("mobile-category-pills");
+    const categorySection = document.getElementById("mobile-category-filter-section");
+    if (sourceCategories && mobileCategories && document.documentElement.dataset.storefrontTemplate === "fashion-and-design") {
+      mobileCategories.innerHTML = sourceCategories.innerHTML;
+      categorySection?.classList.remove("hidden");
+    } else {
+      categorySection?.classList.add("hidden");
     }
   } else {
     drawer.classList.add("hidden");

@@ -98,7 +98,7 @@
           <i data-lucide="search" class="w-3.5 h-3.5"></i>
         </span>
       </div>
-      <button onclick="toggleMobileFilters()" class="px-3 py-2 bg-white text-slate-700 text-xs font-semibold border border-slate-200 rounded-lg flex items-center gap-1.5">
+      <button type="button" onclick="toggleMobileFilters(true)" class="mobile-filter-trigger px-3 py-2 bg-white text-slate-700 text-xs font-semibold border border-slate-200 rounded-lg flex items-center gap-1.5">
         <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
         <span>Filters</span>
       </button>
@@ -313,7 +313,7 @@
             <span id="price-label-min">KES 0</span>
             <span id="price-label-max">KES 200,000</span>
           </div>
-          <input type="range" id="price-filter-max" min="0" max="200000" value="200000" onchange="loadItems()" class="w-full accent-emerald-600 cursor-pointer">
+          <input type="range" id="price-filter-max" min="0" max="200000" value="200000" onchange="loadItems().then(scrollCatalogItemsIntoView)" class="w-full accent-emerald-600 cursor-pointer">
         </div>
 
         <!-- Dynamic Facets Container (Brand, Screen Size, Duration, etc.) -->
@@ -321,7 +321,7 @@
       </aside>
 
       <!-- Items Grid Section -->
-      <section class="lg:col-span-3">
+      <section id="catalog-items-section" class="lg:col-span-3">
         <!-- Control Header: count, active filters, quick sort -->
         <div class="flex flex-wrap items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-200/60">
           <div class="flex items-center gap-2">
@@ -330,7 +330,7 @@
 
           <div class="flex items-center gap-2">
             <!-- Mobile Filters trigger button -->
-            <button onclick="toggleMobileFilters(true)" class="lg:hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
+            <button id="catalog-mobile-filter-button" onclick="toggleMobileFilters(true)" class="lg:hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
               <i data-lucide="filter" class="w-3.5 h-3.5 text-emerald-600"></i>
               <span>Filters</span>
             </button>
@@ -372,12 +372,17 @@
           <i data-lucide="sliders-horizontal" class="w-4 h-4 text-emerald-600"></i>
           <span>Filter Products</span>
         </h3>
-        <button onclick="toggleMobileFilters(false)" class="text-slate-400 hover:text-slate-600 p-1">
+        <button onclick="toggleMobileFilters(false); scrollCatalogItemsIntoView();" class="text-slate-400 hover:text-slate-600 p-1">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <div class="overflow-y-auto space-y-5 flex-1 pr-1">
+        <section id="mobile-category-filter-section" class="hidden" aria-label="Filter by category">
+          <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Categories</h4>
+          <div id="mobile-category-pills" class="mobile-category-pills"></div>
+        </section>
+
         <!-- Price Range -->
         <div>
           <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Max Price</label>
@@ -392,8 +397,8 @@
       </div>
 
       <div class="pt-4 border-t border-slate-100 mt-4 flex gap-2">
-        <button onclick="resetFilters(); toggleMobileFilters(false);" class="flex-1 py-2.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">Reset</button>
-        <button onclick="toggleMobileFilters(false); loadItems();" class="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md">Apply Filters</button>
+        <button onclick="toggleMobileFilters(false); resetFilters();" class="flex-1 py-2.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">Reset</button>
+        <button onclick="toggleMobileFilters(false); loadItems().then(scrollCatalogItemsIntoView);" class="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md">Apply Filters</button>
       </div>
     </div>
   </div>

@@ -144,6 +144,14 @@ function renderCatalogView() {
   renderCatalogBatch();
 }
 
+function scrollCatalogItemsIntoView() {
+  if (document.documentElement.dataset.storefrontTemplate !== "fashion-and-design") return;
+  const drawer = document.getElementById("mobile-filter-drawer");
+  if (drawer && !drawer.classList.contains("hidden")) return;
+  if (document.getElementById("storefront-view")?.classList.contains("hidden")) return;
+  document.getElementById("catalog-items-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 async function loadItems(forceRefresh = false) {
   const container = document.getElementById("items-grid");
   if (!container) return;
@@ -192,5 +200,5 @@ function resetFilters() {
   if (mInput) mInput.value = "";
   loadCategories();
   loadDynamicFilters();
-  loadItems();
+  return loadItems().then(scrollCatalogItemsIntoView);
 }

@@ -479,6 +479,78 @@ html[data-storefront-template="fashion-and-design"] #category-pills {
   display: flex;
   gap: 0.6rem;
   align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--store-line) transparent;
+}
+
+html[data-storefront-template="fashion-and-design"] #catalog-items-section {
+  scroll-margin-top: 8rem;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] #storefront-main-category-bar,
+html[data-storefront-template="fashion-and-design"] #storefront-main-category-bar {
+  position: sticky !important;
+  top: 4.5rem !important;
+  z-index: 35 !important;
+  overflow: visible !important;
+  width: 100%;
+  padding: 0.7rem clamp(0.6rem, 2vw, 1.25rem) !important;
+  margin: 0 0 1.5rem !important;
+  background: color-mix(in srgb, var(--store-paper) 94%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--store-line) 85%, transparent) !important;
+  border-radius: 0.9rem !important;
+  box-shadow: 0 8px 22px rgba(28, 19, 14, 0.1) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  backdrop-filter: blur(14px) saturate(145%);
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-filter-group,
+html[data-storefront-template="fashion-and-design"] .category-filter-group {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-subcategory-list,
+html[data-storefront-template="fashion-and-design"] .category-subcategory-list {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem;
+  margin-left: 0.35rem;
+  border-left: 2px solid var(--store-primary);
+  border-radius: 0 0.65rem 0.65rem 0;
+  background: color-mix(in srgb, var(--store-primary) 6%, var(--store-white));
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-expand-indicator,
+html[data-storefront-template="fashion-and-design"] .category-expand-indicator {
+  margin-left: 0.5rem;
+  font-size: 0.9em;
+  opacity: 0.7;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] #category-pills .category-subpill,
+html[data-storefront-template="fashion-and-design"] #category-pills .category-subpill {
+  padding: 0.35rem 0.75rem !important;
+  border: 1px solid color-mix(in srgb, var(--store-primary) 24%, var(--store-line)) !important;
+  border-radius: 9999px !important;
+  background: var(--store-white) !important;
+  color: var(--store-muted) !important;
+  font-size: 0.74rem !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] #category-pills .category-subpill[aria-selected="true"],
+html[data-storefront-template="fashion-and-design"] #category-pills .category-subpill[aria-selected="true"] {
+  background: var(--store-primary) !important;
+  color: var(--store-on-primary) !important;
+  border-color: var(--store-primary) !important;
 }
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-pill,
@@ -801,11 +873,21 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 2.3rem !important;
-    height: 2.3rem !important;
-    min-width: 2.3rem !important;
+    position: relative !important;
+    width: 2.65rem !important;
+    height: 2.65rem !important;
+    min-width: 2.65rem !important;
     padding: 0 !important;
-    border-radius: 0.65rem !important;
+    border: 1px solid var(--store-line) !important;
+    border-radius: 0.85rem !important;
+    background: var(--store-white) !important;
+    color: var(--store-primary) !important;
+    box-shadow: 0 3px 10px rgba(28, 19, 14, 0.08) !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] #wishlist-toggle i {
+    width: 1.05rem !important;
+    height: 1.05rem !important;
   }
 
   html[data-storefront="true"][data-storefront-template="fashion-and-design"] .wishlist-action [data-wishlist-label],
@@ -819,16 +901,103 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 2.3rem !important;
-    height: 2.3rem !important;
-    min-width: 2.3rem !important;
+    position: relative !important;
+    width: 2.65rem !important;
+    height: 2.65rem !important;
+    min-width: 2.65rem !important;
     padding: 0 !important;
+    border-radius: 0.85rem !important;
+    box-shadow: 0 4px 12px rgba(154, 52, 18, 0.24) !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] #desktop-cart-btn i {
+    width: 1.05rem !important;
+    height: 1.05rem !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] #wishlist-count,
+  html[data-storefront-template="fashion-and-design"] #cart-count-badge {
+    position: absolute !important;
+    top: -0.28rem !important;
+    right: -0.28rem !important;
+    z-index: 2 !important;
+    min-width: 1.1rem !important;
+    width: auto !important;
+    height: 1.1rem !important;
+    padding: 0 0.24rem !important;
+    border: 2px solid var(--store-paper) !important;
     border-radius: 9999px !important;
+    font-size: 0.58rem !important;
+    line-height: 1 !important;
+    box-sizing: content-box !important;
   }
 
   html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-cart-btn span:not(#cart-count-badge),
   html[data-storefront-template="fashion-and-design"] #desktop-cart-btn span:not(#cart-count-badge) {
     display: none !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] .site-header-inner > div:has(#desktop-cart-btn) {
+    flex: 0 0 auto !important;
+    gap: 0.55rem !important;
+    margin-left: auto !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] #storefront-main-category-bar,
+  html[data-storefront-template="fashion-and-design"] #catalog-mobile-filter-button {
+    display: none !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] .mobile-filter-trigger {
+    min-height: 2.5rem !important;
+    padding: 0 0.85rem !important;
+    border: 1px solid var(--store-primary) !important;
+    border-radius: 0.75rem !important;
+    background: var(--store-primary) !important;
+    color: var(--store-on-primary) !important;
+    box-shadow: 0 4px 12px rgba(154, 52, 18, 0.2) !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] .mobile-filter-trigger i {
+    width: 1rem !important;
+    height: 1rem !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] #mobile-category-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-filter-group {
+    width: 100%;
+    gap: 0.45rem;
+  }
+
+  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-pill,
+  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-subpill {
+    min-height: 2.5rem !important;
+    padding: 0.55rem 0.8rem !important;
+    border: 1px solid var(--store-line) !important;
+    border-radius: 0.75rem !important;
+    background: var(--store-white) !important;
+    color: var(--store-ink) !important;
+    font-size: 0.8rem !important;
+    font-weight: 650 !important;
+    justify-content: flex-start !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-pill[aria-selected="true"],
+  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-subpill[aria-selected="true"] {
+    border-color: var(--store-primary) !important;
+    background: color-mix(in srgb, var(--store-primary) 9%, var(--store-white)) !important;
+    color: var(--store-primary) !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-subcategory-list {
+    flex-direction: column;
+    align-items: stretch;
+    margin-left: 0.6rem;
   }
 
   html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner,
@@ -893,6 +1062,14 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     justify-items: center !important;
     padding: 0.4rem 0.25rem calc(0.4rem + env(safe-area-inset-bottom, 0px)) !important;
     z-index: 40 !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] .mobile-bottom-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  html[data-storefront-template="fashion-and-design"] .mobile-bottom-nav button.mobile-search-link:not(.hidden):not([hidden]) {
+    display: none !important;
   }
 
   .mobile-bottom-nav button:not(.hidden):not([hidden]),
