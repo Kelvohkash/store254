@@ -1,31 +1,41 @@
 // Navigation & Drawer Menus
 
 function togglePlatformMobileMenu(show) {
-  const menu = document.getElementById("mobile-platform-menu");
+  const menu = document.getElementById("platform-mobile-menu");
   const toggle = document.getElementById("mobile-menu-toggle");
+  const icon = document.getElementById("mobile-menu-icon");
   if (!menu) return;
 
-  const nextState = show ?? menu.hidden;
+  const nextState = typeof show === "boolean" ? show : menu.hidden;
   menu.hidden = !nextState;
   menu.classList.toggle("is-open", nextState);
   toggle?.setAttribute("aria-expanded", String(nextState));
+  toggle?.setAttribute("aria-label", nextState ? "Close navigation menu" : "Open navigation menu");
+  if (icon) {
+    icon.setAttribute("data-lucide", nextState ? "x" : "menu");
+  }
   document.body.classList.toggle("overflow-hidden", nextState);
   renderIcons();
 }
 
 function toggleStorefrontMenu() {
+  if (!state?.activeTenantSlug) {
+    togglePlatformMobileMenu();
+    return;
+  }
   const menu = document.getElementById("fashion-mobile-menu");
-  const toggle = document.getElementById("storefront-menu-toggle");
+  const toggle = document.getElementById("mobile-menu-toggle");
+  const icon = document.getElementById("mobile-menu-icon");
   if (!menu) return;
 
   const willOpen = menu.hidden;
   menu.hidden = !willOpen;
   toggle?.setAttribute("aria-expanded", String(willOpen));
-  const icon = toggle?.querySelector("[data-lucide]");
+  toggle?.setAttribute("aria-label", willOpen ? "Close store menu" : "Open store menu");
   if (icon) {
     icon.setAttribute("data-lucide", willOpen ? "x" : "menu");
-    renderIcons();
   }
+  renderIcons();
 }
 
 // UI Drawer Toggles

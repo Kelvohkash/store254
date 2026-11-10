@@ -136,3 +136,103 @@ function renderCustomerAuth() {
       : "";
   }
 }
+
+// Password Recovery & Reset Handlers
+let recoveryEmailState = "";
+
+function showRecoveryStep(step) {
+  const step1 = document.getElementById("form-recovery-step1");
+  const step2 = document.getElementById("form-recovery-step2");
+  if (!step1 || !step2) return;
+  if (step === 1) {
+    step1.classList.remove("hidden");
+    step2.classList.add("hidden");
+  } else {
+    step1.classList.add("hidden");
+    step2.classList.remove("hidden");
+    const sentEmailEl = document.getElementById("recovery-sent-email");
+    if (sentEmailEl) sentEmailEl.textContent = recoveryEmailState;
+  }
+}
+
+async function handleRequestOtp(e) {
+  e.preventDefault();
+  const emailInput = document.getElementById("recovery-email");
+  const email = emailInput ? emailInput.value.trim() : "";
+  if (!email) return;
+
+  const btn = document.getElementById("btn-request-otp");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Sending code...";
+  }
+
+  const endpoint = state.activeTenantSlug
+    ? "/api/auth/forgot-password"
+    : "/api/platform/forgot-password";
+
+  try {
+    const res = await apiFetch(endpoint, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+
+    if (res.ok && res.data?.success) {
+      recoveryEmailState = email;
+      showRecoveryStep(2);
+      showToast("OTP sent to your email.", "info");
+    } else {
+      showToast(res.data?.error?.message || "Failed to send recovery code", "error");
+    }
+  } catch (err) {
+    showToast("Network error. Please try again.", "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="mail" class="w-4 h-4"></i> <span>Send Recovery Code (OTP)</span>`;
+      renderIcons();
+    }
+  }
+}
+
+async function handleResetPassword(e) {
+  e.preventDefault();
+  const otp = document.getElementById("recovery-otp")?.value.trim();
+  const newPassword = document.getElementById("recovery-new-password")?.value;
+  const email = recoveryEmailState || document.getElementById("recovery-email")?.value.trim();
+
+  if (!email || !otp || !newPassword) return;
+
+  const btn = document.getElementById("btn-reset-password");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Verifying...";
+  }
+
+  const endpoint = state.activeTenantSlug
+    ? "/api/auth/reset-password"
+    : "/api/platform/reset-password";
+
+  try {
+    const res = await apiFetch(endpoint, {
+      method: "POST",
+      body: JSON.stringify({ email, otp, newPassword }),
+    });
+
+    if (res.ok && res.data?.success) {
+      showToast("Password updated successfully! Please log in with your new password.", "info");
+      toggleDrawer("recovery-modal", false);
+      showRecoveryStep(1);
+    } else {
+      showToast(res.data?.error?.message || "Failed to reset password", "error");
+    }
+  } catch (err) {
+    showToast("Network error. Please try again.", "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> <span>Verify & Update Password</span>`;
+      renderIcons();
+    }
+  }
+}

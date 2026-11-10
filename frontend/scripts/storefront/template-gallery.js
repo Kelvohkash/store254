@@ -1,20 +1,14 @@
 // Storefront Public Template Gallery
 
-function safeShowcaseImageUrl(value) {
-  const url = String(value || "").trim();
-  if (!url) return "";
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.href : "";
-  } catch {
-    return "";
-  }
-}
+let activeTemplateVibeFilter = "all";
+let storefrontTemplateCatalogForOnboarding = { templates: [] };
 
 function getTemplateVibeCategory(templateId) {
-  if (["market-modern", "tech-home"].includes(templateId)) return "catalog";
-  if (["cute-boutique", "food-local", "editorial-boutique", "fashion-beauty-cosmetics"].includes(templateId)) return "lifestyle";
-  if (["luxury-atelier", "premium-maker", "service-studio"].includes(templateId)) return "maker";
+  if (templateId === "cute-boutique") return "cute";
+  if (templateId === "food-local") return "food";
+  if (["editorial-boutique", "fashion-beauty-cosmetics"].includes(templateId)) return "fashion";
+  if (["tech-home", "market-modern"].includes(templateId)) return "tech";
+  if (["luxury-atelier", "premium-maker", "service-studio"].includes(templateId)) return "luxury";
   if (["brutalist-studio", "bazaar-vibrant"].includes(templateId)) return "bold";
   return "all";
 }
@@ -24,82 +18,116 @@ async function renderPublicTemplateGallery() {
   if (!gallery) return;
 
   const catalog = await loadStorefrontTemplateCatalog();
-  const templates = catalog.templates || [];
+  storefrontTemplateCatalogForOnboarding = catalog;
+  gallery.replaceChildren();
+
+  // Setup vibe filter tabs
+  document.querySelectorAll(".template-filter-tab").forEach((tab) => {
+    tab.onclick = () => {
+      activeTemplateVibeFilter = tab.dataset.vibeFilter || "all";
+      document.querySelectorAll(".template-filter-tab").forEach((t) => t.classList.toggle("is-active", t === tab));
+      filterGalleryCards();
+    };
+  });
+
+  const templates = catalog?.templates || [];
   if (templates.length === 0) {
     gallery.innerHTML = `<p class="col-span-full text-center text-sm text-slate-500 py-12">Templates catalog currently unavailable.</p>`;
     return;
   }
 
-  gallery.innerHTML = templates.map((t) => {
-    const defaults = t.defaults || {};
-    const archetype = defaults.archetype || "modern-retailer";
-    const vibe = getTemplateVibeCategory(t.id);
-    const miniPreview = buildMiniPreviewHtml(t);
+  templates.forEach((template, index) => {
+    const card = document.createElement("article");
+    card.className = "template-gallery-card";
+    card.dataset.template = template.id;
+    card.dataset.vibe = getTemplateVibeCategory(template.id);
 
-    return `
-      <article class="template-gallery-card group" data-template-id="${escapeHtml(t.id)}" data-vibe="${vibe}" data-archetype="${escapeHtml(archetype)}">
-        <!-- Interactive Miniature Store Mockup -->
-        <div class="template-gallery-preview-wrapper" data-template-preview="${escapeHtml(t.id)}">
-          <div class="template-mini-canvas">
-            ${miniPreview}
-          </div>
-        </div>
+    const visual = document.createElement("div");
+    visual.className = "template-gallery-art";
+    visual.dataset.template = template.id;
+    visual.innerHTML = buildMiniPreviewHtml(template);
 
-        <!-- Card Meta Info -->
-        <div class="template-gallery-meta p-5 flex flex-col flex-1 justify-between bg-white border-t border-slate-100">
-          <div>
-            <div class="flex items-center justify-between gap-2 mb-2">
-              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                ${escapeHtml(archetype.replace(/-/g, " "))}
-              </span>
-              <span class="text-[11px] font-medium text-slate-400 capitalize">
-                ${escapeHtml(defaults.font || "modern")} &bull; ${escapeHtml(defaults.hero || "split")}
-              </span>
-            </div>
-            <h3 class="text-base font-bold text-slate-900 mb-1 group-hover:text-emerald-700 transition-colors">
-              ${escapeHtml(t.name)}
-            </h3>
-            <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-              ${escapeHtml(t.description || "Designed for Kenyan commerce with responsive mobile navigation and M-Pesa readiness.")}
-            </p>
-          </div>
+    const caption = document.createElement("div");
+    caption.className = "template-gallery-card-caption";
+    const indexLabel = document.createElement("span");
+    indexLabel.className = "template-gallery-index";
+    indexLabel.textContent = String(index + 1).padStart(2, "0");
 
-          <div class="template-gallery-actions mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-            <a href="/templates/${escapeHtml(t.preview || "preview.html")}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-slate-600 hover:text-emerald-700 inline-flex items-center gap-1 transition-colors">
-              <span>Full preview</span>
-              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-            </a>
-            <button type="button" onclick="startWithStorefrontTemplate('${escapeHtml(t.id)}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all">
-              <span>Start with this</span>
-              <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-        </div>
-      </article>
-    `;
-  }).join("");
+    const details = document.createElement("div");
+    details.className = "template-gallery-details";
 
+    const headerRow = document.createElement("div");
+    headerRow.className = "template-gallery-header-row";
+    const name = document.createElement("strong");
+    name.textContent = template.name;
+    headerRow.append(name);
+
+    if (template.mood) {
+      const moodBadge = document.createElement("span");
+      moodBadge.className = "template-gallery-mood-badge";
+      moodBadge.textContent = template.mood;
+      headerRow.append(moodBadge);
+    }
+
+    const description = document.createElement("small");
+    description.textContent = template.description || "A ready-to-use Store254 storefront design.";
+    details.append(headerRow, description);
+    caption.append(indexLabel, details);
+
+    const actionRow = document.createElement("div");
+    actionRow.className = "template-gallery-action-row";
+
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "template-gallery-start";
+    action.textContent = "Start with this theme";
+    action.addEventListener("click", () => startWithStorefrontTemplate(template.id));
+
+    const previewLink = document.createElement("a");
+    previewLink.className = "template-gallery-preview-link";
+    previewLink.href = `/templates/${template.preview || `${template.id}/preview.html`}`;
+    previewLink.target = "_blank";
+    previewLink.rel = "noopener noreferrer";
+    previewLink.title = `Open interactive ${template.name} preview with color test controls`;
+    previewLink.innerHTML = "<span>Live preview</span> ↗";
+
+    actionRow.append(action, previewLink);
+    card.append(visual, caption, actionRow);
+    gallery.append(card);
+  });
+
+  filterGalleryCards();
   renderIcons();
 }
 
 function filterGalleryCards() {
-  const activeTab = document.querySelector(".template-tab-pill.is-active");
-  const vibe = activeTab ? activeTab.dataset.vibeCategory : "all";
   document.querySelectorAll(".template-gallery-card").forEach((card) => {
-    const match = vibe === "all" || card.dataset.vibe === vibe;
-    card.classList.toggle("hidden", !match);
+    const cardVibe = card.dataset.vibe || "all";
+    const show = activeTemplateVibeFilter === "all" || cardVibe === activeTemplateVibeFilter;
+    card.style.display = show ? "" : "none";
   });
 }
 
 function startWithStorefrontTemplate(templateId) {
-  const templateSelect = document.getElementById("onboard-storefront-template");
-  if (templateSelect) {
-    templateSelect.value = templateId;
-  }
-  const preview = document.getElementById("onboard-template-selected-badge");
-  if (preview) {
-    preview.textContent = `Selected: ${templateId}`;
-    preview.classList.remove("hidden");
+  const catalog = storefrontTemplateCatalogForOnboarding;
+  const template = catalog?.templates?.find((entry) => entry.id === templateId)
+    || catalog?.templates?.find((entry) => entry.id === "market-modern");
+  if (!template) return;
+  const selectedTemplate = document.getElementById("onboard-storefront-template");
+  const selectedLabel = document.getElementById("onboard-selected-theme");
+  if (selectedTemplate) selectedTemplate.value = template.id;
+  if (selectedLabel) selectedLabel.textContent = `Starting theme: ${template.name}`;
+  const previewBadge = document.getElementById("onboard-template-selected-badge");
+  if (previewBadge) {
+    previewBadge.textContent = `Selected: ${template.name}`;
+    previewBadge.classList.remove("hidden");
   }
   toggleDrawer("onboard-modal", true);
 }
+
+// Ensure the gallery renders independently of stores API
+window.addEventListener("DOMContentLoaded", () => {
+  if (document.getElementById("public-template-gallery")) {
+    renderPublicTemplateGallery();
+  }
+});

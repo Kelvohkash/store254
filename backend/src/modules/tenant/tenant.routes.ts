@@ -15,19 +15,33 @@ export const tenantSettingsRouter = new Hono<AppEnv>();
 
 export const MEDIA_PATH_REGEX = /^\/api\/media\/[^/\s]+\/[^/\s]+$/;
 
+export function isTenantMediaPath(path: string, tenantId: string): boolean {
+  if (typeof path !== "string" || !tenantId) return false;
+  const escapedTenantId = tenantId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`^/api/media/${escapedTenantId}/[^/\\s]+$`);
+  return regex.test(path);
+}
+
+export function validateTenantMediaUrl(
+  url: string | null | undefined,
+  currentUrl: string | null | undefined,
+  tenantId: string
+): boolean {
+  if (url === undefined || url === null || url === "") return true;
+  if (currentUrl && url === currentUrl) return true;
+  return isTenantMediaPath(url, tenantId);
+}
+
 const optionalMediaPath = z
   .union([
-    z.string().max(500).refine(
-      (val) => val === "" || MEDIA_PATH_REGEX.test(val),
-      "Must be an uploaded media path in the format /api/media/<tenantId>/<file> or empty"
-    ),
+    z.string().max(2_000_000),
     z.literal(""),
     z.null(),
   ])
   .optional();
 
 // Update Store Profile & Branding Schema
-const updateStoreProfileSchema = z.object({
+export const updateStoreProfileSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   currency: z.string().length(3).optional(),
   businessType: z
@@ -98,11 +112,39 @@ tenantSettingsRouter.patch(
     const tenant = c.get("tenant")!;
     const body = c.req.valid("json");
 
+    const currentSettings = ((tenant.settings as Record<string, unknown>) || {});
+    const currentLogoUrl = typeof currentSettings.logoUrl === "string" ? currentSettings.logoUrl : "";
+    const currentBannerUrl = typeof currentSettings.bannerUrl === "string" ? currentSettings.bannerUrl : "";
+
+    if (body.settings) {
+      if (
+        body.settings.logoUrl !== undefined &&
+        !validateTenantMediaUrl(body.settings.logoUrl, currentLogoUrl, tenant.id)
+      ) {
+        throw new AppError(
+          `Invalid logoUrl: ${body.settings.logoUrl}. New logo must be an uploaded media path in the format /api/media/${tenant.id}/<file>`,
+          400,
+          "INVALID_MEDIA_PATH"
+        );
+      }
+
+      if (
+        body.settings.bannerUrl !== undefined &&
+        !validateTenantMediaUrl(body.settings.bannerUrl, currentBannerUrl, tenant.id)
+      ) {
+        throw new AppError(
+          `Invalid bannerUrl: ${body.settings.bannerUrl}. New banner must be an uploaded media path in the format /api/media/${tenant.id}/<file>`,
+          400,
+          "INVALID_MEDIA_PATH"
+        );
+      }
+    }
+
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
     const db = createDb(c.env.DB);
 
     const mergedSettings = {
-      ...(tenant.settings as Record<string, unknown>),
+      ...currentSettings,
       ...(body.settings || {}),
     };
 

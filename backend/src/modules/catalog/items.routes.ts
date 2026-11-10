@@ -25,6 +25,13 @@ const variantInputSchema = z.object({
 
 export const MEDIA_PATH_REGEX = /^\/api\/media\/[^/\s]+\/[^/\s]+$/;
 
+export function isTenantMediaPath(path: string, tenantId: string): boolean {
+  if (typeof path !== "string" || !tenantId) return false;
+  const escapedTenantId = tenantId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`^/api/media/${escapedTenantId}/[^/\\s]+$`);
+  return regex.test(path);
+}
+
 const mediaPathSchema = z
   .string()
   .max(2_000_000)
@@ -249,6 +256,18 @@ itemsRouter.post(
     const body = c.req.valid("json");
     const db = createDb(c.env.DB);
 
+    if (body.images && body.images.length > 0) {
+      for (const img of body.images) {
+        if (!isTenantMediaPath(img, tenant.id)) {
+          throw new AppError(
+            `Invalid image path: ${img}. Images must be uploaded media paths in the format /api/media/${tenant.id}/<file>`,
+            400,
+            "INVALID_IMAGE_PATH"
+          );
+        }
+      }
+    }
+
     if (body.categoryId) {
       const [category] = await db
         .select({ id: categories.id })
@@ -381,9 +400,9 @@ itemsRouter.put(
         Array.isArray(existing.images) ? (existing.images as string[]) : []
       );
       for (const img of body.images) {
-        if (!existingImages.has(img) && !MEDIA_PATH_REGEX.test(img)) {
+        if (!existingImages.has(img) && !isTenantMediaPath(img, tenant.id)) {
           throw new AppError(
-            `Invalid image path: ${img}. New images must be uploaded media paths in the format /api/media/<tenantId>/<file>`,
+            `Invalid image path: ${img}. New images must be uploaded media paths in the format /api/media/${tenant.id}/<file>`,
             400,
             "INVALID_IMAGE_PATH"
           );

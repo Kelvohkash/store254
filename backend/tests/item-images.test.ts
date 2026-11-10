@@ -66,4 +66,12 @@ describe("product photo limits and media paths", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("verifies media path belongs to the caller tenant", async () => {
+    const { isTenantMediaPath } = await import("../src/modules/catalog/items.routes");
+    expect(isTenantMediaPath("/api/media/tenant-1/photo.jpg", "tenant-1")).toBe(true);
+    expect(isTenantMediaPath("/api/media/tenant-2/photo.jpg", "tenant-1")).toBe(false);
+    expect(isTenantMediaPath("https://example.com/photo.jpg", "tenant-1")).toBe(false);
+    expect(isTenantMediaPath("/api/media/tenant-1/", "tenant-1")).toBe(false);
+  });
 });
