@@ -323,7 +323,25 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .sto
   background-size: cover !important;
 }
 
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner.has-banner-image {
+  background-image:
+    linear-gradient(135deg, rgba(28, 19, 14, 0.2), rgba(28, 19, 14, 0.08)),
+    var(--store-banner-image),
+    url("/assets/background.jfif") !important;
+  background-position: center !important;
+  background-size: cover !important;
+}
+
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner:not(.has-banner-image) {
+  background-image:
+    linear-gradient(135deg, rgba(28, 19, 14, 0.24), rgba(28, 19, 14, 0.08)),
+    url("/assets/background.jfif") !important;
+  background-position: center 42% !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner:not(.has-banner-image) {
   background-image:
     linear-gradient(135deg, rgba(28, 19, 14, 0.24), rgba(28, 19, 14, 0.08)),
     url("/assets/background.jfif") !important;
