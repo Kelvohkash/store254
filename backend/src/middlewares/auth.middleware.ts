@@ -20,14 +20,16 @@ export function authMiddleware(required = true): MiddlewareHandler<AppEnv> {
     const authHeader = c.req.header("authorization");
     const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7).trim() : null;
     const cookieHeader = c.req.header("cookie");
-    const tenantCookieToken = bearerToken
-      ? null
-      : getCookieValue(cookieHeader, TENANT_SESSION_COOKIE);
-    const ssoCookieToken =
-      bearerToken || tenantCookieToken
-        ? null
-        : getCookieValue(cookieHeader, CUSTOMER_SESSION_COOKIE);
-    const cookieToken = tenantCookieToken || ssoCookieToken;
+    const tenantCookieToken = bearerToken ? null : getCookieValue(cookieHeader, TENANT_SESSION_COOKIE);
+    const ssoCookieToken = bearerToken ? null : getCookieValue(cookieHeader, CUSTOMER_SESSION_COOKIE);
+    const customerSessionPath = [
+      "/api/auth/me",
+      "/api/orders/checkout",
+      "/api/orders/my-orders",
+    ].includes(c.req.path) || /^\/api\/orders\/[^/]+\/confirm-delivery$/.test(c.req.path);
+    const cookieToken = customerSessionPath
+      ? ssoCookieToken || tenantCookieToken
+      : tenantCookieToken || ssoCookieToken;
     const token = bearerToken || cookieToken;
 
     if (!token) {

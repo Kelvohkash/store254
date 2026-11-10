@@ -185,27 +185,29 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .sit
 
   html[data-storefront="true"][data-storefront-template="fashion-and-design"] #header-brand {
     order: 0;
-    margin-right: auto;
+    margin-right: 0;
   }
 
   html[data-storefront="true"][data-storefront-template="fashion-and-design"] .site-header-inner > div:has(#desktop-cart-btn) {
-    order: 1;
+    order: 2;
+    margin-left: 0;
   }
 
   html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-search {
-    order: 2;
+    order: 1;
     flex: 0 1 32rem;
-    width: min(32rem, 34vw);
-    margin-left: 1rem;
+    width: min(32rem, 30vw);
+    margin-right: auto;
+    margin-left: auto;
   }
 }
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] #header-store-name,
 html[data-storefront-template="fashion-and-design"] #header-store-name {
   font-family: var(--store-font-heading) !important;
-  font-size: clamp(1.25rem, 2.8vw, 1.65rem) !important;
+  font-size: clamp(1rem, 1.7vw, 1.35rem) !important;
   font-weight: 700 !important;
-  letter-spacing: 0.18em !important;
+  letter-spacing: 0.12em !important;
   text-transform: uppercase !important;
   color: var(--store-ink) !important;
   line-height: 1.2;
@@ -316,6 +318,15 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .sto
   background-image: linear-gradient(135deg, rgba(28, 19, 14, 0.2), rgba(28, 19, 14, 0.08)), var(--store-banner-image) !important;
   background-position: center !important;
   background-size: cover !important;
+}
+
+html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner:not(.has-banner-image) {
+  background-image:
+    linear-gradient(135deg, rgba(28, 19, 14, 0.24), rgba(28, 19, 14, 0.08)),
+    url("https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=2200&q=85") !important;
+  background-position: center 42% !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
 }
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy #banner-store-desc,

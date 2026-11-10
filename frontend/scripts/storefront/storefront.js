@@ -37,7 +37,6 @@ async function loadStoreProfile() {
   // Subdomain Storefront Mode (e.g. alicebabycare.store254.co.ke)
   document.documentElement.setAttribute("data-storefront", "true");
   document.getElementById("platform-hero")?.classList.add("hidden");
-  document.getElementById("storefront-view")?.classList.remove("hidden");
   // Show Store Admin button on store subdomains, NEVER show Super Admin
   document.getElementById("store-admin-footer-btn")?.classList.remove("hidden");
   if (typeof renderSkeletonCards === "function") renderSkeletonCards();
@@ -49,8 +48,9 @@ async function loadStoreProfile() {
   ]);
   if (res.ok && res.data.success) {
     state.activeTenant = res.data.data;
-    applyStorefrontSettings(state.activeTenant.settings);
+    await applyStorefrontSettings(state.activeTenant.settings);
     renderStoreBanner();
+    document.getElementById("storefront-view")?.classList.remove("hidden");
     updateWishlistButton();
   } else {
     const reason = res.data?.error?.message;
