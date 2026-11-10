@@ -205,9 +205,9 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .sit
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] #header-store-name,
 html[data-storefront-template="fashion-and-design"] #header-store-name {
   font-family: var(--store-font-heading) !important;
-  font-size: clamp(1rem, 1.7vw, 1.35rem) !important;
+  font-size: clamp(0.68rem, 0.85vw, 0.75rem) !important;
   font-weight: 700 !important;
-  letter-spacing: 0.12em !important;
+  letter-spacing: 0.08em !important;
   text-transform: uppercase !important;
   color: var(--store-ink) !important;
   line-height: 1.2;
@@ -315,7 +315,10 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] #sto
 }
 
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner.has-banner-image {
-  background-image: linear-gradient(135deg, rgba(28, 19, 14, 0.2), rgba(28, 19, 14, 0.08)), var(--store-banner-image) !important;
+  background-image:
+    linear-gradient(135deg, rgba(28, 19, 14, 0.2), rgba(28, 19, 14, 0.08)),
+    var(--store-banner-image),
+    url("/assets/background.jfif") !important;
   background-position: center !important;
   background-size: cover !important;
 }
@@ -323,7 +326,7 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .sto
 html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner:not(.has-banner-image) {
   background-image:
     linear-gradient(135deg, rgba(28, 19, 14, 0.24), rgba(28, 19, 14, 0.08)),
-    url("https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=2200&q=85") !important;
+    url("/assets/background.jfif") !important;
   background-position: center 42% !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
