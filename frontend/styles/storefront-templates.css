@@ -88,6 +88,9 @@ html[data-storefront="true"][data-storefront-template="food-local"] .store-banne
 html[data-storefront="true"][data-storefront-template="food-local"] .store-banner h1 { max-width: 13ch; font-family: Georgia,"Times New Roman",serif !important; font-size: clamp(3rem,6vw,5rem); font-weight: 600; }
 html[data-storefront="true"][data-storefront-template="food-local"] .store-banner:not(.has-banner-image) { background: radial-gradient(ellipse at 88% 15%, color-mix(in srgb, var(--store-primary) 24%, var(--store-paper)) 0, transparent 28%), linear-gradient(115deg, color-mix(in srgb, var(--store-primary) 14%, var(--store-paper)), var(--store-white) 58%, color-mix(in srgb, var(--store-primary) 8%, var(--store-paper))); }
 html[data-storefront="true"][data-storefront-template="food-local"] #items-grid .product-card-media { aspect-ratio: 4 / 3; border-radius: 1.1rem; }
+html[data-storefront="true"][data-storefront-template="houses-and-rentals"] .store-banner { min-height: 25rem; border: 0; background: linear-gradient(120deg, color-mix(in srgb, var(--store-primary) 12%, var(--store-paper)), var(--store-white) 60%); }
+html[data-storefront="true"][data-storefront-template="houses-and-rentals"] .store-banner h1 { max-width: 14ch; font-family: "Manrope", sans-serif !important; font-size: clamp(2.8rem,5.5vw,4.8rem); font-weight: 800; }
+html[data-storefront="true"][data-storefront-template="houses-and-rentals"] #items-grid .product-card-media { aspect-ratio: 16 / 10; border-radius: .65rem .65rem 0 0; }
 html[data-storefront="true"][data-product-image-ratio="portrait"] #items-grid .product-card-media { aspect-ratio: 4 / 5; }
 html[data-storefront="true"][data-product-image-ratio="landscape"] #items-grid .product-card-media { aspect-ratio: 4 / 3; }
 html[data-storefront="true"][data-card-density="compact"] #items-grid { gap: .8rem !important; }

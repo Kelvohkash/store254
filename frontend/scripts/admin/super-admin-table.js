@@ -22,7 +22,7 @@ function storeRowMarkup(store) {
   const status = ["ACTIVE", "PENDING", "SUSPENDED"].includes(store.status) ? store.status : "UNKNOWN";
   const statusLabel = { ACTIVE: "Active", PENDING: "Needs review", SUSPENDED: "Suspended", UNKNOWN: "Unknown" }[status];
   const category = formatCategory(store.businessType);
-  const templateId = store.settings?.storefrontTemplate || "market-modern";
+  const templateId = store.settings?.storefrontTemplate || "fashion-and-design";
   const templateLabel = formatTemplateName(templateId);
 
   const action = status === "PENDING"

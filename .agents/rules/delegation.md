@@ -2,10 +2,15 @@
 trigger: always_on
 ---
 
-# Orchestrator ("Manager") & Worker ("Hands") Delegation Rule
+# Delegation & Context Optimization Policy
 
-As the primary orchestrator running on Gemini 4 Argon:
-1. Focus exclusively on high-level architectural planning, system design, task decomposition, and reviewing subagent results.
-2. Do **not** directly execute repetitive file searches, multi-file code edits (`edit_file` / `write_file` / `replace_file_content`), or build/test loops (`run_command`).
-3. Delegate all implementation, file modifications, codebase searches, and terminal/test verification cycles to the `hands` subagent using `invoke_subagent` with `TypeName: "hands"` and `Model: "flash"`.
-4. Provide `hands` with clear, actionable instructions including exact target file paths, desired changes, and specific verification commands to run.
+## 1. Subagent Delegation First (Default)
+- **Always delegate** file reads, file edits, code refactoring, and terminal commands to subagents (`hands`, `research`, `code-auditor`, `github-publisher`) to conserve tokens in the main conversation context.
+- Keep the main conversation loop clean and high-level: coordinate planning, synthesize outputs, and manage overarching architecture.
+- For multi-file implementations, large-scale refactors, or template generation tasks, spawn parallel `hands` subagents to execute changes concurrently.
+
+## 2. Subagent Roles & Usage
+- **`hands`** (`flash`): Execute all file reads, edits, writes, and local verification/build commands. Launch multiple `hands` instances in parallel for multi-file edits or multi-template creation tasks.
+- **`research`** (`flash`): Conduct broad workspace codebase searches, external doc lookups, and deep code investigations.
+- **`code-auditor`** (`flash`): Perform static analysis, lint verification, design system audits, and QA checks before commits or releases.
+- **`github-publisher`** (`flash`): Handle git commits, branch management, PR creation, and publishing changes to GitHub.

@@ -23,19 +23,16 @@ const money = (value) => `KES ${Number(value || 0).toLocaleString("en-KE", { max
 
 const formatTemplateName = (id) => {
   const map = {
-    "cute-boutique": "Sweet & Cute",
-    "food-local": "Food & Local",
-    "luxury-atelier": "Luxury Atelier",
-    "brutalist-studio": "Brutalist Studio",
-    "tech-home": "Tech & Home",
-    "service-studio": "Service Studio",
-    "editorial-boutique": "Editorial Boutique",
-    "fashion-beauty-cosmetics": "Fashion Beauty",
-    "premium-maker": "Premium Maker",
-    "bazaar-vibrant": "Bazaar Vibrant",
-    "market-modern": "Market Modern",
+    "fashion-and-design": "Fashion and Design",
+    "cosmetics": "Cosmetics",
+    "electronics": "Electronics",
+    "houses-and-rentals": "Houses and Rentals",
+    "real-estate": "Real Estate",
+    "food-and-groceries": "Food and Groceries",
+    "hardware-and-autoparts": "Hardware and Spare Parts",
+    "furniture-and-decor": "Furniture and Home Decor",
   };
-  return map[id] || (id ? id.replace(/-/g, " ") : "Market Modern");
+  return map[id] || (id ? id.replace(/-/g, " ") : "Fashion and Design");
 };
 
 async function platformApiFetch(path, options = {}) {

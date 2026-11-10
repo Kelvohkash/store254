@@ -228,7 +228,7 @@ async function loadPlatformStores() {
 
 // Initialization
 window.addEventListener("DOMContentLoaded", () => {
-  setThemePalette("trust-forest");
+  if (typeof setThemePalette === "function") setThemePalette("trust-forest");
   renderIcons();
   updateCartBadge();
   loadStoreProfile().then(() => {

@@ -1,12 +1,12 @@
-// Store appearance: shared catalog, template choice, palette choice, and preview.
-let storefrontTemplateCatalog = { templates: [], palettes: [] };
+// Store appearance: shared catalog, template choice, and preview.
+let storefrontTemplateCatalog = { templates: [] };
 let currentStoreDesign = { name: "Your Store", settings: {} };
 
 async function fetchStorefrontTemplateCatalog() {
   const response = await fetch("/templates/catalog.json", { cache: "no-cache" });
   if (!response.ok) throw new Error("Could not load the storefront template catalog.");
   const catalog = await response.json();
-  if (!Array.isArray(catalog.templates) || !Array.isArray(catalog.palettes)) {
+  if (!Array.isArray(catalog.templates)) {
     throw new Error("The storefront template catalog is not valid.");
   }
   storefrontTemplateCatalog = catalog;
@@ -45,34 +45,6 @@ function setDesignPreviewSize(size, button) {
   });
 }
 
-function selectThemePalette(paletteId) {
-  const palette = (storefrontTemplateCatalog.palettes || []).find((entry) => entry.id === paletteId)
-    || storefrontTemplateCatalog.palettes?.[0];
-  if (!palette) return;
-  const palInput = document.getElementById("settings-theme-palette");
-  const priInput = document.getElementById("settings-primary-color");
-  const bgInput = document.getElementById("settings-background-color");
-  if (palInput) palInput.value = palette.id;
-  if (priInput) priInput.value = palette.primary;
-  if (bgInput) bgInput.value = palette.background;
-  const fgPicker = document.getElementById("settings-primary-color-picker");
-  const bgPicker = document.getElementById("settings-background-color-picker");
-  const fgHex = document.getElementById("foreground-color-hex");
-  const bgHex = document.getElementById("background-color-hex");
-  if (fgPicker) fgPicker.value = palette.primary;
-  if (bgPicker) bgPicker.value = palette.background;
-  if (fgHex) fgHex.textContent = palette.primary;
-  if (bgHex) bgHex.textContent = palette.background;
-  document.querySelectorAll(".template-palette-choice").forEach((button) => {
-    const selected = button.dataset.palette === palette.id;
-    button.classList.toggle("is-selected", selected);
-    button.setAttribute("aria-pressed", String(selected));
-  });
-  const palNameEl = document.getElementById("selected-palette-name");
-  if (palNameEl) palNameEl.textContent = palette.name;
-  if (typeof updateDesignPreview === "function") updateDesignPreview();
-}
-
 async function loadSettings() {
   const [catalogResult, storeResult] = await Promise.allSettled([
     fetchStorefrontTemplateCatalog(),
@@ -83,10 +55,8 @@ async function loadSettings() {
     return;
   }
   if (typeof renderTemplateChoices === "function") renderTemplateChoices();
-  if (typeof renderPaletteChoices === "function") renderPaletteChoices();
   if (storeResult.status !== "fulfilled" || !storeResult.value.ok || !storeResult.value.data?.data) {
-    selectStoreTemplate("market-modern");
-    selectThemePalette("trust-forest");
+    selectStoreTemplate("fashion-and-design");
     return;
   }
 
@@ -115,21 +85,8 @@ async function loadSettings() {
 
   const savedTemplate = storefrontTemplateCatalog.templates.some((entry) => entry.id === settings.storefrontTemplate)
     ? settings.storefrontTemplate
-    : "market-modern";
-  const savedPalette = storefrontTemplateCatalog.palettes.some((entry) => entry.id === settings.themePalette)
-    ? settings.themePalette
-    : "trust-forest";
+    : "fashion-and-design";
   selectStoreTemplate(savedTemplate);
-  selectThemePalette(savedPalette);
-  if (settings.primaryColor || settings.backgroundColor) {
-    const paletteObj = storefrontTemplateCatalog.palettes.find((p) => p.id === savedPalette) || storefrontTemplateCatalog.palettes[0];
-    if (typeof selectCustomStoreColors === "function") {
-      selectCustomStoreColors(
-        settings.primaryColor || paletteObj.primary,
-        settings.backgroundColor || paletteObj.background
-      );
-    }
-  }
 }
 
 async function saveStoreSettings(event) {
@@ -139,9 +96,6 @@ async function saveStoreSettings(event) {
   const settings = {
     storefrontTemplate: document.getElementById("settings-storefront-template").value,
     storefrontTemplateVersion: 1,
-    themePalette: document.getElementById("settings-theme-palette").value,
-    primaryColor: document.getElementById("settings-primary-color").value,
-    backgroundColor: document.getElementById("settings-background-color").value,
     tagline: document.getElementById("settings-tagline")?.value.trim() || undefined,
     description: document.getElementById("settings-description")?.value.trim() || undefined,
     logoUrl: document.getElementById("settings-logo")?.value.trim() || "",

@@ -4,13 +4,12 @@ let activeTemplateVibeFilter = "all";
 let storefrontTemplateCatalogForOnboarding = { templates: [] };
 
 function getTemplateVibeCategory(templateId) {
-  if (templateId === "cute-boutique") return "cute";
-  if (templateId === "food-local") return "food";
-  if (["editorial-boutique", "fashion-beauty-cosmetics"].includes(templateId)) return "fashion";
-  if (["tech-home", "market-modern"].includes(templateId)) return "tech";
-  if (["luxury-atelier", "premium-maker", "service-studio"].includes(templateId)) return "luxury";
-  if (["brutalist-studio", "bazaar-vibrant"].includes(templateId)) return "bold";
-  return "all";
+  if (templateId === "food-and-groceries") return "food";
+  if (["fashion-and-design", "cosmetics"].includes(templateId)) return "fashion";
+  if (templateId === "electronics") return "tech";
+  if (["houses-and-rentals", "real-estate", "furniture-and-decor"].includes(templateId)) return "luxury";
+  if (templateId === "hardware-and-autoparts") return "bold";
+  return "fashion";
 }
 
 async function renderPublicTemplateGallery() {
@@ -88,7 +87,7 @@ async function renderPublicTemplateGallery() {
     previewLink.href = `/templates/${template.preview || `${template.id}/preview.html`}`;
     previewLink.target = "_blank";
     previewLink.rel = "noopener noreferrer";
-    previewLink.title = `Open interactive ${template.name} preview with color test controls`;
+    previewLink.title = `Open ${template.name} live template preview`;
     previewLink.innerHTML = "<span>Live preview</span> ↗";
 
     actionRow.append(action, previewLink);
@@ -111,7 +110,7 @@ function filterGalleryCards() {
 function startWithStorefrontTemplate(templateId) {
   const catalog = storefrontTemplateCatalogForOnboarding;
   const template = catalog?.templates?.find((entry) => entry.id === templateId)
-    || catalog?.templates?.find((entry) => entry.id === "market-modern");
+    || catalog?.templates?.find((entry) => entry.id === "fashion-and-design");
   if (!template) return;
   const selectedTemplate = document.getElementById("onboard-storefront-template");
   const selectedLabel = document.getElementById("onboard-selected-theme");

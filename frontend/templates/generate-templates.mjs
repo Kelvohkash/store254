@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Store254 Universal Storefront Template & Automatic Color Harmony Generator
+ * Store254 Self-Contained Storefront Template Generator
  *
  * Generates self-contained storefront themes under `frontend/templates/<id>/`
  * (`template.css` + `preview.html`) and updates `frontend/templates/catalog.json`.
@@ -10,14 +10,12 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { PALETTES } from "./generator/palettes.mjs";
 import { TEMPLATE_BLUEPRINTS } from "./generator/blueprints/index.mjs";
 import { generateTemplateCss } from "./generator/css-stylesheet.mjs";
 import { generatePreviewHtml } from "./generator/preview-builder.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export { PALETTES } from "./generator/palettes.mjs";
 export { TEMPLATE_BLUEPRINTS } from "./generator/blueprints/index.mjs";
 export { generateTemplateCss } from "./generator/css-stylesheet.mjs";
 export { generatePreviewHtml } from "./generator/preview-builder.mjs";
@@ -32,8 +30,10 @@ export async function generateAllTemplates(templatesDir = __dirname) {
     const cssPath = join(dir, "template.css");
     const previewPath = join(dir, "preview.html");
 
-    await writeFile(cssPath, generateTemplateCss(template), "utf8");
-    await writeFile(previewPath, generatePreviewHtml(template), "utf8");
+    if (!template.skipWrite) {
+      await writeFile(cssPath, generateTemplateCss(template), "utf8");
+      await writeFile(previewPath, generatePreviewHtml(template), "utf8");
+    }
 
     catalogEntries.push({
       id: template.id,
@@ -43,13 +43,16 @@ export async function generateAllTemplates(templatesDir = __dirname) {
       previewImage: template.previewImage,
       stylesheet: `${template.id}/template.css`,
       preview: `${template.id}/preview.html`,
+      colors: {
+        primary: template.defaultColors?.fg || "#15803d",
+        background: template.defaultColors?.bg || "#edf5ee",
+      },
       defaults: template.defaults,
     });
   }
 
   const catalog = {
-    version: 2,
-    palettes: PALETTES,
+    version: 3,
     templates: catalogEntries,
   };
 
@@ -59,7 +62,7 @@ export async function generateAllTemplates(templatesDir = __dirname) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   generateAllTemplates()
-    .then((catalog) => console.log(`Generated ${catalog.templates.length} templates and ${catalog.palettes.length} palettes in frontend/templates/`))
+    .then((catalog) => console.log(`Generated ${catalog.templates.length} self-contained templates in frontend/templates/`))
     .catch((err) => {
       console.error("Failed to generate templates:", err);
       process.exit(1);

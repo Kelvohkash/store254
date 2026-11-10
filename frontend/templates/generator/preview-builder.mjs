@@ -1,7 +1,5 @@
 export function generatePreviewHtml(template) {
-  const { id, name, mood, description, defaults, defaultColors, sampleFilters, sampleProducts } = template;
-  const fgInit = defaultColors?.fg || "#15803d";
-  const bgInit = defaultColors?.bg || "#edf5ee";
+  const { id, name, mood, description, defaults, sampleFilters, sampleProducts, cardCta, trustBadges } = template;
   const titleText = String(defaults.title || name).replace(/<br\s*\/?>/gi, " ");
 
   const filterCategories = sampleFilters?.categories || ["Featured Selection", "Express Delivery", "Customer Favorites", "Limited Edition"];
@@ -21,7 +19,10 @@ export function generatePreviewHtml(template) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${name} (${mood}) — Store254 Interactive Theme Preview</title>
+  <title>${name} (${mood}) — Store254 Storefront Template Preview</title>
+  ${template.googleFont ? `<link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="${template.googleFont}" rel="stylesheet">` : ""}
   <link rel="stylesheet" href="./template.css">
   <style>
     * { box-sizing: border-box; }
@@ -37,26 +38,6 @@ export function generatePreviewHtml(template) {
       font: 600 0.78rem system-ui, sans-serif;
       border-bottom: 1px solid #1e293b;
     }
-    .preview-bar input[type="color"] {
-      width: 1.9rem;
-      height: 1.65rem;
-      border: 1px solid #475569;
-      border-radius: 4px;
-      background: transparent;
-      cursor: pointer;
-      vertical-align: middle;
-    }
-    .preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
-    .preview-preset-btn {
-      padding: 0.35rem 0.65rem !important;
-      border-radius: 999px !important;
-      border: 1px solid #334155 !important;
-      background: #1e293b !important;
-      color: #e2e8f0 !important;
-      font-size: 0.7rem !important;
-      cursor: pointer;
-    }
-    .preview-preset-btn:hover { background: #334155 !important; }
     .preview-badge {
       padding: 0.25rem 0.65rem;
       border-radius: 999px;
@@ -94,13 +75,8 @@ export function generatePreviewHtml(template) {
     <div>
       <strong>${name}</strong> · <span style="color:#94a3b8">${mood}</span>
     </div>
-    <div class="preview-controls">
-      <label>Foreground <input type="color" id="fg-picker" value="${fgInit}"></label>
-      <label>Background <input type="color" id="bg-picker" value="${bgInit}"></label>
-      <button type="button" class="preview-preset-btn" onclick="setColors('${fgInit}','${bgInit}')">Theme Default</button>
-      <button type="button" class="preview-preset-btn" onclick="setColors('#111827','#0f172a')">Test Dark+Dark</button>
-      <button type="button" class="preview-preset-btn" onclick="setColors('#f8fafc','#ffffff')">Test Light+Light</button>
-      <span id="contrast-status" class="preview-badge">WCAG Auto-Contrast Active</span>
+    <div>
+      <span class="preview-badge">Self-Contained Template</span>
     </div>
   </div>
 
@@ -109,31 +85,46 @@ export function generatePreviewHtml(template) {
       <div id="header-store-identity">
         <h1 id="header-store-name">${name}</h1>
         <p id="header-store-tagline">${mood}</p>
+        <span id="header-powered-by" class="header-powered-by">Powered by <strong>Store254</strong></span>
       </div>
     </div>
     <form id="search-form" onsubmit="event.preventDefault()">
       <label for="search-input" style="display:none">Search</label>
-      <input type="search" id="search-input" placeholder="Search ${name.toLowerCase()} catalog...">
+      <input type="search" id="search-input" placeholder="${template.searchPlaceholder || `Search ${name.toLowerCase()} catalog...`}">
     </form>
     <nav id="header-actions-nav">
-      <button type="button">Profile</button>
-      <button type="button">Wishlist (2)</button>
-      <button type="button" id="desktop-cart-btn">Cart (3)</button>
+      ${(template.headerActions || ["Profile", "Wishlist (2)", "Cart (3)"]).map((act, i, arr) =>
+        i === arr.length - 1
+          ? `<button type="button" id="desktop-cart-btn">${act}</button>`
+          : `<button type="button">${act}</button>`
+      ).join("\n      ")}
     </nav>
   </header>
 
   <nav id="storefront-category-nav">
     <div id="category-pills">
-      <button type="button" aria-selected="true">All Items</button>
+      <button type="button" aria-selected="true">${defaults.allUnitsLabel || "All Items"}</button>
       ${filterCategories.map(cat => `<button type="button" aria-selected="false">${cat}</button>`).join("\n      ")}
     </div>
   </nav>
 
-  <section id="store-info-banner">
-    <p id="banner-store-subdomain">${defaults.kicker}</p>
-    <h2 id="banner-store-name">${titleText}</h2>
-    <p id="banner-store-desc">${description}</p>
-    <a id="storefront-primary-cta" href="#items-grid">${defaults.cta}</a>
+  <section id="store-info-banner" class="store-banner">
+    <div class="store-banner-inner">
+      <div id="store-banner-content" class="store-banner-copy">
+        <p id="banner-store-subdomain" class="store-address">${defaults.kicker}</p>
+        <h2 id="banner-store-name">${titleText}</h2>
+        <p id="banner-store-tagline" class="store-tagline"></p>
+        <p id="banner-store-desc">${description}</p>
+        ${trustBadges && trustBadges.length ? `
+        <div class="store-trust-strip">
+          ${trustBadges.map(b => `<span class="store-trust-badge">${b}</span>`).join("\n          ")}
+        </div>` : ""}
+        <div class="store-banner-actions">
+          <a id="storefront-primary-cta" class="storefront-primary-cta" href="#items-grid">${defaults.cta}</a>
+          ${defaults.secondaryCta ? `<a id="banner-store-call-btn" class="storefront-primary-cta" href="tel:+254700000000" style="background:var(--store-white) !important; color:var(--store-primary) !important; border:1px solid var(--store-line) !important;">${defaults.secondaryCta}</a>` : ""}
+        </div>
+      </div>
+    </div>
   </section>
 
   <main id="storefront-view">
@@ -148,6 +139,11 @@ export function generatePreviewHtml(template) {
           <legend>${filterAttrTitle}</legend>
           ${filterAttributes.map((attr, idx) => `<label><input type="checkbox"${idx < 2 ? " checked" : ""}> ${attr}</label>`).join("\n          ")}
         </fieldset>
+        ${(sampleFilters?.extraGroups || []).map(group => `
+        <fieldset>
+          <legend>${group.title}</legend>
+          ${group.items.map((item, idx) => `<label><input type="checkbox"${idx < 2 ? " checked" : ""}> ${item}</label>`).join("\n          ")}
+        </fieldset>`).join("")}
       </aside>
 
       <section id="catalog-main-content">
@@ -161,7 +157,7 @@ export function generatePreviewHtml(template) {
               <span class="product-price">${p.price}</span>
             </div>
             <div class="product-card-actions">
-              <button type="button" class="add-to-cart-btn">Add to Cart</button>
+              <button type="button" class="add-to-cart-btn">${p.cta || cardCta || "Add to Cart"}</button>
             </div>
           </article>
           `).join("")}
@@ -170,78 +166,33 @@ export function generatePreviewHtml(template) {
     </div>
   </main>
 
-  <script>
-    function hexToRgb(hex) {
-      const clean = hex.replace("#", "");
-      const full = clean.length === 3 ? [...clean].map(c => c + c).join("") : clean;
-      return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
-    }
-    function rgbToHex(r, g, b) {
-      return "#" + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
-    }
-    function luminance([r, g, b]) {
-      const a = [r, g, b].map(v => {
-        v /= 255;
-        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-      });
-      return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
-    }
-    function contrast(rgb1, rgb2) {
-      const l1 = luminance(rgb1), l2 = luminance(rgb2);
-      return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-    }
-    function mix(rgb1, rgb2, w1) {
-      return rgb1.map((c, i) => c * w1 + rgb2[i] * (1 - w1));
-    }
-    function applyAutoPalette(fgHex, bgHex) {
-      const bgRgb = hexToRgb(bgHex);
-      const rawFgRgb = hexToRgb(fgHex);
-      const bgLum = luminance(bgRgb);
-      const isDark = bgLum <= 0.18;
-      const surfaceRgb = isDark ? mix(bgRgb, [255, 255, 255], 0.88) : [255, 255, 255];
-      let safeFg = rawFgRgb;
-      let adjusted = false;
-      if (contrast(safeFg, bgRgb) < 4.5 || contrast(safeFg, surfaceRgb) < 4.5) {
-        adjusted = true;
-        const target = isDark ? [255, 255, 255] : [0, 0, 0];
-        for (let step = 0.04; step <= 0.96; step += 0.04) {
-          const candidate = mix(rawFgRgb, target, 1 - step);
-          if (contrast(candidate, bgRgb) >= 4.5 && contrast(candidate, surfaceRgb) >= 4.5) {
-            safeFg = candidate;
-            break;
-          }
-        }
-      }
-      const primaryHex = rgbToHex(...safeFg);
-      const onPrimary = contrast([255, 255, 255], safeFg) >= contrast([12, 18, 28], safeFg) ? "#ffffff" : "#0c121c";
-      const root = document.documentElement;
-      root.style.setProperty("--store-paper", bgHex);
-      root.style.setProperty("--store-white", rgbToHex(...surfaceRgb));
-      root.style.setProperty("--store-primary", primaryHex);
-      root.style.setProperty("--store-primary-subtle", rgbToHex(...(isDark ? mix(bgRgb, safeFg, 0.78) : mix([255, 255, 255], safeFg, 0.88))));
-      root.style.setProperty("--store-on-primary", onPrimary);
-      root.style.setProperty("--store-ink", isDark ? "#f8fafc" : "#0f172a");
-      root.style.setProperty("--store-muted", isDark ? "#cbd5e1" : "#475569");
-      root.style.setProperty("--store-line", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.78) : mix(bgRgb, [0, 0, 0], 0.84))));
-      root.style.setProperty("--store-media-bg", rgbToHex(...(isDark ? mix(bgRgb, [255, 255, 255], 0.92) : mix(bgRgb, [255, 255, 255], 0.5))));
-      const badge = document.getElementById("contrast-status");
-      badge.textContent = adjusted
-        ? "WCAG Auto-Adjusted (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)"
-        : "WCAG Optimal (" + contrast(safeFg, bgRgb).toFixed(1) + ":1)";
-      badge.style.background = adjusted ? "#b45309" : "#064e3b";
-      badge.style.color = adjusted ? "#fef3c7" : "#6ee7b7";
-    }
+  <nav id="mobile-bottom-nav" class="mobile-bottom-nav">
+    <button type="button">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span>Home</span>
+    </button>
+    <button type="button">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+      <span>Portfolio</span>
+    </button>
+    <button type="button">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <span>Search</span>
+    </button>
+    <button type="button">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      <span>Saved</span>
+    </button>
+    <button type="button">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      <span>Inquire</span>
+    </button>
+  </nav>
 
-    function setColors(fg, bg) {
-      document.getElementById("fg-picker").value = fg;
-      document.getElementById("bg-picker").value = bg;
-      applyAutoPalette(fg, bg);
-    }
-
-    document.getElementById("fg-picker").addEventListener("input", (e) => applyAutoPalette(e.target.value, document.getElementById("bg-picker").value));
-    document.getElementById("bg-picker").addEventListener("input", (e) => applyAutoPalette(document.getElementById("fg-picker").value, e.target.value));
-    applyAutoPalette("${fgInit}", "${bgInit}");
-  </script>
+  <a href="#whatsapp" class="whatsapp-quick-contact" id="whatsapp-quick-contact" aria-label="WhatsApp Inquiry">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:1.4rem;height:1.4rem"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+    <span>Inquire</span>
+  </a>
 </body>
 </html>`;
 }

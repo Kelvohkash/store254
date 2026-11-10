@@ -327,13 +327,9 @@
           <div class="space-y-6">
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2"><i data-lucide="paintbrush-vertical" class="w-4 h-4 text-emerald-600"></i> Store appearance &amp; profile</h3>
-              <p class="text-xs text-slate-500 mb-5">Customise your storefront template, colour palette, store profile, contact details, and social media links.</p>
+              <p class="text-xs text-slate-500 mb-5">Choose your storefront template and manage your store profile, contact details, and social media links.</p>
               <form onsubmit="saveStoreSettings(event)" class="space-y-6">
-                <input id="settings-storefront-template" type="hidden" value="market-modern">
-                <input id="settings-theme-palette" type="hidden" value="trust-forest">
-                <input id="settings-primary-color" type="hidden" value="#15803d">
-                <input id="settings-background-color" type="hidden" value="#edf5ee">
-                <input id="settings-background-custom" type="hidden" value="">
+                <input id="settings-storefront-template" type="hidden" value="fashion-and-design">
                 <input id="settings-storefront-archetype" type="hidden" value="modern-retailer">
                 <input id="settings-header-variant" type="hidden" value="compact-search-first">
                 <input id="settings-product-card-style" type="hidden" value="grid-card">
@@ -349,27 +345,6 @@
                 <div>
                   <div class="flex items-center justify-between gap-3"><label class="label">Choose a template</label><span class="text-[11px] text-slate-400">Swipe to explore</span></div>
                   <div id="template-choice-grid" class="template-choice-grid" role="group" aria-label="Storefront templates" tabindex="0"></div>
-                </div>
-                <div>
-                  <div class="flex items-center justify-between gap-3"><label class="label">Choose a colour</label><span id="selected-palette-name" class="text-xs font-semibold text-slate-500">Forest</span></div>
-                  <div id="template-palette-choices" class="template-palette-choices" role="group" aria-label="Storefront colour palettes"></div>
-                  <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <label class="flex items-center justify-between gap-3 text-xs font-bold text-slate-700 cursor-pointer">
-                      <span>Foreground (Brand Accent)</span>
-                      <span class="flex items-center gap-2">
-                        <code id="foreground-color-hex" class="text-[11px] font-mono text-slate-500">#15803d</code>
-                        <input id="settings-primary-color-picker" type="color" value="#15803d" oninput="selectCustomStoreColors(this.value, document.getElementById('settings-background-color-picker').value)" class="w-8 h-8 rounded cursor-pointer border border-slate-300 bg-white p-0.5" aria-label="Foreground brand colour" />
-                      </span>
-                    </label>
-                    <label class="flex items-center justify-between gap-3 text-xs font-bold text-slate-700 cursor-pointer">
-                      <span>Background (Canvas)</span>
-                      <span class="flex items-center gap-2">
-                        <code id="background-color-hex" class="text-[11px] font-mono text-slate-500">#edf5ee</code>
-                        <input id="settings-background-color-picker" type="color" value="#edf5ee" oninput="selectCustomStoreColors(document.getElementById('settings-primary-color-picker').value, this.value)" class="w-8 h-8 rounded cursor-pointer border border-slate-300 bg-white p-0.5" aria-label="Background canvas colour" />
-                      </span>
-                    </label>
-                  </div>
-                  <p id="design-contrast-note" class="design-contrast-note" aria-live="polite">All text, card surfaces, and button colours automatically adapt for 100% visibility.</p>
                 </div>
 
                 <!-- Store Identity & Branding -->
@@ -488,7 +463,7 @@
               <button type="button" class="is-active" data-preview-size="desktop" onclick="setDesignPreviewSize('desktop', this)">Desktop</button>
               <button type="button" data-preview-size="mobile" onclick="setDesignPreviewSize('mobile', this)">Phone</button>
             </div>
-            <div id="design-preview-stage" class="design-preview-stage" data-template="market-modern" data-preview-size="desktop">
+            <div id="design-preview-stage" class="design-preview-stage" data-template="fashion-and-design" data-preview-size="desktop">
               <div class="design-preview-site">
                 <div class="design-preview-nav"><span id="design-preview-mark" class="design-preview-mark">S</span><strong id="design-preview-store">Your Store</strong><span class="design-preview-nav-links">Shop　 About</span><b>Bag 0</b></div>
                 <div class="design-preview-hero"><div><small id="design-preview-kicker">MADE FOR EVERY DAY</small><h5 id="design-preview-title">Good things,<br>chosen well.</h5><p>Products and prices from your store.</p><button id="design-preview-button" type="button">Explore collection</button></div><div class="design-preview-hero-art"><span></span><i></i><b></b></div></div>
@@ -774,7 +749,6 @@
 <script src="./scripts/admin/product-editor.js"></script>
 <script src="./scripts/admin/catalog.js"></script>
 <script src="./scripts/admin/orders.js"></script>
-<script src="./scripts/admin/design-colors.js"></script>
 <script src="./scripts/admin/design-preview.js"></script>
 <script src="./scripts/admin/design-branding.js"></script>
 <script src="./scripts/admin/design.js"></script>

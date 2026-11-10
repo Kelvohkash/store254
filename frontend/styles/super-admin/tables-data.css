@@ -244,17 +244,14 @@ tbody tr:last-child td { border-bottom: 0; }
   background: #f1f5f3;
   color: var(--text-muted);
 }
-.store-template-badge[data-template="cute-boutique"] { background: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; }
-.store-template-badge[data-template="food-local"] { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-.store-template-badge[data-template="luxury-atelier"] { background: #1c1917; color: #d4af37; border: 1px solid #785e2f; }
-.store-template-badge[data-template="brutalist-studio"] { background: #18181b; color: #ef4444; border: 1px solid #ef4444; }
-.store-template-badge[data-template="tech-home"] { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
-.store-template-badge[data-template="service-studio"] { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
-.store-template-badge[data-template="editorial-boutique"] { background: #fcf8f2; color: #78350f; border: 1px solid #e8dec8; }
-.store-template-badge[data-template="fashion-beauty-cosmetics"] { background: #e6fffa; color: #0d9488; border: 1px solid #99f6e4; }
-.store-template-badge[data-template="premium-maker"] { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-.store-template-badge[data-template="bazaar-vibrant"] { background: #fff7ed; color: #ea580c; border: 1px solid #fdba74; }
-.store-template-badge[data-template="market-modern"] { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.store-template-badge[data-template="fashion-and-design"] { background: #fbf7f2; color: #9a3412; border: 1px solid #fed7aa; }
+.store-template-badge[data-template="cosmetics"] { background: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; }
+.store-template-badge[data-template="electronics"] { background: #eef4f8; color: #0284c7; border: 1px solid #bae6fd; }
+.store-template-badge[data-template="houses-and-rentals"] { background: #f0f7f5; color: #0f766e; border: 1px solid #99f6e4; }
+.store-template-badge[data-template="real-estate"] { background: #f6f5f0; color: #14532d; border: 1px solid #bbf7d0; }
+.store-template-badge[data-template="food-and-groceries"] { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.store-template-badge[data-template="hardware-and-autoparts"] { background: #f3f4f6; color: #b45309; border: 1px solid #fde68a; }
+.store-template-badge[data-template="furniture-and-decor"] { background: #f7f5ef; color: #3f6212; border: 1px solid #d9f99d; }
 
 .category-pill {
   display: inline-block;

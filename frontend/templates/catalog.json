@@ -1,281 +1,190 @@
 {
-  "version": 2,
-  "palettes": [
-    {
-      "id": "trust-forest",
-      "name": "Forest",
-      "primary": "#15803d",
-      "background": "#edf5ee"
-    },
-    {
-      "id": "sapphire-blue",
-      "name": "Ocean",
-      "primary": "#08718b",
-      "background": "#e9f2f9"
-    },
-    {
-      "id": "organic-sage",
-      "name": "Sage",
-      "primary": "#66835c",
-      "background": "#f1f4eb"
-    },
-    {
-      "id": "modern-onyx",
-      "name": "Charcoal",
-      "primary": "#334155",
-      "background": "#edf0f3"
-    },
-    {
-      "id": "sunset-amber",
-      "name": "Amber",
-      "primary": "#c46a2d",
-      "background": "#fbf0e5"
-    },
-    {
-      "id": "rose",
-      "name": "Rose",
-      "primary": "#b64269",
-      "background": "#f8edf1"
-    },
-    {
-      "id": "berry-blossom",
-      "name": "Blossom",
-      "primary": "#db2777",
-      "background": "#fdf2f8"
-    },
-    {
-      "id": "midnight-gold",
-      "name": "Midnight",
-      "primary": "#f59e0b",
-      "background": "#0f172a"
-    },
-    {
-      "id": "obsidian-emerald",
-      "name": "Obsidian",
-      "primary": "#10b981",
-      "background": "#111827"
-    },
-    {
-      "id": "royal-velvet",
-      "name": "Velvet",
-      "primary": "#a855f7",
-      "background": "#18122b"
-    },
-    {
-      "id": "terracotta-sand",
-      "name": "Terracotta",
-      "primary": "#c2410c",
-      "background": "#fdf6ee"
-    }
-  ],
+  "version": 3,
   "templates": [
     {
-      "id": "market-modern",
-      "name": "Market Modern",
-      "mood": "Professional & Everyday Retail",
-      "description": "Clean, confident everyday shopping with a balanced split hero, search-first header, and elevated cards.",
-      "previewImage": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "market-modern/template.css",
-      "preview": "market-modern/preview.html",
-      "defaults": {
-        "archetype": "modern-retailer",
-        "header": "compact-search-first",
-        "card": "grid-card",
-        "hero": "split",
-        "font": "modern",
-        "kicker": "MADE FOR EVERY DAY",
-        "cta": "Explore collection",
-        "title": "Good things,<br>chosen well."
-      }
-    },
-    {
-      "id": "editorial-boutique",
-      "name": "Editorial Boutique",
-      "mood": "Tasteful & Poetic Fashion",
-      "description": "A considered fashion and lifestyle lookbook with serif typography, generous whitespace, and portrait frames.",
+      "id": "fashion-and-design",
+      "name": "Fashion and Design",
+      "mood": "Boutique, Couture & Tailoring",
+      "description": "Warm editorial runway aesthetic with deep espresso terracotta, bespoke tailoring frames, and curated lookbook discovery.",
       "previewImage": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "editorial-boutique/template.css",
-      "preview": "editorial-boutique/preview.html",
+      "stylesheet": "fashion-and-design/template.css",
+      "preview": "fashion-and-design/preview.html",
+      "colors": {
+        "primary": "#9a3412",
+        "background": "#fbf7f2"
+      },
       "defaults": {
         "archetype": "lifestyle-boutique",
         "header": "centered-brand",
         "card": "grid-card",
         "hero": "editorial",
         "font": "editorial",
-        "kicker": "A CONSIDERED EDIT",
-        "cta": "Discover the edit",
-        "title": "A little more<br>beautiful, every day."
+        "kicker": "NAIROBI RUNWAY & BESPOKE COUTURE",
+        "cta": "Explore the collection",
+        "title": "Modern Heritage,<br>Tailored in Nairobi."
       }
     },
     {
-      "id": "fashion-beauty-cosmetics",
-      "name": "Fashion, Beauty and Cosmetics",
-      "mood": "Glamorous & Photo-Led",
-      "description": "A photo-led fashion storefront with a bold brand ribbon, secondary category bar, and editorial runway cards.",
-      "previewImage": "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "fashion-beauty-cosmetics/template.css",
-      "preview": "fashion-beauty-cosmetics/preview.html",
+      "id": "cosmetics",
+      "name": "Cosmetics",
+      "mood": "Beauty, Skincare, Wigs & Glam",
+      "description": "Soft luxury rose-berry aesthetic for beauty salons, organic melanin skincare, luxury wigs, lipstick bars, and fragrances.",
+      "previewImage": "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "cosmetics/template.css",
+      "preview": "cosmetics/preview.html",
+      "colors": {
+        "primary": "#be185d",
+        "background": "#fdf2f8"
+      },
       "defaults": {
         "archetype": "lifestyle-boutique",
         "header": "centered-brand",
         "card": "grid-card",
         "hero": "editorial",
         "font": "editorial",
-        "kicker": "THE NEW SEASON",
-        "cta": "Discover the edit",
-        "title": "Everyday,<br>considered."
+        "kicker": "MELANIN GLOW & LUXURY BEAUTY",
+        "cta": "Explore Beauty Catalog",
+        "title": "Radiant Skin,<br>Crown Wigs & Glamour."
       }
     },
     {
-      "id": "cute-boutique",
-      "name": "Sweet & Cute Boutique",
-      "mood": "Cute, Playful & Charming",
-      "description": "Bubbly pill frames, floating pastel halos, and bouncy interactions for gifts, stationery, baby care, and treats.",
-      "previewImage": "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "cute-boutique/template.css",
-      "preview": "cute-boutique/preview.html",
-      "defaults": {
-        "archetype": "lifestyle-boutique",
-        "header": "centered-brand",
-        "card": "grid-card",
-        "hero": "minimal",
-        "font": "rounded",
-        "kicker": "MADE WITH LOVE & SPARKLE",
-        "cta": "Shop cute finds",
-        "title": "Little things<br>that make you smile."
-      }
-    },
-    {
-      "id": "food-local",
-      "name": "Food & Local",
-      "mood": "Tasty, Warm & Appetizing",
-      "description": "Warm culinary canopy header, kitchen specials board, and delicious dish cards for bakeries, kitchens, and produce.",
-      "previewImage": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "food-local/template.css",
-      "preview": "food-local/preview.html",
-      "defaults": {
-        "archetype": "modern-retailer",
-        "header": "centered-brand",
-        "card": "grid-card",
-        "hero": "editorial",
-        "font": "editorial",
-        "kicker": "HOT DISHES & LOCAL FLAVOURS",
-        "cta": "Order takeaway",
-        "title": "Taste the heart<br>of local cooking."
-      }
-    },
-    {
-      "id": "tech-home",
-      "name": "Tech & Home",
-      "mood": "Crisp, Bento & Specification-Led",
-      "description": "Bento spec cards, technical hardware chips, and tabular pricing for consumer electronics and modern gear.",
+      "id": "electronics",
+      "name": "Electronics",
+      "mood": "Phones, Laptops, TVs & Audio",
+      "description": "Crisp, specification-led Bento Tech aesthetic with tabular pricing and technical badges for Kenyan electronics shops.",
       "previewImage": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "tech-home/template.css",
-      "preview": "tech-home/preview.html",
+      "stylesheet": "electronics/template.css",
+      "preview": "electronics/preview.html",
+      "colors": {
+        "primary": "#0284c7",
+        "background": "#eef4f8"
+      },
       "defaults": {
         "archetype": "modern-retailer",
         "header": "compact-search-first",
         "card": "grid-card",
         "hero": "split",
         "font": "modern",
-        "kicker": "NEXT-GEN HARDWARE",
-        "cta": "Compare specs",
-        "title": "Audio, display &<br>smart living."
+        "kicker": "OFFICIAL EAST AFRICA TECH DISTRIBUTOR",
+        "cta": "Browse Catalog & Specs",
+        "title": "Next-Gen Hardware with<br>Official Local Warranty"
       }
     },
     {
-      "id": "service-studio",
-      "name": "Service Studio",
-      "mood": "Architectural, Consultation & Booking",
-      "description": "Warm stone tones, consultation appointment cards, and session scheduling for agencies and studios.",
-      "previewImage": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "service-studio/template.css",
-      "preview": "service-studio/preview.html",
+      "id": "food-and-groceries",
+      "name": "Food and Groceries",
+      "mood": "Restaurants, Fast Food & Fresh Produce",
+      "description": "Warm culinary canopy aesthetic for Swahili kitchens, nyama choma grills, bakeries, fast foods, and fresh mama mboga groceries.",
+      "previewImage": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "food-and-groceries/template.css",
+      "preview": "food-and-groceries/preview.html",
+      "colors": {
+        "primary": "#c2410c",
+        "background": "#fff7ed"
+      },
+      "defaults": {
+        "archetype": "modern-retailer",
+        "header": "centered-brand",
+        "card": "grid-card",
+        "hero": "editorial",
+        "font": "editorial",
+        "kicker": "FRESH LOCAL DELIGHTS & PANTRY",
+        "cta": "Order Fresh Food",
+        "title": "Authentic Flavours &<br>Farm-Fresh Daily."
+      }
+    },
+    {
+      "id": "houses-and-rentals",
+      "name": "Houses and Rentals",
+      "mood": "Apartments, Bedsitters & Airbnbs",
+      "description": "Residential rental agencies, bedsitters & apartments to let, Airbnb/furnished short-stays, and student hostels across Nairobi, Mombasa, Nakuru, and Kisumu.",
+      "previewImage": "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "houses-and-rentals/template.css",
+      "preview": "houses-and-rentals/preview.html",
+      "colors": {
+        "primary": "#0f766e",
+        "background": "#f0f7f5"
+      },
+      "defaults": {
+        "archetype": "residential-rentals",
+        "header": "property-finder",
+        "card": "rental-card",
+        "hero": "residential-showcase",
+        "font": "architectural",
+        "kicker": "VACANT UNITS & SHORT-STAYS",
+        "cta": "Browse Vacant Units",
+        "secondaryCta": "Call Agent",
+        "title": "Find your next home,<br>made simple.",
+        "allUnitsLabel": "All Units"
+      }
+    },
+    {
+      "id": "real-estate",
+      "name": "Real Estate",
+      "mood": "Titled Land, Plots & Homes for Sale",
+      "description": "Prestigious Kenyan land and property investments with ready title deeds, site visits, and flexible payment plans in Juja, Ruiru, Kitengela, Ngong, and Malindi.",
+      "previewImage": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "real-estate/template.css",
+      "preview": "real-estate/preview.html",
+      "colors": {
+        "primary": "#14532d",
+        "background": "#f6f5f0"
+      },
       "defaults": {
         "archetype": "service-portfolio",
-        "header": "minimal-nav",
-        "card": "service-card",
-        "hero": "minimal",
-        "font": "editorial",
-        "kicker": "SPACE TO CREATE & COLLABORATE",
-        "cta": "Book session",
-        "title": "Expertise, craft<br>& guidance."
-      }
-    },
-    {
-      "id": "premium-maker",
-      "name": "Premium Maker",
-      "mood": "Artisan Leather, Timber & Heritage",
-      "description": "Deep heritage tones, artisan seal mark, and workshop craft cards for hand-stitched leather and timber.",
-      "previewImage": "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "premium-maker/template.css",
-      "preview": "premium-maker/preview.html",
-      "defaults": {
-        "archetype": "single-product-maker",
-        "header": "centered-brand",
+        "header": "executive-estate",
         "card": "grid-card",
-        "hero": "editorial",
+        "hero": "split",
         "font": "editorial",
-        "kicker": "HANDCRAFTED IN NAIROBI",
-        "cta": "Explore workshop",
-        "title": "Patience, weight<br>& lasting form."
+        "kicker": "VERIFIED READY TITLE DEEDS",
+        "cta": "Book Free Site Visit",
+        "title": "Prime Land & Luxury Homes<br>Across Kenya."
       }
     },
     {
-      "id": "luxury-atelier",
-      "name": "Luxury Atelier",
-      "mood": "Understated, Quiet Luxury & Noir",
-      "description": "Museum-grade minimalist gallery, hairline borders, and serif typography for haute fashion and fine jewelry.",
-      "previewImage": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "luxury-atelier/template.css",
-      "preview": "luxury-atelier/preview.html",
-      "defaults": {
-        "archetype": "lifestyle-boutique",
-        "header": "centered-brand",
-        "card": "grid-card",
-        "hero": "minimal",
-        "font": "editorial",
-        "kicker": "PRIVATE COLLECTION",
-        "cta": "Enter the gallery",
-        "title": "Timeless craft,<br>quiet luxury."
-      }
-    },
-    {
-      "id": "brutalist-studio",
-      "name": "Neo-Brutalist Studio",
-      "mood": "Bold, Edgy & Streetwear",
-      "description": "Bold architectural grid with crisp 3px ink borders, offset hard black shadows, and raw streetwear punch.",
-      "previewImage": "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "brutalist-studio/template.css",
-      "preview": "brutalist-studio/preview.html",
+      "id": "hardware-and-autoparts",
+      "name": "Hardware and Spare Parts",
+      "mood": "Building Materials, Tools & Auto Spares",
+      "description": "Rugged industrial trade catalog for hardware stores, building materials, solar installations, and Kirinyaga Road auto spares.",
+      "previewImage": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "hardware-and-autoparts/template.css",
+      "preview": "hardware-and-autoparts/preview.html",
+      "colors": {
+        "primary": "#b45309",
+        "background": "#f3f4f6"
+      },
       "defaults": {
         "archetype": "modern-retailer",
         "header": "compact-search-first",
         "card": "grid-card",
         "hero": "split",
         "font": "modern",
-        "kicker": "LIMITED EDITION ARCHIVE",
-        "cta": "Shop the drop",
-        "title": "Bold form.<br>Zero compromise."
+        "kicker": "BUILDERS & AUTO SPARES DEPOT",
+        "cta": "Browse Catalog",
+        "title": "Built tough.<br>In stock today."
       }
     },
     {
-      "id": "bazaar-vibrant",
-      "name": "Dynamic Bazaar",
-      "mood": "Energetic & High-Conversion",
-      "description": "High-energy merchant marketplace with floating pill navigation, quick-buy badges, and dense discovery.",
-      "previewImage": "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=1100&q=85",
-      "stylesheet": "bazaar-vibrant/template.css",
-      "preview": "bazaar-vibrant/preview.html",
+      "id": "furniture-and-decor",
+      "name": "Furniture and Home Decor",
+      "mood": "Sofas, Timber Beds & Interior Decor",
+      "description": "Handcrafted timber showroom, custom living room sectionals, solid hardwood dining sets, and interior textiles for Kenyan homes.",
+      "previewImage": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1100&q=85",
+      "stylesheet": "furniture-and-decor/template.css",
+      "preview": "furniture-and-decor/preview.html",
+      "colors": {
+        "primary": "#3f6212",
+        "background": "#f7f5ef"
+      },
       "defaults": {
-        "archetype": "modern-retailer",
-        "header": "compact-search-first",
+        "archetype": "lifestyle-boutique",
+        "header": "centered-brand",
         "card": "grid-card",
-        "hero": "split",
-        "font": "rounded",
-        "kicker": "TOP DEALS & NEW FINDS",
-        "cta": "Browse deals",
-        "title": "Everything you need,<br>right here."
+        "hero": "editorial",
+        "font": "editorial",
+        "kicker": "HANDCRAFTED IN NAIROBI · SHOWROOM COLLECTION",
+        "cta": "Explore Showroom",
+        "title": "Solid Timber & Crafted Comfort<br>for Modern Living."
       }
     }
   ]

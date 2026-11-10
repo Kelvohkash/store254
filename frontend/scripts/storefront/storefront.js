@@ -15,7 +15,7 @@ async function loadStoreProfile() {
     document.documentElement.removeAttribute("data-header-variant");
     document.documentElement.removeAttribute("data-product-card-style");
     document.documentElement.style.removeProperty("--store-primary");
-    setThemePalette("trust-forest");
+    document.getElementById("active-storefront-template-styles")?.remove();
     state.activeTenant = null;
     if (storeInfoBanner) storeInfoBanner.classList.add("hidden");
     document.getElementById("platform-hero")?.classList.remove("hidden");
@@ -49,8 +49,6 @@ async function loadStoreProfile() {
   ]);
   if (res.ok && res.data.success) {
     state.activeTenant = res.data.data;
-    // Apply the store owner's configured theme palette for every visitor
-    setThemePalette(state.activeTenant.settings?.themePalette);
     applyStorefrontSettings(state.activeTenant.settings);
     renderStoreBanner();
     updateWishlistButton();

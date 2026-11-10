@@ -52,12 +52,142 @@ html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-bann
   color: var(--store-ink) !important;
 }
 
+/* Tagline empty pill bug: hide empty or hidden taglines completely */
+.store-tagline:empty,
+.store-tagline.hidden,
+#banner-store-tagline:empty,
+#banner-store-tagline.hidden,
+#header-store-tagline:empty,
+#header-store-tagline.hidden {
+  display: none !important;
+}
+
+/* Hero card backdrop: polished frosted glass / luxury boutique card */
+html[data-storefront="true"] .store-banner-copy,
+html[data-storefront="true"] #store-banner-content,
+html[data-storefront="true"] #store-info-banner .store-banner-copy,
+html[data-storefront="true"] #store-info-banner #store-banner-content,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner-copy,
+html[data-storefront="true"][data-hero-style="editorial"] #store-banner-content,
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] .store-banner-copy,
+html[data-storefront="true"][data-storefront-template="fashion-beauty-cosmetics"] #store-banner-content {
+  background: color-mix(in srgb, var(--store-white) 92%, transparent) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.16) !important;
+  border-radius: 1.25rem !important;
+  padding: clamp(1.5rem, 3.5vw, 2.75rem) !important;
+}
+
+/* Sharp typography on hero title inside the hero card / editorial layout */
+html[data-storefront="true"] .store-banner .store-banner-copy h1,
+html[data-storefront="true"] .store-banner .store-banner-copy #banner-store-name,
+html[data-storefront="true"] .store-banner #store-banner-content h1,
+html[data-storefront="true"] .store-banner #store-banner-content #banner-store-name,
+html[data-storefront="true"] #store-info-banner .store-banner-copy h1,
+html[data-storefront="true"] #store-info-banner .store-banner-copy #banner-store-name,
+html[data-storefront="true"] #store-info-banner #store-banner-content h1,
+html[data-storefront="true"] #store-info-banner #store-banner-content #banner-store-name,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image .store-banner-copy h1,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image .store-banner-copy #banner-store-name,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image #store-banner-content h1,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image #store-banner-content #banner-store-name,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image .store-banner-copy h1,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image .store-banner-copy #banner-store-name,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image #store-banner-content h1,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image #store-banner-content #banner-store-name,
 html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy h1,
-html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy #banner-store-desc,
-html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy .store-address,
-html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy .store-tagline {
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy #banner-store-name,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image #store-banner-content h1,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image #store-banner-content #banner-store-name,
+html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image .store-banner-copy h1,
+html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image .store-banner-copy #banner-store-name,
+html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image #store-banner-content h1,
+html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image #store-banner-content #banner-store-name {
   color: var(--store-ink) !important;
   text-shadow: none !important;
+  font-family: var(--store-font-heading);
+  font-size: clamp(2.2rem, 4.5vw, 3.85rem) !important;
+  line-height: 1.06 !important;
+  margin: 0.4rem 0 0.8rem !important;
+}
+
+/* High contrast description text on the hero card */
+html[data-storefront="true"] .store-banner .store-banner-copy #banner-store-desc,
+html[data-storefront="true"] .store-banner #store-banner-content #banner-store-desc,
+html[data-storefront="true"] #store-info-banner .store-banner-copy #banner-store-desc,
+html[data-storefront="true"] #store-info-banner #store-banner-content #banner-store-desc,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image .store-banner-copy #banner-store-desc,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image #store-banner-content #banner-store-desc,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image .store-banner-copy #banner-store-desc,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image #store-banner-content #banner-store-desc,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy #banner-store-desc,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image #store-banner-content #banner-store-desc,
+html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image .store-banner-copy #banner-store-desc,
+html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image #store-banner-content #banner-store-desc {
+  color: var(--store-ink) !important;
+  text-shadow: none !important;
+  opacity: 0.92;
+  font-size: 1.02rem !important;
+  line-height: 1.6 !important;
+}
+
+/* Subdomain badge inside hero card: elegant boutique pill styling */
+html[data-storefront="true"] .store-banner .store-banner-copy .store-address,
+html[data-storefront="true"] .store-banner .store-banner-copy #banner-store-subdomain,
+html[data-storefront="true"] .store-banner #store-banner-content .store-address,
+html[data-storefront="true"] .store-banner #store-banner-content #banner-store-subdomain,
+html[data-storefront="true"] #store-info-banner .store-banner-copy .store-address,
+html[data-storefront="true"] #store-info-banner .store-banner-copy #banner-store-subdomain,
+html[data-storefront="true"] #store-info-banner #store-banner-content .store-address,
+html[data-storefront="true"] #store-info-banner #store-banner-content #banner-store-subdomain,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image .store-banner-copy .store-address,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image .store-banner-copy #banner-store-subdomain,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image #store-banner-content .store-address,
+html[data-storefront="true"][data-storefront-template] .store-banner.has-banner-image #store-banner-content #banner-store-subdomain,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image .store-banner-copy .store-address,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image .store-banner-copy #banner-store-subdomain,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image #store-banner-content .store-address,
+html[data-storefront="true"][data-storefront-template] #store-info-banner.has-banner-image #store-banner-content #banner-store-subdomain,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner .store-address,
+html[data-storefront="true"][data-hero-style="editorial"] .store-banner #banner-store-subdomain,
+html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner .store-address,
+html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner #banner-store-subdomain {
+  background: color-mix(in srgb, var(--store-primary) 10%, var(--store-white)) !important;
+  color: var(--store-primary) !important;
+  border: 1px solid color-mix(in srgb, var(--store-primary) 24%, var(--store-line)) !important;
+  border-radius: 9999px !important;
+  text-shadow: none !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  display: inline-block;
+  padding: 0.28rem 0.75rem;
+}
+
+/* Hero buttons: refined boutique styling with pill radius, elegant padding, and smooth hover lift */
+html[data-storefront="true"] .store-banner .storefront-primary-cta,
+html[data-storefront="true"] .store-banner #banner-store-call-btn,
+html[data-storefront="true"] .store-banner .store-contact,
+html[data-storefront="true"] #store-info-banner .storefront-primary-cta,
+html[data-storefront="true"] #store-info-banner #banner-store-call-btn,
+html[data-storefront="true"] #store-info-banner .store-contact {
+  border-radius: 9999px !important;
+  padding: 0.75rem 1.5rem !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--store-primary) 28%, transparent);
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+html[data-storefront="true"] .store-banner .storefront-primary-cta:hover,
+html[data-storefront="true"] .store-banner #banner-store-call-btn:hover,
+html[data-storefront="true"] .store-banner .store-contact:hover,
+html[data-storefront="true"] #store-info-banner .storefront-primary-cta:hover,
+html[data-storefront="true"] #store-info-banner #banner-store-call-btn:hover,
+html[data-storefront="true"] #store-info-banner .store-contact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--store-primary) 36%, transparent);
 }
 
 html[data-storefront="true"] #items-grid .product-card {

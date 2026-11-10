@@ -4,36 +4,37 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
-test("storefront catalog drives the picker, palette and runtime", async () => {
-  const [catalogText, admin, adminDesign, appCore, preview, fashionBeauty] = await Promise.all([
+test("storefront catalog drives self-contained template picker and runtime without color overrides", async () => {
+  const [catalogText, admin, adminDesign, appCore, preview, fashionAndDesign] = await Promise.all([
     read("../templates/catalog.json"),
     read("../admin.html"),
     read("../scripts/admin/design.js"),
     read("../scripts/storefront/core.js"),
     read("../styles/admin.css"),
-    read("../templates/fashion-beauty-cosmetics/template.css"),
+    read("../templates/fashion-and-design/template.css"),
   ]);
   const catalog = JSON.parse(catalogText);
-  assert.ok(catalog.templates.length >= 1);
-  assert.ok(catalog.palettes.length >= 6, "at least six palettes must be available");
+  assert.equal(catalog.templates.length, 8, "catalog must contain exactly 8 templates");
+  assert.equal(catalog.palettes, undefined, "palettes should not be exposed as separate user choices");
   assert.equal(new Set(catalog.templates.map(({ id }) => id)).size, catalog.templates.length, "template ids must be unique");
   for (const template of catalog.templates) {
     assert.match(template.id, /^[a-z0-9][a-z0-9-]{0,63}$/i);
     assert.ok(template.name && template.defaults, `${template.id} needs a name and shared-shell defaults`);
+    assert.match(template.colors?.primary || "", /^#[0-9a-f]{6}$/i);
+    assert.match(template.colors?.background || "", /^#[0-9a-f]{6}$/i);
     if (template.stylesheet) assert.match(template.stylesheet, /^[a-z0-9][a-z0-9/_-]*\.css$/i);
   }
-  for (const palette of catalog.palettes) {
-    assert.match(palette.primary, /^#[0-9a-f]{6}$/i);
-    assert.match(palette.background, /^#[0-9a-f]{6}$/i);
-  }
   assert.match(admin, /id="template-choice-grid"/);
-  assert.match(admin, /id="template-palette-choices"/);
+  assert.doesNotMatch(admin, /id="template-palette-choices"/, "admin must not have colour palette choices");
+  assert.doesNotMatch(admin, /id="settings-primary-color-picker"/, "admin must not have foreground colour picker");
+  assert.doesNotMatch(admin, /id="settings-background-color-picker"/, "admin must not have background colour picker");
   assert.match(admin, /data-preview-size="mobile"/);
   assert.match(adminDesign, /fetch\("\/templates\/catalog\.json"/);
   assert.match(adminDesign, /storefrontTemplateVersion/);
   assert.match(appCore, /loadStorefrontTemplateCatalog/);
   assert.match(appCore, /loadStorefrontTemplateStylesheet/);
-  assert.match(fashionBeauty, /var\(--store-primary\)/);
+  assert.doesNotMatch(appCore, /resolveStorefrontColorTokens/, "automatic foreground balancing should be removed");
+  assert.match(fashionAndDesign, /--store-primary:\s*#[0-9a-f]{6}/i);
   assert.match(preview, /template-choice-grid/);
   assert.match(preview, /data-preview-size="mobile"/);
 });
@@ -70,43 +71,19 @@ test("marketplace landing has distinct premium surfaces and mobile-safe styling"
   assert.match(home, /prefers-reduced-motion:\s*reduce/);
 });
 
-test("every catalog template has a generated stylesheet and preview in templates folder using automatic color tokens", async () => {
+test("every catalog template has a self-contained stylesheet and preview with baked-in color tokens", async () => {
   const catalog = JSON.parse(await read("../templates/catalog.json"));
-  assert.ok(catalog.templates.length >= 10, "expected at least 10 generated templates");
+  assert.equal(catalog.templates.length, 8, "expected exactly 8 generated templates");
   for (const template of catalog.templates) {
     assert.ok(template.stylesheet, `${template.id} must have a generated stylesheet`);
     assert.ok(template.preview, `${template.id} must have a generated preview`);
     const css = await read(`../templates/${template.stylesheet}`);
     const previewHtml = await read(`../templates/${template.preview}`);
-    assert.match(css, /var\(--store-primary\)/, `${template.id} css must use --store-primary`);
-    assert.match(css, /var\(--store-paper\)/, `${template.id} css must use --store-paper`);
-    assert.match(css, /var\(--store-ink\)/, `${template.id} css must use --store-ink`);
-    assert.match(css, /var\(--store-on-primary\)/, `${template.id} css must use --store-on-primary`);
+    assert.match(css, /--store-primary:\s*#[0-9a-f]{6}/i, `${template.id} css must define its own --store-primary`);
+    assert.match(css, /--store-paper:\s*#[0-9a-f]{6}/i, `${template.id} css must define its own --store-paper`);
+    assert.match(css, /--store-ink:\s*#[0-9a-f]{6}/i, `${template.id} css must define its own --store-ink`);
+    assert.match(css, /--store-on-primary:\s*#[0-9a-f]{6}/i, `${template.id} css must define its own --store-on-primary`);
     assert.match(previewHtml, new RegExp(`data-storefront-template="${template.id}"`));
+    assert.doesNotMatch(previewHtml, /input type="color"/, `${template.id} preview must not include color pickers`);
   }
-});
-
-test("automatic color visibility engine resolves dark-on-dark and light-on-light selections safely", async () => {
-  const appCore = await read("../scripts/storefront/core.js");
-  const fnMatch = appCore.match(/function normalizeHexColor[\s\S]*?function resolveStorefrontColorTokens[\s\S]*?^\}/m);
-  assert.ok(fnMatch, "resolveStorefrontColorTokens must be defined in core.js");
-  const runner = new Function(`${fnMatch[0]}; return { resolveStorefrontColorTokens, getHexContrastRatio };`)();
-
-  // 1. Dark foreground + Dark background
-  const darkOnDark = runner.resolveStorefrontColorTokens("#111827", "#0f172a");
-  assert.equal(darkOnDark.isDark, true);
-  assert.equal(darkOnDark.wasAdjusted, true);
-  assert.ok(darkOnDark.contrastOnPaper >= 4.5, `Expected >=4.5 contrast on dark paper, got ${darkOnDark.contrastOnPaper}`);
-  assert.ok(darkOnDark.contrastOnSurface >= 4.5, `Expected >=4.5 contrast on dark surface, got ${darkOnDark.contrastOnSurface}`);
-  assert.ok(runner.getHexContrastRatio(darkOnDark.ink, darkOnDark.paper) >= 7, "Body ink must be high-contrast on dark background");
-  assert.ok(runner.getHexContrastRatio(darkOnDark.onPrimary, darkOnDark.primary) >= 4.5, "Button text must be legible on primary");
-
-  // 2. Light foreground + Light background
-  const lightOnLight = runner.resolveStorefrontColorTokens("#f8fafc", "#ffffff");
-  assert.equal(lightOnLight.isDark, false);
-  assert.equal(lightOnLight.wasAdjusted, true);
-  assert.ok(lightOnLight.contrastOnPaper >= 4.5, `Expected >=4.5 contrast on light paper, got ${lightOnLight.contrastOnPaper}`);
-  assert.ok(lightOnLight.contrastOnSurface >= 4.5, `Expected >=4.5 contrast on light surface, got ${lightOnLight.contrastOnSurface}`);
-  assert.ok(runner.getHexContrastRatio(lightOnLight.ink, lightOnLight.paper) >= 7, "Body ink must be high-contrast on light background");
-  assert.ok(runner.getHexContrastRatio(lightOnLight.onPrimary, lightOnLight.primary) >= 4.5, "Button text must be legible on primary");
 });

@@ -93,32 +93,30 @@
     .template-thumb { position: relative; display: flex; height: 3.3rem; align-items: end; gap: .18rem; overflow: hidden; padding: .35rem; border-radius: 8px; background: #eef3ed; }
     .template-thumb::before { position: absolute; top: .32rem; right: .3rem; left: .3rem; height: .35rem; border-radius: 99px; background: rgba(255,255,255,.85); content: ''; }
     .template-thumb i { display: block; width: 30%; height: 55%; border-radius: 4px; background: #8bab91; }
-    .template-thumb[data-template="fashion-beauty-cosmetics"] { background:linear-gradient(110deg,#083e50,#08718b); }
-    .template-thumb[data-template="fashion-beauty-cosmetics"]::before { background:rgba(255,255,255,.88); }
-    .template-thumb[data-template="fashion-beauty-cosmetics"] i { background:linear-gradient(145deg,#e8d3c4,#b58d78); }
-    .template-thumb[data-template="cute-boutique"] { background:linear-gradient(135deg,#fce7f3,#f3e8ff); border-radius:12px; }
-    .template-thumb[data-template="cute-boutique"]::before { background:rgba(255,255,255,.94); }
-    .template-thumb[data-template="cute-boutique"] i { border-radius:9px; background:linear-gradient(145deg,#f472b6,#db2777); }
-    .template-thumb[data-template="market-modern"] { background:#eaf0eb; }
-    .template-thumb[data-template="market-modern"] i { background:linear-gradient(145deg,#a6c2a9,#4c7e5d); }
-    .template-thumb[data-template="editorial-boutique"] { background:#f1e9e0; }
-    .template-thumb[data-template="editorial-boutique"] i { background:linear-gradient(145deg,#e3cbb5,#a27d61); }
-    .template-thumb[data-template="premium-maker"] { background:#25332b; }
-    .template-thumb[data-template="premium-maker"] i { background:linear-gradient(145deg,#d8c4a0,#9a7651); }
-    .template-thumb[data-template="luxury-atelier"] { background:linear-gradient(135deg,#191614,#2d2520); }
-    .template-thumb[data-template="luxury-atelier"]::before { background:rgba(235,221,203,.72); }
-    .template-thumb[data-template="luxury-atelier"] i { border-radius:1px; background:linear-gradient(145deg,#e5d0b1,#9c7a54); }
-    .template-thumb[data-template="tech-home"] { background:#dce7ed; }
-    .template-thumb[data-template="tech-home"] i { background:linear-gradient(145deg,#a9c9d9,#51748b); }
-    .template-thumb[data-template="service-studio"] { background:#eee9e2; }
-    .template-thumb[data-template="service-studio"] i { background:linear-gradient(145deg,#e0c4b9,#a87c70); }
-    .template-thumb[data-template="food-local"] { background:#f6ebd8; }
-    .template-thumb[data-template="food-local"] i { background:linear-gradient(145deg,#efca7a,#b96845); }
-    .template-thumb[data-template="brutalist-studio"] { background:#f4f4f0; border:1.5px solid #18181b; border-radius:2px; }
-    .template-thumb[data-template="brutalist-studio"]::before { border-radius:0; background:#18181b; }
-    .template-thumb[data-template="brutalist-studio"] i { border-radius:0; background:#ef4444; box-shadow:2px 2px 0 #18181b; }
-    .template-thumb[data-template="bazaar-vibrant"] { background:linear-gradient(125deg,#fffbeb,#fef3c7); }
-    .template-thumb[data-template="bazaar-vibrant"] i { background:linear-gradient(145deg,#fb923c,#ea580c); }
+    .template-thumb[data-template="fashion-and-design"] { background:#fbf7f2; border:1px solid #e7dacb; }
+    .template-thumb[data-template="fashion-and-design"]::before { background:#1c130e; }
+    .template-thumb[data-template="fashion-and-design"] i { background:linear-gradient(145deg,#c2410c,#9a3412); }
+    .template-thumb[data-template="cosmetics"] { background:#fdf2f8; border:1px solid #fbcfe8; }
+    .template-thumb[data-template="cosmetics"]::before { background:#831843; }
+    .template-thumb[data-template="cosmetics"] i { border-radius:8px; background:linear-gradient(145deg,#f472b6,#be185d); }
+    .template-thumb[data-template="electronics"] { background:#eef4f8; border:1px solid #bae6fd; }
+    .template-thumb[data-template="electronics"]::before { background:#0369a1; }
+    .template-thumb[data-template="electronics"] i { border-radius:4px; background:linear-gradient(145deg,#38bdf8,#0284c7); }
+    .template-thumb[data-template="houses-and-rentals"] { background:#f0f7f5; border:1px solid #cce3de; }
+    .template-thumb[data-template="houses-and-rentals"]::before { background:#0f766e; }
+    .template-thumb[data-template="houses-and-rentals"] i { border-radius:6px; background:linear-gradient(145deg,#2dd4bf,#0f766e); }
+    .template-thumb[data-template="real-estate"] { background:#f6f5f0; border:1px solid #d6d3c9; }
+    .template-thumb[data-template="real-estate"]::before { background:#14532d; }
+    .template-thumb[data-template="real-estate"] i { border-radius:4px; background:linear-gradient(145deg,#4ade80,#14532d); }
+    .template-thumb[data-template="food-and-groceries"] { background:#fff7ed; border:1px solid #ffedd5; }
+    .template-thumb[data-template="food-and-groceries"]::before { background:#c2410c; }
+    .template-thumb[data-template="food-and-groceries"] i { border-radius:6px; background:linear-gradient(145deg,#fb923c,#c2410c); }
+    .template-thumb[data-template="hardware-and-autoparts"] { background:#f3f4f6; border:1.5px solid #1f2937; }
+    .template-thumb[data-template="hardware-and-autoparts"]::before { border-radius:0; background:#111827; }
+    .template-thumb[data-template="hardware-and-autoparts"] i { border-radius:2px; background:linear-gradient(145deg,#d97706,#b45309); }
+    .template-thumb[data-template="furniture-and-decor"] { background:#f7f5ef; border:1px solid #e2ddd2; }
+    .template-thumb[data-template="furniture-and-decor"]::before { background:#3f6212; }
+    .template-thumb[data-template="furniture-and-decor"] i { border-radius:6px; background:linear-gradient(145deg,#84cc16,#3f6212); }
     .template-palette-choices { display:flex; flex-wrap:wrap; gap:.55rem; }
     .template-palette-choice { display:flex; min-width:5rem; flex-direction:column; align-items:center; gap:.35rem; padding:.5rem .65rem; border:1px solid #e1e8e2; border-radius:12px; color:#59675f; background:#fff; font-size:.65rem; font-weight:700; cursor:pointer; }
     .template-palette-choice:hover { border-color:#9bb5a5; }
@@ -204,33 +202,35 @@
     .design-preview-stage[data-card-style="service-card"] .design-preview-product-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .design-preview-stage[data-heading-font="editorial"] .design-preview-hero h5 { font-family:Georgia,serif; font-weight:500; }
     .design-preview-stage[data-heading-font="rounded"] .design-preview-hero h5 { font-family:ui-rounded,system-ui,sans-serif; }
-    .design-preview-stage[data-template="market-modern"] .design-preview-hero { background:linear-gradient(135deg,#f8faf7,#e8f0e8); }
-    .design-preview-stage[data-template="market-modern"] .design-preview-hero-art { border-radius:12px; }
+    .design-preview-stage[data-template="fashion-and-design"] .design-preview-hero { background:linear-gradient(135deg,#fbf7f2,#f5ede4); color:#1c130e; }
+    .design-preview-stage[data-template="fashion-and-design"] .design-preview-hero h5 { font-family:Georgia,serif; }
+    .design-preview-stage[data-template="fashion-and-design"] .design-preview-hero-art { border-radius:6px; background:linear-gradient(145deg,#c2410c,#9a3412); }
+    .design-preview-stage[data-template="cosmetics"] .design-preview-hero { background:radial-gradient(circle at 85% 20%,rgba(244,114,182,.25),transparent 45%),linear-gradient(135deg,#fdf2f8,#fce7f3); color:#831843; }
+    .design-preview-stage[data-template="cosmetics"] .design-preview-hero-art { border-radius:999px; background:linear-gradient(145deg,#fbcfe8,#be185d); }
+    .design-preview-stage[data-template="cosmetics"] .design-preview-product-grid article { border-radius:12px; border:1.5px solid rgba(190,24,93,.18); }
+    .design-preview-stage[data-template="electronics"] .design-preview-hero { background:linear-gradient(135deg,#f0f6fa,#eef4f8); color:#0f172a; }
+    .design-preview-stage[data-template="electronics"] .design-preview-hero-art { border-radius:6px; background:linear-gradient(145deg,#38bdf8,#0284c7); }
+    .design-preview-stage[data-template="electronics"] .design-preview-product-grid article { border-radius:6px; border:1px solid #d5e4ec; }
+    .design-preview-stage[data-template="houses-and-rentals"] .design-preview-hero { background:linear-gradient(135deg,#f0f7f5,#e6f2ef); color:#0f2926; }
+    .design-preview-stage[data-template="houses-and-rentals"] .design-preview-hero-art { border-radius:8px; background:linear-gradient(145deg,#2dd4bf,#0f766e); }
+    .design-preview-stage[data-template="real-estate"] .design-preview-hero { background:linear-gradient(135deg,#f6f5f0,#eceae2); color:#111c15; }
+    .design-preview-stage[data-template="real-estate"] .design-preview-hero h5 { font-family:Georgia,serif; }
+    .design-preview-stage[data-template="real-estate"] .design-preview-hero-art { border-radius:6px; background:linear-gradient(145deg,#4ade80,#14532d); }
+    .design-preview-stage[data-template="food-and-groceries"] .design-preview-hero { background:linear-gradient(120deg,#fff7ed,#ffedd5); color:#431407; }
+    .design-preview-stage[data-template="food-and-groceries"] .design-preview-hero-art { border-radius:50% 50% 12px 12px; background:linear-gradient(145deg,#fb923c,#c2410c); }
+    .design-preview-stage[data-template="hardware-and-autoparts"] .design-preview-site { border:2px solid #111827; border-radius:0; }
+    .design-preview-stage[data-template="hardware-and-autoparts"] .design-preview-hero { background:#f3f4f6; color:#111827; }
+    .design-preview-stage[data-template="hardware-and-autoparts"] .design-preview-hero-art { border-radius:2px; background:linear-gradient(145deg,#d97706,#b45309); }
+    .design-preview-stage[data-template="hardware-and-autoparts"] .design-preview-product-grid article { border-radius:2px; border:1.5px solid #111827; }
+    .design-preview-stage[data-template="furniture-and-decor"] .design-preview-hero { background:linear-gradient(135deg,#f7f5ef,#efeae1); color:#1c1917; }
+    .design-preview-stage[data-template="furniture-and-decor"] .design-preview-hero h5 { font-family:Georgia,serif; }
+    .design-preview-stage[data-template="furniture-and-decor"] .design-preview-hero-art { border-radius:8px; background:linear-gradient(145deg,#84cc16,#3f6212); }
     .design-preview-caption { margin:0; padding:.65rem .9rem .8rem; color:#738075; font-size:.65rem; }
-    .design-preview-stage[data-template="food-local"] .design-preview-hero { background:linear-gradient(120deg,#fff5df,#f5e2c0); }
-    .design-preview-stage[data-template="food-local"] .design-preview-hero-art { border-radius:48% 48% 12px 12px; background:radial-gradient(circle at 72% 20%,#ffe2a5 0 10%,transparent 11%),linear-gradient(145deg,#c96c45,#e7b767 48%,#74894f); }
-    .design-preview-stage[data-template="food-local"] .design-preview-product-art { background:linear-gradient(145deg,#f7dfaa,#d88959); }
-    .design-preview-stage[data-template="cute-boutique"] .design-preview-site { border-radius:22px; }
-    .design-preview-stage[data-template="cute-boutique"] .design-preview-hero { background:radial-gradient(circle at 85% 20%,rgba(244,114,182,.25),transparent 45%),linear-gradient(135deg,#fff5f9,#fce7f3); }
-    .design-preview-stage[data-template="cute-boutique"] .design-preview-hero-art { border-radius:999px; background:linear-gradient(145deg,#fbcfe8,#f472b6 58%,#c084fc); }
-    .design-preview-stage[data-template="cute-boutique"] .design-preview-product-grid article { border-radius:14px; border:1.5px solid rgba(219,39,119,.18); }
-    .design-preview-stage[data-template="cute-boutique"] .design-preview-product-art { border-radius:11px; background:linear-gradient(145deg,#fce7f3,#f9a8d4); }
-    .design-preview-stage[data-template="luxury-atelier"] .design-preview-site { border-radius:2px; }
-    .design-preview-stage[data-template="luxury-atelier"] .design-preview-hero { background:linear-gradient(135deg,#1c1917,#292524); color:#faf7f2; }
-    .design-preview-stage[data-template="luxury-atelier"] .design-preview-hero p { color:#d6d3d1; }
-    .design-preview-stage[data-template="luxury-atelier"] .design-preview-hero-art { border-radius:2px; background:linear-gradient(145deg,#e7d5be,#8c6d46); }
-    .design-preview-stage[data-template="brutalist-studio"] .design-preview-site { border-radius:0; border:2px solid #18181b; }
-    .design-preview-stage[data-template="brutalist-studio"] .design-preview-product-grid article { border-radius:0; border:1.5px solid #18181b; box-shadow:2px 2px 0 #18181b; }
-    .design-preview-stage[data-template="bazaar-vibrant"] .design-preview-hero { background:linear-gradient(125deg,#fffbeb,#ffedd5); }
     @media(max-width:900px) { .design-preview-panel { position:static; } }
     @media(max-width:480px) { .template-choice-grid .template-choice { flex-basis:78%; } .template-palette-choice { min-width:4.5rem; } }
     .design-preview-stage[data-preview-size="mobile"] .design-preview-site { width:66%; min-width:190px; margin:auto; }
     .design-preview-stage[data-preview-size="mobile"] .design-preview-nav-links { display:none; }
     .design-preview-stage[data-template] .design-preview-hero button { background:var(--preview-primary); }
-    .design-preview-stage[data-template="fashion-beauty-cosmetics"] .design-preview-hero { color:#fff; background:linear-gradient(110deg,color-mix(in srgb,var(--preview-primary) 90%,#071e2d),var(--preview-primary) 65%,color-mix(in srgb,var(--preview-primary) 52%,#f4d7c0)); }
-    .design-preview-stage[data-template="fashion-beauty-cosmetics"] .design-preview-hero small { color:#fff; }
-    .design-preview-stage[data-template="fashion-beauty-cosmetics"] .design-preview-hero p { color:rgba(255,255,255,.84); }
-    .design-preview-stage[data-template="fashion-beauty-cosmetics"] .design-preview-hero-art { background:linear-gradient(145deg,color-mix(in srgb,var(--preview-primary) 45%,#f0d9c9),color-mix(in srgb,var(--preview-primary) 75%,#26333a)); }
     .badge-status-pending { border: 1px solid #f3d28b; background: #fff8e9; color: #986414; }
     .badge-status-confirmed { border: 1px solid #b9dbe4; background: #edf8fa; color: #246477; }
     .badge-status-completed { border: 1px solid #b8dfc9; background: #edf8f1; color: #246844; }
