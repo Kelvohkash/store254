@@ -90,12 +90,15 @@ function debouncedLoadItems() {
 }
 
 async function loadDynamicFilters() {
-  const endpoint = state.selectedCategory
-    ? `/api/filters?category=${state.selectedCategory}`
+  const categorySlug = state.selectedCategory;
+  const endpoint = categorySlug
+    ? `/api/filters?category=${encodeURIComponent(categorySlug)}`
     : `/api/filters`;
 
   const res = await apiFetch(endpoint);
+  if (categorySlug !== state.selectedCategory) return;
   const container = document.getElementById("dynamic-facets-container");
+  const mobileContainer = document.getElementById("mobile-dynamic-facets");
   if (!container) return;
 
   if (res.ok && res.data.success) {
@@ -106,8 +109,10 @@ async function loadDynamicFilters() {
     if (data.priceRange) {
       state.priceRange = data.priceRange;
       const maxEl = document.getElementById("price-filter-max");
+      const mobileMaxEl = document.getElementById("mobile-price-filter");
       const minLabel = document.getElementById("price-label-min");
       const maxLabel = document.getElementById("price-label-max");
+      const mobileLabel = document.getElementById("mobile-price-val");
 
       if (maxEl) {
         maxEl.min = data.priceRange.min;
@@ -119,6 +124,12 @@ async function loadDynamicFilters() {
 
         if (minLabel) minLabel.textContent = `KES ${Number(data.priceRange.min).toLocaleString()}`;
         if (maxLabel) maxLabel.textContent = `KES ${Number(maxEl.value).toLocaleString()}`;
+        if (mobileMaxEl) {
+          mobileMaxEl.min = data.priceRange.min;
+          mobileMaxEl.max = data.priceRange.max;
+          if (state.selectedPriceRange.max === 200000) mobileMaxEl.value = data.priceRange.max;
+          if (mobileLabel) mobileLabel.textContent = `KES ${Number(mobileMaxEl.value).toLocaleString()}`;
+        }
       }
     }
 
@@ -154,6 +165,10 @@ async function loadDynamicFilters() {
     }
 
     container.innerHTML = html;
+    const drawer = document.getElementById("mobile-filter-drawer");
+    if (mobileContainer && drawer && !drawer.classList.contains("hidden")) {
+      mobileContainer.innerHTML = html;
+    }
   }
 }
 

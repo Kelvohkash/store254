@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { items } from "../../db/schema/items";
@@ -23,16 +23,37 @@ filtersRouter.get("/", async (c) => {
   const db = createDb(c.env.DB);
 
   // 1. Resolve category if provided
-  let categoryId: string | null = null;
-  if (categorySlug) {
-    const [matchedCategory] = await db
-      .select({ id: categories.id })
-      .from(categories)
-      .where(and(eq(categories.tenantId, tenant.id), eq(categories.slug, categorySlug)))
-      .limit(1);
+  const tenantCategories = categorySlug
+    ? await db
+        .select({ id: categories.id, parentId: categories.parentId, slug: categories.slug })
+        .from(categories)
+        .where(eq(categories.tenantId, tenant.id))
+    : [];
+  const selectedCategory = tenantCategories.find((category) => category.slug === categorySlug);
+  let itemCategoryIds: string[] | null = null;
+  const facetCategoryIds = new Set<string>();
 
-    if (matchedCategory) {
-      categoryId = matchedCategory.id;
+  if (selectedCategory) {
+    // A parent category includes items from its descendants. Facets also inherit
+    // definitions from parent categories, so Electronics -> Smart TVs keeps
+    // the store's Electronics-level Brand filter available.
+    itemCategoryIds = [selectedCategory.id];
+    facetCategoryIds.add(selectedCategory.id);
+
+    for (let index = 0; index < itemCategoryIds.length; index += 1) {
+      const parentId = itemCategoryIds[index];
+      for (const child of tenantCategories) {
+        if (child.parentId === parentId && !itemCategoryIds.includes(child.id)) {
+          itemCategoryIds.push(child.id);
+          facetCategoryIds.add(child.id);
+        }
+      }
+    }
+
+    let parentId = selectedCategory.parentId;
+    while (parentId && !facetCategoryIds.has(parentId)) {
+      facetCategoryIds.add(parentId);
+      parentId = tenantCategories.find((category) => category.id === parentId)?.parentId || null;
     }
   }
 
@@ -42,8 +63,8 @@ filtersRouter.get("/", async (c) => {
     .from(attributeDefinitions)
     .where(and(eq(attributeDefinitions.tenantId, tenant.id), eq(attributeDefinitions.isFilterable, true)));
 
-  const applicableAttributes = categoryId
-    ? allAttributes.filter((attr) => !attr.categoryId || attr.categoryId === categoryId)
+  const applicableAttributes = selectedCategory
+    ? allAttributes.filter((attr) => !attr.categoryId || facetCategoryIds.has(attr.categoryId))
     : allAttributes;
 
   // 3. Fetch published items in this scope
@@ -55,11 +76,11 @@ filtersRouter.get("/", async (c) => {
     })
     .from(items)
     .where(
-      categoryId
+      itemCategoryIds
         ? and(
             eq(items.tenantId, tenant.id),
             eq(items.status, "PUBLISHED"),
-            eq(items.categoryId, categoryId)
+            inArray(items.categoryId, itemCategoryIds)
           )
         : and(eq(items.tenantId, tenant.id), eq(items.status, "PUBLISHED"))
     );

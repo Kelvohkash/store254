@@ -140,6 +140,9 @@ function toggleMobileFilters(show) {
     if (src && dest) {
       dest.innerHTML = src.innerHTML;
     }
+    const desktopSort = document.getElementById("sort-selector");
+    const mobileSort = document.getElementById("mobile-sort-selector");
+    if (desktopSort && mobileSort) mobileSort.value = desktopSort.value;
     const sourceCategories = document.getElementById("category-pills");
     const mobileCategories = document.getElementById("mobile-category-pills");
     const categorySection = document.getElementById("mobile-category-filter-section");
@@ -161,4 +164,10 @@ function syncMobilePrice(val) {
   if (maxEl) maxEl.value = val;
   if (label) label.textContent = `KES ${Number(val).toLocaleString()}`;
   if (pcMaxLabel) pcMaxLabel.textContent = `KES ${Number(val).toLocaleString()}`;
+}
+
+function syncMobileSort(val) {
+  const desktopSort = document.getElementById("sort-selector");
+  if (desktopSort) desktopSort.value = val;
+  loadItems();
 }

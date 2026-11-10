@@ -121,6 +121,9 @@ function renderCatalogView() {
   const container = document.getElementById("items-grid");
   if (!container) return;
   currentFilteredList = getFilteredItems(state.items);
+  const sortMode = document.getElementById("sort-selector")?.value || "featured";
+  if (sortMode === "price_asc") currentFilteredList.sort((a, b) => Number(a.basePrice) - Number(b.basePrice));
+  if (sortMode === "price_desc") currentFilteredList.sort((a, b) => Number(b.basePrice) - Number(a.basePrice));
   if (countBadge) countBadge.textContent = state.showWishlistOnly ? `${currentFilteredList.length} saved` : `${currentFilteredList.length} items`;
   currentRenderedCount = 0;
   container.innerHTML = "";
