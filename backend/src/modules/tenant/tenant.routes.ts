@@ -42,6 +42,8 @@ const optionalMediaPath = z
 
 // Update Store Profile & Branding Schema
 export const updateStoreProfileSchema = z.object({
+  // A store's chosen subdomain is fixed at registration and cannot be changed through owner settings.
+  subdomain: z.never().optional(),
   name: z.string().min(2).max(100).optional(),
   currency: z.string().length(3).optional(),
   businessType: z

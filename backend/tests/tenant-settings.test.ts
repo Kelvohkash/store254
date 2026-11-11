@@ -80,4 +80,12 @@ describe("tenant branding media validation (logoUrl and bannerUrl)", () => {
     });
     expect(clearParsed.success).toBe(true);
   });
+
+  it("rejects attempts to change a store subdomain through owner settings", () => {
+    const result = updateStoreProfileSchema.safeParse({
+      subdomain: "a-different-store-name",
+      name: "Alice Baby Care",
+    });
+    expect(result.success).toBe(false);
+  });
 });
