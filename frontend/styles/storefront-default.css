@@ -467,18 +467,18 @@ html[data-storefront="true"] .category-scroll-hint {
   display: none;
 }
 
-@keyframes categorySwipeNudge {
+@keyframes categoryBorderArrow {
   0%, 55%, 100% { transform: translateX(0); }
-  25% { transform: translateX(3px); }
+  25% { transform: translateX(5px); }
 }
 
-html[data-storefront="true"] .category-scroll-hint:not(.hidden) > span {
+html[data-storefront="true"] .category-scroll-hint:not(.hidden) .category-scroll-hint-arrow {
   display: inline-block;
-  animation: categorySwipeNudge 1.35s ease-in-out infinite;
+  animation: categoryBorderArrow 1.2s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-storefront="true"] .category-scroll-hint:not(.hidden) > span {
+  html[data-storefront="true"] .category-scroll-hint:not(.hidden) .category-scroll-hint-arrow {
     animation: none;
   }
 }
@@ -1516,9 +1516,11 @@ html[data-storefront="true"] .product-card-add:hover {
   }
 
   html[data-storefront="true"] .drilldown-tabs-container {
+    position: relative !important;
     gap: 0.4rem !important;
     padding: 0.35rem !important;
     border-radius: 0.75rem !important;
+    margin-bottom: 0.55rem !important;
   }
 
   html[data-storefront="true"] .catalog-sort-wrap {
@@ -1526,18 +1528,26 @@ html[data-storefront="true"] .product-card-add:hover {
   }
 
   html[data-storefront="true"] .category-scroll-hint:not(.hidden) {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    bottom: -0.48rem;
     display: inline-flex !important;
     align-items: center;
     gap: 0.2rem;
     flex: 0 0 auto;
-    padding: 0.38rem 0.42rem;
-    border-left: 1px solid var(--store-line);
-    border-radius: 0.45rem;
-    background: var(--store-primary-subtle);
+    padding: 0.2rem 0.55rem;
+    transform: translateX(-50%);
+    border: 1px solid var(--store-primary);
+    border-radius: 9999px;
+    background: var(--store-white);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--store-primary) 18%, transparent);
     color: var(--store-primary);
-    font-size: 0.65rem;
+    font-size: 0.58rem;
     font-weight: 800;
+    letter-spacing: 0.04em;
     line-height: 1;
+    text-transform: uppercase;
     white-space: nowrap;
     pointer-events: none;
   }
