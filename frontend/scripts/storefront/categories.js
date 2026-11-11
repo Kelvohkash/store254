@@ -365,6 +365,7 @@ function computeCatalogPriceBounds(apiPriceRange) {
 
 function renderPricePresets() {
   const desktopPresets = document.getElementById("desktop-price-presets");
+  const drawerPresets = document.getElementById("desktop-drawer-price-presets");
   const mobilePresets = document.getElementById("mobile-price-presets");
   const maxCatalogPrice = Number(state.priceRange?.max) || 200000;
   const minCatalogPrice = Number(state.priceRange?.min) || 0;
@@ -396,42 +397,62 @@ function renderPricePresets() {
 
   const html = buildPresetsHtml();
   if (desktopPresets) desktopPresets.innerHTML = html;
+  if (drawerPresets) drawerPresets.innerHTML = html;
   if (mobilePresets) mobilePresets.innerHTML = html;
 }
 
 function renderDynamicFiltersUI() {
   const container = document.getElementById("dynamic-facets-container");
   const mobileContainer = document.getElementById("mobile-dynamic-facets");
-  if (!container) return;
+  const brandList = document.getElementById("pc-brand-options-list");
+  const brandWrap = document.getElementById("pc-brand-dropdown-wrap");
 
   const mergedFacets = buildMergedFacets(state.rawApiFacets || []);
   state.facets = mergedFacets;
 
-  // Update Price Sliders
+  // Update Price Sliders across Popover, Desktop Drawer & Mobile Sheet
   const bounds = computeCatalogPriceBounds(state.rawApiPriceRange);
   state.priceRange = bounds;
 
   const maxEl = document.getElementById("price-filter-max");
+  const drawerMaxEl = document.getElementById("desktop-drawer-price-filter");
   const mobileMaxEl = document.getElementById("mobile-price-filter");
   const minLabel = document.getElementById("price-label-min");
   const maxLabel = document.getElementById("price-label-max");
+  const drawerMinLabel = document.getElementById("desktop-drawer-price-min");
+  const drawerMaxLabel = document.getElementById("desktop-drawer-price-max");
   const mobileLabel = document.getElementById("mobile-price-val");
   const priceStatus = document.getElementById("price-filter-status");
+  const drawerPriceStatus = document.getElementById("desktop-drawer-price-status");
+  const priceBtnLabel = document.getElementById("pc-price-btn-label");
+  const priceDropdownBtn = document.getElementById("pc-price-dropdown-btn");
+
+  const effectiveMax = (!state.priceFilterActive || Number(maxEl?.value || bounds.max) > bounds.max)
+    ? bounds.max
+    : Number(state.selectedPriceRange.max || bounds.max);
 
   if (maxEl) {
     maxEl.min = bounds.min;
     maxEl.max = bounds.max;
-    if (!state.priceFilterActive || Number(maxEl.value) > bounds.max) {
-      maxEl.value = bounds.max;
-      state.selectedPriceRange.max = bounds.max;
-    } else {
-      maxEl.value = state.selectedPriceRange.max;
-    }
+    maxEl.value = String(effectiveMax);
     if (minLabel) minLabel.textContent = `KES ${Number(bounds.min).toLocaleString()}`;
-    if (maxLabel) maxLabel.textContent = `KES ${Number(maxEl.value).toLocaleString()}`;
+    if (maxLabel) maxLabel.textContent = `KES ${Number(effectiveMax).toLocaleString()}`;
     if (priceStatus) {
       priceStatus.textContent = state.priceFilterActive
-        ? `Up to KES ${Number(maxEl.value).toLocaleString()}`
+        ? `Up to KES ${Number(effectiveMax).toLocaleString()}`
+        : "Any price";
+    }
+  }
+
+  if (drawerMaxEl) {
+    drawerMaxEl.min = bounds.min;
+    drawerMaxEl.max = bounds.max;
+    drawerMaxEl.value = String(effectiveMax);
+    if (drawerMinLabel) drawerMinLabel.textContent = `KES ${Number(bounds.min).toLocaleString()}`;
+    if (drawerMaxLabel) drawerMaxLabel.textContent = `KES ${Number(effectiveMax).toLocaleString()}`;
+    if (drawerPriceStatus) {
+      drawerPriceStatus.textContent = state.priceFilterActive
+        ? `Up to KES ${Number(effectiveMax).toLocaleString()}`
         : "Any price";
     }
   }
@@ -439,17 +460,64 @@ function renderDynamicFiltersUI() {
   if (mobileMaxEl) {
     mobileMaxEl.min = bounds.min;
     mobileMaxEl.max = bounds.max;
-    mobileMaxEl.value = maxEl ? maxEl.value : bounds.max;
+    mobileMaxEl.value = String(effectiveMax);
     if (mobileLabel) {
       mobileLabel.textContent = state.priceFilterActive
-        ? `Up to KES ${Number(mobileMaxEl.value).toLocaleString()}`
-        : `KES ${Number(mobileMaxEl.value).toLocaleString()}`;
+        ? `Up to KES ${Number(effectiveMax).toLocaleString()}`
+        : `KES ${Number(effectiveMax).toLocaleString()}`;
     }
   }
 
+  if (priceBtnLabel) {
+    priceBtnLabel.textContent = state.priceFilterActive
+      ? `≤ ${effectiveMax >= 1000 ? `${Math.round(effectiveMax / 1000)}K` : effectiveMax}`
+      : "Price: All";
+  }
+  priceDropdownBtn?.classList.toggle("is-active", Boolean(state.priceFilterActive));
+
   renderPricePresets();
 
-  // Render Facet Groups
+  // Populate floating Brand Popover list
+  const brandFacet = mergedFacets.find((f) => f.code === "brand");
+  if (brandList && brandWrap) {
+    if (brandFacet && brandFacet.options.length > 0) {
+      brandWrap.classList.remove("hidden");
+      const selectedBrands = state.activeFilters["brand"] || [];
+      const brandBtnLabel = document.getElementById("pc-brand-btn-label");
+      const brandDropdownBtn = document.getElementById("pc-brand-dropdown-btn");
+      if (brandBtnLabel) {
+        brandBtnLabel.textContent = selectedBrands.length > 0
+          ? selectedBrands.length === 1 ? selectedBrands[0] : `Brand (${selectedBrands.length})`
+          : "Brand";
+      }
+      brandDropdownBtn?.classList.toggle("is-active", selectedBrands.length > 0);
+
+      brandList.innerHTML = brandFacet.options
+        .map((opt) => {
+          const isChecked = selectedBrands.some(
+            (v) => String(v).toLowerCase() === String(opt.value).toLowerCase()
+          );
+          return `
+            <label class="facet-option-row flex items-center justify-between text-xs cursor-pointer py-1.5 px-2 rounded-lg transition-colors ${
+              isChecked ? "is-checked" : ""
+            }">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <input type="checkbox" onchange="toggleFilter('brand', ${inlineJs(opt.value)}, this.checked)" ${
+            isChecked ? "checked" : ""
+          } class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 shrink-0">
+                <span class="facet-option-label truncate">${escapeHtml(opt.value)}</span>
+              </div>
+              <span class="facet-option-count font-mono text-[11px] shrink-0">${opt.count}</span>
+            </label>
+          `;
+        })
+        .join("");
+    } else {
+      brandWrap.classList.add("hidden");
+    }
+  }
+
+  // Render Dynamic Facet Groups for Slide-Over Drawer and Mobile Sheet
   let html = "";
   for (const facet of mergedFacets) {
     if (!facet.options || facet.options.length === 0) continue;
@@ -494,10 +562,8 @@ function renderDynamicFiltersUI() {
     html += `</div></div>`;
   }
 
-  container.innerHTML = html;
-  if (mobileContainer) {
-    mobileContainer.innerHTML = html;
-  }
+  if (container) container.innerHTML = html;
+  if (mobileContainer) mobileContainer.innerHTML = html;
 }
 
 async function loadDynamicFilters() {
@@ -537,6 +603,14 @@ function toggleFilter(code, value, checked) {
   loadItems();
 }
 
+function clearFacetFilter(code) {
+  if (state.activeFilters[code]) {
+    delete state.activeFilters[code];
+  }
+  renderDynamicFiltersUI();
+  loadItems();
+}
+
 function toggleDealsFilter(force) {
   state.onlyDeals = typeof force === "boolean" ? force : !state.onlyDeals;
   loadItems();
@@ -550,18 +624,33 @@ function setItemTypeFilter(type) {
 function onDesktopPriceInput(val) {
   const numeric = Number(val) || 0;
   const maxLabel = document.getElementById("price-label-max");
+  const drawerMaxLabel = document.getElementById("desktop-drawer-price-max");
   const statusEl = document.getElementById("price-filter-status");
+  const drawerStatusEl = document.getElementById("desktop-drawer-price-status");
+  const pcSlider = document.getElementById("price-filter-max");
+  const drawerSlider = document.getElementById("desktop-drawer-price-filter");
   const mobileSlider = document.getElementById("mobile-price-filter");
   const mobileLabel = document.getElementById("mobile-price-val");
+  const priceBtnLabel = document.getElementById("pc-price-btn-label");
+
   if (maxLabel) maxLabel.textContent = `KES ${numeric.toLocaleString()}`;
-  if (statusEl) {
-    statusEl.textContent =
-      numeric < (state.priceRange?.max || 200000)
-        ? `Up to KES ${numeric.toLocaleString()}`
-        : "Any price";
-  }
-  if (mobileSlider) mobileSlider.value = String(numeric);
+  if (drawerMaxLabel) drawerMaxLabel.textContent = `KES ${numeric.toLocaleString()}`;
+  const statusText = numeric < (state.priceRange?.max || 200000)
+    ? `Up to KES ${numeric.toLocaleString()}`
+    : "Any price";
+  if (statusEl) statusEl.textContent = statusText;
+  if (drawerStatusEl) drawerStatusEl.textContent = statusText;
+
+  if (pcSlider && pcSlider.value !== String(numeric)) pcSlider.value = String(numeric);
+  if (drawerSlider && drawerSlider.value !== String(numeric)) drawerSlider.value = String(numeric);
+  if (mobileSlider && mobileSlider.value !== String(numeric)) mobileSlider.value = String(numeric);
   if (mobileLabel) mobileLabel.textContent = `KES ${numeric.toLocaleString()}`;
+
+  if (priceBtnLabel) {
+    priceBtnLabel.textContent = numeric < (state.priceRange?.max || 200000)
+      ? `≤ ${numeric >= 1000 ? `${Math.round(numeric / 1000)}K` : numeric}`
+      : "Price: All";
+  }
 }
 
 function applyPriceFilter(val) {
@@ -580,12 +669,71 @@ function setPricePreset(maxVal) {
   state.selectedPriceRange.max = target;
   state.priceFilterActive = maxVal !== null && target < maxBound;
   const pcSlider = document.getElementById("price-filter-max");
+  const drawerSlider = document.getElementById("desktop-drawer-price-filter");
   const mobSlider = document.getElementById("mobile-price-filter");
   if (pcSlider) pcSlider.value = String(target);
+  if (drawerSlider) drawerSlider.value = String(target);
   if (mobSlider) mobSlider.value = String(target);
   onDesktopPriceInput(target);
   renderPricePresets();
   loadItems();
+}
+
+function toggleFilterPopover(id) {
+  const popovers = ["price-popover", "brand-popover"];
+  for (const pid of popovers) {
+    const el = document.getElementById(pid);
+    const wrap = el?.closest(".relative");
+    const btn = wrap?.querySelector(".pc-filter-dropdown-btn");
+    if (pid === id) {
+      const willOpen = el.classList.contains("hidden");
+      el.classList.toggle("hidden", !willOpen);
+      btn?.setAttribute("aria-expanded", String(willOpen));
+      btn?.classList.toggle("is-open", willOpen);
+    } else if (el) {
+      el.classList.add("hidden");
+      btn?.setAttribute("aria-expanded", "false");
+      btn?.classList.toggle("is-open", false);
+    }
+  }
+}
+
+function toggleDesktopFilterDrawer(show) {
+  const drawer = document.getElementById("desktop-filter-drawer");
+  const btn = document.getElementById("desktop-all-filters-btn");
+  if (!drawer) return;
+  const willShow = typeof show === "boolean" ? show : drawer.classList.contains("hidden");
+  drawer.classList.toggle("hidden", !willShow);
+  btn?.setAttribute("aria-expanded", String(willShow));
+  document.body.classList.toggle("overflow-hidden", willShow);
+  if (willShow) {
+    toggleFilterPopover(null);
+    renderDynamicFiltersUI();
+    renderCategoryNavigation();
+    renderIcons(drawer);
+  }
+}
+
+// Global click-away listener for filter popovers
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (e) => {
+    const openPopover = document.querySelector(".filter-popover-card:not(.hidden)");
+    if (!openPopover) return;
+    const wrap = openPopover.closest(".relative");
+    if (wrap && !wrap.contains(e.target)) {
+      openPopover.classList.add("hidden");
+      const btn = wrap.querySelector(".pc-filter-dropdown-btn");
+      btn?.setAttribute("aria-expanded", "false");
+      btn?.classList.remove("is-open");
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      toggleFilterPopover(null);
+      toggleDesktopFilterDrawer(false);
+    }
+  });
 }
 
 function removeSingleFilter(type, key, val) {

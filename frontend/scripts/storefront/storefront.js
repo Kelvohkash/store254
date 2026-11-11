@@ -152,17 +152,9 @@ function syncMobileSearch(val) {
 }
 
 function toggleDesktopFilters(forceOpen) {
-  const layout = document.getElementById("catalog-layout");
-  const button = document.getElementById("desktop-filter-toggle");
-  if (!layout) return;
-
-  const isOpen = typeof forceOpen === "boolean"
-    ? forceOpen
-    : layout.classList.contains("filters-collapsed");
-  layout.classList.toggle("filters-collapsed", !isOpen);
-  button?.setAttribute("aria-expanded", String(isOpen));
-  button?.setAttribute("aria-label", `${isOpen ? "Hide" : "Show"} filters`);
-  button?.setAttribute("title", `${isOpen ? "Hide" : "Show"} filters`);
+  if (typeof toggleDesktopFilterDrawer === "function") {
+    toggleDesktopFilterDrawer(forceOpen);
+  }
 }
 
 function toggleMobileFilters(show) {

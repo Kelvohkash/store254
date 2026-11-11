@@ -269,75 +269,90 @@
       <div id="subcategory-pills-bar" class="subcategory-pills-bar hidden"></div>
     </div>
 
-    <!-- Layout: Dedicated PC Filter Sidebar + Catalog Workspace (PC & Mobile UIs) -->
-    <div id="catalog-layout" class="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 filters-collapsed">
-      
-      <!-- PC / Desktop Filter & Discovery Sidebar -->
-      <aside id="desktop-filter-sidebar" class="hidden lg:block lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm h-fit sticky top-24">
-        <div class="sidebar-header flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-          <div class="flex items-center gap-2">
-            <span class="sidebar-header-icon">
-              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
-            </span>
-            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider m-0">Filters &amp; Refine</h3>
-            <span id="desktop-filter-count" class="hidden filter-count-pill">0</span>
-          </div>
-          <button type="button" onclick="resetFilters()" class="sidebar-reset-btn text-[11px] font-semibold flex items-center gap-1">
-            <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
-            <span>Reset</span>
-          </button>
-        </div>
-
-        <!-- Quick Filter Chips (Deals & Item Type) -->
-        <div class="filter-section mb-5 pb-5 border-b border-slate-100">
-          <label class="filter-section-title block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Quick Filters</label>
-          <div id="desktop-quick-filters" class="quick-filter-chips">
-            <button type="button" data-quick-deals onclick="toggleDealsFilter()" class="quick-filter-chip" aria-pressed="false">
-              <i data-lucide="Flame" class="w-3.5 h-3.5"></i>
-              <span>On Sale / Deals</span>
-            </button>
-            <button type="button" data-quick-type="PHYSICAL" onclick="setItemTypeFilter('PHYSICAL')" class="quick-filter-chip" aria-pressed="false">
-              <i data-lucide="package" class="w-3.5 h-3.5"></i>
-              <span>Products</span>
-            </button>
-            <button type="button" data-quick-type="SERVICE" onclick="setItemTypeFilter('SERVICE')" class="quick-filter-chip" aria-pressed="false">
-              <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
-              <span>Services</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Price Range Filter + Presets -->
-        <div class="filter-section mb-5 pb-5 border-b border-slate-100">
-          <div class="flex items-center justify-between mb-2.5">
-            <label for="price-filter-max" class="filter-section-title block text-xs font-bold text-slate-900 uppercase tracking-wider m-0">Price Budget</label>
-            <span id="price-filter-status" class="text-[11px] font-semibold text-slate-500">Any price</span>
-          </div>
-          <div class="flex items-center justify-between text-xs font-mono font-bold text-slate-700 mb-2">
-            <span id="price-label-min">KES 0</span>
-            <span id="price-label-max">KES 200,000</span>
-          </div>
-          <input type="range" id="price-filter-max" min="0" max="200000" value="200000" oninput="onDesktopPriceInput(this.value)" onchange="applyPriceFilter(this.value)" class="w-full accent-emerald-600 cursor-pointer">
-          <div id="desktop-price-presets" class="price-presets-grid mt-2.5"></div>
-        </div>
-
-        <!-- Dynamic Facets Container (Brand, Screen Size, Material, Color, etc.) -->
-        <div id="dynamic-facets-container" class="space-y-4"></div>
-      </aside>
-
-      <!-- Main Catalog Stage -->
-      <section id="catalog-items-section" class="lg:col-span-3">
-        <!-- PC Catalog Control Header (Desktop & Tablet >= 768px) -->
-        <div id="desktop-catalog-toolbar" class="catalog-toolbar-pc hidden md:flex flex-wrap items-center justify-between gap-3 mb-4 p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+    <!-- Layout: Full-Width Clean Catalog Workspace with Floating Filter Hub & Slide-Over Drawer -->
+    <div id="catalog-layout" class="w-full">
+      <section id="catalog-items-section" class="w-full">
+        <!-- PC Catalog Command & Filter Bar (Desktop & Tablet >= 768px) -->
+        <div id="desktop-catalog-toolbar" class="catalog-toolbar-pc hidden md:flex items-center justify-between gap-3 mb-5 p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-sm relative">
+          <!-- Left: Item Count, Quick Filters & Smart Filter Dropdowns -->
           <div class="flex items-center gap-2.5 flex-wrap">
-            <span id="items-count-badge" class="text-xs sm:text-sm font-bold text-slate-800">Loading products...</span>
-            <span id="catalog-active-context" class="catalog-context-pill hidden"></span>
+            <span id="items-count-badge" class="catalog-count-badge text-xs sm:text-sm font-extrabold text-slate-800">Loading products...</span>
+            <span class="toolbar-sep hidden lg:inline-block w-px h-4 bg-slate-200"></span>
+
+            <!-- Instant 1-Click Refine Pills -->
+            <div class="quick-filter-pills flex items-center gap-1.5">
+              <button type="button" data-quick-deals onclick="toggleDealsFilter()" class="pc-filter-pill pc-filter-pill-deals" aria-pressed="false" title="Filter products on discount">
+                <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>On Sale</span>
+              </button>
+              <button type="button" data-quick-type="PHYSICAL" onclick="setItemTypeFilter('PHYSICAL')" class="pc-filter-pill" aria-pressed="false" title="Show physical products">
+                <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                <span>Products</span>
+              </button>
+              <button type="button" data-quick-type="SERVICE" onclick="setItemTypeFilter('SERVICE')" class="pc-filter-pill" aria-pressed="false" title="Show bookable services">
+                <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
+                <span>Services</span>
+              </button>
+            </div>
+
+            <span class="toolbar-sep hidden xl:inline-block w-px h-4 bg-slate-200"></span>
+
+            <!-- Interactive Popover Dropdowns (Price & Brand) -->
+            <div class="filter-popovers-group flex items-center gap-2">
+              <!-- Price Popover Trigger -->
+              <div class="relative inline-block text-left" id="pc-price-dropdown-wrap">
+                <button id="pc-price-dropdown-btn" type="button" onclick="toggleFilterPopover('price-popover')" class="pc-filter-dropdown-btn flex items-center gap-1.5" aria-expanded="false" aria-controls="price-popover">
+                  <i data-lucide="badge-dollar-sign" class="w-3.5 h-3.5"></i>
+                  <span id="pc-price-btn-label">Price: All</span>
+                  <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+                </button>
+                
+                <!-- Floating Price Popover Card -->
+                <div id="price-popover" class="filter-popover-card hidden absolute left-0 z-50 mt-2 w-72 p-4 bg-white rounded-2xl shadow-xl border border-slate-100">
+                  <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                    <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">Price Budget</span>
+                    <span id="price-filter-status" class="text-[11px] font-semibold text-slate-500">Any price</span>
+                  </div>
+                  <div class="flex items-center justify-between text-xs font-mono font-bold text-slate-700 mb-2">
+                    <span id="price-label-min">KES 0</span>
+                    <span id="price-label-max">KES 200,000</span>
+                  </div>
+                  <input type="range" id="price-filter-max" min="0" max="200000" value="200000" oninput="onDesktopPriceInput(this.value)" onchange="applyPriceFilter(this.value)" class="w-full accent-emerald-600 cursor-pointer mb-3">
+                  <div id="desktop-price-presets" class="price-presets-grid mb-3"></div>
+                  <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                    <button type="button" onclick="setPricePreset(null); toggleFilterPopover(null);" class="text-slate-500 hover:text-slate-800 font-semibold">Reset</button>
+                    <button type="button" onclick="toggleFilterPopover(null)" class="px-3 py-1 bg-slate-900 text-white rounded-lg font-bold">Apply</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Brand Popover Trigger -->
+              <div class="relative inline-block text-left" id="pc-brand-dropdown-wrap">
+                <button id="pc-brand-dropdown-btn" type="button" onclick="toggleFilterPopover('brand-popover')" class="pc-filter-dropdown-btn flex items-center gap-1.5" aria-expanded="false" aria-controls="brand-popover">
+                  <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+                  <span id="pc-brand-btn-label">Brand</span>
+                  <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+                </button>
+
+                <!-- Floating Brand Popover Card -->
+                <div id="brand-popover" class="filter-popover-card hidden absolute left-0 z-50 mt-2 w-64 p-4 bg-white rounded-2xl shadow-xl border border-slate-100">
+                  <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100">
+                    <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">Brand</span>
+                    <button type="button" onclick="clearFacetFilter('brand')" class="text-[11px] text-slate-400 hover:text-slate-700">Clear</button>
+                  </div>
+                  <div id="pc-brand-options-list" class="space-y-1 max-h-48 overflow-y-auto pr-1"></div>
+                </div>
+              </div>
+            </div>
           </div>
 
+          <!-- Right: All Filters Drawer Trigger, View Switcher & Sort Selector -->
           <div class="flex items-center gap-2.5">
-            <button id="desktop-filter-toggle" type="button" onclick="toggleDesktopFilters()" class="desktop-filter-toggle hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl shadow-sm" aria-controls="desktop-filter-sidebar" aria-expanded="false" aria-label="Show filters" title="Show filters">
-              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
-              <span>Filters</span>
+            <!-- All Filters Drawer Button (Opens Clean Right Slide-Over Panel) -->
+            <button id="desktop-all-filters-btn" type="button" onclick="toggleDesktopFilterDrawer(true)" class="pc-all-filters-btn flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 transition-colors shadow-sm" aria-haspopup="dialog" aria-expanded="false">
+              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-slate-600"></i>
+              <span>All Filters</span>
+              <span id="desktop-filter-count" class="hidden filter-count-pill">0</span>
             </button>
 
             <!-- Tablet filter trigger (768px - 1023px) -->
@@ -404,8 +419,8 @@
         <!-- Active Filter Chips Bar (Shared PC & Mobile: One-click removal of any active filter) -->
         <div id="active-filters-bar" class="active-filters-bar hidden mb-4" aria-live="polite"></div>
 
-        <!-- Responsive Items Grid: 2 columns on Mobile, 3/4 columns or List on Desktop -->
-        <div id="items-grid" class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4 xl:gap-5"></div>
+        <!-- Full-Width Responsive Items Grid: 2 columns on Mobile, 3/4 columns or List on Desktop -->
+        <div id="items-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 xl:gap-5"></div>
       </section>
 
     </div>
@@ -422,6 +437,86 @@
       <span id="maker-buy-price"></span>
     </div>
     <button id="maker-buy-button" type="button" onclick="buyFeaturedProduct()">Buy now</button>
+  </div>
+
+  <!-- DESKTOP SLIDE-OVER FILTER DRAWER (Clean, high-end slide-over panel from the right) -->
+  <div id="desktop-filter-drawer" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="desktop-drawer-title">
+    <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="toggleDesktopFilterDrawer(false)"></div>
+    <div class="fixed inset-y-0 right-0 max-w-md w-full bg-white shadow-2xl flex flex-col z-10 transition-transform duration-300">
+      <!-- Drawer Header -->
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+          </span>
+          <div>
+            <h3 id="desktop-drawer-title" class="text-sm font-extrabold text-slate-900 uppercase tracking-wider m-0">Filters &amp; Refine</h3>
+            <span class="text-[11px] text-slate-400 font-medium">Fine-tune your catalog view</span>
+          </div>
+          <span id="desktop-drawer-count" class="hidden filter-count-pill ml-1">0</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="resetFilters()" class="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-slate-50">
+            <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+            <span>Reset</span>
+          </button>
+          <button type="button" onclick="toggleDesktopFilterDrawer(false)" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors" aria-label="Close filters">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Drawer Scrollable Content -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-6">
+        <!-- Quick Refine Section -->
+        <div>
+          <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Quick Refine</label>
+          <div class="quick-filter-chips">
+            <button type="button" data-quick-deals onclick="toggleDealsFilter()" class="quick-filter-chip" aria-pressed="false">
+              <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-500"></i>
+              <span>On Sale / Deals</span>
+            </button>
+            <button type="button" data-quick-type="PHYSICAL" onclick="setItemTypeFilter('PHYSICAL')" class="quick-filter-chip" aria-pressed="false">
+              <i data-lucide="package" class="w-3.5 h-3.5"></i>
+              <span>Products</span>
+            </button>
+            <button type="button" data-quick-type="SERVICE" onclick="setItemTypeFilter('SERVICE')" class="quick-filter-chip" aria-pressed="false">
+              <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
+              <span>Services</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Categories & Subcategories Tree in Drawer -->
+        <section id="sidebar-categories-section">
+          <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Categories</label>
+          <div id="sidebar-categories-list" class="sidebar-categories-tree space-y-1"></div>
+        </section>
+
+        <!-- Price Range Slider & Presets in Drawer -->
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider m-0">Price Budget</label>
+            <span id="desktop-drawer-price-status" class="text-[11px] font-semibold text-slate-500">Any price</span>
+          </div>
+          <div class="flex items-center justify-between text-xs font-mono font-bold text-slate-700 mb-2">
+            <span id="desktop-drawer-price-min">KES 0</span>
+            <span id="desktop-drawer-price-max">KES 200,000</span>
+          </div>
+          <input type="range" id="desktop-drawer-price-filter" min="0" max="200000" value="200000" oninput="onDesktopPriceInput(this.value)" onchange="applyPriceFilter(this.value)" class="w-full accent-emerald-600 cursor-pointer mb-2.5">
+          <div id="desktop-drawer-price-presets" class="price-presets-grid"></div>
+        </div>
+
+        <!-- Dynamic Attribute Facets in Drawer -->
+        <div id="dynamic-facets-container" class="space-y-5 pt-3 border-t border-slate-100"></div>
+      </div>
+
+      <!-- Drawer Sticky Footer -->
+      <div class="p-4 border-t border-slate-100 bg-slate-50/80 flex items-center gap-3 shrink-0">
+        <button type="button" onclick="resetFilters()" class="w-1/3 py-2.5 px-3 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl hover:bg-white transition-colors">Clear all</button>
+        <button id="desktop-apply-filters-btn" type="button" onclick="toggleDesktopFilterDrawer(false); scrollCatalogItemsIntoView();" class="w-2/3 py-2.5 px-4 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl transition-colors shadow-sm">Show Products</button>
+      </div>
+    </div>
   </div>
 
   <!-- MOBILE FILTER BOTTOM SHEET / DRAWER -->

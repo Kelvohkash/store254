@@ -13,7 +13,7 @@ INSERT OR REPLACE INTO `tenants` (
   'GENERAL',
   'KES',
   'ACTIVE',
-  '{"theme":"modern","contactEmail":"alice@store254.co.ke","phone":"254712345678","description":"Top quality baby essentials, smart electronics, and nursery consulting services in Nairobi."}',
+  '{"theme":"modern","primaryColor":"#2563eb","contactEmail":"alice@store254.co.ke","phone":"254712345678","description":"Top quality baby essentials, smart electronics, and nursery consulting services in Nairobi."}',
   unixepoch(),
   unixepoch()
 );

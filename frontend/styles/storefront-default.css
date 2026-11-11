@@ -565,7 +565,7 @@ html[data-storefront="true"] .category-subpill-count {
 }
 
 /* ==========================================================================
-   4. PC Filter Sidebar & Interactive Filter Widgets
+   4. PC Filter Command Bar, Floating Popover Dropdowns & Slide-Over Drawer
    ========================================================================== */
 
 html[data-storefront="true"] #storefront-view {
@@ -574,38 +574,155 @@ html[data-storefront="true"] #storefront-view {
   padding: 1.5rem clamp(0.85rem, 3vw, 2.5rem) 3rem !important;
 }
 
-html[data-storefront="true"] #desktop-filter-sidebar {
-  border: 1px solid var(--store-line) !important;
-  border-top: 3.5px solid var(--store-primary) !important;
-  border-radius: 1rem !important;
+/* PC Catalog Command Bar */
+html[data-storefront="true"] .catalog-toolbar-pc {
   background: var(--store-white) !important;
-  box-shadow: 0 8px 24px -12px rgba(15, 23, 42, 0.06) !important;
-  padding: 1.25rem !important;
+  border: 1px solid var(--store-line) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.05) !important;
+  padding: 0.75rem 1rem !important;
 }
 
-html[data-storefront="true"] .sidebar-header-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.5rem;
-  background: var(--store-primary-subtle);
-  color: var(--store-primary);
+html[data-storefront="true"] .catalog-count-badge {
+  font-size: 0.84rem !important;
+  font-weight: 800 !important;
+  color: var(--store-ink) !important;
+  letter-spacing: -0.01em;
 }
 
-html[data-storefront="true"] .sidebar-reset-btn {
-  padding: 0.3rem 0.6rem !important;
+html[data-storefront="true"] .toolbar-sep {
+  background-color: var(--store-line) !important;
+}
+
+/* 1-Click Refine Pills */
+html[data-storefront="true"] .pc-filter-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  padding: 0.38rem 0.75rem !important;
   border-radius: 9999px !important;
   border: 1px solid var(--store-line) !important;
   background: var(--store-surface-subtle) !important;
-  color: var(--store-primary) !important;
-  font-size: 0.7rem !important;
+  color: var(--store-ink) !important;
+  font-size: 0.74rem !important;
   font-weight: 700 !important;
+  cursor: pointer;
+  transition: all 140ms ease !important;
 }
-html[data-storefront="true"] .sidebar-reset-btn:hover {
-  background: var(--store-primary-subtle) !important;
+
+html[data-storefront="true"] .pc-filter-pill:hover {
   border-color: var(--store-primary) !important;
+  color: var(--store-primary) !important;
+}
+
+html[data-storefront="true"] .pc-filter-pill.is-active {
+  background: var(--store-primary) !important;
+  color: var(--store-on-primary) !important;
+  border-color: var(--store-primary) !important;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--store-primary) 28%, transparent) !important;
+}
+
+html[data-storefront="true"] .pc-filter-pill.is-active svg {
+  color: var(--store-on-primary) !important;
+}
+
+/* Interactive Filter Dropdown Buttons */
+html[data-storefront="true"] .pc-filter-dropdown-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.38rem !important;
+  padding: 0.38rem 0.75rem !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--store-line) !important;
+  background: var(--store-white) !important;
+  color: var(--store-ink) !important;
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  transition: all 140ms ease !important;
+}
+
+html[data-storefront="true"] .pc-filter-dropdown-btn:hover {
+  border-color: var(--store-primary) !important;
+  color: var(--store-primary) !important;
+}
+
+html[data-storefront="true"] .pc-filter-dropdown-btn.is-active {
+  background: var(--store-primary-subtle) !important;
+  color: var(--store-primary) !important;
+  border-color: var(--store-primary) !important;
+  font-weight: 800 !important;
+}
+
+html[data-storefront="true"] .pc-filter-dropdown-btn.is-open {
+  border-color: var(--store-primary) !important;
+  box-shadow: 0 0 0 3px var(--store-primary-glow) !important;
+}
+
+/* Floating Popover Cards */
+html[data-storefront="true"] .filter-popover-card {
+  background: var(--store-white) !important;
+  border: 1px solid var(--store-line) !important;
+  border-radius: 1.15rem !important;
+  box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.18) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  animation: popoverDrop 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes popoverDrop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* All Filters Drawer Trigger Button */
+html[data-storefront="true"] .pc-all-filters-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  padding: 0.38rem 0.85rem !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--store-line) !important;
+  background: var(--store-surface-subtle) !important;
+  color: var(--store-ink) !important;
+  font-size: 0.74rem !important;
+  font-weight: 750 !important;
+  cursor: pointer;
+  transition: all 140ms ease !important;
+}
+
+html[data-storefront="true"] .pc-all-filters-btn:hover {
+  border-color: var(--store-primary) !important;
+  color: var(--store-primary) !important;
+}
+
+html[data-storefront="true"] .pc-all-filters-btn:active {
+  transform: scale(0.98);
+}
+
+/* Desktop Slide-Over Filter Drawer */
+#desktop-filter-drawer:not(.hidden) > div:last-child {
+  animation: slideOverRight 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slideOverRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+html[data-storefront="true"] #desktop-filter-drawer > div:last-child {
+  background: var(--store-white) !important;
+  border-left: 1px solid var(--store-line) !important;
 }
 
 /* Filter Count Pill Badge */
@@ -1484,22 +1601,11 @@ html[data-storefront="true"] .store-showcase-metric {
 }
 
 @media (min-width: 1024px) {
-  html[data-storefront="true"] #catalog-layout.filters-collapsed {
-    grid-template-columns: minmax(0, 1fr) !important;
-    gap: 1rem !important;
+  html[data-storefront="true"] #catalog-layout {
+    width: 100% !important;
   }
 
-  html[data-storefront="true"] #catalog-layout.filters-collapsed #desktop-filter-sidebar {
-    display: none !important;
-  }
-
-  html[data-storefront="true"] #catalog-layout.filters-collapsed #catalog-items-section {
-    grid-column: 1 / -1 !important;
-  }
-
-  html[data-storefront="true"] #desktop-filter-toggle[aria-expanded="true"] {
-    border-color: var(--store-primary) !important;
-    background: var(--store-primary-subtle) !important;
-    color: var(--store-primary) !important;
+  html[data-storefront="true"] #catalog-items-section {
+    width: 100% !important;
   }
 }

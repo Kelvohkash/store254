@@ -132,7 +132,6 @@ function buildItemCardHtml(item) {
 
 function updateActiveFilterSummary() {
   const bar = document.getElementById("active-filters-bar");
-  const contextPill = document.getElementById("catalog-active-context");
   const chips = [];
 
   if (state.showWishlistOnly) {
@@ -140,23 +139,6 @@ function updateActiveFilterSummary() {
       label: "Saved Wishlist",
       onRemove: `removeSingleFilter('wishlist')`,
     });
-  }
-
-  if (state.selectedCategory) {
-    const catName = typeof findCategoryNameBySlug === "function"
-      ? findCategoryNameBySlug(state.selectedCategory)
-      : state.selectedCategory;
-    chips.push({
-      label: `${catName}`,
-      onRemove: `removeSingleFilter('category')`,
-    });
-    if (contextPill) {
-      contextPill.textContent = catName;
-      contextPill.classList.remove("hidden");
-    }
-  } else if (contextPill) {
-    contextPill.textContent = "";
-    contextPill.classList.add("hidden");
   }
 
   const q = document.getElementById("search-input")?.value?.trim() || "";
@@ -200,10 +182,31 @@ function updateActiveFilterSummary() {
     }
   }
 
+  // Update Popover trigger button labels & active states
+  const priceBtnLabel = document.getElementById("pc-price-btn-label");
+  const priceDropdownBtn = document.getElementById("pc-price-dropdown-btn");
+  if (priceBtnLabel) {
+    priceBtnLabel.textContent = (state.priceFilterActive && maxSliderVal > 0 && maxSliderVal < maxBound)
+      ? `≤ ${maxSliderVal >= 1000 ? `${Math.round(maxSliderVal / 1000)}K` : maxSliderVal}`
+      : "Price: All";
+  }
+  priceDropdownBtn?.classList.toggle("is-active", Boolean(state.priceFilterActive));
+
+  const brandBtnLabel = document.getElementById("pc-brand-btn-label");
+  const brandDropdownBtn = document.getElementById("pc-brand-dropdown-btn");
+  const selectedBrands = state.activeFilters["brand"] || [];
+  if (brandBtnLabel) {
+    brandBtnLabel.textContent = selectedBrands.length > 0
+      ? selectedBrands.length === 1 ? selectedBrands[0] : `Brand (${selectedBrands.length})`
+      : "Brand";
+  }
+  brandDropdownBtn?.classList.toggle("is-active", selectedBrands.length > 0);
+
   // Update filter count badges across PC and Mobile buttons
   const activeCount = chips.length;
   for (const badgeId of [
     "desktop-filter-count",
+    "desktop-drawer-count",
     "mobile-header-filter-count",
     "catalog-mobile-filter-count",
     "mobile-drawer-filter-count",
@@ -238,7 +241,7 @@ function updateActiveFilterSummary() {
   bar.classList.remove("hidden");
   bar.innerHTML = `
     <div class="active-filters-inner flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
-      <span class="active-filters-label shrink-0">Active:</span>
+      <span class="active-filters-label shrink-0">Active Filters:</span>
       ${chips
         .map(
           (c) => `
@@ -345,6 +348,10 @@ function renderCatalogView() {
   if (mobileCountBadge) mobileCountBadge.textContent = countText;
   if (mobileApplyBtn) {
     mobileApplyBtn.textContent = `Show ${currentFilteredList.length} ${currentFilteredList.length === 1 ? "Item" : "Items"}`;
+  }
+  const desktopApplyBtn = document.getElementById("desktop-apply-filters-btn");
+  if (desktopApplyBtn) {
+    desktopApplyBtn.textContent = `Show ${currentFilteredList.length} ${currentFilteredList.length === 1 ? "Product" : "Products"}`;
   }
 
   updateActiveFilterSummary();
