@@ -85,13 +85,16 @@ categoriesRouter.post(
     // If parentId provided, verify it exists and belongs to this tenant
     if (body.parentId) {
       const [parent] = await db
-        .select({ id: categories.id })
+        .select({ id: categories.id, parentId: categories.parentId })
         .from(categories)
         .where(and(eq(categories.id, body.parentId), eq(categories.tenantId, tenant.id)))
         .limit(1);
 
       if (!parent) {
         throw new AppError("Specified parent category does not exist.", 404, "PARENT_NOT_FOUND");
+      }
+      if (parent.parentId) {
+        throw new AppError("Categories can only be nested one level below a top-level category.", 400, "CATEGORY_DEPTH_EXCEEDED");
       }
     }
 
@@ -164,6 +167,18 @@ categoriesRouter.put(
           .where(and(eq(categories.id, ancestorId), eq(categories.tenantId, tenant.id))).limit(1);
         if (!ancestor) throw new AppError("Specified parent category does not exist.", 404, "PARENT_NOT_FOUND");
         ancestorId = ancestor.parentId;
+      }
+
+      const [parent] = await db.select({ parentId: categories.parentId }).from(categories)
+        .where(and(eq(categories.id, body.parentId), eq(categories.tenantId, tenant.id))).limit(1);
+      if (parent?.parentId) {
+        throw new AppError("Categories can only be nested one level below a top-level category.", 400, "CATEGORY_DEPTH_EXCEEDED");
+      }
+
+      const [child] = await db.select({ id: categories.id }).from(categories)
+        .where(and(eq(categories.parentId, id), eq(categories.tenantId, tenant.id))).limit(1);
+      if (child) {
+        throw new AppError("A category with subcategories must stay at the top level.", 400, "CATEGORY_DEPTH_EXCEEDED");
       }
     }
 

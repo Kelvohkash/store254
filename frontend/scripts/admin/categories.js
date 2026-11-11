@@ -10,6 +10,13 @@ function flattenTree(tree, prefix = '', parent = null) {
   return out;
 }
 
+function topLevelCategoryOptions(categories) {
+  return categories
+    .filter(category => !category.parentId)
+    .map(category => `<option value="${escHtml(category.id)}">${escHtml(category.name)}</option>`)
+    .join('');
+}
+
 async function loadCategoriesForDropdown() {
   const r = await apiFetch('/categories');
   flatCategories = r.ok ? flattenTree(r.data?.data || []) : [];
@@ -17,7 +24,7 @@ async function loadCategoriesForDropdown() {
   const productCatEl = document.getElementById('product-category');
   if (productCatEl) productCatEl.innerHTML = '<option value="">No Category</option>' + catOpts;
   const parentCatEl = document.getElementById('category-parent');
-  if (parentCatEl) parentCatEl.innerHTML = '<option value="">None (top-level)</option>' + catOpts;
+  if (parentCatEl) parentCatEl.innerHTML = '<option value="">None (top-level)</option>' + topLevelCategoryOptions(flatCategories);
 }
 
 async function loadCategories() {
@@ -27,7 +34,7 @@ async function loadCategories() {
   // Reload parent dropdown
   const parentCatEl = document.getElementById('category-parent');
   if (parentCatEl) {
-    parentCatEl.innerHTML = '<option value="">None (top-level)</option>' + flatCategories.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.displayName)}</option>`).join('');
+    parentCatEl.innerHTML = '<option value="">None (top-level)</option>' + topLevelCategoryOptions(flatCategories);
   }
   const attributeCategoryEl = document.getElementById('attribute-category');
   if (attributeCategoryEl) {
@@ -192,9 +199,9 @@ function openEditCategoryModal(id) {
     }
   }
   const parentSelect = document.getElementById('category-parent');
-  parentSelect.innerHTML = '<option value="">None (top-level)</option>' + flatCategories
-    .filter(c => !excludedIds.has(c.id))
-    .map(c => `<option value="${escHtml(c.id)}">${escHtml(c.displayName)}</option>`).join('');
+  const hasChildren = flatCategories.some(candidate => candidate.parentId === id);
+  parentSelect.innerHTML = '<option value="">None (top-level)</option>' + (hasChildren ? '' : topLevelCategoryOptions(flatCategories
+    .filter(c => !excludedIds.has(c.id))));
   document.getElementById('category-modal-title').textContent = 'Edit Category';
   document.getElementById('category-save-btn').innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Save Changes';
   document.getElementById('category-id').value = category.id;
