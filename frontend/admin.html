@@ -329,7 +329,8 @@
               <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2"><i data-lucide="paintbrush-vertical" class="w-4 h-4 text-emerald-600"></i> Store appearance &amp; profile</h3>
               <p class="text-xs text-slate-500 mb-5">Manage your storefront details and choose an accent colour for buttons and the glossy hero.</p>
               <form onsubmit="saveStoreSettings(event)" class="space-y-6">
-                <div class="max-w-sm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                  <div>
                   <label class="label" for="settings-primary-color">Store accent colour</label>
                   <select id="settings-primary-color" class="input">
                     <option value="#2563eb">Ocean blue</option>
@@ -342,6 +343,16 @@
                     <option value="#d97706">Sunset amber</option>
                     <option value="#0f172a">Midnight onyx</option>
                   </select>
+                  </div>
+                  <div>
+                    <label class="label" for="settings-product-card-style">Product display</label>
+                    <select id="settings-product-card-style" class="input">
+                      <option value="grid-card">Product grid</option>
+                      <option value="horizontal-list-row">Horizontal list</option>
+                      <option value="service-card">Service cards</option>
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Choose how items appear in your storefront catalog.</p>
+                  </div>
                 </div>
                 <!-- Store Identity & Branding -->
                 <div class="border-t border-slate-100 pt-5 space-y-4">

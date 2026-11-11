@@ -270,8 +270,18 @@
       </div>
 
       <!-- Morphing Tab Strip: Level 0 Categories -> Level 1 Sub-categories -> Level 2 Specs & Filters -->
-      <div class="drilldown-tabs-container p-1.5 rounded-2xl border border-slate-200/80 bg-white shadow-sm backdrop-blur-md">
-        <div id="category-pills" class="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5"></div>
+      <div class="drilldown-tabs-container flex items-center gap-3 p-1.5 rounded-2xl border border-slate-200/80 bg-white shadow-sm backdrop-blur-md">
+        <div id="category-pills" class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scrollbar-none py-0.5"></div>
+        <div class="catalog-sort-wrap hidden md:flex shrink-0 items-center gap-1.5 pr-1">
+          <label for="sort-selector" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Sort:</label>
+          <select id="sort-selector" onchange="syncSortControls(this.value); loadItems()" class="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 shadow-sm">
+            <option value="featured">Featured First</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="discount_desc">Biggest Savings</option>
+            <option value="title_asc">Name: A to Z</option>
+          </select>
+        </div>
       </div>
       <div id="subcategory-pills-bar" class="hidden"></div>
     </div>
@@ -279,73 +289,6 @@
     <!-- Layout: Full-Width Clean Catalog Workspace with Floating Filter Hub & Slide-Over Drawer -->
     <div id="catalog-layout" class="w-full">
       <section id="catalog-items-section" class="w-full">
-        <!-- PC Catalog Command Bar (Desktop & Tablet >= 768px) -->
-        <div id="desktop-catalog-toolbar" class="catalog-toolbar-pc hidden md:flex items-center justify-between gap-3 mb-4 p-3 bg-white rounded-2xl border border-slate-200/80 shadow-sm relative">
-          <!-- Left: Item Count & Quick Filters -->
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <span id="items-count-badge" class="catalog-count-badge text-xs sm:text-sm font-extrabold text-slate-800">Loading products...</span>
-            <span class="toolbar-sep hidden lg:inline-block w-px h-4 bg-slate-200"></span>
-
-            <!-- Instant 1-Click Refine Pills -->
-            <div class="quick-filter-pills flex items-center gap-1.5">
-              <button type="button" data-quick-deals onclick="toggleDealsFilter()" class="pc-filter-pill pc-filter-pill-deals" aria-pressed="false" title="Filter products on discount">
-                <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-500"></i>
-                <span>On Sale</span>
-              </button>
-              <button type="button" data-quick-type="PHYSICAL" onclick="setItemTypeFilter('PHYSICAL')" class="pc-filter-pill" aria-pressed="false" title="Show physical products">
-                <i data-lucide="package" class="w-3.5 h-3.5"></i>
-                <span>Products</span>
-              </button>
-              <button type="button" data-quick-type="SERVICE" onclick="setItemTypeFilter('SERVICE')" class="pc-filter-pill" aria-pressed="false" title="Show bookable services">
-                <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
-                <span>Services</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Right: All Filters Drawer Trigger, View Switcher & Sort Selector -->
-          <div class="flex items-center gap-2.5">
-            <!-- All Filters Drawer Button (Opens Clean Right Slide-Over Panel) -->
-            <button id="desktop-all-filters-btn" type="button" onclick="toggleDesktopFilterDrawer(true)" class="pc-all-filters-btn flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 transition-colors shadow-sm" aria-haspopup="dialog" aria-expanded="false">
-              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-slate-600"></i>
-              <span>All Filters</span>
-              <span id="desktop-filter-count" class="hidden filter-count-pill">0</span>
-            </button>
-
-            <!-- Tablet filter trigger (768px - 1023px) -->
-            <button id="tablet-filter-button" type="button" onclick="toggleMobileFilters(true)" class="lg:hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
-              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
-              <span>Filters</span>
-              <span id="tablet-filter-count" class="hidden filter-count-pill">0</span>
-            </button>
-
-            <!-- PC View Mode Switcher (4-Col Grid / 3-Col Grid / Horizontal List) -->
-            <div class="catalog-view-switcher hidden lg:inline-flex items-center p-0.5 rounded-xl border border-slate-200 bg-slate-50" role="group" aria-label="Catalog layout view">
-              <button type="button" id="view-mode-grid-4" onclick="setCatalogViewMode('grid-4')" class="view-mode-btn is-active" title="4-column compact grid" aria-label="4-column grid">
-                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
-              </button>
-              <button type="button" id="view-mode-grid-3" onclick="setCatalogViewMode('grid-3')" class="view-mode-btn" title="3-column gallery grid" aria-label="3-column grid">
-                <i data-lucide="grid-2x2" class="w-3.5 h-3.5"></i>
-              </button>
-              <button type="button" id="view-mode-list" onclick="setCatalogViewMode('list')" class="view-mode-btn" title="Detailed list view" aria-label="List view">
-                <i data-lucide="list" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <!-- Sort Selector -->
-            <div class="catalog-sort-wrap flex items-center gap-1.5">
-              <label for="sort-selector" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 hidden xl:inline">Sort:</label>
-              <select id="sort-selector" onchange="syncSortControls(this.value); loadItems()" class="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 shadow-sm">
-                <option value="featured">Featured First</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="discount_desc">Biggest Savings</option>
-                <option value="title_asc">Name: A to Z</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
         <!-- Mobile Dedicated Catalog Control Bar (Phones < 768px) -->
         <div id="mobile-catalog-toolbar" class="catalog-toolbar-mobile md:hidden mb-3.5">
           <div class="mobile-toolbar-row flex items-center justify-between gap-2">

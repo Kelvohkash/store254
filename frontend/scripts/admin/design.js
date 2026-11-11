@@ -14,6 +14,7 @@ async function loadSettings() {
   setVal("settings-name", currentStoreDesign.name || "");
   const accentColors = ["#2563eb", "#0284c7", "#16805a", "#0d9488", "#8b3fa5", "#4f46e5", "#9a3412", "#d97706", "#0f172a"];
   setVal("settings-primary-color", accentColors.includes(settings.primaryColor) ? settings.primaryColor : "#2563eb");
+  setVal("settings-product-card-style", settings.productCardStyle || "grid-card");
   setVal("settings-tagline", settings.tagline || "");
   setVal("settings-description", settings.description || "");
   setVal("settings-logo", settings.logoUrl || "");
@@ -34,6 +35,7 @@ async function saveStoreSettings(event) {
   const name = document.getElementById("settings-name")?.value.trim() || currentStoreDesign.name;
   const settings = {
     primaryColor: document.getElementById("settings-primary-color")?.value || "#9a3412",
+    productCardStyle: document.getElementById("settings-product-card-style")?.value || "grid-card",
     tagline: document.getElementById("settings-tagline")?.value.trim() || undefined,
     description: document.getElementById("settings-description")?.value.trim() || undefined,
     logoUrl: document.getElementById("settings-logo")?.value.trim() || "",

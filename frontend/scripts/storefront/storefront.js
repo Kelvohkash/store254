@@ -4,6 +4,7 @@ async function loadStoreProfile() {
 
   if (!state.activeTenantSlug) {
     // Root Platform Mode (store254.co.ke)
+    setCatalogPinned(false);
     document.documentElement.removeAttribute("data-storefront");
     document.documentElement.removeAttribute("data-product-image-ratio");
     document.documentElement.removeAttribute("data-card-density");
@@ -75,12 +76,14 @@ async function loadStoreProfile() {
     await loadCategories();
     renderStoreBanner();
     document.getElementById("storefront-view")?.classList.remove("hidden");
+    scheduleCatalogPinCheck();
     updateWishlistButton();
   } else {
     const reason = res.data?.error?.message;
     showToast(reason || `We couldn’t load the ${state.activeTenantSlug} storefront. Please try again shortly.`, "error");
     // Fallback to platform mode
     state.activeTenant = null;
+    setCatalogPinned(false);
     setHeaderLogo();
     document.getElementById("header-platform-logo")?.classList.remove("hidden");
     document.getElementById("header-store-identity")?.classList.add("hidden");
@@ -157,6 +160,91 @@ function toggleDesktopFilters(forceOpen) {
   }
 }
 
+let catalogPinCheckScheduled = false;
+
+function setCatalogPinned(pinned) {
+  const root = document.documentElement;
+  const main = document.getElementById("storefront-view");
+  const spacer = document.getElementById("catalog-pin-spacer");
+  if (!main) return;
+
+  if (pinned) {
+    if (root.dataset.catalogPinned === "true") return;
+    const height = main.getBoundingClientRect().height;
+    const placeholder = document.createElement("div");
+    placeholder.id = "catalog-pin-spacer";
+    placeholder.setAttribute("aria-hidden", "true");
+    placeholder.style.cssText = `display:block;flex:0 0 auto;width:100%;height:${height}px;`;
+    main.parentNode?.insertBefore(placeholder, main);
+
+    const header = document.querySelector(".site-header");
+    const categoryBar = document.getElementById("storefront-main-category-bar");
+    const headerBottom = header?.getBoundingClientRect().bottom || 0;
+    const categoryOffset = categoryBar && main.contains(categoryBar)
+      ? categoryBar.getBoundingClientRect().top - main.getBoundingClientRect().top
+      : 0;
+    root.style.setProperty("--catalog-pin-top", `${headerBottom - categoryOffset}px`);
+    root.dataset.catalogPinned = "true";
+    main.dataset.catalogPinned = "true";
+    return;
+  }
+
+  delete root.dataset.catalogPinned;
+  root.style.removeProperty("--catalog-pin-top");
+  delete main.dataset.catalogPinned;
+  spacer?.remove();
+}
+
+function syncCatalogPin() {
+  catalogPinCheckScheduled = false;
+  const root = document.documentElement;
+  const main = document.getElementById("storefront-view");
+  const categoryBar = document.getElementById("storefront-main-category-bar");
+  if (root.dataset.catalogPinned === "true") return;
+
+  if (
+    root.dataset.storefront !== "true" ||
+    window.innerWidth < 1024 ||
+    !main ||
+    main.classList.contains("hidden") ||
+    !categoryBar
+  ) return;
+
+  const headerBottom = document.querySelector(".site-header")?.getBoundingClientRect().bottom || 0;
+  if (categoryBar.getBoundingClientRect().top <= headerBottom + 1) {
+    setCatalogPinned(true);
+  }
+}
+
+function scheduleCatalogPinCheck() {
+  if (catalogPinCheckScheduled) return;
+  catalogPinCheckScheduled = true;
+  window.requestAnimationFrame(syncCatalogPin);
+}
+
+function handlePinnedCatalogWheel(event) {
+  if (document.documentElement.dataset.catalogPinned !== "true" || event.ctrlKey) return;
+  if (event.target.closest?.(".filter-popover-card, #desktop-filter-drawer, input, select, textarea")) return;
+
+  const grid = document.getElementById("items-grid");
+  if (!grid) return;
+  const multiplier = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+    ? 16
+    : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+      ? window.innerHeight
+      : 1;
+  const delta = event.deltaY * multiplier;
+  event.preventDefault();
+
+  if (delta < 0 && grid.scrollTop <= 0) {
+    setCatalogPinned(false);
+    window.scrollTo(0, Math.max(0, window.scrollY + delta));
+    return;
+  }
+
+  grid.scrollTop += delta;
+}
+
 function toggleMobileFilters(show) {
   const drawer = document.getElementById("mobile-filter-drawer");
   if (!drawer) return;
@@ -204,3 +292,10 @@ function syncMobileSort(val) {
   }
   loadItems();
 }
+
+window.addEventListener("scroll", scheduleCatalogPinCheck, { passive: true });
+window.addEventListener("resize", () => {
+  if (window.innerWidth < 1024) setCatalogPinned(false);
+  else scheduleCatalogPinCheck();
+});
+window.addEventListener("wheel", handlePinnedCatalogWheel, { passive: false });
