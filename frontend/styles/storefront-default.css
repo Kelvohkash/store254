@@ -1079,6 +1079,13 @@ html[data-storefront="true"] #items-grid {
   }
 }
 
+/* Keep the mobile header focused on the store identity and search; commerce actions live in bottom navigation. */
+@media (max-width: 767px) {
+  html[data-storefront="true"] #header-actions {
+    display: none !important;
+  }
+}
+
 html[data-storefront="true"] .product-card {
   border: 1px solid var(--store-line) !important;
   border-radius: var(--store-card-radius) !important;
