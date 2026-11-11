@@ -516,6 +516,54 @@ html[data-storefront="true"] #category-pills::-webkit-scrollbar {
   display: none;
 }
 
+html[data-storefront="true"] #category-pills > .filter-paper-peel-in {
+  position: relative;
+  transform-origin: 100% 0%;
+  animation: storefront-filter-paper-peel 480ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+  animation-delay: var(--filter-peel-delay, 0ms);
+}
+
+html[data-storefront="true"] #category-pills > .filter-paper-peel-in::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  right: 0;
+  width: 30%;
+  height: 62%;
+  border-top-right-radius: inherit;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.82) 42%, rgba(100,116,139,0.25) 48%, transparent 78%);
+  box-shadow: -3px 3px 7px rgba(15, 23, 42, 0.13);
+  transform-origin: 100% 0%;
+  animation: storefront-filter-corner-peel 480ms ease-in both;
+  animation-delay: var(--filter-peel-delay, 0ms);
+  pointer-events: none;
+}
+
+@keyframes storefront-filter-paper-peel {
+  0% { opacity: 0; transform: perspective(700px) rotateY(-18deg) rotateX(5deg) translate3d(10px, -3px, 0) scale(0.97); filter: drop-shadow(0 8px 5px rgba(15, 23, 42, 0.18)); }
+  62% { opacity: 1; transform: perspective(700px) rotateY(3deg) rotateX(-1deg) translate3d(-1px, 0, 0) scale(1); filter: drop-shadow(0 2px 2px rgba(15, 23, 42, 0.06)); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes storefront-filter-corner-peel {
+  0% { opacity: 0; transform: perspective(160px) rotateY(-88deg) scale(0.25); }
+  38% { opacity: 0.95; transform: perspective(160px) rotateY(-8deg) scale(1); }
+  100% { opacity: 0; transform: perspective(160px) rotateY(88deg) scale(0.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-storefront="true"] #category-pills > .filter-paper-peel-in {
+    animation: none !important;
+  }
+
+  html[data-storefront="true"] #category-pills > .filter-paper-peel-in::after {
+    animation: none !important;
+    display: none !important;
+  }
+}
+
 html[data-storefront="true"] .category-pill,
 html[data-storefront="true"] #category-pills button {
   display: inline-flex !important;

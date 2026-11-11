@@ -1,5 +1,7 @@
 // Categories & Dynamic Faceted Filters Engine
 
+let lastCategoryNavigationKey = null;
+
 const ATTRIBUTE_LABELS = {
   brand: "Brand",
   screen_size: "Screen Size",
@@ -299,7 +301,20 @@ function renderCategoryNavigation() {
     pillsHtml += buildDealsPillHtml();
   }
 
+  const navigationKey = currentSlug || "__all_departments__";
+  const shouldPeelTransition = lastCategoryNavigationKey !== null && lastCategoryNavigationKey !== navigationKey;
+  lastCategoryNavigationKey = navigationKey;
   container.innerHTML = pillsHtml;
+  if (shouldPeelTransition) {
+    Array.from(container.children).forEach((pill, index) => {
+      pill.classList.add("filter-paper-peel-in");
+      pill.style.setProperty("--filter-peel-delay", `${Math.min(index, 8) * 34}ms`);
+      pill.addEventListener("animationend", () => {
+        pill.classList.remove("filter-paper-peel-in");
+        pill.style.removeProperty("--filter-peel-delay");
+      }, { once: true });
+    });
+  }
   renderIcons(container);
 
   // 3. Category Tree inside Desktop Slide-Over Drawer
