@@ -141,14 +141,6 @@ function updateActiveFilterSummary() {
     });
   }
 
-  const q = document.getElementById("search-input")?.value?.trim() || "";
-  if (q) {
-    chips.push({
-      label: `"${q}"`,
-      onRemove: `removeSingleFilter('search')`,
-    });
-  }
-
   if (state.onlyDeals) {
     chips.push({
       label: "On Sale / Deals",
