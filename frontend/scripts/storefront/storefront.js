@@ -74,6 +74,8 @@ async function loadStoreProfile() {
     await applyStorefrontSettings(state.activeTenant.settings);
     await loadCategories();
     renderStoreBanner();
+    document.getElementById("storefront-loading-screen")?.classList.add("hidden");
+    document.documentElement.removeAttribute("data-storefront-pending");
     document.getElementById("storefront-view")?.classList.remove("hidden");
     syncStorefrontStickyOffset();
     updateWishlistButton();
@@ -86,6 +88,8 @@ async function loadStoreProfile() {
     state.activeTenant = null;
     document.documentElement.setAttribute("data-storefront", "true");
     document.getElementById("platform-hero")?.classList.add("hidden");
+    document.getElementById("storefront-loading-screen")?.classList.add("hidden");
+    document.documentElement.removeAttribute("data-storefront-pending");
     document.getElementById("storefront-view")?.classList.remove("hidden");
     document.getElementById("store-admin-footer-btn")?.classList.remove("hidden");
     const catalog = document.getElementById("items-grid");
