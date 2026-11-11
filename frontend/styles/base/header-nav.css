@@ -330,10 +330,10 @@ html[data-storefront="true"] #header-platform-logo {
     border-radius: 0 !important;
   }
 
-  /* Row 1: compact logo + brand taking remaining space with ellipsis only when needed */
+  /* Keep the brand, search field, and actions together in one navbar row. */
   #header-brand,
   html[data-storefront="true"] #header-brand {
-    flex: 1 1 auto !important;
+    flex: 0 1 auto !important;
     min-width: 0 !important;
     gap: 0.55rem !important;
     overflow: hidden !important;
@@ -414,14 +414,15 @@ html[data-storefront="true"] #header-platform-logo {
     display: none !important;
   }
 
-  /* Row 2: full-width search input */
   .mobile-search {
     display: flex !important;
     align-items: center !important;
+    flex: 1 1 8rem !important;
+    width: auto !important;
+    min-width: 4.5rem !important;
     gap: 0 !important;
-    padding: 0.4rem 0.9rem 0.55rem !important;
-    border-top: 1px solid var(--store-line, #e2e8f0) !important;
-    border-bottom: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-sizing: border-box !important;
@@ -437,7 +438,8 @@ html[data-storefront="true"] #header-platform-logo {
   .mobile-search input,
   #mobile-search-input {
     width: 100% !important;
-    height: 2.5rem !important;
+    min-width: 0 !important;
+    height: 2.35rem !important;
     border-radius: 0.65rem !important;
     border: 1px solid var(--store-line, #e2e8f0) !important;
     background: var(--store-white, #ffffff) !important;
@@ -458,6 +460,10 @@ html[data-storefront="true"] #header-platform-logo {
     justify-content: center !important;
     color: var(--store-muted, #94a3b8) !important;
     z-index: 2 !important;
+  }
+  #header-actions {
+    flex: 0 0 auto !important;
+    gap: 0.35rem !important;
   }
 }
 
