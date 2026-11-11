@@ -5,8 +5,6 @@ async function loadStoreProfile() {
   if (!state.activeTenantSlug) {
     // Root Platform Mode (store254.co.ke)
     document.documentElement.removeAttribute("data-storefront");
-    document.documentElement.removeAttribute("data-storefront-type");
-    document.documentElement.removeAttribute("data-storefront-template");
     document.documentElement.removeAttribute("data-product-image-ratio");
     document.documentElement.removeAttribute("data-card-density");
     document.documentElement.removeAttribute("data-heading-font");
@@ -14,8 +12,9 @@ async function loadStoreProfile() {
     document.documentElement.removeAttribute("data-hero-focal-point");
     document.documentElement.removeAttribute("data-header-variant");
     document.documentElement.removeAttribute("data-product-card-style");
-    document.documentElement.style.removeProperty("--store-primary");
-    document.getElementById("active-storefront-template-styles")?.remove();
+    document.documentElement.removeAttribute("data-storefront-type");
+    document.getElementById("active-storefront-styles")?.remove();
+    ["--store-primary", "--store-primary-hover", "--store-primary-subtle", "--store-primary-glow", "--store-green", "--store-green-dark"].forEach((name) => document.documentElement.style.removeProperty(name));
     state.activeTenant = null;
     if (storeInfoBanner) storeInfoBanner.classList.add("hidden");
     document.getElementById("platform-hero")?.classList.remove("hidden");
@@ -146,7 +145,7 @@ function toggleMobileFilters(show) {
     const sourceCategories = document.getElementById("category-pills");
     const mobileCategories = document.getElementById("mobile-category-pills");
     const categorySection = document.getElementById("mobile-category-filter-section");
-    if (sourceCategories && mobileCategories && document.documentElement.dataset.storefrontTemplate === "fashion-and-design") {
+    if (sourceCategories && mobileCategories && document.documentElement.dataset.storefront === "true") {
       mobileCategories.innerHTML = sourceCategories.innerHTML;
       categorySection?.classList.remove("hidden");
     } else {

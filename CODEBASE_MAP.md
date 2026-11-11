@@ -17,13 +17,13 @@ Store254 is a multi-tenant Kenyan digital marketplace and e-commerce platform.
                ▼                                             ▼
    Root Domain (store254.co.ke)               Subdomain / Custom Domain
    - Marketplace landing page                 - Tenant-branded storefront
-   - Seller onboarding & theme previews       - Catalog, items, cart, checkout
+   - Seller onboarding                         - Catalog, items, cart, checkout
    - Directory of active Kenyan stores        - Customer profile, orders, wishlist
    - html:not([data-storefront="true"])        - html[data-storefront="true"]
 ```
 
 ### Core Architecture Components:
-1. **Frontend Client:** Single Page Application (SPA) driven by vanilla ES6 JavaScript modules, Tailwind CSS utilities, and CSS custom properties for instant zero-bundle-size loads.
+1. **Frontend Client:** Single Page Application (SPA) driven by ordered classic JavaScript files, Tailwind CSS utilities, and CSS custom properties.
 2. **Backend Engine:** Hono REST API running on Cloudflare Workers edge runtime (`backend/src/`).
 3. **Database Layer:** Cloudflare D1 (distributed SQLite) managed with Drizzle ORM (`backend/src/db/`).
 4. **Payments:** Safaricom M-Pesa Daraja API integration (STK Push, C2B, transaction status polling).
@@ -40,9 +40,9 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
   - Orders, Saved, Search, and Mobile Bottom Nav are suppressed
 - **Tenant Storefront Mode (`[store].store254.co.ke` or `?store=[slug]`):**
   - `state.activeTenantSlug = "[slug]"`
-  - `document.documentElement` receives `data-storefront="true"` and `data-storefront-template="[template-id]"`
+  - `document.documentElement` receives `data-storefront="true"`; the shared storefront stylesheet and merchant accent colour are applied
   - `#platform-hero` hidden, `#storefront-view` rendered
-  - Dynamic store branding, palettes, product catalog, cart, and mobile navigation activated
+  - Dynamic store branding, product catalog, cart, and mobile navigation activated
 
 ---
 
@@ -53,7 +53,6 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 | File Path | Role & Purpose | Key Elements & IDs | When to Edit |
 |---|---|---|---|
 | `frontend/index.html` | Primary SPA shell for both root platform and tenant storefronts. | `#site-header`, `#platform-hero`, `#storefront-view`, `#items-grid`, `#cart-drawer`, `#orders-drawer`, `.mobile-bottom-nav` | Changing page layouts, header structure, modal dialogs, or script loading order. |
-| `frontend/store-tenant.html` | Standalone reference preview shell for individual tenant storefronts. | `#site-header`, `#store-info-banner`, `#catalog-layout`, `#mobile-bottom-nav`, `#orders-drawer` | Testing standalone storefront templates without root marketplace wrappers. |
 | `frontend/admin.html` | Merchant management dashboard portal for store owners. | `#admin-sidebar`, `#section-dashboard`, `#section-products`, `#section-orders`, `#section-design`, `#section-mpesa` | Adding merchant admin tabs, product editing forms, M-Pesa setup, or design settings. |
 | `frontend/super-admin.html` | Platform operator dashboard for approving stores, managing tiers, and reviewing logs. | `#tenants-table`, `#platform-stats`, `#system-health` | Platform-wide operations, merchant tenant approval, and global analytics. |
 | `frontend/super-admin-login.html` | Secure entry portal for platform administrators. | `#login-form`, `#login-password`, `#login-error` | Admin authentication flow and security restrictions. |
@@ -72,7 +71,7 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 | `frontend/styles/base/drawers-modals.css` | Side drawers (cart, orders, filters), modals, floating actions, mobile bottom nav. | `.mobile-bottom-nav`, `.drawer`, `#cart-drawer`, `#orders-drawer`, `#whatsapp-quick-contact` | Controlling mobile bottom navbar visibility, drawer animations, or floating action buttons. |
 | `frontend/styles/platform-home.css` | Marketplace landing page styles (`store254.co.ke`), showcase carousel, seller onboarding. | `html:not([data-storefront="true"])`, `#platform-hero`, `.platform-intro`, `.platform-stores-grid` | Marketplace landing page visual changes, landing responsive breakpoints, or platform suppression rules. |
 | `frontend/styles/storefront-components.css` | Common UI widgets, review stars, toast popups, skeletons, quantity buttons. | `.toast`, `.skeleton`, `.star-rating`, `.qty-control` | Styling reusable component micro-interactions. |
-| `frontend/styles/storefront-templates.css` | Template catalog wrapper and shared theme rules. | `[data-storefront-template]` | Global template overrides or archetype adjustments. |
+| `frontend/styles/storefront-default.css` | Shared tenant storefront layout and accent-colour styling, loaded by `scripts/storefront/core.js`. | `html[data-storefront="true"]`, hero, filters, product cards | Editing the single storefront design used by tenant stores. |
 | `frontend/styles/storefront-quality.css` | Contrast guardrails, focus-visible states, reduced-motion, accessibility rules. | `prefers-reduced-motion`, `:focus-visible`, `text-shadow` | Accessibility (a11y), WCAG compliance, or contrast fixes. |
 | `frontend/styles/admin.css` | Merchant admin layout, form inputs, status chips, data tables. | `.admin-card`, `.status-badge`, `.form-input` | Merchant dashboard styling. |
 | `frontend/styles/super-admin.css` | Super admin portal layout and imports. | `@import "./super-admin/..."` | Super admin master styling. |
@@ -87,7 +86,7 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 |---|---|---|---|
 | `state.js` | Global client reactive state and tenant detection. | `state`, `detectInitialTenantSlug()`, `getInitialCart()`, `getInitialWishlist()` | Adding new global state properties, modifying storage keys, or tenant detection rules. |
 | `core-utils.js` | Formatting helpers, currency (KES), debounce, toast notifications. | `formatKES(amount)`, `showToast(msg, type)`, `debounce(fn, ms)` | Changing currency formatting, notification timing, or utility helpers. |
-| `core-theme.js` | Dynamic color token resolver and contrast safety engine. | `setThemePalette(id)`, `applyStorefrontSettings(settings)` | Modifying how merchant themes and color palettes are applied to CSS variables. |
+| `core-theme.js` | Applies the shared storefront design and selected merchant accent colour. | `applyStorefrontSettings(settings)`, `loadDefaultStorefrontStyles()` | Modifying accent colours or storefront stylesheet loading. |
 | `core.js` | Core initialization, icon rendering, and bootstrap lifecycle. | `initApp()`, `renderIcons()`, `resolveStorefrontColorTokens(fg, bg)` | Adjusting application bootstrapping or dynamic Lucide icon rendering. |
 | `api.js` | Centralized fetch client injecting tenant headers and CSRF tokens. | `apiFetch(path, options)` | Altering API request headers, error handling, or backend URL targeting. |
 | `storefront.js` | Tenant loader, marketplace vs storefront view switcher, showcase carousel. | `loadStoreProfile()`, `initializeShowcaseCarousel()`, `loadPlatformStores()` | Changing how storefront data loads or how the platform switches modes. |
@@ -105,8 +104,6 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 | `social.js` | Social share buttons (WhatsApp, Twitter/X, Facebook, link copy). | `shareProduct(platform, item)`, `copyShareLink()` | Updating social share URLs or WhatsApp share text. |
 | `platform.js` | Marketplace landing page directory, featured stores grid, onboarding entry. | `loadPlatformStores()`, `renderStoresGrid()` | Modifying platform directory rendering or featured store cards. |
 | `onboarding.js` | New merchant store registration modal and subdomain reservation. | `submitStoreOnboarding()`, `checkSubdomainAvailability(slug)` | Modifying the "Open your store" registration flow. |
-| `template-gallery.js`| Seller theme gallery carousel and template preview modal. | `renderTemplateGallery()`, `previewTheme(templateId)` | Adding or updating theme cards on the marketplace landing page. |
-| `template-previews.js`| Live storefront template preview engine with real-time palette test. | `initTemplatePreview(templateId, paletteId)` | Updating the interactive template previewer. |
 
 ---
 
@@ -117,30 +114,28 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 | `core.js` | Merchant authentication check, store settings loading, logout. | `initAdmin()`, `checkAuth()`, `logout()` | Admin session handling and API token checks. |
 | `navigation.js` | Admin sidebar tab switching (Dashboard, Products, Orders, Design, etc.). | `navigateTo(tabName)`, `updateSidebarActive()` | Adding new tabs or navigation routes in merchant admin. |
 | `dashboard.js` | Merchant dashboard overview, revenue stats, low-stock alerts, recent orders. | `loadDashboardStats()`, `renderRecentOrders()` | Updating dashboard metrics, charts, or KPI cards. |
-| `products.js` | Product CRUD operations, image uploads, variants, price & inventory. | `loadProducts()`, `saveProduct()`, `deleteProduct()` | Product management forms, inventory controls, or file uploads. |
+| `product-editor.js` and `catalog.js` | Product CRUD, images, variants, and inventory. | Product form handlers and catalog loading | Product management forms, inventory controls, or file uploads. |
 | `categories.js` | Store category hierarchy, creation, editing, and ordering. | `loadAdminCategories()`, `saveCategory()` | Managing store product categories. |
 | `orders.js` | Merchant order management, fulfillment status updates, customer details. | `loadAdminOrders()`, `updateOrderStatus()` | Fulfilling orders, viewing receipts, or dispatching packages. |
-| `reviews.js` | Review moderation, approving or replying to customer feedback. | `loadAdminReviews()`, `moderateReview()` | Review moderation dashboard. |
-| `discounts.js` | Coupon codes, percentage/fixed discounts, expiration dates. | `loadCoupons()`, `saveCoupon()` | Creating promotional offers and discount codes. |
-| `mpesa.js` | Merchant M-Pesa configuration (Till Number, Paybill, API credentials). | `saveMpesaSettings()`, `testMpesaConnection()` | Updating merchant payment setup and payout details. |
-| `design.js` | Storefront template selection, color palette picker, preview updates. | `selectStoreTemplate()`, `selectThemePalette()` | Updating store design customization controls. |
-| `design-branding.js`| Logo upload, banner image, store name, tagline, social links. | `saveBrandingSettings()`, `uploadStoreLogo()` | Merchant branding and profile settings. |
-| `domain.js` | Custom domain configuration, CNAME instructions, SSL verification. | `verifyCustomDomain()`, `saveCustomDomain()` | Custom domain linking and verification. |
-| `attributes.js` | Custom product attributes (Size, Color, Material) and facet definitions. | `loadAttributes()`, `saveAttribute()` | Managing filterable product attributes. |
+| `promotions.js` | Promotion and coupon management. | Promotion form and API handlers | Creating promotional offers and discount codes. |
+| `payments.js` | Merchant payment settings and page startup. | Payment settings handlers | Updating merchant payment setup. |
+| `design.js` | Store name, profile, social links, and accent-colour settings. | `loadSettings()`, `saveStoreSettings()` | Updating storefront appearance and business profile controls. |
+| `design-branding.js` | Branding media upload and custom domain configuration. | `uploadStoreBrandingImage()`, `saveCustomDomain()` | Updating branding media or custom domain settings. |
+| `super-admin-api.js`, `super-admin-table.js`, `super-admin.js` | Platform admin API helpers, data tables, and dashboard actions. | Platform admin request and rendering functions | Changing protected platform administration. |
+| `super-admin-login.js` | Platform admin sign-in. | Login form handler | Changing platform admin authentication UI. |
 
 ---
 
-### 3.5 Storefront Templates & Blueprints (`frontend/templates/`)
+### 3.5 Frontend Build and Runtime Files
 
 | File Path | Role & Responsibilities | When to Edit |
 |---|---|---|
-| `catalog.json` | Manifest of all 11 plug-and-play storefront templates and shared palettes. | Adding new templates or changing default palette assignments. |
-| `generate-templates.mjs` | Generator script that compiles template blueprints into CSS stylesheets and HTML previews. | Run via `node frontend/templates/generate-templates.mjs` after modifying blueprints. |
-| `generator/css-stylesheet.mjs` | Master CSS template generator (headers, catalog layouts, cards, responsive media queries). | Adjusting how generated templates structure headers, cards, or mobile navigation. |
-| `generator/palettes.mjs` | Master color palette definitions (Trust Forest, Nairobi Pulse, Sunset Savannah, etc.). | Adding new color schemes or tweaking background/foreground hex values. |
-| `generator/preview-builder.mjs` | HTML builder for interactive template preview pages. | Updating template preview layouts. |
-| `[template-id]/template.css` | Generated CSS stylesheet for the specific template archetype. | Auto-generated by `generate-templates.mjs` (do not edit manually). |
-| `[template-id]/preview.html` | Standalone interactive preview page for that template. | Auto-generated by `generate-templates.mjs`. |
+| `frontend/src/worker.ts` | Serves static assets, proxies API/auth requests, and injects tenant SEO metadata. | Changing frontend routing, API proxy behavior, or edge metadata. |
+| `frontend/wrangler.jsonc` | Worker entry point, static asset binding, API service binding, and routes. | Changing frontend Worker deployment configuration. |
+| `frontend/tailwind.config.cjs` and `frontend/styles/tailwind.css` | Tailwind source configuration and directives. | Adding utility classes or changing Tailwind content scanning. |
+| `frontend/styles/tailwind.generated.css` | Checked-in compiled utilities loaded by `index.html` and `admin.html`. | Rebuild with `npm run build`; do not edit generated CSS manually. |
+| `frontend/tests/storefront-contract.test.mjs` | Development contract checks for storefront presentation and page rules. | Updating frontend structure or its style contract. |
+| `frontend/README.md` | Frontend-focused directory map and design notes. | Updating frontend ownership or structure. |
 
 ---
 
@@ -222,21 +217,13 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 2. **Main Website (`store254.co.ke`) Suppression:**
    - `html:not([data-storefront="true"])` rules in `frontend/styles/platform-home.css` suppress Search, Orders, Saved, and Bottom Nav on the marketplace home.
 3. **Adding a New Button to the Bottom Nav:**
-   - Add button HTML to `.mobile-bottom-nav` in `frontend/index.html` and `frontend/store-tenant.html`.
-   - Update `grid-template-columns: repeat(N, 1fr)` in `drawers-modals.css` and `generator/css-stylesheet.mjs`.
+   - Add button HTML to `.mobile-bottom-nav` in `frontend/index.html`.
+   - Update `grid-template-columns: repeat(N, 1fr)` in `frontend/styles/base/drawers-modals.css`.
 
-### Recipe B: Updating or Adding a Storefront Theme / Template
-1. Open `frontend/templates/generate-templates.mjs`.
-2. Add a blueprint object to `TEMPLATE_BLUEPRINTS` (specifying `id`, `name`, `headerStyle`, `cardVariant`, etc.).
-3. If creating new color palettes, add them to `frontend/templates/generator/palettes.mjs`.
-4. Run generator command:
-   ```powershell
-   node frontend/templates/generate-templates.mjs
-   ```
-5. Run test verification:
-   ```powershell
-   node --test frontend/tests/template-contract.test.mjs
-   ```
+### Recipe B: Changing Storefront Appearance
+1. Edit shared tenant storefront layout in `frontend/styles/storefront-default.css`.
+2. Keep merchant accent colours in sync between `frontend/scripts/admin/design.js` and `frontend/scripts/storefront/core-theme.js`.
+3. Update `frontend/tests/storefront-contract.test.mjs` when the storefront style contract changes.
 
 ### Recipe C: Adding a New Storefront Feature (e.g. Gift Wrapping or Tipping)
 1. **State:** Add default value to `state` in `frontend/scripts/storefront/state.js`.
@@ -267,5 +254,5 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 
 | Command | Target & Description |
 |---|---|
-| `node --test frontend/tests/template-contract.test.mjs` | Verifies template contract, contrast safety, responsive guardrails, and platform home suppression. |
-| `node frontend/templates/generate-templates.mjs` | Regenerates all 11 template CSS stylesheets and previews from blueprints. |
+| `node --test frontend/tests/storefront-contract.test.mjs` | Verifies shared storefront styling, contrast safety, responsive guardrails, and platform home suppression. |
+| `npm --prefix frontend run build` | Rebuilds the Tailwind utility stylesheet used by the marketplace and admin pages. |

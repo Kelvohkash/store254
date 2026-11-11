@@ -21,20 +21,6 @@ const formatDate = (value) => {
 
 const money = (value) => `KES ${Number(value || 0).toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
 
-const formatTemplateName = (id) => {
-  const map = {
-    "fashion-and-design": "Fashion and Design",
-    "cosmetics": "Cosmetics",
-    "electronics": "Electronics",
-    "houses-and-rentals": "Houses and Rentals",
-    "real-estate": "Real Estate",
-    "food-and-groceries": "Food and Groceries",
-    "hardware-and-autoparts": "Hardware and Spare Parts",
-    "furniture-and-decor": "Furniture and Home Decor",
-  };
-  return map[id] || (id ? id.replace(/-/g, " ") : "Fashion and Design");
-};
-
 async function platformApiFetch(path, options = {}) {
   try {
     const response = await fetch(`${superAdminApiBase}/api/platform/admin${path}`, {

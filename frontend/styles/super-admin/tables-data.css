@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════
-   BUSINESS DIRECTORY TABLE, SEARCH TOOLBAR & TEMPLATE BADGES
+   BUSINESS DIRECTORY TABLE AND SEARCH TOOLBAR
    ══════════════════════════════════════════════════════════ */
 
 /* Businesses Section */
@@ -231,27 +231,6 @@ tbody tr:last-child td { border-bottom: 0; }
   cursor: pointer;
 }
 .copy-url-btn:hover { background: #e2ece6; color: var(--text-main); }
-
-/* Theme / Template Badges */
-.store-template-badge {
-  display: inline-block;
-  padding: .2rem .55rem;
-  border-radius: 999px;
-  font-size: .62rem;
-  font-weight: 800;
-  letter-spacing: .02em;
-  white-space: nowrap;
-  background: #f1f5f3;
-  color: var(--text-muted);
-}
-.store-template-badge[data-template="fashion-and-design"] { background: #fbf7f2; color: #9a3412; border: 1px solid #fed7aa; }
-.store-template-badge[data-template="cosmetics"] { background: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; }
-.store-template-badge[data-template="electronics"] { background: #eef4f8; color: #0284c7; border: 1px solid #bae6fd; }
-.store-template-badge[data-template="houses-and-rentals"] { background: #f0f7f5; color: #0f766e; border: 1px solid #99f6e4; }
-.store-template-badge[data-template="real-estate"] { background: #f6f5f0; color: #14532d; border: 1px solid #bbf7d0; }
-.store-template-badge[data-template="food-and-groceries"] { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-.store-template-badge[data-template="hardware-and-autoparts"] { background: #f3f4f6; color: #b45309; border: 1px solid #fde68a; }
-.store-template-badge[data-template="furniture-and-decor"] { background: #f7f5ef; color: #3f6212; border: 1px solid #d9f99d; }
 
 .category-pill {
   display: inline-block;

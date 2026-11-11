@@ -152,10 +152,6 @@ function switchStore(slug) {
 
 async function loadPlatformStores() {
   const container = document.getElementById("platform-stores-grid");
-  if (typeof renderPublicTemplateGallery === "function") {
-    await renderPublicTemplateGallery();
-  }
-
   let stores = [];
   try {
     const res = await apiFetch("/api/platform/stores");

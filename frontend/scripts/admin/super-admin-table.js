@@ -22,8 +22,6 @@ function storeRowMarkup(store) {
   const status = ["ACTIVE", "PENDING", "SUSPENDED"].includes(store.status) ? store.status : "UNKNOWN";
   const statusLabel = { ACTIVE: "Active", PENDING: "Needs review", SUSPENDED: "Suspended", UNKNOWN: "Unknown" }[status];
   const category = formatCategory(store.businessType);
-  const templateId = store.settings?.storefrontTemplate || "fashion-and-design";
-  const templateLabel = formatTemplateName(templateId);
 
   const action = status === "PENDING"
     ? `<button class="row-action is-approve" type="button" data-store-action="activate" data-store-id="${escapeHtml(store.id)}"><span>✓</span> Approve store</button>`
@@ -49,9 +47,6 @@ function storeRowMarkup(store) {
         </div>
       ` : '<span class="text-muted">—</span>'}
     </td>
-    <td>
-      <span class="store-template-badge" data-template="${escapeHtml(templateId)}">${escapeHtml(templateLabel)}</span>
-    </td>
     <td><span class="category-pill">${escapeHtml(category)}</span></td>
     <td class="date-cell">${escapeHtml(formatDate(store.createdAt))}</td>
     <td><span class="status-badge status-${status.toLowerCase()}"><i class="status-dot"></i>${escapeHtml(statusLabel)}</span></td>
@@ -71,7 +66,7 @@ function renderStoresTable(stores, selectedStatus, onAction) {
   const query = searchInput?.value.trim().toLowerCase() || "";
   const visible = stores.filter((store) => {
     const matchesStatus = selectedStatus === "ALL" || store.status === selectedStatus;
-    const matchesQuery = !query || `${store.name || ""} ${store.subdomain || ""} ${store.businessType || ""} ${store.settings?.storefrontTemplate || ""}`.toLowerCase().includes(query);
+    const matchesQuery = !query || `${store.name || ""} ${store.subdomain || ""} ${store.businessType || ""}`.toLowerCase().includes(query);
     return matchesStatus && matchesQuery;
   });
   document.getElementById("result-count").textContent = `${visible.length} ${visible.length === 1 ? "business" : "businesses"}`;

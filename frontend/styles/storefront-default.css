@@ -1,18 +1,14 @@
 /* ==========================================================================
-   Store254 Self-Contained Storefront Theme: Fashion and Design (fashion-and-design)
-   Mood: Warm Editorial Runway & Nairobi Couture
-   Target: Nairobi fashion houses, bespoke tailoring, Ankara/Kitenge couture,
-           curated thrift/boutique wear, and footwear.
+   Store254's default storefront presentation.
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"],
-html[data-storefront-template="fashion-and-design"] {
+html[data-storefront="true"] {
   --store-primary: #9a3412;
   --store-primary-hover: #7c2d12;
   --store-primary-subtle: #ffedd5;
-  --store-primary-glow: rgba(154, 52, 18, 0.26);
+  --store-primary-glow: color-mix(in srgb, var(--store-primary) 26%, transparent);
   --store-on-primary: #ffffff;
   --store-paper: #fbf7f2;
   --store-white: #ffffff;
@@ -33,7 +29,7 @@ html[data-storefront-template="fashion-and-design"] {
   font-family: var(--store-font-body);
 }
 
-html[data-storefront-template="fashion-and-design"] body {
+html[data-storefront="true"] body {
   margin: 0;
   background-color: var(--store-paper) !important;
   color: var(--store-ink) !important;
@@ -42,7 +38,7 @@ html[data-storefront-template="fashion-and-design"] body {
 }
 
 /* Base Header Layout */
-html[data-storefront-template="fashion-and-design"] #site-header {
+html[data-storefront="true"] #site-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -51,27 +47,27 @@ html[data-storefront-template="fashion-and-design"] #site-header {
   padding: 1.1rem clamp(1rem, 4vw, 3.5rem);
 }
 
-html[data-storefront-template="fashion-and-design"] #header-brand {
+html[data-storefront="true"] #header-brand {
   display: flex;
   align-items: center;
   gap: 0.85rem;
 }
 
-html[data-storefront-template="fashion-and-design"] #header-store-name {
+html[data-storefront="true"] #header-store-name {
   margin: 0;
   font-family: var(--store-font-heading);
   font-size: 1.25rem;
   color: var(--store-ink);
 }
 
-html[data-storefront-template="fashion-and-design"] #header-store-tagline,
-html[data-storefront-template="fashion-and-design"] #header-powered-by {
+html[data-storefront="true"] #header-store-tagline,
+html[data-storefront="true"] #header-powered-by {
   margin: 0;
   font-size: 0.72rem;
   color: var(--store-muted);
 }
 
-html[data-storefront-template="fashion-and-design"] #search-form {
+html[data-storefront="true"] #search-form {
   display: flex;
   flex: 1 1 18rem;
   max-width: 32rem;
@@ -79,9 +75,9 @@ html[data-storefront-template="fashion-and-design"] #search-form {
   gap: 0.4rem;
 }
 
-html[data-storefront-template="fashion-and-design"] input[type="search"],
-html[data-storefront-template="fashion-and-design"] input[type="text"],
-html[data-storefront-template="fashion-and-design"] select {
+html[data-storefront="true"] input[type="search"],
+html[data-storefront="true"] input[type="text"],
+html[data-storefront="true"] select {
   padding: 0.65rem 1.15rem;
   border: 1px solid var(--store-line);
   border-radius: var(--store-pill-radius);
@@ -91,10 +87,10 @@ html[data-storefront-template="fashion-and-design"] select {
 }
 
 /* Pill Search Input */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .search-field input,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #search-input,
-html[data-storefront-template="fashion-and-design"] .search-field input,
-html[data-storefront-template="fashion-and-design"] #search-input {
+html[data-storefront="true"] .search-field input,
+html[data-storefront="true"] #search-input,
+html[data-storefront="true"] .search-field input,
+html[data-storefront="true"] #search-input {
   border-radius: 9999px !important;
   border: 1px solid var(--store-line) !important;
   background-color: var(--store-white) !important;
@@ -106,32 +102,32 @@ html[data-storefront-template="fashion-and-design"] #search-input {
   transition: border-color 160ms ease, box-shadow 160ms ease !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .search-field input:focus,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #search-input:focus,
-html[data-storefront-template="fashion-and-design"] #search-input:focus {
+html[data-storefront="true"] .search-field input:focus,
+html[data-storefront="true"] #search-input:focus,
+html[data-storefront="true"] #search-input:focus {
   border-color: var(--store-primary) !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--store-primary) 18%, transparent) !important;
   outline: none !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #mobile-search-input,
-html[data-storefront-template="fashion-and-design"] #mobile-search-input {
+html[data-storefront="true"] #mobile-search-input,
+html[data-storefront="true"] #mobile-search-input {
   padding-left: 2.35rem !important;
 }
 
-html[data-storefront-template="fashion-and-design"] #search-input {
+html[data-storefront="true"] #search-input {
   flex: 1;
 }
 
-html[data-storefront-template="fashion-and-design"] #header-actions-nav {
+html[data-storefront="true"] #header-actions-nav {
   display: flex;
   align-items: center;
   gap: 0.6rem;
 }
 
-html[data-storefront-template="fashion-and-design"] button:not(.hidden),
-html[data-storefront-template="fashion-and-design"] #storefront-primary-cta:not(.hidden),
-html[data-storefront-template="fashion-and-design"] #banner-store-call-btn:not(.hidden) {
+html[data-storefront="true"] button:not(.hidden),
+html[data-storefront="true"] #storefront-primary-cta:not(.hidden),
+html[data-storefront="true"] #banner-store-call-btn:not(.hidden) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -148,14 +144,14 @@ html[data-storefront-template="fashion-and-design"] #banner-store-call-btn:not(.
   transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
-html[data-storefront-template="fashion-and-design"] button:hover,
-html[data-storefront-template="fashion-and-design"] #storefront-primary-cta:not(.hidden):hover {
+html[data-storefront="true"] button:hover,
+html[data-storefront="true"] #storefront-primary-cta:not(.hidden):hover {
   transform: translateY(-1px);
 }
 
-html[data-storefront-template="fashion-and-design"] #desktop-cart-btn,
-html[data-storefront-template="fashion-and-design"] .add-to-cart-btn,
-html[data-storefront-template="fashion-and-design"] #storefront-primary-cta:not(.hidden) {
+html[data-storefront="true"] #desktop-cart-btn,
+html[data-storefront="true"] .add-to-cart-btn,
+html[data-storefront="true"] #storefront-primary-cta:not(.hidden) {
   background-color: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
   border-color: var(--store-primary) !important;
@@ -165,8 +161,8 @@ html[data-storefront-template="fashion-and-design"] #storefront-primary-cta:not(
    Unique Header: Centered Boutique Masthead with double hairline bottom border
    ========================================================================== */
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .site-header,
-html[data-storefront-template="fashion-and-design"] #site-header {
+html[data-storefront="true"] .site-header,
+html[data-storefront="true"] #site-header {
   background: var(--store-paper) !important;
   border-bottom: 3px double var(--store-line) !important;
   box-shadow: 0 4px 18px -4px rgba(28, 19, 14, 0.04) !important;
@@ -175,27 +171,27 @@ html[data-storefront-template="fashion-and-design"] #site-header {
   z-index: 40;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .site-header::before {
+html[data-storefront="true"] .site-header::before {
   display: none;
 }
 
 /* On desktop, keep the store identity on the left and align search on the right. */
 @media (min-width: 901px) {
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .site-header-inner {
+  html[data-storefront="true"] .site-header-inner {
     display: flex;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] #header-brand {
+  html[data-storefront="true"] #header-brand {
     order: 0;
     margin-right: 0;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .site-header-inner > div:has(#desktop-cart-btn) {
+  html[data-storefront="true"] .site-header-inner > div:has(#desktop-cart-btn) {
     order: 2;
     margin-left: 0;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-search {
+  html[data-storefront="true"] #desktop-search {
     order: 1;
     flex: 0 1 32rem;
     width: min(32rem, 30vw);
@@ -204,8 +200,8 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .sit
   }
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #header-store-name,
-html[data-storefront-template="fashion-and-design"] #header-store-name {
+html[data-storefront="true"] #header-store-name,
+html[data-storefront="true"] #header-store-name {
   font-family: var(--store-font-heading) !important;
   font-size: clamp(0.68rem, 0.85vw, 0.75rem) !important;
   font-weight: 700 !important;
@@ -215,8 +211,8 @@ html[data-storefront-template="fashion-and-design"] #header-store-name {
   line-height: 1.2;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #header-store-tagline,
-html[data-storefront-template="fashion-and-design"] #header-store-tagline {
+html[data-storefront="true"] #header-store-tagline,
+html[data-storefront="true"] #header-store-tagline {
   font-family: var(--store-font-body) !important;
   font-size: 0.72rem !important;
   letter-spacing: 0.12em !important;
@@ -225,9 +221,9 @@ html[data-storefront-template="fashion-and-design"] #header-store-tagline {
   margin-top: 0.2rem !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .header-action,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .wishlist-action,
-html[data-storefront-template="fashion-and-design"] #header-actions-nav button:not(#desktop-cart-btn) {
+html[data-storefront="true"] .header-action,
+html[data-storefront="true"] .wishlist-action,
+html[data-storefront="true"] #header-actions-nav button:not(#desktop-cart-btn) {
   border-radius: 9999px !important;
   border: 1px solid var(--store-line) !important;
   background: var(--store-white) !important;
@@ -238,16 +234,16 @@ html[data-storefront-template="fashion-and-design"] #header-actions-nav button:n
   transition: all 160ms ease !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .header-action:hover,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .wishlist-action:hover,
-html[data-storefront-template="fashion-and-design"] #header-actions-nav button:not(#desktop-cart-btn):hover {
+html[data-storefront="true"] .header-action:hover,
+html[data-storefront="true"] .wishlist-action:hover,
+html[data-storefront="true"] #header-actions-nav button:not(#desktop-cart-btn):hover {
   border-color: color-mix(in srgb, var(--store-primary) 40%, var(--store-line)) !important;
   color: var(--store-primary) !important;
   background: color-mix(in srgb, var(--store-primary) 6%, var(--store-white)) !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-cart-btn,
-html[data-storefront-template="fashion-and-design"] #desktop-cart-btn {
+html[data-storefront="true"] #desktop-cart-btn,
+html[data-storefront="true"] #desktop-cart-btn {
   border-radius: 9999px !important;
   background-color: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
@@ -256,40 +252,40 @@ html[data-storefront-template="fashion-and-design"] #desktop-cart-btn {
   font-weight: 700 !important;
   font-size: 0.82rem !important;
   letter-spacing: 0.05em !important;
-  box-shadow: 0 4px 14px rgba(154, 52, 18, 0.28) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--store-primary) 28%, transparent) !important;
   transition: all 160ms ease !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-cart-btn:hover,
-html[data-storefront-template="fashion-and-design"] #desktop-cart-btn:hover {
+html[data-storefront="true"] #desktop-cart-btn:hover,
+html[data-storefront="true"] #desktop-cart-btn:hover {
   background-color: var(--store-primary-hover) !important;
   border-color: var(--store-primary-hover) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 6px 18px rgba(154, 52, 18, 0.38) !important;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--store-primary) 38%, transparent) !important;
 }
 
 /* ==========================================================================
    Unique Hero Banner: Editorial Lookbook Card with Gold/Terracotta Accent Frame
    ========================================================================== */
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner,
-html[data-storefront-template="fashion-and-design"] #store-info-banner {
+html[data-storefront="true"] .store-banner,
+html[data-storefront="true"] #store-info-banner {
   position: relative;
   overflow: hidden;
   padding: clamp(2.5rem, 5vw, 4.2rem) clamp(1rem, 4vw, 3rem) !important;
   background: radial-gradient(circle at 82% 28%, color-mix(in srgb, var(--store-primary) 18%, transparent) 0%, transparent 45%),
-              linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 9%, var(--store-paper)) 0%, var(--store-paper) 62%, color-mix(in srgb, #b45309 8%, var(--store-paper)) 100%) !important;
+              linear-gradient(135deg, color-mix(in srgb, var(--store-primary) 9%, var(--store-paper)) 0%, var(--store-paper) 62%, color-mix(in srgb, var(--store-primary) 8%, var(--store-paper)) 100%) !important;
   border-bottom: 1px solid var(--store-line) !important;
   text-align: left;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-banner-content,
-html[data-storefront-template="fashion-and-design"] .store-banner-copy,
-html[data-storefront-template="fashion-and-design"] #store-banner-content {
-  background: var(--store-white) !important;
+html[data-storefront="true"] .store-banner-copy,
+html[data-storefront="true"] #store-banner-content,
+html[data-storefront="true"] .store-banner-copy,
+html[data-storefront="true"] #store-banner-content {
+  background: color-mix(in srgb, var(--store-primary) 7%, var(--store-white)) !important;
   border: 1px solid var(--store-line) !important;
-  outline: 1.5px solid color-mix(in srgb, var(--store-primary) 40%, #d97706) !important;
+  outline: 1.5px solid color-mix(in srgb, var(--store-primary) 40%, transparent) !important;
   outline-offset: -8px !important;
   box-shadow: 0 24px 52px -16px rgba(28, 19, 14, 0.12), 0 0 0 1px color-mix(in srgb, var(--store-line) 80%, transparent) !important;
   border-radius: 0.75rem !important;
@@ -299,18 +295,18 @@ html[data-storefront-template="fashion-and-design"] #store-banner-content {
 }
 
 /* Center the hero card and let an uploaded image show through its glossy surface. */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-inner {
+html[data-storefront="true"] .store-banner-inner {
   justify-content: center !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-banner-content,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner .store-banner-copy,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner #store-banner-content {
+html[data-storefront="true"] .store-banner-copy,
+html[data-storefront="true"] #store-banner-content,
+html[data-storefront="true"] #store-info-banner .store-banner-copy,
+html[data-storefront="true"] #store-info-banner #store-banner-content {
   width: min(100%, 46rem) !important;
   max-width: 46rem !important;
   text-align: center !important;
-  background: rgba(255, 255, 255, 0.58) !important;
+  background: color-mix(in srgb, var(--store-primary) 13%, rgba(255, 255, 255, 0.58)) !important;
   border: 1px solid rgba(255, 255, 255, 0.88) !important;
   outline: 1px solid color-mix(in srgb, var(--store-primary) 42%, transparent) !important;
   box-shadow: 0 24px 60px rgba(28, 19, 14, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.96) !important;
@@ -318,63 +314,63 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] #sto
   backdrop-filter: blur(22px) saturate(160%) !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner.has-banner-image {
+html[data-storefront="true"] .store-banner.has-banner-image {
   background-image:
-    linear-gradient(120deg, rgba(154, 52, 18, 0.34) 0%, rgba(180, 83, 9, 0.12) 46%, rgba(28, 19, 14, 0.4) 100%),
+    linear-gradient(120deg, color-mix(in srgb, var(--store-primary) 34%, transparent) 0%, color-mix(in srgb, var(--store-primary) 12%, transparent) 46%, rgba(28, 19, 14, 0.4) 100%),
     var(--store-banner-image),
     url("/assets/background.jfif") !important;
   background-position: center !important;
   background-size: cover !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner.has-banner-image {
+html[data-storefront="true"] #store-info-banner.has-banner-image {
   background-image:
-    linear-gradient(120deg, rgba(154, 52, 18, 0.34) 0%, rgba(180, 83, 9, 0.12) 46%, rgba(28, 19, 14, 0.4) 100%),
+    linear-gradient(120deg, color-mix(in srgb, var(--store-primary) 34%, transparent) 0%, color-mix(in srgb, var(--store-primary) 12%, transparent) 46%, rgba(28, 19, 14, 0.4) 100%),
     var(--store-banner-image),
     url("/assets/background.jfif") !important;
   background-position: center !important;
   background-size: cover !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner:not(.has-banner-image) {
+html[data-storefront="true"] .store-banner:not(.has-banner-image) {
   background-image:
-    linear-gradient(120deg, rgba(154, 52, 18, 0.34) 0%, rgba(180, 83, 9, 0.12) 46%, rgba(28, 19, 14, 0.4) 100%),
+    linear-gradient(120deg, color-mix(in srgb, var(--store-primary) 34%, transparent) 0%, color-mix(in srgb, var(--store-primary) 12%, transparent) 46%, rgba(28, 19, 14, 0.4) 100%),
     url("/assets/background.jfif") !important;
   background-position: center 42% !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-info-banner:not(.has-banner-image) {
+html[data-storefront="true"] #store-info-banner:not(.has-banner-image) {
   background-image:
-    linear-gradient(120deg, rgba(154, 52, 18, 0.34) 0%, rgba(180, 83, 9, 0.12) 46%, rgba(28, 19, 14, 0.4) 100%),
+    linear-gradient(120deg, color-mix(in srgb, var(--store-primary) 34%, transparent) 0%, color-mix(in srgb, var(--store-primary) 12%, transparent) 46%, rgba(28, 19, 14, 0.4) 100%),
     url("/assets/background.jfif") !important;
   background-position: center 42% !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy #banner-store-desc,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-banner-content #banner-store-desc {
+html[data-storefront="true"] .store-banner-copy #banner-store-desc,
+html[data-storefront="true"] #store-banner-content #banner-store-desc {
   margin-right: auto !important;
   margin-left: auto !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-actions {
+html[data-storefront="true"] .store-banner-actions {
   justify-content: center !important;
 }
 
 /* Pill subdomain tag */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy .store-address,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy #banner-store-subdomain,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-banner-content .store-address,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-banner-content #banner-store-subdomain,
-html[data-storefront-template="fashion-and-design"] .store-banner-copy .store-address,
-html[data-storefront-template="fashion-and-design"] .store-banner-copy #banner-store-subdomain,
-html[data-storefront-template="fashion-and-design"] #store-banner-content .store-address,
-html[data-storefront-template="fashion-and-design"] #store-banner-content #banner-store-subdomain,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-address,
-html[data-storefront-template="fashion-and-design"] #banner-store-subdomain {
+html[data-storefront="true"] .store-banner-copy .store-address,
+html[data-storefront="true"] .store-banner-copy #banner-store-subdomain,
+html[data-storefront="true"] #store-banner-content .store-address,
+html[data-storefront="true"] #store-banner-content #banner-store-subdomain,
+html[data-storefront="true"] .store-banner-copy .store-address,
+html[data-storefront="true"] .store-banner-copy #banner-store-subdomain,
+html[data-storefront="true"] #store-banner-content .store-address,
+html[data-storefront="true"] #store-banner-content #banner-store-subdomain,
+html[data-storefront="true"] .store-address,
+html[data-storefront="true"] #banner-store-subdomain {
   display: inline-block !important;
   padding: 0.32rem 0.95rem !important;
   border-radius: 9999px !important;
@@ -389,16 +385,16 @@ html[data-storefront-template="fashion-and-design"] #banner-store-subdomain {
 }
 
 /* Refined serif headline */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy h1,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy #banner-store-name,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-banner-content h1,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #store-banner-content #banner-store-name,
-html[data-storefront-template="fashion-and-design"] .store-banner-copy h1,
-html[data-storefront-template="fashion-and-design"] .store-banner-copy #banner-store-name,
-html[data-storefront-template="fashion-and-design"] #store-banner-content h1,
-html[data-storefront-template="fashion-and-design"] #store-banner-content #banner-store-name,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner h1,
-html[data-storefront-template="fashion-and-design"] #banner-store-name {
+html[data-storefront="true"] .store-banner-copy h1,
+html[data-storefront="true"] .store-banner-copy #banner-store-name,
+html[data-storefront="true"] #store-banner-content h1,
+html[data-storefront="true"] #store-banner-content #banner-store-name,
+html[data-storefront="true"] .store-banner-copy h1,
+html[data-storefront="true"] .store-banner-copy #banner-store-name,
+html[data-storefront="true"] #store-banner-content h1,
+html[data-storefront="true"] #store-banner-content #banner-store-name,
+html[data-storefront="true"] .store-banner h1,
+html[data-storefront="true"] #banner-store-name {
   font-family: var(--store-font-heading) !important;
   font-size: clamp(2.3rem, 4.8vw, 3.85rem) !important;
   line-height: 1.08 !important;
@@ -409,8 +405,8 @@ html[data-storefront-template="fashion-and-design"] #banner-store-name {
   text-shadow: none !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #banner-store-desc,
-html[data-storefront-template="fashion-and-design"] #banner-store-desc {
+html[data-storefront="true"] #banner-store-desc,
+html[data-storefront="true"] #banner-store-desc {
   color: var(--store-muted) !important;
   font-size: 1.04rem !important;
   line-height: 1.65 !important;
@@ -419,10 +415,10 @@ html[data-storefront-template="fashion-and-design"] #banner-store-desc {
   text-shadow: none !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .storefront-primary-cta:not(.hidden),
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #storefront-primary-cta:not(.hidden),
-html[data-storefront-template="fashion-and-design"] #storefront-primary-cta:not(.hidden),
-html[data-storefront-template="fashion-and-design"] .storefront-primary-cta:not(.hidden) {
+html[data-storefront="true"] .storefront-primary-cta:not(.hidden),
+html[data-storefront="true"] #storefront-primary-cta:not(.hidden),
+html[data-storefront="true"] #storefront-primary-cta:not(.hidden),
+html[data-storefront="true"] .storefront-primary-cta:not(.hidden) {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -436,29 +432,29 @@ html[data-storefront-template="fashion-and-design"] .storefront-primary-cta:not(
   text-transform: uppercase !important;
   font-size: 0.82rem !important;
   text-decoration: none !important;
-  box-shadow: 0 4px 16px rgba(154, 52, 18, 0.32) !important;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--store-primary) 32%, transparent) !important;
   transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .storefront-primary-cta:hover,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #storefront-primary-cta:hover,
-html[data-storefront-template="fashion-and-design"] #storefront-primary-cta:hover,
-html[data-storefront-template="fashion-and-design"] .storefront-primary-cta:hover {
+html[data-storefront="true"] .storefront-primary-cta:hover,
+html[data-storefront="true"] #storefront-primary-cta:hover,
+html[data-storefront="true"] #storefront-primary-cta:hover,
+html[data-storefront="true"] .storefront-primary-cta:hover {
   transform: translateY(-2px) !important;
   background-color: var(--store-primary-hover) !important;
   border-color: var(--store-primary-hover) !important;
-  box-shadow: 0 8px 24px rgba(154, 52, 18, 0.42) !important;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--store-primary) 42%, transparent) !important;
 }
 
 /* Hide empty taglines */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-tagline:empty,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-tagline.hidden,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #banner-store-tagline:empty,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #banner-store-tagline.hidden,
-html[data-storefront-template="fashion-and-design"] .store-tagline:empty,
-html[data-storefront-template="fashion-and-design"] .store-tagline.hidden,
-html[data-storefront-template="fashion-and-design"] #banner-store-tagline:empty,
-html[data-storefront-template="fashion-and-design"] #banner-store-tagline.hidden {
+html[data-storefront="true"] .store-tagline:empty,
+html[data-storefront="true"] .store-tagline.hidden,
+html[data-storefront="true"] #banner-store-tagline:empty,
+html[data-storefront="true"] #banner-store-tagline.hidden,
+html[data-storefront="true"] .store-tagline:empty,
+html[data-storefront="true"] .store-tagline.hidden,
+html[data-storefront="true"] #banner-store-tagline:empty,
+html[data-storefront="true"] #banner-store-tagline.hidden {
   display: none !important;
 }
 
@@ -466,16 +462,16 @@ html[data-storefront-template="fashion-and-design"] #banner-store-tagline.hidden
    Unique Category Navigation Bar
    ========================================================================== */
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #storefront-category-nav,
-html[data-storefront-template="fashion-and-design"] #storefront-category-nav {
+html[data-storefront="true"] #storefront-category-nav,
+html[data-storefront="true"] #storefront-category-nav {
   padding: 0.85rem clamp(1rem, 4vw, 3.5rem) !important;
   background: var(--store-paper) !important;
   border-bottom: 1px solid var(--store-line) !important;
   overflow-x: auto;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #category-pills,
-html[data-storefront-template="fashion-and-design"] #category-pills {
+html[data-storefront="true"] #category-pills,
+html[data-storefront="true"] #category-pills {
   display: flex;
   gap: 0.6rem;
   align-items: center;
@@ -485,12 +481,12 @@ html[data-storefront-template="fashion-and-design"] #category-pills {
   scrollbar-color: var(--store-line) transparent;
 }
 
-html[data-storefront-template="fashion-and-design"] #catalog-items-section {
+html[data-storefront="true"] #catalog-items-section {
   scroll-margin-top: 8rem;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #storefront-main-category-bar,
-html[data-storefront-template="fashion-and-design"] #storefront-main-category-bar {
+html[data-storefront="true"] #storefront-main-category-bar,
+html[data-storefront="true"] #storefront-main-category-bar {
   position: sticky !important;
   top: 4.5rem !important;
   z-index: 35 !important;
@@ -506,8 +502,8 @@ html[data-storefront-template="fashion-and-design"] #storefront-main-category-ba
   backdrop-filter: blur(14px) saturate(145%);
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-filter-group,
-html[data-storefront-template="fashion-and-design"] .category-filter-group {
+html[data-storefront="true"] .category-filter-group,
+html[data-storefront="true"] .category-filter-group {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
@@ -515,8 +511,8 @@ html[data-storefront-template="fashion-and-design"] .category-filter-group {
   gap: 0.45rem;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-subcategory-list,
-html[data-storefront-template="fashion-and-design"] .category-subcategory-list {
+html[data-storefront="true"] .category-subcategory-list,
+html[data-storefront="true"] .category-subcategory-list {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -527,15 +523,15 @@ html[data-storefront-template="fashion-and-design"] .category-subcategory-list {
   background: color-mix(in srgb, var(--store-primary) 6%, var(--store-white));
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-expand-indicator,
-html[data-storefront-template="fashion-and-design"] .category-expand-indicator {
+html[data-storefront="true"] .category-expand-indicator,
+html[data-storefront="true"] .category-expand-indicator {
   margin-left: 0.5rem;
   font-size: 0.9em;
   opacity: 0.7;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #category-pills .category-subpill,
-html[data-storefront-template="fashion-and-design"] #category-pills .category-subpill {
+html[data-storefront="true"] #category-pills .category-subpill,
+html[data-storefront="true"] #category-pills .category-subpill {
   padding: 0.35rem 0.75rem !important;
   border: 1px solid color-mix(in srgb, var(--store-primary) 24%, var(--store-line)) !important;
   border-radius: 9999px !important;
@@ -546,15 +542,15 @@ html[data-storefront-template="fashion-and-design"] #category-pills .category-su
   white-space: nowrap;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #category-pills .category-subpill[aria-selected="true"],
-html[data-storefront-template="fashion-and-design"] #category-pills .category-subpill[aria-selected="true"] {
+html[data-storefront="true"] #category-pills .category-subpill[aria-selected="true"],
+html[data-storefront="true"] #category-pills .category-subpill[aria-selected="true"] {
   background: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
   border-color: var(--store-primary) !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-pill,
-html[data-storefront-template="fashion-and-design"] #category-pills button {
+html[data-storefront="true"] .category-pill,
+html[data-storefront="true"] #category-pills button {
   padding: 0.45rem 1.15rem !important;
   border-radius: 9999px !important;
   border: 1px solid var(--store-line) !important;
@@ -568,39 +564,39 @@ html[data-storefront-template="fashion-and-design"] #category-pills button {
   transition: all 160ms ease !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-pill:hover,
-html[data-storefront-template="fashion-and-design"] #category-pills button:hover {
+html[data-storefront="true"] .category-pill:hover,
+html[data-storefront="true"] #category-pills button:hover {
   border-color: var(--store-primary) !important;
   color: var(--store-primary) !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .category-pill[aria-selected="true"],
-html[data-storefront-template="fashion-and-design"] #category-pills button[aria-selected="true"] {
+html[data-storefront="true"] .category-pill[aria-selected="true"],
+html[data-storefront="true"] #category-pills button[aria-selected="true"] {
   background-color: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
   border-color: var(--store-primary) !important;
-  box-shadow: 0 2px 10px rgba(154, 52, 18, 0.25) !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--store-primary) 25%, transparent) !important;
 }
 
 /* ==========================================================================
    Catalog Layout & Lookbook Index Filter Sidebar
    ========================================================================== */
 
-html[data-storefront-template="fashion-and-design"] #storefront-view {
+html[data-storefront="true"] #storefront-view {
   max-width: 86rem;
   margin: 0 auto;
   padding: 2.2rem clamp(1rem, 4vw, 3rem);
 }
 
-html[data-storefront-template="fashion-and-design"] #catalog-layout {
+html[data-storefront="true"] #catalog-layout {
   display: grid;
   grid-template-columns: 18rem minmax(0, 1fr);
   gap: 2rem;
   align-items: start;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar,
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar {
+html[data-storefront="true"] #desktop-filter-sidebar,
+html[data-storefront="true"] #desktop-filter-sidebar {
   border: 1px solid var(--store-line) !important;
   border-top: 3.5px solid var(--store-primary) !important;
   border-radius: 0.5rem !important;
@@ -609,10 +605,10 @@ html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar {
   padding: 1.5rem !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar h3,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar h4,
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar h3,
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar h4 {
+html[data-storefront="true"] #desktop-filter-sidebar h3,
+html[data-storefront="true"] #desktop-filter-sidebar h4,
+html[data-storefront="true"] #desktop-filter-sidebar h3,
+html[data-storefront="true"] #desktop-filter-sidebar h4 {
   font-family: var(--store-font-heading) !important;
   font-size: 1.05rem !important;
   font-weight: 700 !important;
@@ -625,8 +621,8 @@ html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar h4 {
 }
 
 /* Clean dashed dividers in the sidebar */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar fieldset,
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar fieldset {
+html[data-storefront="true"] #desktop-filter-sidebar fieldset,
+html[data-storefront="true"] #desktop-filter-sidebar fieldset {
   border: 0 !important;
   border-top: 1.5px dashed var(--store-line) !important;
   padding: 1.15rem 0 !important;
@@ -636,8 +632,8 @@ html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar fiel
   gap: 0.65rem !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar legend,
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar legend {
+html[data-storefront="true"] #desktop-filter-sidebar legend,
+html[data-storefront="true"] #desktop-filter-sidebar legend {
   font-weight: 800 !important;
   font-size: 0.72rem !important;
   text-transform: uppercase !important;
@@ -646,8 +642,8 @@ html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar lege
   padding-bottom: 0.35rem !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar label,
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar label {
+html[data-storefront="true"] #desktop-filter-sidebar label,
+html[data-storefront="true"] #desktop-filter-sidebar label {
   display: flex !important;
   align-items: center !important;
   gap: 0.6rem !important;
@@ -659,16 +655,16 @@ html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar labe
   transition: all 140ms ease !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar label:hover,
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar label:hover {
+html[data-storefront="true"] #desktop-filter-sidebar label:hover,
+html[data-storefront="true"] #desktop-filter-sidebar label:hover {
   color: var(--store-primary) !important;
 }
 
 /* Lookbook index style left accent bar on active categories */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar label:has(input:checked),
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar label:has(input:checked),
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar .active-category,
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar .active-category {
+html[data-storefront="true"] #desktop-filter-sidebar label:has(input:checked),
+html[data-storefront="true"] #desktop-filter-sidebar label:has(input:checked),
+html[data-storefront="true"] #desktop-filter-sidebar .active-category,
+html[data-storefront="true"] #desktop-filter-sidebar .active-category {
   border-left: 3px solid var(--store-primary) !important;
   padding-left: 0.7rem !important;
   color: var(--store-primary) !important;
@@ -677,8 +673,8 @@ html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar .act
   border-radius: 0 0.35rem 0.35rem 0 !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-filter-sidebar input[type="checkbox"],
-html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar input[type="checkbox"] {
+html[data-storefront="true"] #desktop-filter-sidebar input[type="checkbox"],
+html[data-storefront="true"] #desktop-filter-sidebar input[type="checkbox"] {
   accent-color: var(--store-primary) !important;
   width: 1rem;
   height: 1rem;
@@ -688,16 +684,16 @@ html[data-storefront-template="fashion-and-design"] #desktop-filter-sidebar inpu
    Unique Product Cards: Portrait (4 / 5) Runway Cards with Subtle Hover Zoom
    ========================================================================== */
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #items-grid,
-html[data-storefront-template="fashion-and-design"] #items-grid {
+html[data-storefront="true"] #items-grid,
+html[data-storefront="true"] #items-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.5rem;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #storefront-view .product-card,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card,
-html[data-storefront-template="fashion-and-design"] .product-card {
+html[data-storefront="true"] #storefront-view .product-card,
+html[data-storefront="true"] .product-card,
+html[data-storefront="true"] .product-card {
   border: 1px solid var(--store-line) !important;
   border-radius: 0.5rem !important;
   background: var(--store-white) !important;
@@ -709,18 +705,18 @@ html[data-storefront-template="fashion-and-design"] .product-card {
   transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease, border-color 220ms ease !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #storefront-view .product-card:hover,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card:hover,
-html[data-storefront-template="fashion-and-design"] .product-card:hover {
+html[data-storefront="true"] #storefront-view .product-card:hover,
+html[data-storefront="true"] .product-card:hover,
+html[data-storefront="true"] .product-card:hover {
   transform: translateY(-4px) !important;
   border-color: color-mix(in srgb, var(--store-primary) 40%, var(--store-line)) !important;
   box-shadow: 0 16px 36px -10px rgba(28, 19, 14, 0.12) !important;
 }
 
 /* Runway Portrait Media (4 / 5 aspect ratio) with subtle hover zoom */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] #items-grid .product-card-media,
-html[data-storefront-template="fashion-and-design"] .product-card-media,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-media {
+html[data-storefront="true"] #items-grid .product-card-media,
+html[data-storefront="true"] .product-card-media,
+html[data-storefront="true"] .product-card-media {
   aspect-ratio: 4 / 5 !important;
   background-color: var(--store-media-bg) !important;
   overflow: hidden !important;
@@ -729,25 +725,25 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .pro
   border-bottom: 1px solid var(--store-line) !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-media img,
-html[data-storefront-template="fashion-and-design"] .product-card-media img,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-media .svg-illustration,
-html[data-storefront-template="fashion-and-design"] .product-card-media .svg-illustration {
+html[data-storefront="true"] .product-card-media img,
+html[data-storefront="true"] .product-card-media img,
+html[data-storefront="true"] .product-card-media .svg-illustration,
+html[data-storefront="true"] .product-card-media .svg-illustration {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 400ms cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card:hover .product-card-media img,
-html[data-storefront-template="fashion-and-design"] .product-card:hover .product-card-media img,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card:hover .product-card-media .svg-illustration,
-html[data-storefront-template="fashion-and-design"] .product-card:hover .product-card-media .svg-illustration {
+html[data-storefront="true"] .product-card:hover .product-card-media img,
+html[data-storefront="true"] .product-card:hover .product-card-media img,
+html[data-storefront="true"] .product-card:hover .product-card-media .svg-illustration,
+html[data-storefront="true"] .product-card:hover .product-card-media .svg-illustration {
   transform: scale(1.05) !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-body,
-html[data-storefront-template="fashion-and-design"] .product-card-body {
+html[data-storefront="true"] .product-card-body,
+html[data-storefront="true"] .product-card-body {
   padding: 1.1rem 1.15rem 0.5rem !important;
   flex: 1 1 auto;
   display: flex;
@@ -755,9 +751,9 @@ html[data-storefront-template="fashion-and-design"] .product-card-body {
 }
 
 /* Uppercase category tag */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-tag-pill,
-html[data-storefront-template="fashion-and-design"] .product-tag-pill,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-tag {
+html[data-storefront="true"] .product-tag-pill,
+html[data-storefront="true"] .product-tag-pill,
+html[data-storefront="true"] .product-card-tag {
   display: inline-block !important;
   margin-bottom: 0.45rem !important;
   padding: 0.2rem 0.6rem !important;
@@ -771,9 +767,9 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .pro
   width: fit-content;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-title,
-html[data-storefront-template="fashion-and-design"] .product-title,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-title {
+html[data-storefront="true"] .product-card-title,
+html[data-storefront="true"] .product-title,
+html[data-storefront="true"] .product-title {
   color: var(--store-ink) !important;
   font-family: var(--store-font-heading) !important;
   margin: 0.2rem 0 0.45rem !important;
@@ -782,9 +778,9 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .pro
   line-height: 1.35 !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-price,
-html[data-storefront-template="fashion-and-design"] .product-price,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-price {
+html[data-storefront="true"] .product-card-price,
+html[data-storefront="true"] .product-price,
+html[data-storefront="true"] .product-price {
   color: var(--store-primary) !important;
   font-family: var(--store-font-body) !important;
   font-weight: 800 !important;
@@ -793,15 +789,15 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .pro
   padding-top: 0.25rem;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-actions,
-html[data-storefront-template="fashion-and-design"] .product-card-actions {
+html[data-storefront="true"] .product-card-actions,
+html[data-storefront="true"] .product-card-actions {
   padding: 0.75rem 1.15rem 1.15rem !important;
 }
 
 /* Sleek full-width dark/terracotta "Add to Bag" button */
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-add,
-html[data-storefront-template="fashion-and-design"] .add-to-cart-btn,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add-to-cart-btn {
+html[data-storefront="true"] .product-card-add,
+html[data-storefront="true"] .add-to-cart-btn,
+html[data-storefront="true"] .add-to-cart-btn {
   width: 100% !important;
   border-radius: var(--store-btn-radius) !important;
   background-color: var(--store-primary) !important;
@@ -813,17 +809,17 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
   text-transform: uppercase !important;
   padding: 0.75rem 1rem !important;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(154, 52, 18, 0.2) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--store-primary) 20%, transparent) !important;
   transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease !important;
 }
 
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .product-card-add:hover,
-html[data-storefront-template="fashion-and-design"] .add-to-cart-btn:hover,
-html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add-to-cart-btn:hover {
+html[data-storefront="true"] .product-card-add:hover,
+html[data-storefront="true"] .add-to-cart-btn:hover,
+html[data-storefront="true"] .add-to-cart-btn:hover {
   background-color: var(--store-primary-hover) !important;
   border-color: var(--store-primary-hover) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 6px 16px rgba(154, 52, 18, 0.32) !important;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--store-primary) 32%, transparent) !important;
 }
 
 /* ==========================================================================
@@ -831,11 +827,11 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
    ========================================================================== */
 
 @media (max-width: 900px) {
-  html[data-storefront-template="fashion-and-design"] #catalog-layout {
+  html[data-storefront="true"] #catalog-layout {
     grid-template-columns: 1fr;
   }
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] #items-grid,
-  html[data-storefront-template="fashion-and-design"] #items-grid {
+  html[data-storefront="true"] #items-grid,
+  html[data-storefront="true"] #items-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
@@ -847,12 +843,12 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
 
 @media (max-width: 767px) {
   body,
-  html[data-storefront-template="fashion-and-design"] body {
+  html[data-storefront="true"] body {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .site-header,
-  html[data-storefront-template="fashion-and-design"] #site-header {
+  html[data-storefront="true"] .site-header,
+  html[data-storefront="true"] #site-header {
     border-radius: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
@@ -861,15 +857,15 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     border-top: 0 !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .customer-profile-toggle,
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .customer-orders-shortcut,
-  html[data-storefront-template="fashion-and-design"] #customer-profile-toggle,
-  html[data-storefront-template="fashion-and-design"] #customer-orders-shortcut {
+  html[data-storefront="true"] .customer-profile-toggle,
+  html[data-storefront="true"] .customer-orders-shortcut,
+  html[data-storefront="true"] #customer-profile-toggle,
+  html[data-storefront="true"] #customer-orders-shortcut {
     display: none !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .wishlist-action,
-  html[data-storefront-template="fashion-and-design"] #wishlist-toggle {
+  html[data-storefront="true"] .wishlist-action,
+  html[data-storefront="true"] #wishlist-toggle {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -885,19 +881,19 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     box-shadow: 0 3px 10px rgba(28, 19, 14, 0.08) !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] #wishlist-toggle i {
+  html[data-storefront="true"] #wishlist-toggle i {
     width: 1.05rem !important;
     height: 1.05rem !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .wishlist-action [data-wishlist-label],
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .wishlist-action span:not(#wishlist-count),
-  html[data-storefront-template="fashion-and-design"] #wishlist-toggle span:not(#wishlist-count) {
+  html[data-storefront="true"] .wishlist-action [data-wishlist-label],
+  html[data-storefront="true"] .wishlist-action span:not(#wishlist-count),
+  html[data-storefront="true"] #wishlist-toggle span:not(#wishlist-count) {
     display: none !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-cart-btn,
-  html[data-storefront-template="fashion-and-design"] #desktop-cart-btn {
+  html[data-storefront="true"] #desktop-cart-btn,
+  html[data-storefront="true"] #desktop-cart-btn {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -907,16 +903,16 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     min-width: 2.65rem !important;
     padding: 0 !important;
     border-radius: 0.85rem !important;
-    box-shadow: 0 4px 12px rgba(154, 52, 18, 0.24) !important;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--store-primary) 24%, transparent) !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] #desktop-cart-btn i {
+  html[data-storefront="true"] #desktop-cart-btn i {
     width: 1.05rem !important;
     height: 1.05rem !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] #wishlist-count,
-  html[data-storefront-template="fashion-and-design"] #cart-count-badge {
+  html[data-storefront="true"] #wishlist-count,
+  html[data-storefront="true"] #cart-count-badge {
     position: absolute !important;
     top: -0.28rem !important;
     right: -0.28rem !important;
@@ -932,50 +928,50 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     box-sizing: content-box !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] #desktop-cart-btn span:not(#cart-count-badge),
-  html[data-storefront-template="fashion-and-design"] #desktop-cart-btn span:not(#cart-count-badge) {
+  html[data-storefront="true"] #desktop-cart-btn span:not(#cart-count-badge),
+  html[data-storefront="true"] #desktop-cart-btn span:not(#cart-count-badge) {
     display: none !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] .site-header-inner > div:has(#desktop-cart-btn) {
+  html[data-storefront="true"] .site-header-inner > div:has(#desktop-cart-btn) {
     flex: 0 0 auto !important;
     gap: 0.55rem !important;
     margin-left: auto !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] #storefront-main-category-bar,
-  html[data-storefront-template="fashion-and-design"] #catalog-mobile-filter-button {
+  html[data-storefront="true"] #storefront-main-category-bar,
+  html[data-storefront="true"] #catalog-mobile-filter-button {
     display: none !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] .mobile-filter-trigger {
+  html[data-storefront="true"] .mobile-filter-trigger {
     min-height: 2.5rem !important;
     padding: 0 0.85rem !important;
     border: 1px solid var(--store-primary) !important;
     border-radius: 0.75rem !important;
     background: var(--store-primary) !important;
     color: var(--store-on-primary) !important;
-    box-shadow: 0 4px 12px rgba(154, 52, 18, 0.2) !important;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--store-primary) 20%, transparent) !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] .mobile-filter-trigger i {
+  html[data-storefront="true"] .mobile-filter-trigger i {
     width: 1rem !important;
     height: 1rem !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] #mobile-category-pills {
+  html[data-storefront="true"] #mobile-category-pills {
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
   }
 
-  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-filter-group {
+  html[data-storefront="true"] #mobile-category-pills .category-filter-group {
     width: 100%;
     gap: 0.45rem;
   }
 
-  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-pill,
-  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-subpill {
+  html[data-storefront="true"] #mobile-category-pills .category-pill,
+  html[data-storefront="true"] #mobile-category-pills .category-subpill {
     min-height: 2.5rem !important;
     padding: 0.55rem 0.8rem !important;
     border: 1px solid var(--store-line) !important;
@@ -987,53 +983,53 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     justify-content: flex-start !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-pill[aria-selected="true"],
-  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-subpill[aria-selected="true"] {
+  html[data-storefront="true"] #mobile-category-pills .category-pill[aria-selected="true"],
+  html[data-storefront="true"] #mobile-category-pills .category-subpill[aria-selected="true"] {
     border-color: var(--store-primary) !important;
     background: color-mix(in srgb, var(--store-primary) 9%, var(--store-white)) !important;
     color: var(--store-primary) !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] #mobile-category-pills .category-subcategory-list {
+  html[data-storefront="true"] #mobile-category-pills .category-subcategory-list {
     flex-direction: column;
     align-items: stretch;
     margin-left: 0.6rem;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner,
-  html[data-storefront-template="fashion-and-design"] #store-info-banner {
+  html[data-storefront="true"] .store-banner,
+  html[data-storefront="true"] #store-info-banner {
     text-align: center !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner .store-banner-inner,
-  html[data-storefront-template="fashion-and-design"] #store-info-banner {
+  html[data-storefront="true"] .store-banner .store-banner-inner,
+  html[data-storefront="true"] #store-info-banner {
     min-height: 16rem !important;
     padding-top: 1.6rem !important;
     padding-bottom: 1.6rem !important;
     text-align: center !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-copy {
+  html[data-storefront="true"] .store-banner-copy {
     margin-right: auto !important;
     margin-left: auto !important;
     text-align: center !important;
     width: 100% !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner h1,
-  html[data-storefront-template="fashion-and-design"] #banner-store-name {
+  html[data-storefront="true"] .store-banner h1,
+  html[data-storefront="true"] #banner-store-name {
     font-size: clamp(1.85rem, 8vw, 2.6rem) !important;
     text-align: center !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner #banner-store-desc,
-  html[data-storefront-template="fashion-and-design"] #banner-store-desc {
+  html[data-storefront="true"] .store-banner #banner-store-desc,
+  html[data-storefront="true"] #banner-store-desc {
     font-size: 0.92rem !important;
     line-height: 1.55 !important;
     text-align: center !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-banner-actions {
+  html[data-storefront="true"] .store-banner-actions {
     display: flex !important;
     flex-direction: column !important;
     width: 100% !important;
@@ -1041,11 +1037,11 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     margin-top: 1rem !important;
   }
 
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .storefront-primary-cta,
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] #banner-store-call-btn,
-  html[data-storefront="true"][data-storefront-template="fashion-and-design"] .store-contact,
-  html[data-storefront-template="fashion-and-design"] #storefront-primary-cta,
-  html[data-storefront-template="fashion-and-design"] #banner-store-call-btn {
+  html[data-storefront="true"] .storefront-primary-cta,
+  html[data-storefront="true"] #banner-store-call-btn,
+  html[data-storefront="true"] .store-contact,
+  html[data-storefront="true"] #storefront-primary-cta,
+  html[data-storefront="true"] #banner-store-call-btn {
     width: 100% !important;
     min-height: 2.75rem !important;
     justify-content: center !important;
@@ -1055,7 +1051,7 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
   }
 
   .mobile-bottom-nav,
-  html[data-storefront-template="fashion-and-design"] #mobile-bottom-nav {
+  html[data-storefront="true"] #mobile-bottom-nav {
     display: grid !important;
     grid-template-columns: repeat(5, 1fr) !important;
     align-items: center !important;
@@ -1064,16 +1060,16 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     z-index: 40 !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] .mobile-bottom-nav {
+  html[data-storefront="true"] .mobile-bottom-nav {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 
-  html[data-storefront-template="fashion-and-design"] .mobile-bottom-nav button.mobile-search-link:not(.hidden):not([hidden]) {
+  html[data-storefront="true"] .mobile-bottom-nav button.mobile-search-link:not(.hidden):not([hidden]) {
     display: none !important;
   }
 
   .mobile-bottom-nav button:not(.hidden):not([hidden]),
-  html[data-storefront-template="fashion-and-design"] #mobile-bottom-nav button:not(.hidden):not([hidden]) {
+  html[data-storefront="true"] #mobile-bottom-nav button:not(.hidden):not([hidden]) {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -1088,14 +1084,14 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
 
   .mobile-bottom-nav button i,
   .mobile-bottom-nav button svg,
-  html[data-storefront-template="fashion-and-design"] #mobile-bottom-nav button svg {
+  html[data-storefront="true"] #mobile-bottom-nav button svg {
     width: 1.25rem !important;
     height: 1.25rem !important;
     flex-shrink: 0 !important;
   }
 
   .mobile-bottom-nav button span,
-  html[data-storefront-template="fashion-and-design"] #mobile-bottom-nav button span {
+  html[data-storefront="true"] #mobile-bottom-nav button span {
     font-size: 0.65rem !important;
     font-weight: 700 !important;
     line-height: 1.1 !important;
@@ -1122,7 +1118,7 @@ html[data-storefront="true"][data-storefront-template="fashion-and-design"] .add
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    box-shadow: 0 4px 14px rgba(154, 52, 18, 0.22) !important;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--store-primary) 22%, transparent) !important;
     z-index: 45 !important;
   }
 

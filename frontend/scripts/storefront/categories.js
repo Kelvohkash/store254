@@ -12,8 +12,7 @@ async function loadCategories() {
 
   if (res.ok && res.data.success) {
     state.categories = res.data.data;
-    const isFashionTemplate = document.documentElement.dataset.storefrontTemplate === "fashion-and-design";
-    const isHeaderFashionTemplate = document.documentElement.dataset.storefrontTemplate === "fashion-beauty-cosmetics";
+    const isStorefront = document.documentElement.dataset.storefront === "true";
     let html = `
       <button onclick="selectCategory('')" class="category-pill ${
         state.selectedCategory === ""
@@ -25,7 +24,7 @@ async function loadCategories() {
     for (const cat of state.categories) {
       const isSelected = state.selectedCategory === cat.slug;
       const children = cat.children || [];
-      if (isFashionTemplate) {
+      if (isStorefront) {
         const expanded = isSelected || children.some((sub) => state.selectedCategory === sub.slug);
         html += `<div class="category-filter-group">
           <button onclick="selectCategory('${escapeHtml(cat.slug)}')" class="category-pill ${isSelected ? "category-pill-active" : "category-pill-inactive"}" aria-selected="${isSelected}" aria-expanded="${expanded}" type="button">${escapeHtml(cat.name)}${children.length ? `<span class="category-expand-indicator" aria-hidden="true">${expanded ? "−" : "+"}</span>` : ""}</button>`;
@@ -49,7 +48,6 @@ async function loadCategories() {
         </button>
       `;
 
-      // Other templates retain their current flat category listing.
       if (children.length > 0) {
         for (const sub of children) {
           const isSubSelected = state.selectedCategory === sub.slug;
@@ -67,11 +65,11 @@ async function loadCategories() {
     }
 
     container.innerHTML = html;
-    if (mobileCategoryContainer) mobileCategoryContainer.innerHTML = isFashionTemplate ? html : "";
-    mobileCategorySection?.classList.toggle("hidden", !isFashionTemplate);
-    if (headerContainer) headerContainer.innerHTML = isHeaderFashionTemplate ? html : "";
-    if (mobileHeaderContainer) mobileHeaderContainer.innerHTML = isHeaderFashionTemplate ? html : "";
-    headerNav?.classList.toggle("hidden", !isHeaderFashionTemplate);
+    if (mobileCategoryContainer) mobileCategoryContainer.innerHTML = isStorefront ? html : "";
+    mobileCategorySection?.classList.toggle("hidden", !isStorefront);
+    if (headerContainer) headerContainer.innerHTML = isStorefront ? html : "";
+    if (mobileHeaderContainer) mobileHeaderContainer.innerHTML = isStorefront ? html : "";
+    headerNav?.classList.toggle("hidden", !isStorefront);
   }
 }
 

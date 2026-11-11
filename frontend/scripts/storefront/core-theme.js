@@ -1,33 +1,23 @@
-// Theme Palette & Layout Engine
-const STOREFRONT_LAYOUTS = {
-  "modern-retailer": { header: "compact-search-first", card: "grid-card" },
-  "lifestyle-boutique": { header: "centered-brand", card: "grid-card" },
-  "single-product-maker": { header: "centered-brand", card: "grid-card" },
-  "service-portfolio": { header: "minimal-nav", card: "service-card" },
-};
-
+// Every store shares one storefront design and can customize its accent colour.
 async function applyStorefrontSettings(settings = {}) {
-  settings = settings || {};
   const root = document.documentElement;
-  const catalog = await loadStorefrontTemplateCatalog();
-  const requestedId = /^[a-z0-9][a-z0-9-]{0,63}$/i.test(settings.storefrontTemplate || "") ? settings.storefrontTemplate : "";
-  const template = catalog.templates.find((entry) => entry.id === requestedId)
-    || catalog.templates.find((entry) => entry.id === "fashion-and-design")
-    || { id: "fashion-and-design", defaults: {} };
-  const defaults = template.defaults || {};
-  const archetype = STOREFRONT_LAYOUTS[defaults.archetype] ? defaults.archetype : "modern-retailer";
-
-  root.dataset.storefrontType = archetype;
-  root.dataset.storefrontTemplate = template.id;
+  root.dataset.storefrontType = "lifestyle-boutique";
+  root.dataset.storefront = "true";
   root.dataset.productImageRatio = "square";
   root.dataset.cardDensity = "comfortable";
-  root.dataset.headingFont = defaults.font || "modern";
-  root.dataset.heroStyle = defaults.hero || "split";
+  root.dataset.headingFont = "editorial";
+  root.dataset.heroStyle = "editorial";
   root.dataset.heroFocalPoint = "center";
-  root.dataset.headerVariant = defaults.header || STOREFRONT_LAYOUTS[archetype].header;
-  root.dataset.productCardStyle = defaults.card || STOREFRONT_LAYOUTS[archetype].card;
-
-  await loadStorefrontTemplateStylesheet(template);
+  root.dataset.headerVariant = "centered-brand";
+  root.dataset.productCardStyle = "grid-card";
+  const accent = /^#[0-9a-f]{6}$/i.test(settings?.primaryColor || "") ? settings.primaryColor : "#9a3412";
+  root.style.setProperty("--store-primary", accent);
+  root.style.setProperty("--store-primary-hover", `color-mix(in srgb, ${accent} 80%, #000)`);
+  root.style.setProperty("--store-primary-subtle", `color-mix(in srgb, ${accent} 14%, #fff)`);
+  root.style.setProperty("--store-primary-glow", `color-mix(in srgb, ${accent} 26%, transparent)`);
+  root.style.setProperty("--store-green", accent);
+  root.style.setProperty("--store-green-dark", `color-mix(in srgb, ${accent} 80%, #000)`);
+  await loadDefaultStorefrontStyles();
 }
 
 function setHeaderLogo(src = DEFAULT_STORE_LOGO, alt = "Store254") {

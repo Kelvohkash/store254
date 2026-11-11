@@ -323,30 +323,21 @@
 
       <!-- ══════════ SETTINGS PAGE ══════════ -->
       <section id="page-settings" class="hidden">
-        <div class="max-w-7xl grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_390px] gap-6 items-start">
+        <div class="max-w-5xl">
           <div class="space-y-6">
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2"><i data-lucide="paintbrush-vertical" class="w-4 h-4 text-emerald-600"></i> Store appearance &amp; profile</h3>
-              <p class="text-xs text-slate-500 mb-5">Choose your storefront template and manage your store profile, contact details, and social media links.</p>
+              <p class="text-xs text-slate-500 mb-5">Manage your storefront details and choose an accent colour for buttons and the glossy hero.</p>
               <form onsubmit="saveStoreSettings(event)" class="space-y-6">
-                <input id="settings-storefront-template" type="hidden" value="fashion-and-design">
-                <input id="settings-storefront-archetype" type="hidden" value="modern-retailer">
-                <input id="settings-header-variant" type="hidden" value="compact-search-first">
-                <input id="settings-product-card-style" type="hidden" value="grid-card">
-                <input id="settings-heading-font" type="hidden" value="modern">
-                <input id="settings-image-ratio" type="hidden" value="square">
-                <input id="settings-hero-style" type="hidden" value="split">
-                <input id="settings-hero-focal" type="hidden" value="center">
-                <input id="settings-card-density" type="hidden" value="comfortable">
-                <input id="settings-section-intro" type="hidden" value="true">
-                <input id="settings-section-social" type="hidden" value="true">
-                <input id="settings-section-contact" type="hidden" value="true">
-
-                <div>
-                  <div class="flex items-center justify-between gap-3"><label class="label">Choose a template</label><span class="text-[11px] text-slate-400">Swipe to explore</span></div>
-                  <div id="template-choice-grid" class="template-choice-grid" role="group" aria-label="Storefront templates" tabindex="0"></div>
+                <div class="max-w-sm">
+                  <label class="label" for="settings-primary-color">Store accent colour</label>
+                  <select id="settings-primary-color" class="input">
+                    <option value="#9a3412">Warm terracotta</option>
+                    <option value="#2563eb">Ocean blue</option>
+                    <option value="#16805a">Forest green</option>
+                    <option value="#8b3fa5">Plum</option>
+                  </select>
                 </div>
-
                 <!-- Store Identity & Branding -->
                 <div class="border-t border-slate-100 pt-5 space-y-4">
                   <h4 class="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -355,11 +346,11 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label class="label">Store Name *</label>
-                      <input id="settings-name" type="text" required class="input" placeholder="e.g. Savannah Living" oninput="updateDesignPreview()" />
+                      <input id="settings-name" type="text" required class="input" placeholder="e.g. Savannah Living" />
                     </div>
                     <div>
                       <label class="label">Tagline / Hero Kicker</label>
-                      <input id="settings-tagline" type="text" class="input" placeholder="e.g. Curated Kenyan Craft &amp; Home" oninput="updateDesignPreview()" />
+                      <input id="settings-tagline" type="text" class="input" placeholder="e.g. Curated Kenyan Craft &amp; Home" />
                     </div>
                   </div>
                   <div>
@@ -375,7 +366,7 @@
                             Upload Logo
                             <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-logo', this)" />
                           </label>
-                          <button type="button" onclick="document.getElementById('settings-logo').value=''; if(typeof updateDesignPreview==='function') updateDesignPreview();" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
+                          <button type="button" onclick="document.getElementById('settings-logo').value='';" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
                         </div>
                       </div>
                       <input id="settings-logo" type="text" readonly class="input text-xs bg-slate-50 cursor-not-allowed text-slate-600" placeholder="Upload logo using button above" />
@@ -388,7 +379,7 @@
                             Upload Banner
                             <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-banner', this)" />
                           </label>
-                          <button type="button" onclick="document.getElementById('settings-banner').value=''; if(typeof updateDesignPreview==='function') updateDesignPreview();" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
+                          <button type="button" onclick="document.getElementById('settings-banner').value='';" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
                         </div>
                       </div>
                       <input id="settings-banner" type="text" readonly class="input text-xs bg-slate-50 cursor-not-allowed text-slate-600" placeholder="Upload banner using button above" />
@@ -437,7 +428,7 @@
 
                 <div class="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
                   <button type="submit" class="btn-primary"><i data-lucide="check" class="w-4 h-4"></i> Save &amp; Apply to Store</button>
-                  <span id="design-draft-status" class="text-xs text-slate-500" aria-live="polite">Preview your choices before applying.</span>
+                  <span id="design-draft-status" class="text-xs text-slate-500" aria-live="polite">Your colour will update buttons and the glossy hero surface.</span>
                 </div>
               </form>
             </div>
@@ -457,21 +448,6 @@
               <div id="custom-domain-dns-box" class="hidden mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 space-y-1"></div>
             </div>
           </div>
-          <aside class="design-preview-panel">
-            <div class="design-preview-heading"><div><p class="design-preview-eyebrow">Live preview</p><h4 id="design-preview-heading">Your storefront</h4></div><span class="design-preview-live"><i></i> Preview</span></div>
-            <div class="design-preview-controls" role="group" aria-label="Preview device size">
-              <button type="button" class="is-active" data-preview-size="desktop" onclick="setDesignPreviewSize('desktop', this)">Desktop</button>
-              <button type="button" data-preview-size="mobile" onclick="setDesignPreviewSize('mobile', this)">Phone</button>
-            </div>
-            <div id="design-preview-stage" class="design-preview-stage" data-template="fashion-and-design" data-preview-size="desktop">
-              <div class="design-preview-site">
-                <div class="design-preview-nav"><span id="design-preview-mark" class="design-preview-mark">S</span><strong id="design-preview-store">Your Store</strong><span class="design-preview-nav-links">Shop　 About</span><b>Bag 0</b></div>
-                <div class="design-preview-hero"><div><small id="design-preview-kicker">MADE FOR EVERY DAY</small><h5 id="design-preview-title">Good things,<br>chosen well.</h5><p>Products and prices from your store.</p><button id="design-preview-button" type="button">Explore collection</button></div><div class="design-preview-hero-art"><span></span><i></i><b></b></div></div>
-                <div class="design-preview-products"><div class="design-preview-section-title"><strong>Featured products</strong><span>View all →</span></div><div class="design-preview-product-grid"><article><div class="design-preview-product-art art-one"></div><small>FEATURED</small><strong>Store product</strong><span>Current price</span></article><article><div class="design-preview-product-art art-two"></div><small>FEATURED</small><strong>Store product</strong><span>Current price</span></article></div></div>
-              </div>
-            </div>
-            <p id="design-preview-description" class="design-preview-caption">Shared store products and shopping tools in this template.</p>
-          </aside>
         </div>
       </section>
       <!-- ══════════ PAYMENTS PAGE ══════════ -->
@@ -749,7 +725,6 @@
 <script src="./scripts/admin/product-editor.js"></script>
 <script src="./scripts/admin/catalog.js"></script>
 <script src="./scripts/admin/orders.js"></script>
-<script src="./scripts/admin/design-preview.js"></script>
 <script src="./scripts/admin/design-branding.js"></script>
 <script src="./scripts/admin/design.js"></script>
 <script src="./scripts/admin/payments.js"></script>

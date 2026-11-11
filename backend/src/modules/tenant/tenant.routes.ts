@@ -72,11 +72,6 @@ export const updateStoreProfileSchema = z.object({
       storefrontArchetype: z
         .enum(["modern-retailer", "lifestyle-boutique", "single-product-maker", "service-portfolio"])
         .optional(),
-      storefrontTemplate: z
-        .string()
-        .regex(/^[a-z0-9][a-z0-9-]{0,63}$/i)
-        .optional(),
-      storefrontTemplateVersion: z.number().int().positive().max(1000).optional(),
       headingFont: z.enum(["modern", "editorial", "rounded"]).optional(),
       productImageRatio: z.enum(["square", "portrait", "landscape"]).optional(),
       heroStyle: z.enum(["split", "editorial", "minimal"]).optional(),
@@ -143,10 +138,13 @@ tenantSettingsRouter.patch(
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
     const db = createDb(c.env.DB);
 
-    const mergedSettings = {
+    const mergedSettings: Record<string, unknown> = {
       ...currentSettings,
       ...(body.settings || {}),
     };
+    delete mergedSettings.storefrontTemplate;
+    delete mergedSettings.storefrontTemplateVersion;
+    delete mergedSettings.themePalette;
 
     await db
       .update(tenants)

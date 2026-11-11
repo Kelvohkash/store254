@@ -304,8 +304,8 @@ html[data-storefront="true"] #header-platform-logo {
   /* Flat sticky header: remove pill/curved shape and margins */
   .site-header,
   html[data-storefront="true"] .site-header,
-  html[data-storefront-template] .site-header,
-  html[data-storefront-template] #site-header {
+  html[data-storefront="true"] .site-header,
+  html[data-storefront="true"] #site-header {
     position: sticky !important;
     top: 0 !important;
     left: 0 !important;
@@ -375,14 +375,14 @@ html[data-storefront="true"] #header-platform-logo {
   html[data-storefront="true"] .customer-profile-toggle,
   html[data-storefront="true"] #customer-profile-toggle,
   html[data-storefront="true"] .customer-orders-shortcut,
-  html[data-storefront-template] .customer-profile-toggle,
-  html[data-storefront-template] #customer-profile-toggle,
-  html[data-storefront-template] .customer-orders-shortcut {
+  html[data-storefront="true"] .customer-profile-toggle,
+  html[data-storefront="true"] #customer-profile-toggle,
+  html[data-storefront="true"] .customer-orders-shortcut {
     display: none !important;
   }
   html[data-storefront="true"] .wishlist-action,
-  html[data-storefront-template] .wishlist-action,
-  html[data-storefront-template] #wishlist-toggle {
+  html[data-storefront="true"] .wishlist-action,
+  html[data-storefront="true"] #wishlist-toggle {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -399,7 +399,7 @@ html[data-storefront="true"] #header-platform-logo {
   }
   #desktop-cart-btn,
   html[data-storefront="true"] #desktop-cart-btn,
-  html[data-storefront-template] #desktop-cart-btn {
+  html[data-storefront="true"] #desktop-cart-btn {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;

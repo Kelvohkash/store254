@@ -148,7 +148,7 @@ function renderCatalogView() {
 }
 
 function scrollCatalogItemsIntoView() {
-  if (document.documentElement.dataset.storefrontTemplate !== "fashion-and-design") return;
+  if (document.documentElement.dataset.storefront !== "true") return;
   const drawer = document.getElementById("mobile-filter-drawer");
   if (drawer && !drawer.classList.contains("hidden")) return;
   if (document.getElementById("storefront-view")?.classList.contains("hidden")) return;

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Store254 UI polish layer
-   Shared refinements for the marketplace + every storefront template.
+   Shared refinements for the marketplace and storefront.
    Everything is driven by the automatic --store-* tokens so it stays
    readable on any foreground/background pair (light or dark).
    ========================================================================== */
@@ -257,21 +257,8 @@ html[data-storefront="true"] .mobile-bottom-nav button:active { transform: scale
 /* ---------- Footer ---------- */
 html[data-storefront="true"] .site-footer { background: var(--store-white) !important; color: var(--store-muted); }
 
-/* ---------- Marketplace home (store directory + seller templates) ---------- */
-.template-gallery-card, .platform-stores-grid > a { transition: transform 260ms var(--ease-out), box-shadow 260ms ease, border-color 200ms ease; }
-.template-gallery-start {
-  width: calc(100% - 1.7rem);
-  margin: 0 .85rem .9rem;
-  padding: .65rem 1rem;
-  border: 1px solid #dce4db;
-  border-radius: 999px;
-  background: #fff;
-  color: #254e38;
-  font-size: .74rem;
-  font-weight: 800;
-  transition: background-color 160ms ease, color 160ms ease, transform 160ms var(--ease-out);
-}
-.template-gallery-start:hover { background: #254e38; color: #fff; transform: translateY(-1px); }
+/* ---------- Marketplace home ---------- */
+.platform-stores-grid > a { transition: transform 260ms var(--ease-out), box-shadow 260ms ease, border-color 200ms ease; }
 .platform-primary { transition: transform 200ms var(--ease-out), box-shadow 200ms ease, background 200ms ease; }
 .platform-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -10px rgba(168, 66, 67, .45); }
 .platform-header-cta {
