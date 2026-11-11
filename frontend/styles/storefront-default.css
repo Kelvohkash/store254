@@ -1351,6 +1351,10 @@ html[data-storefront="true"] .product-card-add:hover {
 }
 
 @media (max-width: 767px) {
+  html[data-storefront="true"] #storefront-drilldown-header {
+    display: none !important;
+  }
+
   body,
   html[data-storefront="true"] body {
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;

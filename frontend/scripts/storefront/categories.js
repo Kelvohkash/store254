@@ -1,5 +1,31 @@
 // Categories & Dynamic Faceted Filters Engine
 
+const STOREFRONT_CATEGORY_HISTORY_KEY = "__storefrontCategory";
+
+if (typeof window !== "undefined" && window.history) {
+  const currentHistoryState = window.history.state && typeof window.history.state === "object"
+    ? window.history.state
+    : {};
+  if (!(STOREFRONT_CATEGORY_HISTORY_KEY in currentHistoryState)) {
+    window.history.replaceState(
+      { ...currentHistoryState, [STOREFRONT_CATEGORY_HISTORY_KEY]: state.selectedCategory || "" },
+      "",
+      window.location.href,
+    );
+  }
+
+  window.addEventListener("popstate", (event) => {
+    const historyState = event.state;
+    if (!historyState || typeof historyState !== "object" || !(STOREFRONT_CATEGORY_HISTORY_KEY in historyState)) return;
+    const previousCategory = historyState[STOREFRONT_CATEGORY_HISTORY_KEY] || "";
+    if (previousCategory === (state.selectedCategory || "")) return;
+    toggleFilterPopover(null);
+    state.selectedCategory = previousCategory;
+    renderCategoryNavigation();
+    Promise.all([loadDynamicFilters(), loadItems()]).then(scrollCatalogItemsIntoView);
+  });
+}
+
 const ATTRIBUTE_LABELS = {
   brand: "Brand",
   screen_size: "Screen Size",
@@ -394,6 +420,16 @@ async function loadCategories() {
 
 function selectCategory(slug) {
   const shouldAnimate = state.selectedCategory !== slug;
+  if (shouldAnimate && window.matchMedia?.("(max-width: 767px)").matches) {
+    const currentHistoryState = window.history.state && typeof window.history.state === "object"
+      ? window.history.state
+      : {};
+    window.history.pushState(
+      { ...currentHistoryState, [STOREFRONT_CATEGORY_HISTORY_KEY]: slug || "" },
+      "",
+      window.location.href,
+    );
+  }
   toggleFilterPopover(null);
   state.selectedCategory = slug;
   renderCategoryNavigation();
