@@ -383,7 +383,20 @@ function scrollCatalogItemsIntoView() {
   const drawer = document.getElementById("mobile-filter-drawer");
   if (drawer && !drawer.classList.contains("hidden")) return;
   if (document.getElementById("storefront-view")?.classList.contains("hidden")) return;
-  document.getElementById("catalog-items-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  const section = document.getElementById("catalog-items-section");
+  if (!section) return;
+
+  const header = document.querySelector(".site-header, #site-header");
+  const filterBar = document.getElementById("storefront-main-category-bar");
+  const headerHeight = header?.getBoundingClientRect().height || 0;
+  const filterIsSticky = filterBar && getComputedStyle(filterBar).position === "sticky";
+  const filterHeight = filterIsSticky ? filterBar.getBoundingClientRect().height : 0;
+  const visibleTop = headerHeight + filterHeight + 12;
+  const sectionTop = section.getBoundingClientRect().top;
+  const destination = Math.max(0, window.scrollY + sectionTop - visibleTop);
+
+  window.scrollTo({ top: destination, behavior: "smooth" });
 }
 
 async function loadItems(forceRefresh = false) {

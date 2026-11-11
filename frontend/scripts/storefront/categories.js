@@ -459,7 +459,7 @@ function clearSearchInput() {
   if (pcInput) pcInput.value = "";
   if (mobInput) mobInput.value = "";
   syncSearchClearButtons();
-  loadItems();
+  loadItems().then(scrollCatalogItemsIntoView);
 }
 
 function buildMergedFacets(apiFacets = []) {
@@ -794,7 +794,7 @@ function toggleFilter(code, value, checked) {
   }
 
   renderDynamicFiltersUI();
-  loadItems();
+  loadItems().then(scrollCatalogItemsIntoView);
 }
 
 function clearFacetFilter(code) {
@@ -802,17 +802,17 @@ function clearFacetFilter(code) {
     delete state.activeFilters[code];
   }
   renderDynamicFiltersUI();
-  loadItems();
+  loadItems().then(scrollCatalogItemsIntoView);
 }
 
 function toggleDealsFilter(force) {
   state.onlyDeals = typeof force === "boolean" ? force : !state.onlyDeals;
-  loadItems();
+  loadItems().then(scrollCatalogItemsIntoView);
 }
 
 function setItemTypeFilter(type) {
   state.itemTypeFilter = state.itemTypeFilter === type ? "" : type;
-  loadItems();
+  loadItems().then(scrollCatalogItemsIntoView);
 }
 
 function onDesktopPriceInput(val) {
@@ -854,7 +854,7 @@ function applyPriceFilter(val) {
   state.priceFilterActive = numeric < maxBound;
   onDesktopPriceInput(numeric);
   renderPricePresets();
-  loadItems();
+  loadItems().then(scrollCatalogItemsIntoView);
 }
 
 function setPricePreset(maxVal) {
@@ -870,7 +870,7 @@ function setPricePreset(maxVal) {
   if (mobSlider) mobSlider.value = String(target);
   onDesktopPriceInput(target);
   renderPricePresets();
-  loadItems();
+  loadItems().then(scrollCatalogItemsIntoView);
 }
 
 function toggleFilterPopover(id) {
@@ -1003,5 +1003,5 @@ function removeSingleFilter(type, key, val) {
     }
     renderDynamicFiltersUI();
   }
-  loadItems();
+  loadItems().then(scrollCatalogItemsIntoView);
 }
