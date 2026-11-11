@@ -467,6 +467,22 @@ html[data-storefront="true"] .category-scroll-hint {
   display: none;
 }
 
+@keyframes categorySwipeNudge {
+  0%, 55%, 100% { transform: translateX(0); }
+  25% { transform: translateX(3px); }
+}
+
+html[data-storefront="true"] .category-scroll-hint:not(.hidden) > span {
+  display: inline-block;
+  animation: categorySwipeNudge 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-storefront="true"] .category-scroll-hint:not(.hidden) > span {
+    animation: none;
+  }
+}
+
 html[data-storefront="true"] .url-protocol {
   color: var(--store-muted);
   opacity: 0.65;
