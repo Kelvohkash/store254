@@ -302,11 +302,11 @@ function renderCategoryNavigation(animateLevelChange = false) {
   container.innerHTML = pillsHtml;
   if (animateLevelChange) {
     Array.from(container.children).forEach((pill, index) => {
-      pill.classList.add("filter-paper-peel-in");
-      pill.style.setProperty("--filter-peel-delay", `${Math.min(index, 8) * 34}ms`);
+      pill.classList.add("filter-brick-lay-in");
+      pill.style.setProperty("--filter-brick-delay", `${Math.min(index, 8) * 90}ms`);
       pill.addEventListener("animationend", () => {
-        pill.classList.remove("filter-paper-peel-in");
-        pill.style.removeProperty("--filter-peel-delay");
+        pill.classList.remove("filter-brick-lay-in");
+        pill.style.removeProperty("--filter-brick-delay");
       }, { once: true });
     });
   }
@@ -428,6 +428,7 @@ async function loadCategories() {
 
 function selectCategory(slug) {
   const shouldAnimate = state.selectedCategory !== slug;
+  toggleFilterPopover(null);
   state.selectedCategory = slug;
   renderCategoryNavigation();
   Promise.all([loadDynamicFilters(), loadItems()]).then(() => {
@@ -874,20 +875,65 @@ function setPricePreset(maxVal) {
 
 function toggleFilterPopover(id) {
   const allPopovers = document.querySelectorAll(".filter-popover-card");
+  let openingPopover = null;
   allPopovers.forEach((el) => {
-    const wrap = el.closest(".relative");
-    const btn = wrap?.querySelector(".pc-filter-dropdown-btn");
     if (el.id === id) {
-      const willOpen = el.classList.contains("hidden");
-      el.classList.toggle("hidden", !willOpen);
-      btn?.setAttribute("aria-expanded", String(willOpen));
-      btn?.classList.toggle("is-open", willOpen);
-    } else {
-      el.classList.add("hidden");
-      btn?.setAttribute("aria-expanded", "false");
-      btn?.classList.remove("is-open");
+      openingPopover = el.classList.contains("hidden") ? el : null;
     }
   });
+
+  allPopovers.forEach((el) => closeFilterPopover(el));
+  if (!openingPopover) return;
+
+  const trigger = Array.from(document.querySelectorAll(".pc-filter-dropdown-btn"))
+    .find((button) => button.getAttribute("aria-controls") === id);
+  if (!trigger || !openingPopover.parentNode) return;
+
+  const placeholder = document.createComment(`popover:${id}`);
+  openingPopover.parentNode.insertBefore(placeholder, openingPopover);
+  openingPopover._popoverPlaceholder = placeholder;
+  openingPopover._popoverTrigger = trigger;
+  document.body.appendChild(openingPopover);
+  openingPopover.classList.remove("hidden");
+  trigger.setAttribute("aria-expanded", "true");
+  trigger.classList.add("is-open");
+
+  const triggerRect = trigger.getBoundingClientRect();
+  const panelWidth = Math.min(openingPopover.getBoundingClientRect().width || 256, window.innerWidth - 24);
+  const left = Math.max(12, Math.min(triggerRect.left, window.innerWidth - panelWidth - 12));
+  const panelHeight = openingPopover.getBoundingClientRect().height;
+  const top = triggerRect.bottom + panelHeight + 12 <= window.innerHeight
+    ? triggerRect.bottom + 8
+    : Math.max(12, triggerRect.top - panelHeight - 8);
+  Object.assign(openingPopover.style, {
+    position: "fixed",
+    inset: "auto",
+    top: `${top}px`,
+    left: `${left}px`,
+    right: "auto",
+    bottom: "auto",
+    width: `${panelWidth}px`,
+    maxHeight: `calc(100vh - ${Math.max(24, top + 12)}px)`,
+    overflowY: "auto",
+    zIndex: "1000",
+    margin: "0",
+  });
+}
+
+function closeFilterPopover(popover) {
+  if (!popover) return;
+  const trigger = popover._popoverTrigger || Array.from(document.querySelectorAll(".pc-filter-dropdown-btn"))
+    .find((button) => button.getAttribute("aria-controls") === popover.id);
+  if (popover._popoverPlaceholder?.parentNode) {
+    popover._popoverPlaceholder.parentNode.insertBefore(popover, popover._popoverPlaceholder);
+    popover._popoverPlaceholder.remove();
+  }
+  delete popover._popoverPlaceholder;
+  delete popover._popoverTrigger;
+  popover.classList.add("hidden");
+  popover.removeAttribute("style");
+  trigger?.setAttribute("aria-expanded", "false");
+  trigger?.classList.remove("is-open");
 }
 
 function toggleDesktopFilterDrawer(show) {
@@ -911,14 +957,15 @@ if (typeof document !== "undefined") {
   document.addEventListener("click", (e) => {
     const openPopover = document.querySelector(".filter-popover-card:not(.hidden)");
     if (!openPopover) return;
-    const wrap = openPopover.closest(".relative");
-    if (wrap && !wrap.contains(e.target)) {
-      openPopover.classList.add("hidden");
-      const btn = wrap.querySelector(".pc-filter-dropdown-btn");
-      btn?.setAttribute("aria-expanded", "false");
-      btn?.classList.remove("is-open");
+    const trigger = openPopover._popoverTrigger;
+    if (!openPopover.contains(e.target) && !trigger?.contains(e.target)) {
+      closeFilterPopover(openPopover);
     }
   });
+
+  document.addEventListener("scroll", () => {
+    document.querySelectorAll(".filter-popover-card:not(.hidden)").forEach(closeFilterPopover);
+  }, true);
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
