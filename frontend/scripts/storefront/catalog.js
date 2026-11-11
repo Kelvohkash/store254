@@ -89,7 +89,7 @@ function buildItemCardHtml(item) {
     .join("");
 
   return `
-    <article class="product-card flex flex-col group relative">
+    <article class="product-card${isService ? " product-card--service" : ""} flex flex-col group relative">
       <div class="product-card-media relative overflow-hidden flex items-center justify-center cursor-pointer" onclick="viewItemDetails(${inlineJs(item.id)})">
         <img src="${escapeHtml(primaryImg)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" width="400" height="400" class="w-full h-full object-cover">
         ${secImg ? `<img class="product-card-secondary w-full h-full object-cover" src="${escapeHtml(secImg)}" alt="" loading="lazy" decoding="async" width="400" height="400">` : ""}
@@ -267,9 +267,6 @@ function setCatalogViewMode(mode = "grid-4") {
   if (grid) {
     grid.dataset.viewMode = mode;
   }
-  document.documentElement.dataset.productCardStyle =
-    mode === "list" ? "horizontal-list-row" : "grid-card";
-
   for (const m of ["grid-4", "grid-3", "list"]) {
     const btn = document.getElementById(`view-mode-${m}`);
     if (btn) btn.classList.toggle("is-active", m === mode);

@@ -1196,14 +1196,6 @@ html[data-storefront="true"] .product-card-desc {
   color: var(--store-muted);
 }
 
-/* Show description in PC Horizontal List view */
-html[data-storefront="true"][data-product-card-style="horizontal-list-row"] .product-card-desc {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-}
-
 html[data-storefront="true"] .product-card-specs {
   min-height: 0 !important;
   margin: 0.2rem 0 0.4rem !important;

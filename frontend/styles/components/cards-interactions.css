@@ -274,41 +274,26 @@
 .product-wishlist.is-wishlisted { color: #e11d48; }
 .product-wishlist.is-wishlisted svg { fill: currentColor; }
 
-html[data-product-card-style="horizontal-list-row"] #items-grid {
-  grid-template-columns: minmax(0, 1fr) !important;
-}
-html[data-product-card-style="horizontal-list-row"] .product-card {
-  display: grid !important;
-  grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
-  flex-direction: row;
-}
-html[data-product-card-style="horizontal-list-row"] .product-card-media {
-  aspect-ratio: 4 / 3 !important;
-  height: 100% !important;
-  border-right: 1px solid var(--store-line) !important;
-  border-bottom: 0 !important;
-}
-html[data-product-card-style="service-card"] .product-card {
+html[data-product-card-style="service-card"] .product-card--service {
+  grid-column: span 2;
   border-top: 3px solid var(--store-primary) !important;
+  box-shadow: 0 12px 30px -18px color-mix(in srgb, var(--store-primary) 45%, transparent) !important;
 }
-html[data-product-card-style="service-card"] .product-card-media {
+html[data-product-card-style="service-card"] .product-card--service .product-card-media {
   aspect-ratio: 4 / 3 !important;
 }
-html[data-product-card-style="service-card"] .product-card-content { padding: 1.1rem !important; }
+html[data-product-card-style="service-card"] .product-card--service .product-card-content {
+  padding: 1.1rem !important;
+}
+html[data-product-card-style="service-card"] .product-card--service .product-card-desc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
 
 @media (max-width: 767px) {
-  html[data-product-card-style="horizontal-list-row"] .product-card-media {
-    padding: 0 !important;
-  }
-  html[data-product-card-style="horizontal-list-row"] .product-card {
-    grid-template-columns: minmax(6rem, 38%) minmax(0, 1fr);
-  }
-  html[data-product-card-style="horizontal-list-row"] .product-card-content {
-    min-width: 0;
-    padding: 0.55rem !important;
-  }
-  html[data-product-card-style="horizontal-list-row"] .product-card-title {
-    min-height: 0;
-    max-height: 2.6em;
+  html[data-product-card-style="service-card"] .product-card--service {
+    grid-column: 1 / -1;
   }
 }

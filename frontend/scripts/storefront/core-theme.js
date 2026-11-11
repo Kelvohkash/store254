@@ -36,7 +36,7 @@ async function applyStorefrontSettings(settings = {}) {
   root.dataset.heroStyle = settings?.heroStyle || "split";
   root.dataset.heroFocalPoint = settings?.heroFocalPoint || "center";
   root.dataset.headerVariant = settings?.headerVariant || "compact-search-first";
-  root.dataset.productCardStyle = settings?.productCardStyle || "grid-card";
+  root.dataset.productCardStyle = settings?.productCardStyle === "service-card" ? "service-card" : "grid-card";
 
   const accent = resolveStoreAccentColor(settings);
 
