@@ -389,10 +389,18 @@ function scrollCatalogItemsIntoView() {
 
   const header = document.querySelector(".site-header, #site-header");
   const filterBar = document.getElementById("storefront-main-category-bar");
-  const headerHeight = header?.getBoundingClientRect().height || 0;
   const filterIsSticky = filterBar && getComputedStyle(filterBar).position === "sticky";
+  const headerBottom = Math.max(0, header?.getBoundingClientRect().bottom || 0);
+  const filterStyle = filterIsSticky ? getComputedStyle(filterBar) : null;
+  const filterTop = filterIsSticky ? Number.parseFloat(filterStyle.top) || 0 : 0;
   const filterHeight = filterIsSticky ? filterBar.getBoundingClientRect().height : 0;
-  const visibleTop = headerHeight + filterHeight + 12;
+  // The sticky bar's top offset already includes the space below the header.
+  // Adding the header height again makes the scroll target too high on phones,
+  // where the filter bar sits farther below the header, leaving cards clipped
+  // underneath it after a filter/search update.
+  const visibleTop = filterIsSticky
+    ? Math.max(headerBottom, filterTop) + filterHeight + 12
+    : headerBottom + 12;
   const sectionTop = section.getBoundingClientRect().top;
   const destination = Math.max(0, window.scrollY + sectionTop - visibleTop);
 

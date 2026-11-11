@@ -50,7 +50,7 @@ function buildFacetDropdownHtml(facet) {
 
   return `
     <div class="relative inline-block text-left drilldown-facet-wrap shrink-0">
-      <button type="button" onclick="toggleFilterPopover('popover-${facet.code}')" class="category-pill pc-filter-dropdown-btn ${
+      <button type="button" onclick="event.stopPropagation(); toggleFilterPopover('popover-${facet.code}')" class="category-pill pc-filter-dropdown-btn ${
         isActive ? "is-active" : ""
       }" aria-expanded="false" aria-controls="popover-${facet.code}" title="Filter by ${escapeHtml(facet.name)}">
         <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
@@ -99,7 +99,7 @@ function buildPriceDropdownHtml() {
 
   return `
     <div class="relative inline-block text-left drilldown-price-wrap shrink-0">
-      <button id="pc-price-dropdown-btn" type="button" onclick="toggleFilterPopover('price-popover')" class="category-pill pc-filter-dropdown-btn ${
+      <button id="pc-price-dropdown-btn" type="button" onclick="event.stopPropagation(); toggleFilterPopover('price-popover')" class="category-pill pc-filter-dropdown-btn ${
         isPriceActive ? "is-active" : ""
       }" aria-expanded="false" aria-controls="price-popover" title="Filter by price">
         <i data-lucide="badge-dollar-sign" class="w-3.5 h-3.5"></i>
@@ -895,6 +895,7 @@ function toggleFilterPopover(id) {
   openingPopover._popoverTrigger = trigger;
   document.body.appendChild(openingPopover);
   openingPopover.classList.remove("hidden");
+  openingPopover.style.setProperty("display", "block", "important");
   trigger.setAttribute("aria-expanded", "true");
   trigger.classList.add("is-open");
 
@@ -958,7 +959,8 @@ if (typeof document !== "undefined") {
     const openPopover = document.querySelector(".filter-popover-card:not(.hidden)");
     if (!openPopover) return;
     const trigger = openPopover._popoverTrigger;
-    if (!openPopover.contains(e.target) && !trigger?.contains(e.target)) {
+    const clickedTrigger = trigger && (e.composedPath().includes(trigger) || trigger.contains(e.target));
+    if (!openPopover.contains(e.target) && !clickedTrigger) {
       closeFilterPopover(openPopover);
     }
   });
