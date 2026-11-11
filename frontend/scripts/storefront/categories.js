@@ -902,10 +902,9 @@ function toggleFilterPopover(id) {
   const triggerRect = trigger.getBoundingClientRect();
   const panelWidth = Math.min(openingPopover.getBoundingClientRect().width || 256, window.innerWidth - 24);
   const left = Math.max(12, Math.min(triggerRect.left, window.innerWidth - panelWidth - 12));
-  const panelHeight = openingPopover.getBoundingClientRect().height;
-  const top = triggerRect.bottom + panelHeight + 12 <= window.innerHeight
-    ? triggerRect.bottom + 8
-    : Math.max(12, triggerRect.top - panelHeight - 8);
+  const top = triggerRect.bottom + 8;
+  const viewportHeight = window.visualViewport?.height || window.innerHeight;
+  const availableHeight = Math.max(0, viewportHeight - top - 12);
   Object.assign(openingPopover.style, {
     position: "fixed",
     inset: "auto",
@@ -914,7 +913,7 @@ function toggleFilterPopover(id) {
     right: "auto",
     bottom: "auto",
     width: `${panelWidth}px`,
-    maxHeight: `calc(100vh - ${Math.max(24, top + 12)}px)`,
+    maxHeight: `${availableHeight}px`,
     overflowY: "auto",
     zIndex: "1000",
     margin: "0",
