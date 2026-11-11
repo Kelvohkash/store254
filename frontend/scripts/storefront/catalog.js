@@ -69,7 +69,6 @@ function getFilteredItems(items) {
 function buildItemCardHtml(item) {
   const isService = item.itemType === "SERVICE";
   const hasDisc = item.compareAtPrice && Number(item.compareAtPrice) > Number(item.basePrice);
-  const discPct = hasDisc ? Math.round(((item.compareAtPrice - item.basePrice) / item.compareAtPrice) * 100) : 0;
   const primaryImg = item.images?.[0] || (isService
     ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80"
     : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80");
@@ -105,7 +104,7 @@ function buildItemCardHtml(item) {
         </button>
         <div class="product-badge-rail absolute top-2.5 inset-x-2.5 flex items-center justify-between pointer-events-none">
           <div class="flex items-center gap-1.5 flex-wrap">
-            ${isService ? `<span class="badge-service-pill">Service</span>` : hasDisc ? `<span class="badge-discount-urgent">-${discPct}%</span>` : ""}
+            ${isService ? `<span class="badge-service-pill">Service</span>` : ""}
           </div>
         </div>
       </div>
