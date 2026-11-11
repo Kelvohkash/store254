@@ -431,7 +431,7 @@ html[data-storefront="true"] .drilldown-header {
   min-height: 1.85rem;
   margin-top: 0.3rem;
   padding: 0 0.35rem;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 html[data-storefront="true"] .drilldown-breadcrumb-viewport {
@@ -452,7 +452,7 @@ html[data-storefront="true"] .drilldown-url-bar {
   width: max-content;
   min-width: 100%;
   flex-wrap: nowrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   white-space: nowrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.72rem;

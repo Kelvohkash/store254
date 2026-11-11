@@ -212,8 +212,8 @@ function renderCategoryNavigation(animateLevelChange = false) {
     if (breadcrumbViewport) {
       requestAnimationFrame(() => {
         breadcrumbViewport.scrollTo({
-          left: breadcrumbViewport.scrollWidth,
-          behavior: animateLevelChange ? "smooth" : "auto",
+          left: 0,
+          behavior: "auto",
         });
       });
     }
