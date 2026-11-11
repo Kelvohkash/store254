@@ -14,7 +14,7 @@ import { AppError } from "../../security/error-handler";
 export const attributesRouter = new Hono<AppEnv>();
 
 const createAttributeSchema = z.object({
-  categoryId: z.string().uuid().nullable().optional(), // Nullable: global attribute
+  categoryId: z.string().min(1).nullable().optional(), // Nullable: global attribute; supports seeded category IDs too
   code: z.string().min(1).max(50),
   name: z.string().min(1).max(100),
   type: z.enum(["TEXT", "NUMBER", "SELECT", "MULTISELECT", "BOOLEAN", "RANGE"]).default("TEXT"),

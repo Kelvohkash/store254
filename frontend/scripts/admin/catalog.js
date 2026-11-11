@@ -1,6 +1,87 @@
 // PRODUCTS
 // ═══════════════════════════════════════
 
+let productAttributeDraft = {};
+let productAttributeLoadToken = 0;
+
+function captureProductAttributeFields() {
+  document.querySelectorAll('[data-product-attribute-code]').forEach((field) => {
+    const code = field.dataset.productAttributeCode;
+    const value = field.value.trim();
+    if (!value) {
+      delete productAttributeDraft[code];
+    } else if (field.dataset.productAttributeType === 'NUMBER' && Number.isFinite(Number(value))) {
+      productAttributeDraft[code] = Number(value);
+    } else {
+      productAttributeDraft[code] = value;
+    }
+  });
+}
+
+function collectProductAttributeFields() {
+  captureProductAttributeFields();
+  return { ...productAttributeDraft };
+}
+
+async function loadProductAttributeFields(categoryId, initialAttributes = null) {
+  const section = document.getElementById('product-attributes-section');
+  const container = document.getElementById('product-attributes-fields');
+  if (!section || !container) return;
+
+  if (initialAttributes) productAttributeDraft = { ...initialAttributes };
+  else captureProductAttributeFields();
+
+  const token = ++productAttributeLoadToken;
+  container.innerHTML = '<p class="text-xs text-slate-500">Loading product details…</p>';
+  section.classList.remove('hidden');
+
+  const query = categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : '';
+  const response = await apiFetch(`/attributes${query}`);
+  if (token !== productAttributeLoadToken) return;
+  if (!response.ok) {
+    section.classList.add('hidden');
+    container.innerHTML = '';
+    return;
+  }
+
+  const definitions = Array.isArray(response.data?.data) ? response.data.data : [];
+  const applicable = definitions.filter((definition) => categoryId
+    ? !definition.categoryId || definition.categoryId === categoryId
+    : !definition.categoryId);
+
+  if (!applicable.length) {
+    section.classList.add('hidden');
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = applicable.map((definition) => {
+    const code = String(definition.code || '');
+    const name = String(definition.name || code);
+    const value = productAttributeDraft[code] ?? '';
+    const required = definition.isRequired ? 'required' : '';
+    const type = definition.type || 'TEXT';
+    const options = Array.isArray(definition.options) ? definition.options : [];
+    const id = `product-attribute-${code}`;
+    let control;
+
+    if (type === 'BOOLEAN') {
+      control = `<select id="${escHtml(id)}" data-product-attribute-code="${escHtml(code)}" data-product-attribute-type="BOOLEAN" class="input" ${required}>
+        <option value="">Choose…</option><option value="true" ${String(value) === 'true' ? 'selected' : ''}>Yes</option><option value="false" ${String(value) === 'false' ? 'selected' : ''}>No</option>
+      </select>`;
+    } else if (type === 'SELECT') {
+      control = `<input id="${escHtml(id)}" data-product-attribute-code="${escHtml(code)}" data-product-attribute-type="TEXT" type="text" list="${escHtml(id)}-options" value="${escHtml(value)}" class="input" placeholder="${escHtml(name)}" ${required}>
+        <datalist id="${escHtml(id)}-options">${options.map((option) => `<option value="${escHtml(option)}"></option>`).join('')}</datalist>`;
+    } else {
+      const isNumber = type === 'NUMBER' || type === 'RANGE';
+      const hint = type === 'MULTISELECT' ? 'Separate values with commas' : `${name}${definition.unit ? ` (${definition.unit})` : ''}`;
+      control = `<input id="${escHtml(id)}" data-product-attribute-code="${escHtml(code)}" data-product-attribute-type="${isNumber ? type : 'TEXT'}" type="${isNumber ? 'number' : 'text'}" value="${escHtml(value)}" class="input" placeholder="${escHtml(hint)}" ${required}>`;
+    }
+
+    return `<label class="block text-xs font-bold text-slate-700" for="${escHtml(id)}">${escHtml(name)}${definition.isRequired ? ' *' : ''}${control}</label>`;
+  }).join('');
+}
+
 async function loadProducts() {
   const r = await apiFetch('/items?limit=100&includeAll=true');
   const rawItems = r.ok ? (r.data?.data?.items || r.data?.data || []) : [];
@@ -57,6 +138,7 @@ function filterProducts() {
 }
 
 function openAddProductModal() {
+  productAttributeDraft = {};
   document.getElementById('product-modal-title').textContent = 'Add Product';
   document.getElementById('product-id').value = '';
   document.getElementById('product-title').value = '';
@@ -76,12 +158,13 @@ function openAddProductModal() {
   document.getElementById('product-status').value = 'PUBLISHED';
   document.getElementById('product-type').value = 'PHYSICAL';
   document.getElementById('product-category').value = '';
+  loadProductAttributeFields('');
   document.getElementById('product-modal-error').classList.add('hidden');
   document.getElementById('product-modal').classList.remove('hidden');
   lucide.createIcons();
 }
 
-function openEditProductModal(id) {
+async function openEditProductModal(id) {
   const p = allProducts.find(x => x.id === id);
   if (!p) return;
   document.getElementById('product-modal-title').textContent = 'Edit Product';
@@ -103,6 +186,8 @@ function openEditProductModal(id) {
   document.getElementById('product-status').value = p.status || 'PUBLISHED';
   document.getElementById('product-type').value = p.itemType || 'PHYSICAL';
   document.getElementById('product-category').value = p.categoryId || '';
+  productAttributeDraft = { ...(p.attributes || {}) };
+  await loadProductAttributeFields(p.categoryId || '', p.attributes || {});
   document.getElementById('product-modal-error').classList.add('hidden');
   document.getElementById('product-modal').classList.remove('hidden');
   lucide.createIcons();
@@ -138,6 +223,7 @@ async function handleSaveProduct(e) {
     status: document.getElementById('product-status').value,
     itemType: document.getElementById('product-type').value,
     categoryId: document.getElementById('product-category').value || undefined,
+    attributes: collectProductAttributeFields(),
     trackInventory: true,
     variants: typeof collectProductVariants === 'function' ? collectProductVariants() : [],
   };

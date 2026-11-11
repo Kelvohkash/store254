@@ -29,6 +29,83 @@ async function loadCategories() {
   if (parentCatEl) {
     parentCatEl.innerHTML = '<option value="">None (top-level)</option>' + flatCategories.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.displayName)}</option>`).join('');
   }
+  const attributeCategoryEl = document.getElementById('attribute-category');
+  if (attributeCategoryEl) {
+    attributeCategoryEl.innerHTML = '<option value="">All categories</option>' + flatCategories.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.displayName)}</option>`).join('');
+  }
+  await loadAttributeDefinitions();
+}
+
+function syncAttributeCodeFromName() {
+  const nameEl = document.getElementById('attribute-name');
+  const codeEl = document.getElementById('attribute-code');
+  if (!nameEl || !codeEl || codeEl.dataset.edited === 'true') return;
+  codeEl.value = nameEl.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+function markAttributeCodeEdited() {
+  const codeEl = document.getElementById('attribute-code');
+  if (codeEl) codeEl.dataset.edited = 'true';
+}
+
+async function loadAttributeDefinitions() {
+  const container = document.getElementById('attribute-definitions-list');
+  if (!container) return;
+  const response = await apiFetch('/attributes');
+  if (!response.ok) {
+    container.innerHTML = '<p class="py-3 text-xs text-slate-500">Could not load product fields.</p>';
+    return;
+  }
+  const definitions = Array.isArray(response.data?.data) ? response.data.data : [];
+  if (!definitions.length) {
+    container.innerHTML = '<p class="py-3 text-xs text-slate-500">No product fields configured yet.</p>';
+    return;
+  }
+  container.innerHTML = definitions.map((definition) => {
+    const categoryName = flatCategories.find((category) => category.id === definition.categoryId)?.name;
+    const options = Array.isArray(definition.options) ? definition.options : [];
+    return `<div class="py-3 flex items-start justify-between gap-3">
+      <div class="min-w-0"><p class="font-bold text-slate-800">${escHtml(definition.name)} <span class="font-mono text-[10px] text-slate-400">${escHtml(definition.code)}</span></p>
+      <p class="mt-0.5 text-[11px] text-slate-500">${categoryName ? escHtml(categoryName) : 'All categories'}${definition.unit ? ` · ${escHtml(definition.unit)}` : ''}${options.length ? ` · ${options.map(escHtml).join(', ')}` : ''}</p></div>
+      <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${definition.isFilterable ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${definition.isFilterable ? 'Filter' : 'Product detail'}</span>
+    </div>`;
+  }).join('');
+}
+
+async function handleSaveAttributeDefinition(event) {
+  event.preventDefault();
+  const error = document.getElementById('attribute-form-error');
+  const button = document.getElementById('attribute-save-btn');
+  error.classList.add('hidden');
+  button.disabled = true;
+  const type = document.getElementById('attribute-type').value;
+  const body = {
+    categoryId: document.getElementById('attribute-category').value || null,
+    name: document.getElementById('attribute-name').value.trim(),
+    code: document.getElementById('attribute-code').value.trim(),
+    type,
+    options: type === 'SELECT' ? document.getElementById('attribute-options').value.split(',').map(value => value.trim()).filter(Boolean) : [],
+    unit: document.getElementById('attribute-unit').value.trim() || undefined,
+    isFilterable: document.getElementById('attribute-filterable').checked,
+    isRequired: document.getElementById('attribute-required').checked,
+  };
+  const response = await apiFetch('/attributes', { method: 'POST', body: JSON.stringify(body) });
+  button.disabled = false;
+  if (!response.ok) {
+    error.textContent = apiErrorMessage(response, 'Could not add this product field. Check whether its key already exists for this category.');
+    error.classList.remove('hidden');
+    return;
+  }
+  document.getElementById('attribute-name').value = '';
+  document.getElementById('attribute-code').value = '';
+  document.getElementById('attribute-code').dataset.edited = 'false';
+  document.getElementById('attribute-options').value = '';
+  document.getElementById('attribute-unit').value = '';
+  document.getElementById('attribute-type').value = 'SELECT';
+  document.getElementById('attribute-filterable').checked = true;
+  document.getElementById('attribute-required').checked = false;
+  showToast('Product field added.');
+  await loadAttributeDefinitions();
 }
 
 function renderCategoriesTable(cats) {
