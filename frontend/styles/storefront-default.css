@@ -1670,11 +1670,22 @@ html[data-storefront="true"] .store-showcase-metric {
   html[data-storefront="true"][data-catalog-pinned="true"] #items-grid {
     flex: 1 1 auto !important;
     align-content: start !important;
+    grid-auto-rows: max-content !important;
     min-height: 0 !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
     padding: 0.2rem 0.15rem 1rem !important;
     scrollbar-gutter: stable;
+  }
+
+  html[data-storefront="true"][data-catalog-pinned="true"] #items-grid > .product-card {
+    height: max-content !important;
+    align-self: start !important;
+  }
+
+  html[data-storefront="true"][data-catalog-pinned="true"] #items-grid > .product-card > .product-card-media {
+    flex: 0 0 auto !important;
+    width: 100% !important;
   }
 }
