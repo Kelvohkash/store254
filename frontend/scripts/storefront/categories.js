@@ -295,6 +295,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
   }
 
   container.innerHTML = pillsHtml;
+  container.scrollLeft = 0;
   requestAnimationFrame(syncCategoryScrollHint);
   if (animateLevelChange) {
     Array.from(container.children).forEach((pill, index) => {

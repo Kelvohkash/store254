@@ -554,6 +554,7 @@ html[data-storefront="true"] #category-pills {
   display: flex;
   gap: 0.5rem !important;
   align-items: center;
+  justify-content: flex-start !important;
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
@@ -1530,14 +1531,13 @@ html[data-storefront="true"] .product-card-add:hover {
   html[data-storefront="true"] .category-scroll-hint:not(.hidden) {
     position: absolute;
     z-index: 2;
-    left: 50%;
+    right: 0.7rem;
     bottom: -0.48rem;
     display: inline-flex !important;
     align-items: center;
     gap: 0.2rem;
     flex: 0 0 auto;
     padding: 0.2rem 0.55rem;
-    transform: translateX(-50%);
     border: 1px solid var(--store-primary);
     border-radius: 9999px;
     background: var(--store-white);
