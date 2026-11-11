@@ -248,6 +248,7 @@
         </div>
         <div class="mb-5 grid gap-5 xl:grid-cols-2">
           <form onsubmit="handleSaveAttributeDefinition(event)" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <input id="attribute-id" type="hidden" />
             <div>
               <h3 class="text-sm font-black text-slate-900">Product filters</h3>
               <p class="text-xs text-slate-500 mt-1">Set up fields such as Brand, Screen Size, Resolution, and Warranty.</p>
@@ -258,7 +259,7 @@
             </div>
             <div class="grid grid-cols-2 gap-3">
               <label class="label">For category<select id="attribute-category" class="input mt-1"><option value="">All categories</option></select></label>
-              <label class="label">Field type<select id="attribute-type" class="input mt-1"><option value="SELECT">Choice list</option><option value="TEXT">Text</option><option value="NUMBER">Number</option><option value="BOOLEAN">Yes / No</option></select></label>
+              <label class="label">Field type<select id="attribute-type" class="input mt-1"><option value="SELECT">Choice list</option><option value="TEXT">Text</option><option value="NUMBER">Number</option><option value="BOOLEAN">Yes / No</option><option value="MULTISELECT">Multiple choices</option><option value="RANGE">Range</option></select></label>
             </div>
             <label class="label">Choices <span class="font-normal text-slate-400">(comma separated; for Choice list)</span><input id="attribute-options" class="input mt-1" placeholder="Samsung, Sony, LG" /></label>
             <div class="grid grid-cols-2 gap-3">
@@ -270,6 +271,7 @@
             </div>
             <div id="attribute-form-error" class="hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-xs font-semibold"></div>
             <button type="submit" id="attribute-save-btn" class="btn-primary">Add Product Field</button>
+            <button type="button" id="attribute-cancel-edit-btn" onclick="cancelEditAttributeDefinition()" class="hidden btn-secondary">Cancel Edit</button>
           </form>
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <h3 class="text-sm font-black text-slate-900 mb-3">Configured product fields</h3>

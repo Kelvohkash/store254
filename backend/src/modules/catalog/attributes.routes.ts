@@ -108,3 +108,50 @@ attributesRouter.post(
     );
   }
 );
+
+// Update a store's existing dynamic product field.
+attributesRouter.put(
+  "/:id",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  zValidator("json", createAttributeSchema),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const { id } = c.req.param();
+    const body = c.req.valid("json");
+    const db = createDb(c.env.DB);
+    const [existing] = await db.select().from(attributeDefinitions)
+      .where(and(eq(attributeDefinitions.id, id), eq(attributeDefinitions.tenantId, tenant.id))).limit(1);
+    if (!existing) throw new AppError("Product field not found.", 404, "ATTRIBUTE_NOT_FOUND");
+
+    if (body.categoryId) {
+      const [category] = await db.select({ id: categories.id }).from(categories)
+        .where(and(eq(categories.id, body.categoryId), eq(categories.tenantId, tenant.id))).limit(1);
+      if (!category) throw new AppError("Specified category does not exist.", 404, "CATEGORY_NOT_FOUND");
+    }
+
+    const normalizedCode = slugify(body.code).replace(/-/g, "_");
+    const definitions = await db.select({ id: attributeDefinitions.id, categoryId: attributeDefinitions.categoryId, code: attributeDefinitions.code })
+      .from(attributeDefinitions).where(eq(attributeDefinitions.tenantId, tenant.id));
+    const conflict = definitions.find((definition) =>
+      definition.id !== id && definition.categoryId === (body.categoryId || null) && definition.code === normalizedCode
+    );
+    if (conflict) throw new AppError("A product field with this key already exists for that category.", 409, "ATTRIBUTE_EXISTS");
+
+    await db.update(attributeDefinitions).set({
+      categoryId: body.categoryId || null,
+      code: normalizedCode,
+      name: body.name,
+      type: body.type,
+      options: body.options,
+      unit: body.unit || null,
+      isFilterable: body.isFilterable,
+      isRequired: body.isRequired,
+      displayOrder: body.displayOrder,
+      updatedAt: new Date(),
+    }).where(and(eq(attributeDefinitions.id, id), eq(attributeDefinitions.tenantId, tenant.id)));
+
+    const [updated] = await db.select().from(attributeDefinitions).where(eq(attributeDefinitions.id, id)).limit(1);
+    return c.json({ success: true, message: "Product field updated successfully.", data: updated });
+  }
+);

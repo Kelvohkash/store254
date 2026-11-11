@@ -36,10 +36,12 @@ async function loadCategories() {
   await loadAttributeDefinitions();
 }
 
+let attributeDefinitionsCache = [];
+
 function syncAttributeCodeFromName() {
   const nameEl = document.getElementById('attribute-name');
   const codeEl = document.getElementById('attribute-code');
-  if (!nameEl || !codeEl || codeEl.dataset.edited === 'true') return;
+  if (!nameEl || !codeEl || codeEl.readOnly || codeEl.dataset.edited === 'true') return;
   codeEl.value = nameEl.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 
@@ -57,6 +59,7 @@ async function loadAttributeDefinitions() {
     return;
   }
   const definitions = Array.isArray(response.data?.data) ? response.data.data : [];
+  attributeDefinitionsCache = definitions;
   if (!definitions.length) {
     container.innerHTML = '<p class="py-3 text-xs text-slate-500">No product fields configured yet.</p>';
     return;
@@ -67,15 +70,56 @@ async function loadAttributeDefinitions() {
     return `<div class="py-3 flex items-start justify-between gap-3">
       <div class="min-w-0"><p class="font-bold text-slate-800">${escHtml(definition.name)} <span class="font-mono text-[10px] text-slate-400">${escHtml(definition.code)}</span></p>
       <p class="mt-0.5 text-[11px] text-slate-500">${categoryName ? escHtml(categoryName) : 'All categories'}${definition.unit ? ` · ${escHtml(definition.unit)}` : ''}${options.length ? ` · ${options.map(escHtml).join(', ')}` : ''}</p></div>
-      <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${definition.isFilterable ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${definition.isFilterable ? 'Filter' : 'Product detail'}</span>
+      <div class="shrink-0 flex items-center gap-2"><span class="rounded-full px-2 py-1 text-[10px] font-bold ${definition.isFilterable ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${definition.isFilterable ? 'Filter' : 'Product detail'}</span>
+      <button type="button" onclick="editAttributeDefinition(${inlineJs(definition.id)})" class="text-xs font-bold text-emerald-700 hover:text-emerald-900">Edit</button></div>
     </div>`;
   }).join('');
+}
+
+function editAttributeDefinition(id) {
+  const definition = attributeDefinitionsCache.find((item) => item.id === id);
+  if (!definition) return;
+  document.getElementById('attribute-id').value = definition.id;
+  document.getElementById('attribute-name').value = definition.name || '';
+  const code = document.getElementById('attribute-code');
+  code.value = definition.code || '';
+  code.readOnly = true;
+  document.getElementById('attribute-category').value = definition.categoryId || '';
+  document.getElementById('attribute-type').value = definition.type || 'TEXT';
+  document.getElementById('attribute-options').value = Array.isArray(definition.options) ? definition.options.join(', ') : '';
+  document.getElementById('attribute-unit').value = definition.unit || '';
+  document.getElementById('attribute-filterable').checked = Boolean(definition.isFilterable);
+  document.getElementById('attribute-required').checked = Boolean(definition.isRequired);
+  document.getElementById('attribute-save-btn').textContent = 'Save Changes';
+  document.getElementById('attribute-cancel-edit-btn').classList.remove('hidden');
+  document.getElementById('attribute-form-error').classList.add('hidden');
+  document.getElementById('attribute-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.getElementById('attribute-name').focus();
+}
+
+function cancelEditAttributeDefinition() {
+  document.getElementById('attribute-id').value = '';
+  document.getElementById('attribute-name').value = '';
+  const code = document.getElementById('attribute-code');
+  code.value = '';
+  code.readOnly = false;
+  code.dataset.edited = 'false';
+  document.getElementById('attribute-category').value = '';
+  document.getElementById('attribute-type').value = 'SELECT';
+  document.getElementById('attribute-options').value = '';
+  document.getElementById('attribute-unit').value = '';
+  document.getElementById('attribute-filterable').checked = true;
+  document.getElementById('attribute-required').checked = false;
+  document.getElementById('attribute-save-btn').textContent = 'Add Product Field';
+  document.getElementById('attribute-cancel-edit-btn').classList.add('hidden');
+  document.getElementById('attribute-form-error').classList.add('hidden');
 }
 
 async function handleSaveAttributeDefinition(event) {
   event.preventDefault();
   const error = document.getElementById('attribute-form-error');
   const button = document.getElementById('attribute-save-btn');
+  const id = document.getElementById('attribute-id').value;
   error.classList.add('hidden');
   button.disabled = true;
   const type = document.getElementById('attribute-type').value;
@@ -89,22 +133,15 @@ async function handleSaveAttributeDefinition(event) {
     isFilterable: document.getElementById('attribute-filterable').checked,
     isRequired: document.getElementById('attribute-required').checked,
   };
-  const response = await apiFetch('/attributes', { method: 'POST', body: JSON.stringify(body) });
+  const response = await apiFetch(id ? `/attributes/${id}` : '/attributes', { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
   button.disabled = false;
   if (!response.ok) {
     error.textContent = apiErrorMessage(response, 'Could not add this product field. Check whether its key already exists for this category.');
     error.classList.remove('hidden');
     return;
   }
-  document.getElementById('attribute-name').value = '';
-  document.getElementById('attribute-code').value = '';
-  document.getElementById('attribute-code').dataset.edited = 'false';
-  document.getElementById('attribute-options').value = '';
-  document.getElementById('attribute-unit').value = '';
-  document.getElementById('attribute-type').value = 'SELECT';
-  document.getElementById('attribute-filterable').checked = true;
-  document.getElementById('attribute-required').checked = false;
-  showToast('Product field added.');
+  cancelEditAttributeDefinition();
+  showToast(id ? 'Product field updated.' : 'Product field added.');
   await loadAttributeDefinitions();
 }
 
