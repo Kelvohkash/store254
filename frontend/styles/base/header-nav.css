@@ -414,12 +414,12 @@ html[data-storefront="true"] #header-platform-logo {
     display: none !important;
   }
 
-  /* Row 2: search input + Filters button with no overlap and search icon correctly inside input */
+  /* Row 2: full-width search input */
   .mobile-search {
     display: flex !important;
     align-items: center !important;
-    gap: 0.5rem !important;
-    padding: 0.45rem 0.9rem 0.65rem !important;
+    gap: 0 !important;
+    padding: 0.4rem 0.9rem 0.55rem !important;
     border-top: 1px solid var(--store-line, #e2e8f0) !important;
     border-bottom: 0 !important;
     border-radius: 0 !important;
@@ -458,22 +458,6 @@ html[data-storefront="true"] #header-platform-logo {
     justify-content: center !important;
     color: var(--store-muted, #94a3b8) !important;
     z-index: 2 !important;
-  }
-  .mobile-search button {
-    flex: 0 0 auto !important;
-    height: 2.5rem !important;
-    padding: 0 0.85rem !important;
-    border-radius: 0.65rem !important;
-    border: 1px solid var(--store-line, #e2e8f0) !important;
-    background: var(--store-white, #ffffff) !important;
-    color: var(--store-ink, #0f172a) !important;
-    font-size: 0.78rem !important;
-    font-weight: 600 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.35rem !important;
-    white-space: nowrap !important;
   }
 }
 

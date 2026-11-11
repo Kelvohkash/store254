@@ -1453,12 +1453,38 @@ html[data-storefront="true"] .product-card-add:hover {
   }
 
   html[data-storefront="true"] #storefront-main-category-bar {
-    position: relative !important;
-    top: auto !important;
+    position: sticky !important;
+    top: var(--storefront-sticky-offset, 7rem) !important;
+    z-index: 35 !important;
     display: block !important;
-    padding: 0.5rem 0.6rem !important;
-    margin: 0 0 0.75rem 0 !important;
-    border-radius: 0.85rem !important;
+    width: calc(100% + 1.5rem) !important;
+    margin: 0 -0.75rem 0.75rem !important;
+    padding: 0.4rem 0.55rem !important;
+    border-radius: 0 !important;
+    background: color-mix(in srgb, var(--store-paper) 94%, transparent) !important;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  html[data-storefront="true"] .drilldown-tabs-container {
+    gap: 0.4rem !important;
+    padding: 0.35rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  html[data-storefront="true"] .catalog-sort-wrap {
+    gap: 0.25rem !important;
+    padding-right: 0 !important;
+  }
+
+  html[data-storefront="true"] .catalog-sort-wrap label {
+    display: none !important;
+  }
+
+  html[data-storefront="true"] #sort-selector {
+    max-width: 7.25rem !important;
+    padding: 0.4rem 0.45rem !important;
+    font-size: 0.68rem !important;
   }
 
   html[data-storefront="true"] .category-pill,
