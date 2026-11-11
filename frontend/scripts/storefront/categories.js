@@ -172,17 +172,6 @@ function buildPriceDropdownHtml() {
   `;
 }
 
-function buildDealsPillHtml() {
-  return `
-    <button type="button" data-quick-deals onclick="toggleDealsFilter()" class="category-pill pc-filter-pill-deals shrink-0 ${
-      state.onlyDeals ? "category-pill-active" : "category-pill-inactive"
-    }" aria-pressed="${Boolean(state.onlyDeals)}" title="Filter on sale items">
-      <i data-lucide="flame" class="w-3.5 h-3.5 ${state.onlyDeals ? "text-white" : "text-amber-500"}"></i>
-      <span>On Sale</span>
-    </button>
-  `;
-}
-
 function renderCategoryNavigation(animateLevelChange = false) {
   const container = document.getElementById("category-pills");
   const breadcrumbPath = document.getElementById("storefront-breadcrumb-path");
@@ -262,12 +251,11 @@ function renderCategoryNavigation(animateLevelChange = false) {
         </button>
       `;
     }
-    // Append general Price filter dropdown and Deals toggle
+    // The all-categories level contains root categories and Price only.
     pillsHtml += buildPriceDropdownHtml();
-    pillsHtml += buildDealsPillHtml();
   } else if (activeRoot) {
-    // Level 1: User selected a root category (e.g. Electronics)
-    // The first-level tabs are REMOVED and replaced with the electronics sub-filters!
+    // A selected parent shows only its direct children and Price. Attribute
+    // facets belong to a selected child category, not beside the child list.
     const subcategories = activeRoot.children || [];
 
     for (const sub of subcategories) {
@@ -280,13 +268,8 @@ function renderCategoryNavigation(animateLevelChange = false) {
       `;
     }
 
-    // Append Brand dropdown if brands exist for this root department
-    const brandFacet = (state.facets || []).find((f) => f.code === "brand");
-    if (brandFacet) pillsHtml += buildFacetDropdownHtml(brandFacet);
-
-    // Append Price dropdown and Deals toggle
+    // Keep the parent level focused on its direct children and Price.
     pillsHtml += buildPriceDropdownHtml();
-    pillsHtml += buildDealsPillHtml();
   } else if (activeSub && parentOfSub) {
     // Level 2: User selected a subcategory (e.g. Smart TVs)
     // Replaced with TV-related filters: Brand dropdown, Screen Size, Resolution, Price, etc.!
@@ -295,9 +278,8 @@ function renderCategoryNavigation(animateLevelChange = false) {
       pillsHtml += buildFacetDropdownHtml(facet);
     }
 
-    // Append Price dropdown and Deals toggle
+    // A selected child shows only its applicable category facets and Price.
     pillsHtml += buildPriceDropdownHtml();
-    pillsHtml += buildDealsPillHtml();
   }
 
   container.innerHTML = pillsHtml;
