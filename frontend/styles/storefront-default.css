@@ -1686,4 +1686,14 @@ html[data-storefront="true"] .store-showcase-metric {
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
   }
+
+  html[data-storefront="true"] .drilldown-tabs-container {
+    box-sizing: border-box !important;
+    width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    padding-inline: max(1rem, calc((100vw - 80rem) / 2 + 1.5rem)) !important;
+    border-right: 0 !important;
+    border-left: 0 !important;
+    border-radius: 0 !important;
+  }
 }
