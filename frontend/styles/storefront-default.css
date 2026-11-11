@@ -417,39 +417,91 @@ html[data-storefront="true"] #storefront-content-intro {
 }
 
 /* ==========================================================================
-   3. Category & Subcategory Navigation Bar
+   3. Progressive Drill-Down Navigation & Morphing Filter Tabs
    ========================================================================== */
 
 html[data-storefront="true"] #storefront-main-category-bar {
-  position: sticky !important;
-  top: 4.5rem !important;
-  z-index: 32 !important;
   width: 100%;
-  padding: 0.65rem 0.9rem !important;
-  margin: 0 0 1.35rem 0 !important;
-  background: color-mix(in srgb, var(--store-white) 92%, var(--store-paper)) !important;
-  border: 1px solid var(--store-line) !important;
-  border-radius: 1rem !important;
-  box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--store-primary) 14%, rgba(15, 23, 42, 0.08)) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(145%);
-  backdrop-filter: blur(14px) saturate(145%);
-  mask-image: none !important;
-  -webkit-mask-image: none !important;
+  margin: 0 0 1.25rem 0 !important;
 }
 
-@media (min-width: 1024px) {
-  html[data-storefront="true"] #storefront-view {
-    padding-top: 0 !important;
-  }
+/* URL-Like Breadcrumb Bar */
+html[data-storefront="true"] .drilldown-header {
+  min-height: 1.85rem;
+  padding: 0 0.35rem;
+}
 
-  html[data-storefront="true"] #storefront-main-category-bar {
-    width: 100vw !important;
-    margin: 0 0 0.65rem calc(50% - 50vw) !important;
-    padding: 0 max(1rem, calc((100vw - 86rem) / 2 + 2.5rem)) 0.65rem !important;
-    border-right: 0 !important;
-    border-left: 0 !important;
-    border-radius: 0 !important;
-  }
+html[data-storefront="true"] .drilldown-url-bar {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  color: var(--store-muted);
+}
+
+html[data-storefront="true"] .url-protocol {
+  color: var(--store-muted);
+  opacity: 0.65;
+  user-select: none;
+}
+
+html[data-storefront="true"] .url-crumb-btn {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 0.15rem !important;
+  color: var(--store-muted) !important;
+  font-weight: 600 !important;
+  font-size: 0.72rem !important;
+  cursor: pointer;
+  transition: color 140ms ease !important;
+}
+
+html[data-storefront="true"] .url-crumb-btn:hover {
+  color: var(--store-primary) !important;
+  text-decoration: underline !important;
+}
+
+html[data-storefront="true"] .url-slash {
+  color: var(--store-line);
+  user-select: none;
+}
+
+html[data-storefront="true"] .url-segment {
+  color: var(--store-ink);
+  font-weight: 800;
+  background: var(--store-surface-subtle);
+  border: 1px solid var(--store-line);
+  border-radius: 0.35rem;
+  padding: 0.15rem 0.45rem;
+}
+
+html[data-storefront="true"] .url-back-action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  padding: 0.32rem 0.75rem !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--store-line) !important;
+  background: var(--store-white) !important;
+  color: var(--store-primary) !important;
+  font-size: 0.72rem !important;
+  font-weight: 750 !important;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
+  transition: all 140ms ease !important;
+}
+
+html[data-storefront="true"] .url-back-action-btn:hover {
+  background: var(--store-primary-subtle) !important;
+  border-color: var(--store-primary) !important;
+  transform: translateX(-2px) !important;
+}
+
+/* Morphing Tabs Strip */
+html[data-storefront="true"] .drilldown-tabs-container {
+  background: color-mix(in srgb, var(--store-white) 94%, var(--store-paper)) !important;
+  border: 1px solid var(--store-line) !important;
+  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.05) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 html[data-storefront="true"] #category-pills {
@@ -469,12 +521,12 @@ html[data-storefront="true"] #category-pills button {
   display: inline-flex !important;
   align-items: center !important;
   gap: 0.45rem !important;
-  padding: 0.48rem 0.95rem !important;
+  padding: 0.46rem 0.95rem !important;
   border-radius: 9999px !important;
   border: 1px solid var(--store-line) !important;
   background: var(--store-white) !important;
   color: var(--store-ink) !important;
-  font-size: 0.78rem !important;
+  font-size: 0.76rem !important;
   font-weight: 700 !important;
   white-space: nowrap !important;
   cursor: pointer;
@@ -489,8 +541,7 @@ html[data-storefront="true"] #category-pills button:hover {
 }
 
 html[data-storefront="true"] .category-pill-active,
-html[data-storefront="true"] .category-pill[aria-selected="true"],
-html[data-storefront="true"] #category-pills button[aria-selected="true"] {
+html[data-storefront="true"] .category-pill[aria-selected="true"] {
   background-color: var(--store-primary) !important;
   color: var(--store-on-primary) !important;
   border-color: var(--store-primary) !important;
@@ -516,52 +567,18 @@ html[data-storefront="true"] .category-pill[aria-selected="true"] .category-pill
   color: var(--store-on-primary);
 }
 
-/* Dedicated Subcategory Pill Row */
-html[data-storefront="true"] .subcategory-pills-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-top: 0.55rem;
-  padding-top: 0.55rem;
-  border-top: 1px dashed var(--store-line);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-html[data-storefront="true"] .subcategory-pills-bar.hidden {
-  display: none !important;
-}
-html[data-storefront="true"] .subcategory-bar-label {
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--store-primary);
-  white-space: nowrap;
-  margin-right: 0.15rem;
+/* Drilldown Dropdown Wrappers */
+html[data-storefront="true"] .drilldown-facet-wrap,
+html[data-storefront="true"] .drilldown-price-wrap {
+  position: relative;
 }
 
-html[data-storefront="true"] .category-subpill {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 0.35rem !important;
-  padding: 0.32rem 0.75rem !important;
-  border-radius: 9999px !important;
-  border: 1px solid var(--store-line) !important;
-  background: var(--store-surface-subtle) !important;
-  color: var(--store-muted) !important;
-  font-size: 0.73rem !important;
-  font-weight: 700 !important;
-  white-space: nowrap !important;
-}
-html[data-storefront="true"] .category-subpill[aria-selected="true"],
-html[data-storefront="true"] .category-subpill-active {
+html[data-storefront="true"] .drilldown-facet-wrap .category-pill.is-active,
+html[data-storefront="true"] .drilldown-price-wrap .category-pill.is-active {
   background: var(--store-primary-subtle) !important;
   color: var(--store-primary) !important;
   border-color: var(--store-primary) !important;
-}
-html[data-storefront="true"] .category-subpill-count {
-  font-size: 0.64rem;
-  opacity: 0.8;
+  font-weight: 800 !important;
 }
 
 /* ==========================================================================

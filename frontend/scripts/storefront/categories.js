@@ -40,9 +40,107 @@ function findCategoryNameBySlug(slug) {
   return slug;
 }
 
+function buildFacetDropdownHtml(facet) {
+  if (!facet || !facet.options || facet.options.length === 0) return "";
+  const selectedVals = state.activeFilters[facet.code] || [];
+  const isActive = selectedVals.length > 0;
+  const label = isActive
+    ? `${facet.name}: ${selectedVals.length === 1 ? selectedVals[0] : `(${selectedVals.length})`}`
+    : `${facet.name}`;
+
+  return `
+    <div class="relative inline-block text-left drilldown-facet-wrap shrink-0">
+      <button type="button" onclick="toggleFilterPopover('popover-${facet.code}')" class="category-pill pc-filter-dropdown-btn ${
+        isActive ? "is-active" : ""
+      }" aria-expanded="false" aria-controls="popover-${facet.code}" title="Filter by ${escapeHtml(facet.name)}">
+        <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+        <span>${escapeHtml(label)}</span>
+        <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+      </button>
+      <div id="popover-${facet.code}" class="filter-popover-card hidden absolute left-0 z-50 mt-2 w-64 p-3.5 bg-white rounded-2xl shadow-xl border border-slate-100">
+        <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100">
+          <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">${escapeHtml(facet.name)}</span>
+          ${isActive ? `<button type="button" onclick="clearFacetFilter('${facet.code}')" class="text-[11px] text-slate-500 hover:text-slate-800 font-semibold">Clear</button>` : ""}
+        </div>
+        <div class="facet-options-list space-y-1 max-h-48 overflow-y-auto pr-1">
+          ${facet.options
+            .map((opt) => {
+              const isChecked = selectedVals.some(
+                (v) => String(v).toLowerCase() === String(opt.value).toLowerCase()
+              );
+              return `
+                <label class="facet-option-row flex items-center justify-between text-xs cursor-pointer py-1.5 px-2 rounded-lg transition-colors ${
+                  isChecked ? "is-checked" : ""
+                }">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <input type="checkbox" onchange="toggleFilter('${facet.code}', ${inlineJs(opt.value)}, this.checked)" ${
+                isChecked ? "checked" : ""
+              } class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 shrink-0">
+                    <span class="facet-option-label truncate">${escapeHtml(opt.value)}</span>
+                  </div>
+                  <span class="facet-option-count font-mono text-[11px] shrink-0">${opt.count}</span>
+                </label>
+              `;
+            })
+            .join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildPriceDropdownHtml() {
+  const maxSliderVal = Number(state.selectedPriceRange?.max || state.priceRange?.max || 200000);
+  const maxBound = Number(state.priceRange?.max) || 200000;
+  const isPriceActive = Boolean(state.priceFilterActive && maxSliderVal < maxBound);
+  const label = isPriceActive
+    ? `≤ ${maxSliderVal >= 1000 ? `${Math.round(maxSliderVal / 1000)}K` : maxSliderVal}`
+    : "Price: All";
+
+  return `
+    <div class="relative inline-block text-left drilldown-price-wrap shrink-0">
+      <button id="pc-price-dropdown-btn" type="button" onclick="toggleFilterPopover('price-popover')" class="category-pill pc-filter-dropdown-btn ${
+        isPriceActive ? "is-active" : ""
+      }" aria-expanded="false" aria-controls="price-popover" title="Filter by price">
+        <i data-lucide="badge-dollar-sign" class="w-3.5 h-3.5"></i>
+        <span id="pc-price-btn-label">${escapeHtml(label)}</span>
+        <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+      </button>
+      <div id="price-popover" class="filter-popover-card hidden absolute left-0 z-50 mt-2 w-72 p-4 bg-white rounded-2xl shadow-xl border border-slate-100">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+          <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">Price Budget</span>
+          <span id="price-filter-status" class="text-[11px] font-semibold text-slate-500">${isPriceActive ? `Up to KES ${maxSliderVal.toLocaleString()}` : "Any price"}</span>
+        </div>
+        <div class="flex items-center justify-between text-xs font-mono font-bold text-slate-700 mb-2">
+          <span id="price-label-min">KES ${Number(state.priceRange?.min || 0).toLocaleString()}</span>
+          <span id="price-label-max">KES ${maxSliderVal.toLocaleString()}</span>
+        </div>
+        <input type="range" id="price-filter-max" min="${state.priceRange?.min || 0}" max="${maxBound}" value="${maxSliderVal}" oninput="onDesktopPriceInput(this.value)" onchange="applyPriceFilter(this.value)" class="w-full accent-emerald-600 cursor-pointer mb-3">
+        <div id="desktop-price-presets" class="price-presets-grid mb-3"></div>
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+          <button type="button" onclick="setPricePreset(null); toggleFilterPopover(null);" class="text-slate-500 hover:text-slate-800 font-semibold">Reset</button>
+          <button type="button" onclick="toggleFilterPopover(null)" class="px-3 py-1 bg-slate-900 text-white rounded-lg font-bold">Apply</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildDealsPillHtml() {
+  return `
+    <button type="button" data-quick-deals onclick="toggleDealsFilter()" class="category-pill pc-filter-pill-deals shrink-0 ${
+      state.onlyDeals ? "category-pill-active" : "category-pill-inactive"
+    }" aria-pressed="${Boolean(state.onlyDeals)}" title="Filter on sale items">
+      <i data-lucide="flame" class="w-3.5 h-3.5 ${state.onlyDeals ? "text-white" : "text-amber-500"}"></i>
+      <span>On Sale</span>
+    </button>
+  `;
+}
+
 function renderCategoryNavigation() {
   const container = document.getElementById("category-pills");
-  const subBar = document.getElementById("subcategory-pills-bar");
+  const breadcrumbPath = document.getElementById("storefront-breadcrumb-path");
+  const backWrap = document.getElementById("storefront-drilldown-back");
   const sidebarList = document.getElementById("sidebar-categories-list");
   const sidebarSection = document.getElementById("sidebar-categories-section");
   const mobileCategoryContainer = document.getElementById("mobile-category-pills");
@@ -54,76 +152,157 @@ function renderCategoryNavigation() {
 
   const isStorefront = document.documentElement.dataset.storefront === "true";
   const categories = state.categories || [];
+  const currentSlug = state.selectedCategory || "";
   const totalCount = getCategoryItemCount("");
 
-  // Find active root category (either selected directly or via one of its subcategories)
-  let activeRootCat = null;
+  // Determine hierarchy level
+  const activeRoot = categories.find((c) => c.slug === currentSlug);
+  let activeSub = null;
+  let parentOfSub = null;
+
   for (const cat of categories) {
-    if (cat.slug === state.selectedCategory || (cat.children || []).some((sub) => sub.slug === state.selectedCategory)) {
-      activeRootCat = cat;
+    const sub = (cat.children || []).find((s) => s.slug === currentSlug);
+    if (sub) {
+      activeSub = sub;
+      parentOfSub = cat;
       break;
     }
   }
 
-  // 1. Primary Horizontal Category Pill Bar (Clean single row on PC & Mobile)
-  let pillsHtml = `
-    <button onclick="selectCategory('')" class="category-pill ${
-      state.selectedCategory === "" ? "category-pill-active" : "category-pill-inactive"
-    }" aria-selected="${state.selectedCategory === ""}" type="button">
-      <span>All Categories</span>
-      ${totalCount !== null ? `<span class="category-pill-count">${totalCount}</span>` : ""}
-    </button>
-  `;
-
-  for (const cat of categories) {
-    const children = cat.children || [];
-    const isRootActive = activeRootCat?.id === cat.id;
-    const isDirectSelected = state.selectedCategory === cat.slug;
-    const count = getCategoryItemCount(cat.slug);
-
-    pillsHtml += `
-      <button onclick="selectCategory('${escapeHtml(cat.slug)}')" class="category-pill ${
-        isRootActive || isDirectSelected ? "category-pill-active" : "category-pill-inactive"
-      }" aria-selected="${isRootActive || isDirectSelected}" type="button">
-        <span>${escapeHtml(cat.name)}</span>
-        ${count !== null ? `<span class="category-pill-count">${count}</span>` : ""}
-      </button>
-    `;
-  }
-  container.innerHTML = pillsHtml;
-
-  // 2. Dedicated Subcategory Pill Strip (When active root category has subcategories)
-  if (subBar) {
-    const activeChildren = activeRootCat?.children || [];
-    if (isStorefront && activeRootCat && activeChildren.length > 0) {
-      const rootSelected = state.selectedCategory === activeRootCat.slug;
-      let subHtml = `
-        <span class="subcategory-bar-label">${escapeHtml(activeRootCat.name)}:</span>
-        <button onclick="selectCategory('${escapeHtml(activeRootCat.slug)}')" class="category-subpill ${
-          rootSelected ? "category-subpill-active" : "category-subpill-inactive"
-        }" aria-selected="${rootSelected}" type="button">All ${escapeHtml(activeRootCat.name)}</button>
+  // 1. Render URL-Like Breadcrumb Trail for Backtracking
+  if (breadcrumbPath) {
+    if (!currentSlug) {
+      // Level 0: Main Filters / All Departments
+      breadcrumbPath.innerHTML = `
+        <span class="url-protocol text-slate-400">catalog://</span>
+        <span class="url-segment font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">all-departments</span>
       `;
-      for (const sub of activeChildren) {
-        const isSubSelected = state.selectedCategory === sub.slug;
-        const subCount = getCategoryItemCount(sub.slug);
-        subHtml += `
-          <button onclick="selectCategory('${escapeHtml(sub.slug)}')" class="category-subpill ${
-            isSubSelected ? "category-subpill-active" : "category-subpill-inactive"
-          }" aria-selected="${isSubSelected}" type="button">
-            <span>${escapeHtml(sub.name)}</span>
-            ${subCount !== null ? `<span class="category-subpill-count">${subCount}</span>` : ""}
+      if (backWrap) {
+        backWrap.innerHTML = "";
+        backWrap.classList.add("hidden");
+      }
+    } else if (activeRoot) {
+      // Level 1: Root Department (e.g. Electronics)
+      const cleanRootSlug = activeRoot.slug || activeRoot.name.toLowerCase().replace(/\s+/g, "-");
+      breadcrumbPath.innerHTML = `
+        <span class="url-protocol text-slate-400">catalog://</span>
+        <button type="button" onclick="selectCategory('')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to all departments">all-departments</button>
+        <span class="url-slash text-slate-300">/</span>
+        <span class="url-segment font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">${escapeHtml(cleanRootSlug)}</span>
+      `;
+      if (backWrap) {
+        backWrap.innerHTML = `
+          <button type="button" onclick="selectCategory('')" class="url-back-action-btn flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 text-xs font-bold rounded-xl shadow-xs transition-colors" title="Back to all departments">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Main Filters</span>
           </button>
         `;
+        backWrap.classList.remove("hidden");
       }
-      subBar.innerHTML = subHtml;
-      subBar.classList.remove("hidden");
-    } else {
-      subBar.innerHTML = "";
-      subBar.classList.add("hidden");
+    } else if (activeSub && parentOfSub) {
+      // Level 2: Subcategory Leaf (e.g. Smart TVs under Electronics)
+      const cleanRootSlug = parentOfSub.slug || parentOfSub.name.toLowerCase().replace(/\s+/g, "-");
+      const cleanSubSlug = activeSub.slug || activeSub.name.toLowerCase().replace(/\s+/g, "-");
+      breadcrumbPath.innerHTML = `
+        <span class="url-protocol text-slate-400">catalog://</span>
+        <button type="button" onclick="selectCategory('')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to all departments">all-departments</button>
+        <span class="url-slash text-slate-300">/</span>
+        <button type="button" onclick="selectCategory('${escapeHtml(parentOfSub.slug)}')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to ${escapeHtml(parentOfSub.name)}">${escapeHtml(cleanRootSlug)}</button>
+        <span class="url-slash text-slate-300">/</span>
+        <span class="url-segment font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">${escapeHtml(cleanSubSlug)}</span>
+      `;
+      if (backWrap) {
+        backWrap.innerHTML = `
+          <button type="button" onclick="selectCategory('${escapeHtml(parentOfSub.slug)}')" class="url-back-action-btn flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 text-xs font-bold rounded-xl shadow-xs transition-colors" title="Back to ${escapeHtml(parentOfSub.name)}">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Back to ${escapeHtml(parentOfSub.name)}</span>
+          </button>
+        `;
+        backWrap.classList.remove("hidden");
+      }
     }
+    if (breadcrumbPath.parentElement) renderIcons(breadcrumbPath.parentElement);
   }
 
-  // 3. PC Left Sidebar Structured Category Tree
+  // 2. Render Morphing Tabs Strip
+  let pillsHtml = "";
+
+  if (!currentSlug) {
+    // Level 0: Start with general department tabs
+    pillsHtml += `
+      <button onclick="selectCategory('')" class="category-pill category-pill-active shrink-0" aria-selected="true" type="button">
+        <span>All Departments</span>
+        ${totalCount !== null ? `<span class="category-pill-count">${totalCount}</span>` : ""}
+      </button>
+    `;
+    for (const cat of categories) {
+      const count = getCategoryItemCount(cat.slug);
+      pillsHtml += `
+        <button onclick="selectCategory('${escapeHtml(cat.slug)}')" class="category-pill category-pill-inactive shrink-0" aria-selected="false" type="button">
+          <span>${escapeHtml(cat.name)}</span>
+          ${count !== null ? `<span class="category-pill-count">${count}</span>` : ""}
+        </button>
+      `;
+    }
+    // Append general Price filter dropdown and Deals toggle
+    pillsHtml += buildPriceDropdownHtml();
+    pillsHtml += buildDealsPillHtml();
+  } else if (activeRoot) {
+    // Level 1: User selected a root category (e.g. Electronics)
+    // The first-level tabs are REMOVED and replaced with the electronics sub-filters!
+    const subcategories = activeRoot.children || [];
+    const rootCount = getCategoryItemCount(activeRoot.slug);
+
+    pillsHtml += `
+      <button onclick="selectCategory('${escapeHtml(activeRoot.slug)}')" class="category-pill category-pill-active shrink-0" aria-selected="true" type="button">
+        <span>All ${escapeHtml(activeRoot.name)}</span>
+        ${rootCount !== null ? `<span class="category-pill-count">${rootCount}</span>` : ""}
+      </button>
+    `;
+
+    for (const sub of subcategories) {
+      const subCount = getCategoryItemCount(sub.slug);
+      pillsHtml += `
+        <button onclick="selectCategory('${escapeHtml(sub.slug)}')" class="category-pill category-pill-inactive shrink-0" aria-selected="false" type="button">
+          <span>${escapeHtml(sub.name)}</span>
+          ${subCount !== null ? `<span class="category-pill-count">${subCount}</span>` : ""}
+        </button>
+      `;
+    }
+
+    // Append Brand dropdown if brands exist for this root department
+    const brandFacet = (state.facets || []).find((f) => f.code === "brand");
+    if (brandFacet) pillsHtml += buildFacetDropdownHtml(brandFacet);
+
+    // Append Price dropdown and Deals toggle
+    pillsHtml += buildPriceDropdownHtml();
+    pillsHtml += buildDealsPillHtml();
+  } else if (activeSub && parentOfSub) {
+    // Level 2: User selected a subcategory (e.g. Smart TVs)
+    // Replaced with TV-related filters: Brand dropdown, Screen Size, Resolution, Price, etc.!
+    const subCount = getCategoryItemCount(activeSub.slug);
+
+    pillsHtml += `
+      <button onclick="selectCategory('${escapeHtml(activeSub.slug)}')" class="category-pill category-pill-active shrink-0" aria-selected="true" type="button">
+        <span>All ${escapeHtml(activeSub.name)}</span>
+        ${subCount !== null ? `<span class="category-pill-count">${subCount}</span>` : ""}
+      </button>
+    `;
+
+    // Render Brand dropdown and all category-specific spec dropdowns
+    for (const facet of (state.facets || [])) {
+      pillsHtml += buildFacetDropdownHtml(facet);
+    }
+
+    // Append Price dropdown and Deals toggle
+    pillsHtml += buildPriceDropdownHtml();
+    pillsHtml += buildDealsPillHtml();
+  }
+
+  container.innerHTML = pillsHtml;
+  renderIcons(container);
+
+  // 3. Category Tree inside Desktop Slide-Over Drawer
   if (sidebarList && sidebarSection) {
     if (categories.length === 0) {
       sidebarSection.classList.add("hidden");
@@ -139,7 +318,7 @@ function renderCategoryNavigation() {
       `;
       for (const cat of categories) {
         const children = cat.children || [];
-        const isRootActive = activeRootCat?.id === cat.id;
+        const isRootActive = activeRoot?.id === cat.id || parentOfSub?.id === cat.id;
         const isDirectSelected = state.selectedCategory === cat.slug;
         const count = getCategoryItemCount(cat.slug);
         treeHtml += `
@@ -680,22 +859,21 @@ function setPricePreset(maxVal) {
 }
 
 function toggleFilterPopover(id) {
-  const popovers = ["price-popover", "brand-popover"];
-  for (const pid of popovers) {
-    const el = document.getElementById(pid);
-    const wrap = el?.closest(".relative");
+  const allPopovers = document.querySelectorAll(".filter-popover-card");
+  allPopovers.forEach((el) => {
+    const wrap = el.closest(".relative");
     const btn = wrap?.querySelector(".pc-filter-dropdown-btn");
-    if (pid === id) {
+    if (el.id === id) {
       const willOpen = el.classList.contains("hidden");
       el.classList.toggle("hidden", !willOpen);
       btn?.setAttribute("aria-expanded", String(willOpen));
       btn?.classList.toggle("is-open", willOpen);
-    } else if (el) {
+    } else {
       el.classList.add("hidden");
       btn?.setAttribute("aria-expanded", "false");
-      btn?.classList.toggle("is-open", false);
+      btn?.classList.remove("is-open");
     }
-  }
+  });
 }
 
 function toggleDesktopFilterDrawer(show) {
