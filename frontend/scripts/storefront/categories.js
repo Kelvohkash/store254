@@ -29,6 +29,15 @@ function getCategoryItemCount(slug) {
   return all.filter((item) => matchesCategory(item.categoryId, slug)).length;
 }
 
+function syncCategoryScrollHint() {
+  const strip = document.getElementById("category-pills");
+  const hint = document.getElementById("category-scroll-hint");
+  if (!strip || !hint) return;
+  hint.classList.toggle("hidden", strip.scrollWidth <= strip.clientWidth + 1);
+}
+
+window.addEventListener("resize", syncCategoryScrollHint, { passive: true });
+
 function findCategoryNameBySlug(slug) {
   if (!slug) return "";
   for (const cat of state.categories || []) {
@@ -286,6 +295,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
   }
 
   container.innerHTML = pillsHtml;
+  requestAnimationFrame(syncCategoryScrollHint);
   if (animateLevelChange) {
     Array.from(container.children).forEach((pill, index) => {
       pill.classList.add("filter-brick-lay-in");
