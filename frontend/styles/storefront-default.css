@@ -1714,6 +1714,13 @@ html[data-storefront="true"] .product-card-add:hover {
     display: none !important;
   }
 
+  html[data-storefront="true"] #mobile-wishlist-toggle #mobile-wishlist-count,
+  html[data-storefront="true"] #mobile-cart-btn #mobile-cart-badge {
+    top: 0.05rem !important;
+    right: auto !important;
+    left: calc(50% + 0.05rem) !important;
+  }
+
   html[data-storefront="true"] #mobile-cart-btn,
   html[data-storefront="true"] #mobile-wishlist-toggle[aria-pressed="true"] {
     color: var(--store-primary) !important;
