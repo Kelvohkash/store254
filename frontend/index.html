@@ -273,10 +273,11 @@
         </div>
       </div>
 
-      <!-- Keep the catalog path below the filters, with back navigation at the far end. -->
-      <div id="storefront-drilldown-header" class="drilldown-header flex items-center justify-between gap-3 px-1">
-        <div id="storefront-breadcrumb-path" class="drilldown-url-bar flex items-center gap-1.5 flex-wrap font-mono text-xs"></div>
-        <div id="storefront-drilldown-back" class="drilldown-back-wrap shrink-0"></div>
+      <!-- Breadcrumbs handle back navigation and remain on one horizontally scrolling line. -->
+      <div id="storefront-drilldown-header" class="drilldown-header flex items-center gap-3 px-1">
+        <div id="storefront-breadcrumb-viewport" class="drilldown-breadcrumb-viewport">
+          <div id="storefront-breadcrumb-path" class="drilldown-url-bar flex items-center gap-1.5 font-mono text-xs"></div>
+        </div>
       </div>
       <div id="subcategory-pills-bar" class="hidden"></div>
     </div>

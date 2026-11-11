@@ -140,7 +140,7 @@ function buildDealsPillHtml() {
 function renderCategoryNavigation(animateLevelChange = false) {
   const container = document.getElementById("category-pills");
   const breadcrumbPath = document.getElementById("storefront-breadcrumb-path");
-  const backWrap = document.getElementById("storefront-drilldown-back");
+  const breadcrumbViewport = document.getElementById("storefront-breadcrumb-viewport");
   const sidebarList = document.getElementById("sidebar-categories-list");
   const sidebarSection = document.getElementById("sidebar-categories-section");
   const mobileCategoryContainer = document.getElementById("mobile-category-pills");
@@ -172,15 +172,11 @@ function renderCategoryNavigation(animateLevelChange = false) {
   // 1. Render URL-Like Breadcrumb Trail for Backtracking
   if (breadcrumbPath) {
     if (!currentSlug) {
-      // Level 0: Main Filters / All Departments
+      // Level 0: All Departments
       breadcrumbPath.innerHTML = `
         <span class="url-protocol text-slate-400">catalog://</span>
         <span class="url-segment font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">all-departments</span>
       `;
-      if (backWrap) {
-        backWrap.innerHTML = "";
-        backWrap.classList.add("hidden");
-      }
     } else if (activeRoot) {
       // Level 1: Root Department (e.g. Electronics)
       const cleanRootSlug = activeRoot.slug || activeRoot.name.toLowerCase().replace(/\s+/g, "-");
@@ -190,15 +186,6 @@ function renderCategoryNavigation(animateLevelChange = false) {
         <span class="url-slash text-slate-300">/</span>
         <span class="url-segment font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">${escapeHtml(cleanRootSlug)}</span>
       `;
-      if (backWrap) {
-        backWrap.innerHTML = `
-          <button type="button" onclick="selectCategory('')" class="url-back-action-btn flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 text-xs font-bold rounded-xl shadow-xs transition-colors" title="Back to all departments">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-500"></i>
-            <span>Main Filters</span>
-          </button>
-        `;
-        backWrap.classList.remove("hidden");
-      }
     } else if (activeSub && parentOfSub) {
       // Level 2: Subcategory Leaf (e.g. Smart TVs under Electronics)
       const cleanRootSlug = parentOfSub.slug || parentOfSub.name.toLowerCase().replace(/\s+/g, "-");
@@ -211,17 +198,16 @@ function renderCategoryNavigation(animateLevelChange = false) {
         <span class="url-slash text-slate-300">/</span>
         <span class="url-segment font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">${escapeHtml(cleanSubSlug)}</span>
       `;
-      if (backWrap) {
-        backWrap.innerHTML = `
-          <button type="button" onclick="selectCategory('${escapeHtml(parentOfSub.slug)}')" class="url-back-action-btn flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 text-xs font-bold rounded-xl shadow-xs transition-colors" title="Back to ${escapeHtml(parentOfSub.name)}">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-500"></i>
-            <span>Back to ${escapeHtml(parentOfSub.name)}</span>
-          </button>
-        `;
-        backWrap.classList.remove("hidden");
-      }
     }
     if (breadcrumbPath.parentElement) renderIcons(breadcrumbPath.parentElement);
+    if (breadcrumbViewport) {
+      requestAnimationFrame(() => {
+        breadcrumbViewport.scrollTo({
+          left: breadcrumbViewport.scrollWidth,
+          behavior: animateLevelChange ? "smooth" : "auto",
+        });
+      });
+    }
   }
 
   // 2. Render Morphing Tabs Strip
