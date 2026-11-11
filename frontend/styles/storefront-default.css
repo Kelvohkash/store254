@@ -1553,7 +1553,8 @@ html[data-storefront="true"] .product-card-add:hover {
     line-height: 1;
     text-transform: uppercase;
     white-space: nowrap;
-    pointer-events: none;
+    cursor: pointer;
+    pointer-events: auto;
   }
 
   html[data-storefront="true"] .catalog-sort-wrap {

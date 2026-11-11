@@ -628,12 +628,13 @@
 <div id="category-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm">
     <div class="flex items-center justify-between p-6 border-b border-slate-100">
-      <h2 class="text-lg font-black text-slate-900">New Category</h2>
+      <h2 id="category-modal-title" class="text-lg font-black text-slate-900">New Category</h2>
       <button onclick="closeModal('category-modal')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
         <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
       </button>
     </div>
     <form onsubmit="handleSaveCategory(event)" class="p-6 space-y-4">
+      <input id="category-id" type="hidden" />
       <div>
         <label class="label">Category Name *</label>
         <input id="category-name" type="text" required class="input" placeholder="e.g. Baby Clothes" />
@@ -650,7 +651,7 @@
       </div>
       <div id="category-modal-error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-semibold"></div>
       <div class="flex gap-3 pt-2">
-        <button type="submit" class="btn-primary flex-1 justify-center py-3">
+        <button id="category-save-btn" type="submit" class="btn-primary flex-1 justify-center py-3">
           <i data-lucide="save" class="w-4 h-4"></i> Create Category
         </button>
         <button type="button" onclick="closeModal('category-modal')" class="btn-secondary">Cancel</button>

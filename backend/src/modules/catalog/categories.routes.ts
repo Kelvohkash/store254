@@ -141,6 +141,52 @@ categoriesRouter.post(
   }
 );
 
+// Update category details or move it beneath a different parent.
+categoriesRouter.put(
+  "/:id",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  zValidator("json", createCategorySchema),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const { id } = c.req.param();
+    const body = c.req.valid("json");
+    const db = createDb(c.env.DB);
+    const [existing] = await db.select().from(categories)
+      .where(and(eq(categories.id, id), eq(categories.tenantId, tenant.id))).limit(1);
+    if (!existing) throw new AppError("Category not found.", 404, "NOT_FOUND");
+
+    if (body.parentId) {
+      let ancestorId: string | null = body.parentId;
+      while (ancestorId) {
+        if (ancestorId === id) throw new AppError("A category cannot be nested beneath itself or one of its descendants.", 400, "CATEGORY_CYCLE");
+        const [ancestor] = await db.select({ id: categories.id, parentId: categories.parentId }).from(categories)
+          .where(and(eq(categories.id, ancestorId), eq(categories.tenantId, tenant.id))).limit(1);
+        if (!ancestor) throw new AppError("Specified parent category does not exist.", 404, "PARENT_NOT_FOUND");
+        ancestorId = ancestor.parentId;
+      }
+    }
+
+    const slug = body.slug ? slugify(body.slug) : slugify(body.name);
+    const [slugConflict] = await db.select({ id: categories.id }).from(categories)
+      .where(and(eq(categories.tenantId, tenant.id), eq(categories.slug, slug))).limit(1);
+    if (slugConflict && slugConflict.id !== id) {
+      throw new AppError(`A category with slug "${slug}" already exists in your store.`, 409, "SLUG_EXISTS");
+    }
+
+    await db.update(categories).set({
+      name: body.name,
+      slug,
+      parentId: body.parentId || null,
+      description: body.description || null,
+      icon: body.icon || null,
+      displayOrder: body.displayOrder,
+    }).where(and(eq(categories.id, id), eq(categories.tenantId, tenant.id)));
+    const [updated] = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
+    return c.json({ success: true, message: "Category updated successfully.", data: updated });
+  }
+);
+
 // Delete Category (Store Owners & Admins only)
 categoriesRouter.delete(
   "/:id",

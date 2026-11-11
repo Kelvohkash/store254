@@ -59,10 +59,21 @@ function syncCategoryScrollHint() {
   const strip = document.getElementById("category-pills");
   const hint = document.getElementById("category-scroll-hint");
   if (!strip || !hint) return;
-  hint.classList.toggle("hidden", strip.scrollWidth <= strip.clientWidth + 1);
+  const canScroll = strip.scrollWidth > strip.clientWidth + 1;
+  const hasMore = strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 2;
+  hint.classList.toggle("hidden", !canScroll || !hasMore);
+  hint.disabled = !hasMore;
 }
 
 window.addEventListener("resize", syncCategoryScrollHint, { passive: true });
+
+const categoryPillStrip = document.getElementById("category-pills");
+const categoryScrollHint = document.getElementById("category-scroll-hint");
+categoryPillStrip?.addEventListener("scroll", syncCategoryScrollHint, { passive: true });
+categoryScrollHint?.addEventListener("click", () => {
+  if (!categoryPillStrip) return;
+  categoryPillStrip.scrollBy({ left: Math.max(150, categoryPillStrip.clientWidth * 0.72), behavior: "smooth" });
+});
 
 function findCategoryNameBySlug(slug) {
   if (!slug) return "";
