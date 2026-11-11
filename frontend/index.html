@@ -258,12 +258,6 @@
     
     <!-- Progressive Hierarchical Filter Shell: Interactive Breadcrumbs & Morphing Filter Tabs -->
     <div id="storefront-main-category-bar" class="storefront-category-shell mb-4 sm:mb-5">
-      <!-- Clickable URL-Like Breadcrumb Trail with Backtrack Controls -->
-      <div id="storefront-drilldown-header" class="drilldown-header flex items-center justify-between gap-3 mb-2 px-1">
-        <div id="storefront-breadcrumb-path" class="drilldown-url-bar flex items-center gap-1.5 flex-wrap font-mono text-xs"></div>
-        <div id="storefront-drilldown-back" class="drilldown-back-wrap shrink-0"></div>
-      </div>
-
       <!-- Morphing Tab Strip: Level 0 Categories -> Level 1 Sub-categories -> Level 2 Specs & Filters -->
       <div class="drilldown-tabs-container flex items-center gap-3 p-1.5 rounded-2xl border border-slate-200/80 bg-white shadow-sm backdrop-blur-md">
         <div id="category-pills" class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto scrollbar-none py-0.5"></div>
@@ -277,6 +271,12 @@
             <option value="title_asc">Name: A to Z</option>
           </select>
         </div>
+      </div>
+
+      <!-- Keep the catalog path below the filters, with back navigation at the far end. -->
+      <div id="storefront-drilldown-header" class="drilldown-header flex items-center justify-between gap-3 px-1">
+        <div id="storefront-breadcrumb-path" class="drilldown-url-bar flex items-center gap-1.5 flex-wrap font-mono text-xs"></div>
+        <div id="storefront-drilldown-back" class="drilldown-back-wrap shrink-0"></div>
       </div>
       <div id="subcategory-pills-bar" class="hidden"></div>
     </div>

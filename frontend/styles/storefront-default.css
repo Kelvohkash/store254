@@ -428,6 +428,7 @@ html[data-storefront="true"] #storefront-main-category-bar {
 /* URL-Like Breadcrumb Bar */
 html[data-storefront="true"] .drilldown-header {
   min-height: 1.85rem;
+  margin-top: 0.3rem;
   padding: 0 0.35rem;
 }
 
