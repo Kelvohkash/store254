@@ -14,7 +14,28 @@ async function loadStoreProfile() {
     document.documentElement.removeAttribute("data-product-card-style");
     document.documentElement.removeAttribute("data-storefront-type");
     document.getElementById("active-storefront-styles")?.remove();
-    ["--store-primary", "--store-primary-hover", "--store-primary-subtle", "--store-primary-glow", "--store-green", "--store-green-dark"].forEach((name) => document.documentElement.style.removeProperty(name));
+    [
+      "--store-primary",
+      "--store-primary-hover",
+      "--store-primary-subtle",
+      "--store-primary-soft",
+      "--store-primary-glow",
+      "--store-on-primary",
+      "--store-paper",
+      "--store-white",
+      "--store-surface-subtle",
+      "--store-ink",
+      "--store-muted",
+      "--store-line",
+      "--store-media-bg",
+      "--store-green",
+      "--store-green-dark",
+      "--store-trust-blue",
+      "--store-trust-blue-dark",
+      "--store-trust-blue-bg",
+      "--store-trust-blue-line",
+      "--store-clay",
+    ].forEach((name) => document.documentElement.style.removeProperty(name));
     state.activeTenant = null;
     if (storeInfoBanner) storeInfoBanner.classList.add("hidden");
     document.getElementById("platform-hero")?.classList.remove("hidden");
@@ -123,6 +144,7 @@ function initializeShowcaseCarousel() {
 function syncMobileSearch(val) {
   const pcInput = document.getElementById("search-input");
   if (pcInput) pcInput.value = val;
+  if (typeof syncSearchClearButtons === "function") syncSearchClearButtons();
   debouncedLoadItems();
 }
 
@@ -133,40 +155,43 @@ function toggleMobileFilters(show) {
     drawer.classList.toggle("hidden");
   } else if (show) {
     drawer.classList.remove("hidden");
-    // Clone facets into mobile view if not yet cloned
-    const src = document.getElementById("dynamic-facets-container");
-    const dest = document.getElementById("mobile-dynamic-facets");
-    if (src && dest) {
-      dest.innerHTML = src.innerHTML;
-    }
+    if (typeof renderDynamicFiltersUI === "function") renderDynamicFiltersUI();
+    if (typeof renderCategoryNavigation === "function") renderCategoryNavigation();
     const desktopSort = document.getElementById("sort-selector");
-    const mobileSort = document.getElementById("mobile-sort-selector");
-    if (desktopSort && mobileSort) mobileSort.value = desktopSort.value;
-    const sourceCategories = document.getElementById("category-pills");
-    const mobileCategories = document.getElementById("mobile-category-pills");
-    const categorySection = document.getElementById("mobile-category-filter-section");
-    if (sourceCategories && mobileCategories && document.documentElement.dataset.storefront === "true") {
-      mobileCategories.innerHTML = sourceCategories.innerHTML;
-      categorySection?.classList.remove("hidden");
-    } else {
-      categorySection?.classList.add("hidden");
+    if (desktopSort && typeof syncSortControls === "function") {
+      syncSortControls(desktopSort.value);
     }
+    renderIcons(drawer);
   } else {
     drawer.classList.add("hidden");
   }
 }
 
 function syncMobilePrice(val) {
+  const numeric = Number(val) || 0;
+  const maxBound = Number(state.priceRange?.max) || 200000;
+  state.selectedPriceRange.max = numeric;
+  state.priceFilterActive = numeric < maxBound;
   const maxEl = document.getElementById("price-filter-max");
   const label = document.getElementById("mobile-price-val");
   const pcMaxLabel = document.getElementById("price-label-max");
-  if (maxEl) maxEl.value = val;
-  if (label) label.textContent = `KES ${Number(val).toLocaleString()}`;
-  if (pcMaxLabel) pcMaxLabel.textContent = `KES ${Number(val).toLocaleString()}`;
+  if (maxEl) maxEl.value = String(numeric);
+  if (label) {
+    label.textContent = state.priceFilterActive
+      ? `Up to KES ${numeric.toLocaleString()}`
+      : `KES ${numeric.toLocaleString()}`;
+  }
+  if (pcMaxLabel) pcMaxLabel.textContent = `KES ${numeric.toLocaleString()}`;
+  if (typeof renderPricePresets === "function") renderPricePresets();
+  loadItems();
 }
 
 function syncMobileSort(val) {
-  const desktopSort = document.getElementById("sort-selector");
-  if (desktopSort) desktopSort.value = val;
+  if (typeof syncSortControls === "function") {
+    syncSortControls(val);
+  } else {
+    const desktopSort = document.getElementById("sort-selector");
+    if (desktopSort) desktopSort.value = val;
+  }
   loadItems();
 }

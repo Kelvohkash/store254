@@ -4,28 +4,53 @@
 
 [data-theme] .bg-emerald-600,
 [data-theme] .bg-emerald-500,
-[data-theme] .bg-emerald-700 {
+[data-theme] .bg-emerald-700,
+html[data-storefront="true"] .bg-emerald-600,
+html[data-storefront="true"] .bg-emerald-500,
+html[data-storefront="true"] .bg-emerald-700,
+html[data-storefront="true"] .bg-indigo-600 {
   background-color: var(--store-primary) !important;
 }
 [data-theme] .hover\:bg-emerald-700:hover,
-[data-theme] .hover\:bg-emerald-600:hover {
+[data-theme] .hover\:bg-emerald-600:hover,
+html[data-storefront="true"] .hover\:bg-emerald-700:hover,
+html[data-storefront="true"] .hover\:bg-emerald-600:hover,
+html[data-storefront="true"] .hover\:bg-indigo-700:hover {
   background-color: var(--store-primary-hover) !important;
 }
 [data-theme] .text-emerald-600,
 [data-theme] .text-emerald-700,
-[data-theme] .text-emerald-800 {
+[data-theme] .text-emerald-800,
+html[data-storefront="true"] .text-emerald-600,
+html[data-storefront="true"] .text-emerald-700,
+html[data-storefront="true"] .text-emerald-800,
+html[data-storefront="true"] .text-indigo-600,
+html[data-storefront="true"] .text-indigo-700,
+html[data-storefront="true"] .text-indigo-900 {
   color: var(--store-primary) !important;
 }
 [data-theme] .border-emerald-100,
 [data-theme] .border-emerald-200,
-[data-theme] .border-emerald-300 {
-  border-color: var(--store-line) !important;
+[data-theme] .border-emerald-300,
+html[data-storefront="true"] .border-emerald-100,
+html[data-storefront="true"] .border-emerald-200,
+html[data-storefront="true"] .border-emerald-300,
+html[data-storefront="true"] .border-emerald-600,
+html[data-storefront="true"] .border-indigo-100 {
+  border-color: color-mix(in srgb, var(--store-primary) 28%, var(--store-line)) !important;
 }
 [data-theme] .bg-emerald-50,
-[data-theme] .bg-emerald-100 {
+[data-theme] .bg-emerald-100,
+html[data-storefront="true"] .bg-emerald-50,
+html[data-storefront="true"] .bg-emerald-100,
+html[data-storefront="true"] .bg-indigo-50\/70,
+html[data-storefront="true"] .bg-indigo-100,
+html[data-storefront="true"] .theme-badge-subtle {
   background-color: var(--store-primary-subtle) !important;
+  color: var(--store-primary) !important;
 }
-[data-theme] .accent-emerald-600 {
+[data-theme] .accent-emerald-600,
+html[data-storefront="true"] .accent-emerald-600 {
   accent-color: var(--store-primary) !important;
 }
 

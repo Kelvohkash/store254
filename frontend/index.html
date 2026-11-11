@@ -43,10 +43,13 @@
       <!-- Search Bar (PC & Tablet) -->
       <div id="desktop-search" class="flex-1 max-w-xl hidden md:flex items-center">
         <div class="search-field relative flex-1">
-          <input type="text" id="search-input" oninput="debouncedLoadItems()" placeholder="Search products, services, brands..." class="w-full text-sm text-slate-900 rounded-lg pl-10 pr-4 py-2.5 border focus:bg-white transition-all">
+          <input type="text" id="search-input" oninput="debouncedLoadItems()" placeholder="Search products, services, brands..." class="w-full text-sm text-slate-900 rounded-lg pl-10 pr-9 py-2.5 border focus:bg-white transition-all">
           <span class="search-field-icon absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center justify-center">
             <i data-lucide="search" class="w-4 h-4"></i>
           </span>
+          <button type="button" id="desktop-search-clear" onclick="clearSearchInput()" aria-label="Clear search" class="search-clear-btn hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-full">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
         </div>
       </div>
 
@@ -75,7 +78,7 @@
         <button id="wishlist-toggle" type="button" aria-label="Wishlist" title="Wishlist" onclick="toggleWishlistView()" class="wishlist-action px-3 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors inline-flex items-center gap-1.5" aria-pressed="false">
           <i data-lucide="heart" class="w-3.5 h-3.5"></i>
           <span data-wishlist-label class="hidden sm:inline">Wishlist</span>
-          <span id="wishlist-count" class="hidden bg-rose-100 text-rose-700 text-[10px] font-black min-w-4 h-4 px-1 rounded-full flex items-center justify-center">0</span>
+          <span id="wishlist-count" class="hidden theme-badge-subtle text-[10px] font-black min-w-4 h-4 px-1 rounded-full flex items-center justify-center">0</span>
         </button>
 
         <!-- Cart Button -->
@@ -91,14 +94,18 @@
     <!-- Mobile Search Bar (Only phone screens) -->
     <div class="mobile-search md:hidden px-4 pb-3 pt-1 border-t flex gap-2">
       <div class="relative flex-1">
-        <input type="text" id="mobile-search-input" oninput="syncMobileSearch(this.value)" placeholder="Search products, services..." class="w-full text-sm text-slate-900 rounded-lg pl-9 pr-3 py-2 border focus:bg-white">
+        <input type="text" id="mobile-search-input" oninput="syncMobileSearch(this.value)" placeholder="Search products, services..." class="w-full text-sm text-slate-900 rounded-lg pl-9 pr-8 py-2 border focus:bg-white">
         <span class="search-field-icon absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center justify-center">
           <i data-lucide="search" class="w-3.5 h-3.5"></i>
         </span>
+        <button type="button" id="mobile-search-clear" onclick="clearSearchInput()" aria-label="Clear search" class="search-clear-btn hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-full">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
       </div>
-      <button type="button" onclick="toggleMobileFilters(true)" class="mobile-filter-trigger px-3 py-2 bg-white text-slate-700 text-xs font-semibold border border-slate-200 rounded-lg flex items-center gap-1.5">
+      <button type="button" onclick="toggleMobileFilters(true)" class="mobile-filter-trigger relative px-3 py-2 bg-white text-slate-700 text-xs font-semibold border border-slate-200 rounded-lg flex items-center gap-1.5">
         <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
         <span>Filters</span>
+        <span id="mobile-header-filter-count" class="hidden filter-count-pill">0</span>
       </button>
     </div>
 
@@ -254,67 +261,152 @@
       <p id="storefront-content-copy"></p>
     </section>
     
-    <!-- Category Navigation Pills (Desktop & Mobile Swipeable) -->
-    <div id="storefront-main-category-bar" class="mb-6 sm:mb-8 overflow-x-auto pb-2 scrollbar-none flex items-center justify-between gap-4">
-      <div id="category-pills" class="flex items-center gap-2 flex-nowrap"></div>
+    <!-- Category & Subcategory Navigation Bar (PC Ribbon & Mobile Swipeable Strip) -->
+    <div id="storefront-main-category-bar" class="storefront-category-shell mb-5 sm:mb-7">
+      <div class="storefront-category-primary-row overflow-x-auto scrollbar-none flex items-center justify-between gap-3">
+        <div id="category-pills" class="flex items-center gap-2 flex-nowrap"></div>
+      </div>
+      <div id="subcategory-pills-bar" class="subcategory-pills-bar hidden"></div>
     </div>
 
-    <!-- Layout: Filter Sidebar (PC) / Offcanvas (Mobile) + Items Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
+    <!-- Layout: Dedicated PC Filter Sidebar + Catalog Workspace (PC & Mobile UIs) -->
+    <div id="catalog-layout" class="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
       
-      <!-- Filter Sidebar (PC/Tablet Desktop View) -->
-      <aside id="desktop-filter-sidebar" class="hidden lg:block lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm h-fit sticky top-28">
-        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-          <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-emerald-600"></i>
-            <span>Filters</span>
-          </h3>
-          <button onclick="resetFilters()" class="text-[11px] text-emerald-600 hover:underline font-semibold flex items-center gap-1">
+      <!-- PC / Desktop Filter & Discovery Sidebar -->
+      <aside id="desktop-filter-sidebar" class="hidden lg:block lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm h-fit sticky top-24">
+        <div class="sidebar-header flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="sidebar-header-icon">
+              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+            </span>
+            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider m-0">Filters &amp; Refine</h3>
+            <span id="desktop-filter-count" class="hidden filter-count-pill">0</span>
+          </div>
+          <button type="button" onclick="resetFilters()" class="sidebar-reset-btn text-[11px] font-semibold flex items-center gap-1">
             <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
             <span>Reset</span>
           </button>
         </div>
 
-        <!-- Price Range Filter -->
-        <div class="mb-6 pb-6 border-b border-slate-100">
-          <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">Price Range</label>
+        <!-- Quick Filter Chips (Deals & Item Type) -->
+        <div class="filter-section mb-5 pb-5 border-b border-slate-100">
+          <label class="filter-section-title block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Quick Filters</label>
+          <div id="desktop-quick-filters" class="quick-filter-chips">
+            <button type="button" data-quick-deals onclick="toggleDealsFilter()" class="quick-filter-chip" aria-pressed="false">
+              <i data-lucide="Flame" class="w-3.5 h-3.5"></i>
+              <span>On Sale / Deals</span>
+            </button>
+            <button type="button" data-quick-type="PHYSICAL" onclick="setItemTypeFilter('PHYSICAL')" class="quick-filter-chip" aria-pressed="false">
+              <i data-lucide="package" class="w-3.5 h-3.5"></i>
+              <span>Products</span>
+            </button>
+            <button type="button" data-quick-type="SERVICE" onclick="setItemTypeFilter('SERVICE')" class="quick-filter-chip" aria-pressed="false">
+              <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
+              <span>Services</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PC Sidebar Category Tree -->
+        <div id="sidebar-categories-section" class="filter-section mb-5 pb-5 border-b border-slate-100">
+          <label class="filter-section-title block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Categories</label>
+          <div id="sidebar-categories-list" class="sidebar-categories-tree"></div>
+        </div>
+
+        <!-- Price Range Filter + Presets -->
+        <div class="filter-section mb-5 pb-5 border-b border-slate-100">
+          <div class="flex items-center justify-between mb-2.5">
+            <label for="price-filter-max" class="filter-section-title block text-xs font-bold text-slate-900 uppercase tracking-wider m-0">Price Budget</label>
+            <span id="price-filter-status" class="text-[11px] font-semibold text-slate-500">Any price</span>
+          </div>
           <div class="flex items-center justify-between text-xs font-mono font-bold text-slate-700 mb-2">
             <span id="price-label-min">KES 0</span>
             <span id="price-label-max">KES 200,000</span>
           </div>
-          <input type="range" id="price-filter-max" min="0" max="200000" value="200000" onchange="loadItems().then(scrollCatalogItemsIntoView)" class="w-full accent-emerald-600 cursor-pointer">
+          <input type="range" id="price-filter-max" min="0" max="200000" value="200000" oninput="onDesktopPriceInput(this.value)" onchange="applyPriceFilter(this.value)" class="w-full accent-emerald-600 cursor-pointer">
+          <div id="desktop-price-presets" class="price-presets-grid mt-2.5"></div>
         </div>
 
-        <!-- Dynamic Facets Container (Brand, Screen Size, Duration, etc.) -->
-        <div id="dynamic-facets-container"></div>
+        <!-- Dynamic Facets Container (Brand, Screen Size, Material, Color, etc.) -->
+        <div id="dynamic-facets-container" class="space-y-4"></div>
       </aside>
 
-      <!-- Items Grid Section -->
+      <!-- Main Catalog Stage -->
       <section id="catalog-items-section" class="lg:col-span-3">
-        <!-- Control Header: count, active filters, quick sort -->
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-200/60">
-          <div class="flex items-center gap-2">
+        <!-- PC Catalog Control Header (Desktop & Tablet >= 768px) -->
+        <div id="desktop-catalog-toolbar" class="catalog-toolbar-pc hidden md:flex flex-wrap items-center justify-between gap-3 mb-4 p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+          <div class="flex items-center gap-2.5 flex-wrap">
             <span id="items-count-badge" class="text-xs sm:text-sm font-bold text-slate-800">Loading products...</span>
+            <span id="catalog-active-context" class="catalog-context-pill hidden"></span>
           </div>
 
-          <div class="flex items-center gap-2">
-            <!-- Mobile Filters trigger button -->
-            <button id="catalog-mobile-filter-button" onclick="toggleMobileFilters(true)" class="lg:hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
-              <i data-lucide="filter" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <div class="flex items-center gap-2.5">
+            <!-- Tablet filter trigger (768px - 1023px) -->
+            <button id="tablet-filter-button" type="button" onclick="toggleMobileFilters(true)" class="lg:hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
               <span>Filters</span>
+              <span id="tablet-filter-count" class="hidden filter-count-pill">0</span>
             </button>
 
-            <!-- Quick View Toggle or sorting -->
-            <select id="sort-selector" onchange="loadItems()" class="text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-emerald-500 shadow-sm">
-              <option value="featured">Featured First</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-            </select>
+            <!-- PC View Mode Switcher (4-Col Grid / 3-Col Grid / Horizontal List) -->
+            <div class="catalog-view-switcher hidden lg:inline-flex items-center p-0.5 rounded-xl border border-slate-200 bg-slate-50" role="group" aria-label="Catalog layout view">
+              <button type="button" id="view-mode-grid-4" onclick="setCatalogViewMode('grid-4')" class="view-mode-btn is-active" title="4-column compact grid" aria-label="4-column grid">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" id="view-mode-grid-3" onclick="setCatalogViewMode('grid-3')" class="view-mode-btn" title="3-column gallery grid" aria-label="3-column grid">
+                <i data-lucide="grid-2x2" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" id="view-mode-list" onclick="setCatalogViewMode('list')" class="view-mode-btn" title="Detailed list view" aria-label="List view">
+                <i data-lucide="list" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+            <!-- Sort Selector -->
+            <div class="catalog-sort-wrap flex items-center gap-1.5">
+              <label for="sort-selector" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 hidden xl:inline">Sort:</label>
+              <select id="sort-selector" onchange="syncSortControls(this.value); loadItems()" class="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 shadow-sm">
+                <option value="featured">Featured First</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="discount_desc">Biggest Savings</option>
+                <option value="title_asc">Name: A to Z</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <!-- Responsive Items Grid: 2 columns on Mobile, 4 columns on Desktop -->
-        <div id="items-grid" class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3 xl:gap-4"></div>
+        <!-- Mobile Dedicated Catalog Control Bar (Phones < 768px) -->
+        <div id="mobile-catalog-toolbar" class="catalog-toolbar-mobile md:hidden mb-3.5">
+          <div class="mobile-toolbar-row flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span id="mobile-items-count-badge" class="text-xs font-extrabold text-slate-800 truncate">Loading...</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" data-quick-deals onclick="toggleDealsFilter()" class="mobile-deals-pill" aria-pressed="false">
+                <i data-lucide="flame" class="w-3 h-3"></i>
+                <span>Deals</span>
+              </button>
+              <button id="catalog-mobile-filter-button" type="button" onclick="toggleMobileFilters(true)" class="mobile-toolbar-filter-btn">
+                <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+                <span>Filters</span>
+                <span id="catalog-mobile-filter-count" class="hidden filter-count-pill">0</span>
+              </button>
+              <select id="mobile-inline-sort" aria-label="Sort products" onchange="syncMobileSort(this.value)" class="mobile-inline-sort-select">
+                <option value="featured">Sort: Featured</option>
+                <option value="price_asc">Price: Low → High</option>
+                <option value="price_desc">Price: High → Low</option>
+                <option value="discount_desc">Top Deals</option>
+                <option value="title_asc">Name: A → Z</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Filter Chips Bar (Shared PC & Mobile: One-click removal of any active filter) -->
+        <div id="active-filters-bar" class="active-filters-bar hidden mb-4" aria-live="polite"></div>
+
+        <!-- Responsive Items Grid: 2 columns on Mobile, 3/4 columns or List on Desktop -->
+        <div id="items-grid" class="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4 xl:gap-5"></div>
       </section>
 
     </div>
@@ -334,25 +426,50 @@
   </div>
 
   <!-- MOBILE FILTER BOTTOM SHEET / DRAWER -->
-  <div id="mobile-filter-drawer" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex flex-col justify-end transition-opacity lg:hidden">
-    <div class="bg-white rounded-t-3xl max-h-[85vh] w-full p-6 flex flex-col shadow-2xl">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-        <h3 class="text-sm font-black text-slate-900 flex items-center gap-2">
-          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-emerald-600"></i>
-          <span>Filter Products</span>
-        </h3>
-        <button onclick="toggleMobileFilters(false); scrollCatalogItemsIntoView();" class="text-slate-400 hover:text-slate-600 p-1">
+  <div id="mobile-filter-drawer" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex flex-col justify-end transition-opacity lg:hidden" onclick="if(event.target === this) toggleMobileFilters(false)">
+    <div class="mobile-filter-sheet bg-white rounded-t-3xl max-h-[88vh] w-full p-5 sm:p-6 flex flex-col shadow-2xl">
+      <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3 shrink-0" aria-hidden="true"></div>
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4 shrink-0">
+        <div class="flex items-center gap-2">
+          <h3 class="text-sm font-black text-slate-900 flex items-center gap-2 m-0">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4 text-emerald-600"></i>
+            <span>Filter &amp; Sort Products</span>
+          </h3>
+          <span id="mobile-drawer-filter-count" class="hidden filter-count-pill">0</span>
+        </div>
+        <button type="button" onclick="toggleMobileFilters(false); scrollCatalogItemsIntoView();" class="text-slate-400 hover:text-slate-600 p-1 rounded-full">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <div class="overflow-y-auto space-y-5 flex-1 pr-1">
+        <!-- Mobile Quick Filter Chips -->
+        <div>
+          <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Quick Refine</label>
+          <div class="quick-filter-chips">
+            <button type="button" data-quick-deals onclick="toggleDealsFilter()" class="quick-filter-chip" aria-pressed="false">
+              <i data-lucide="flame" class="w-3.5 h-3.5"></i>
+              <span>On Sale / Deals</span>
+            </button>
+            <button type="button" data-quick-type="PHYSICAL" onclick="setItemTypeFilter('PHYSICAL')" class="quick-filter-chip" aria-pressed="false">
+              <i data-lucide="package" class="w-3.5 h-3.5"></i>
+              <span>Products</span>
+            </button>
+            <button type="button" data-quick-type="SERVICE" onclick="setItemTypeFilter('SERVICE')" class="quick-filter-chip" aria-pressed="false">
+              <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
+              <span>Services</span>
+            </button>
+          </div>
+        </div>
+
         <div>
           <label for="mobile-sort-selector" class="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Sort by</label>
-          <select id="mobile-sort-selector" onchange="syncMobileSort(this.value)" class="w-full text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2">
+          <select id="mobile-sort-selector" onchange="syncMobileSort(this.value)" class="w-full text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-2.5">
             <option value="featured">Featured First</option>
             <option value="price_asc">Price: Low to High</option>
             <option value="price_desc">Price: High to Low</option>
+            <option value="discount_desc">Biggest Savings</option>
+            <option value="title_asc">Name: A to Z</option>
           </select>
         </div>
 
@@ -363,20 +480,21 @@
 
         <!-- Price Range -->
         <div>
-          <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Max Price</label>
-          <div class="flex justify-between text-xs font-mono font-bold text-emerald-700 mb-2">
-            <span id="mobile-price-val">KES 200,000</span>
+          <div class="flex items-center justify-between mb-2">
+            <label for="mobile-price-filter" class="block text-xs font-bold text-slate-900 uppercase tracking-wider m-0">Max Price Budget</label>
+            <span id="mobile-price-val" class="text-xs font-mono font-bold text-emerald-700">KES 200,000</span>
           </div>
           <input type="range" id="mobile-price-filter" min="0" max="200000" value="200000" oninput="syncMobilePrice(this.value)" class="w-full accent-emerald-600">
+          <div id="mobile-price-presets" class="price-presets-grid mt-2.5"></div>
         </div>
 
         <!-- Dynamic Mobile Facets Clone -->
-        <div id="mobile-dynamic-facets"></div>
+        <div id="mobile-dynamic-facets" class="space-y-4"></div>
       </div>
 
-      <div class="pt-4 border-t border-slate-100 mt-4 flex gap-2">
-        <button onclick="toggleMobileFilters(false); resetFilters();" class="flex-1 py-2.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">Reset</button>
-        <button onclick="toggleMobileFilters(false); loadItems().then(scrollCatalogItemsIntoView);" class="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md">Apply Filters</button>
+      <div class="pt-4 border-t border-slate-100 mt-4 flex gap-2.5 shrink-0">
+        <button type="button" onclick="resetFilters(); toggleMobileFilters(false);" class="flex-1 py-3 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">Reset All</button>
+        <button type="button" id="mobile-apply-filters-btn" onclick="toggleMobileFilters(false); loadItems().then(scrollCatalogItemsIntoView);" class="flex-[1.6] py-3 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md">Show Products</button>
       </div>
     </div>
   </div>
@@ -847,7 +965,7 @@
     <button id="mobile-wishlist-toggle" onclick="toggleWishlistView()" class="relative hidden flex-col items-center text-slate-500 hover:text-emerald-600" aria-pressed="false">
       <i data-lucide="heart" class="w-5 h-5"></i>
       <span data-wishlist-label class="text-[10px] font-bold mt-0.5">Saved</span>
-      <span id="mobile-wishlist-count" class="hidden absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">0</span>
+      <span id="mobile-wishlist-count" class="hidden absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">0</span>
     </button>
     <button id="mobile-cart-btn" onclick="toggleDrawer('cart-drawer', true)" class="relative flex flex-col items-center text-emerald-600">
       <i data-lucide="shopping-cart" class="w-5 h-5"></i>

@@ -74,8 +74,8 @@ html[data-storefront="true"] #store-banner-content {
   background: color-mix(in srgb, var(--store-white) 92%, transparent) !important;
   backdrop-filter: blur(14px) !important;
   -webkit-backdrop-filter: blur(14px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.16) !important;
+  border: 1px solid color-mix(in srgb, var(--store-primary) 16%, rgba(255, 255, 255, 0.85)) !important;
+  box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.14) !important;
   border-radius: 1.25rem !important;
   padding: clamp(1.5rem, 3.5vw, 2.75rem) !important;
 }
@@ -259,9 +259,9 @@ html[data-storefront="true"] #items-grid .product-card:focus-within {
   html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy {
     width: 100%;
     padding: 1rem;
-    border: 1px solid rgba(255, 255, 255, .82);
-    background: rgba(255, 250, 240, .94);
-    box-shadow: 0 12px 32px rgba(20, 29, 22, .12);
+    border: 1px solid color-mix(in srgb, var(--store-primary) 16%, rgba(255, 255, 255, .82));
+    background: color-mix(in srgb, var(--store-white) 94%, transparent);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, .12);
   }
 }
 

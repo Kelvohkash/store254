@@ -40,20 +40,20 @@
 
 /* Lifestyle Boutique Archetype */
 html[data-storefront-type="lifestyle-boutique"] .store-banner-inner {
-  min-height: 28rem;
-  padding-top: 5rem;
-  padding-bottom: 5rem;
+  min-height: 20rem;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 }
-html[data-storefront-type="lifestyle-boutique"] .store-banner-copy { max-width: 42rem; }
+html[data-storefront-type="lifestyle-boutique"] .store-banner-copy { max-width: 44rem; }
 html[data-storefront-type="lifestyle-boutique"] .store-banner h1 {
-  font-family: Georgia, "Times New Roman", serif !important;
-  font-size: clamp(2.8rem, 6vw, 5rem);
-  font-weight: 600;
+  font-family: var(--store-font-heading, "Manrope", sans-serif) !important;
+  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+  font-weight: 800;
 }
 html[data-storefront-type="lifestyle-boutique"] .store-banner:not(.has-banner-image) {
-  background: linear-gradient(120deg, #f3eadc, #faf8f4 58%, #e8e1d7);
+  background: linear-gradient(120deg, var(--store-primary-subtle), var(--store-paper) 58%, var(--store-surface-subtle, var(--store-primary-subtle)));
 }
-html[data-storefront-type="lifestyle-boutique"] .product-card { border-radius: 18px !important; }
+html[data-storefront-type="lifestyle-boutique"] .product-card { border-radius: 16px !important; }
 
 /* Single Product Maker Archetype */
 html[data-storefront-type="single-product-maker"] .store-banner {

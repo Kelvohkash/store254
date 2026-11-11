@@ -12,8 +12,8 @@ async function loadSettings() {
     if (el) el.value = val ?? "";
   };
   setVal("settings-name", currentStoreDesign.name || "");
-  const accentColors = ["#9a3412", "#2563eb", "#16805a", "#8b3fa5"];
-  setVal("settings-primary-color", accentColors.includes(settings.primaryColor) ? settings.primaryColor : "#9a3412");
+  const accentColors = ["#2563eb", "#0284c7", "#16805a", "#0d9488", "#8b3fa5", "#4f46e5", "#9a3412", "#d97706", "#0f172a"];
+  setVal("settings-primary-color", accentColors.includes(settings.primaryColor) ? settings.primaryColor : "#2563eb");
   setVal("settings-tagline", settings.tagline || "");
   setVal("settings-description", settings.description || "");
   setVal("settings-logo", settings.logoUrl || "");
