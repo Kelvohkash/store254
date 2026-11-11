@@ -181,31 +181,23 @@ function renderCategoryNavigation(animateLevelChange = false) {
   // 1. Render URL-Like Breadcrumb Trail for Backtracking
   if (breadcrumbPath) {
     if (!currentSlug) {
-      // Level 0: All Departments
+      // Level 0: Leave the breadcrumb clear when no category is selected.
       breadcrumbPath.innerHTML = `
         <span class="url-protocol text-slate-400">catalog://</span>
-        <span class="url-segment font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">all-departments</span>
       `;
     } else if (activeRoot) {
-      // Level 1: Root Department (e.g. Electronics)
-      const cleanRootSlug = activeRoot.slug || activeRoot.name.toLowerCase().replace(/\s+/g, "-");
+      // Level 1: Keep the parent breadcrumb as the back action; omit the current category title.
       breadcrumbPath.innerHTML = `
         <span class="url-protocol text-slate-400">catalog://</span>
         <button type="button" onclick="selectCategory('')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to all departments">all-departments</button>
-        <span class="url-slash text-slate-300">/</span>
-        <span class="url-segment font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">${escapeHtml(cleanRootSlug)}</span>
       `;
     } else if (activeSub && parentOfSub) {
-      // Level 2: Subcategory Leaf (e.g. Smart TVs under Electronics)
-      const cleanRootSlug = parentOfSub.slug || parentOfSub.name.toLowerCase().replace(/\s+/g, "-");
-      const cleanSubSlug = activeSub.slug || activeSub.name.toLowerCase().replace(/\s+/g, "-");
+      // Level 2: Keep parent breadcrumbs for backtracking; omit the current subcategory title.
       breadcrumbPath.innerHTML = `
         <span class="url-protocol text-slate-400">catalog://</span>
         <button type="button" onclick="selectCategory('')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to all departments">all-departments</button>
         <span class="url-slash text-slate-300">/</span>
-        <button type="button" onclick="selectCategory('${escapeHtml(parentOfSub.slug)}')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to ${escapeHtml(parentOfSub.name)}">${escapeHtml(cleanRootSlug)}</button>
-        <span class="url-slash text-slate-300">/</span>
-        <span class="url-segment font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">${escapeHtml(cleanSubSlug)}</span>
+        <button type="button" onclick="selectCategory('${escapeHtml(parentOfSub.slug)}')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to ${escapeHtml(parentOfSub.name)}">${escapeHtml(parentOfSub.slug || parentOfSub.name.toLowerCase().replace(/\s+/g, "-"))}</button>
       `;
     }
     if (breadcrumbPath.parentElement) renderIcons(breadcrumbPath.parentElement);
