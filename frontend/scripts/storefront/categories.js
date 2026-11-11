@@ -172,6 +172,15 @@ function buildPriceDropdownHtml() {
   `;
 }
 
+function buildResetFiltersPillHtml() {
+  return `
+    <button type="button" onclick="resetFilters()" class="category-pill category-pill-inactive shrink-0" aria-label="Reset filters and show all categories" title="Reset filters and return to all categories">
+      <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+      <span>Reset Filters</span>
+    </button>
+  `;
+}
+
 function renderCategoryNavigation(animateLevelChange = false) {
   const container = document.getElementById("category-pills");
   const breadcrumbPath = document.getElementById("storefront-breadcrumb-path");
@@ -253,6 +262,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
     }
     // The all-categories level contains root categories and Price only.
     pillsHtml += buildPriceDropdownHtml();
+    pillsHtml += buildResetFiltersPillHtml();
   } else if (activeRoot) {
     // A selected parent shows only its direct children and Price. Attribute
     // facets belong to a selected child category, not beside the child list.
@@ -270,6 +280,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
 
     // Keep the parent level focused on its direct children and Price.
     pillsHtml += buildPriceDropdownHtml();
+    pillsHtml += buildResetFiltersPillHtml();
   } else if (activeSub && parentOfSub) {
     // Level 2: User selected a subcategory (e.g. Smart TVs)
     // Replaced with TV-related filters: Brand dropdown, Screen Size, Resolution, Price, etc.!
@@ -280,6 +291,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
 
     // A selected child shows only its applicable category facets and Price.
     pillsHtml += buildPriceDropdownHtml();
+    pillsHtml += buildResetFiltersPillHtml();
   }
 
   container.innerHTML = pillsHtml;
