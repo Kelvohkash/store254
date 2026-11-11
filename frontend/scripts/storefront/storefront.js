@@ -57,6 +57,9 @@ async function loadStoreProfile() {
   // Subdomain Storefront Mode (e.g. alicebabycare.store254.co.ke)
   document.documentElement.setAttribute("data-storefront", "true");
   document.getElementById("platform-hero")?.classList.add("hidden");
+  // Platform onboarding controls do not belong in a merchant storefront.
+  document.querySelector(".platform-nav-links")?.remove();
+  document.getElementById("platform-mobile-menu")?.remove();
   // Show Store Admin button on store subdomains, NEVER show Super Admin
   document.getElementById("store-admin-footer-btn")?.classList.remove("hidden");
   if (typeof renderSkeletonCards === "function") renderSkeletonCards();
@@ -146,6 +149,20 @@ function syncMobileSearch(val) {
   if (pcInput) pcInput.value = val;
   if (typeof syncSearchClearButtons === "function") syncSearchClearButtons();
   debouncedLoadItems();
+}
+
+function toggleDesktopFilters(forceOpen) {
+  const layout = document.getElementById("catalog-layout");
+  const button = document.getElementById("desktop-filter-toggle");
+  if (!layout) return;
+
+  const isOpen = typeof forceOpen === "boolean"
+    ? forceOpen
+    : layout.classList.contains("filters-collapsed");
+  layout.classList.toggle("filters-collapsed", !isOpen);
+  button?.setAttribute("aria-expanded", String(isOpen));
+  button?.setAttribute("aria-label", `${isOpen ? "Hide" : "Show"} filters`);
+  button?.setAttribute("title", `${isOpen ? "Hide" : "Show"} filters`);
 }
 
 function toggleMobileFilters(show) {

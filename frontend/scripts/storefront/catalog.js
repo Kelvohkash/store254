@@ -93,9 +93,12 @@ function buildItemCardHtml(item) {
       <div class="product-card-media relative overflow-hidden flex items-center justify-center cursor-pointer" onclick="viewItemDetails(${inlineJs(item.id)})">
         <img src="${escapeHtml(primaryImg)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" width="400" height="400" class="w-full h-full object-cover">
         ${secImg ? `<img class="product-card-secondary w-full h-full object-cover" src="${escapeHtml(secImg)}" alt="" loading="lazy" decoding="async" width="400" height="400">` : ""}
-        <button type="button" data-wishlist-item="${escapeHtml(item.id)}" class="product-wishlist ${isWish ? "is-wishlisted" : ""}" onclick="event.stopPropagation(); toggleWishlist(${inlineJs(item.id)}, this)" aria-label="${isWish ? "Remove from" : "Add to"} wishlist" aria-pressed="${isWish}">
-          <i data-lucide="heart" class="w-4 h-4"></i>
-        </button>
+        <div class="product-card-actions">
+          <button type="button" data-wishlist-item="${escapeHtml(item.id)}" class="product-wishlist ${isWish ? "is-wishlisted" : ""}" onclick="event.stopPropagation(); toggleWishlist(${inlineJs(item.id)}, this)" aria-label="${isWish ? "Remove from" : "Add to"} wishlist" aria-pressed="${isWish}">
+            <i data-lucide="heart" class="w-4 h-4"></i>
+          </button>
+          ${!isService ? `<button type="button" class="product-cart-icon" onclick="event.stopPropagation(); addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" aria-label="Add ${escapeHtml(item.title)} to cart" title="Add to cart"><i data-lucide="plus" class="w-4 h-4"></i></button>` : ""}
+        </div>
         <button type="button" class="product-quick-view-btn" onclick="event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" aria-label="Quick view ${escapeHtml(item.title)}" title="Quick view details">
           <i data-lucide="eye" class="w-3.5 h-3.5"></i>
           <span>Quick View</span>
@@ -121,10 +124,7 @@ function buildItemCardHtml(item) {
             <span class="product-card-price">KES ${Number(item.basePrice).toLocaleString()}</span>
             ${hasDisc ? `<span class="product-card-compare-price">KES ${Number(item.compareAtPrice).toLocaleString()}</span>` : ""}
           </div>
-          <button type="button" onclick="addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" class="product-card-add w-full ${isService ? "product-cart-service" : ""} flex items-center justify-center gap-2">
-            <i data-lucide="${isService ? "calendar" : "shopping-bag"}" class="w-4 h-4"></i>
-            <span>${isService ? "Book Session" : "Add to Cart"}</span>
-          </button>
+          ${isService ? `<button type="button" onclick="addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" class="product-card-add w-full product-cart-service flex items-center justify-center gap-2"><i data-lucide="calendar" class="w-4 h-4"></i><span>Book Session</span></button>` : ""}
         </div>
       </div>
     </article>`;

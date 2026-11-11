@@ -270,7 +270,7 @@
     </div>
 
     <!-- Layout: Dedicated PC Filter Sidebar + Catalog Workspace (PC & Mobile UIs) -->
-    <div id="catalog-layout" class="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8">
+    <div id="catalog-layout" class="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 filters-collapsed">
       
       <!-- PC / Desktop Filter & Discovery Sidebar -->
       <aside id="desktop-filter-sidebar" class="hidden lg:block lg:col-span-1 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm h-fit sticky top-24">
@@ -307,12 +307,6 @@
           </div>
         </div>
 
-        <!-- PC Sidebar Category Tree -->
-        <div id="sidebar-categories-section" class="filter-section mb-5 pb-5 border-b border-slate-100">
-          <label class="filter-section-title block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">Categories</label>
-          <div id="sidebar-categories-list" class="sidebar-categories-tree"></div>
-        </div>
-
         <!-- Price Range Filter + Presets -->
         <div class="filter-section mb-5 pb-5 border-b border-slate-100">
           <div class="flex items-center justify-between mb-2.5">
@@ -341,6 +335,11 @@
           </div>
 
           <div class="flex items-center gap-2.5">
+            <button id="desktop-filter-toggle" type="button" onclick="toggleDesktopFilters()" class="desktop-filter-toggle hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl shadow-sm" aria-controls="desktop-filter-sidebar" aria-expanded="false" aria-label="Show filters" title="Show filters">
+              <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+              <span>Filters</span>
+            </button>
+
             <!-- Tablet filter trigger (768px - 1023px) -->
             <button id="tablet-filter-button" type="button" onclick="toggleMobileFilters(true)" class="lg:hidden px-3 py-1.5 bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
               <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
