@@ -50,7 +50,7 @@ function buildFacetDropdownHtml(facet) {
 
   return `
     <div class="relative inline-block text-left drilldown-facet-wrap shrink-0">
-      <button type="button" onclick="event.stopPropagation(); toggleFilterPopover('popover-${facet.code}')" class="category-pill pc-filter-dropdown-btn ${
+      <button type="button" onclick="event.stopPropagation(); toggleFilterPopover('popover-${facet.code}', this)" class="category-pill pc-filter-dropdown-btn ${
         isActive ? "is-active" : ""
       }" aria-expanded="false" aria-controls="popover-${facet.code}" title="Filter by ${escapeHtml(facet.name)}">
         <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
@@ -99,7 +99,7 @@ function buildPriceDropdownHtml() {
 
   return `
     <div class="relative inline-block text-left drilldown-price-wrap shrink-0">
-      <button id="pc-price-dropdown-btn" type="button" onclick="event.stopPropagation(); toggleFilterPopover('price-popover')" class="category-pill pc-filter-dropdown-btn ${
+      <button id="pc-price-dropdown-btn" type="button" onclick="event.stopPropagation(); toggleFilterPopover('price-popover', this)" class="category-pill pc-filter-dropdown-btn ${
         isPriceActive ? "is-active" : ""
       }" aria-expanded="false" aria-controls="price-popover" title="Filter by price">
         <i data-lucide="badge-dollar-sign" class="w-3.5 h-3.5"></i>
@@ -873,20 +873,18 @@ function setPricePreset(maxVal) {
   loadItems().then(scrollCatalogItemsIntoView);
 }
 
-function toggleFilterPopover(id) {
+function toggleFilterPopover(id, trigger = null) {
   const allPopovers = document.querySelectorAll(".filter-popover-card");
-  let openingPopover = null;
-  allPopovers.forEach((el) => {
-    if (el.id === id) {
-      openingPopover = el.classList.contains("hidden") ? el : null;
-    }
-  });
+  trigger ||= Array.from(document.querySelectorAll(".pc-filter-dropdown-btn"))
+    .find((button) => button.getAttribute("aria-controls") === id);
+  const filterWrap = trigger?.closest(".drilldown-facet-wrap, .drilldown-price-wrap");
+  const targetPopover = filterWrap?.querySelector(".filter-popover-card")
+    || Array.from(allPopovers).find((popover) => popover.id === id);
+  const openingPopover = targetPopover?.classList.contains("hidden") ? targetPopover : null;
 
   allPopovers.forEach((el) => closeFilterPopover(el));
   if (!openingPopover) return;
 
-  const trigger = Array.from(document.querySelectorAll(".pc-filter-dropdown-btn"))
-    .find((button) => button.getAttribute("aria-controls") === id);
   if (!trigger || !openingPopover.parentNode) return;
 
   const placeholder = document.createComment(`popover:${id}`);
