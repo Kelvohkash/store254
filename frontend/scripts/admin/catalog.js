@@ -35,8 +35,9 @@ async function loadProductAttributeFields(categoryId, initialAttributes = null) 
   container.innerHTML = '<p class="text-xs text-slate-500">Loading product details…</p>';
   section.classList.remove('hidden');
 
-  const query = categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : '';
-  const response = await apiFetch(`/attributes${query}`);
+  // Load definitions once, then keep globals and only the selected category's
+  // ancestor chain. This inherits useful parent fields without sibling fields.
+  const response = await apiFetch('/attributes');
   if (token !== productAttributeLoadToken) return;
   if (!response.ok) {
     section.classList.add('hidden');
@@ -45,9 +46,15 @@ async function loadProductAttributeFields(categoryId, initialAttributes = null) 
   }
 
   const definitions = Array.isArray(response.data?.data) ? response.data.data : [];
-  const applicable = definitions.filter((definition) => categoryId
-    ? !definition.categoryId || definition.categoryId === categoryId
-    : !definition.categoryId);
+  const relevantCategoryIds = new Set();
+  let ancestor = (flatCategories || []).find((category) => category.id === categoryId);
+  while (ancestor && !relevantCategoryIds.has(ancestor.id)) {
+    relevantCategoryIds.add(ancestor.id);
+    ancestor = (flatCategories || []).find((category) => category.id === ancestor.parentId);
+  }
+  const applicable = definitions.filter((definition) =>
+    !definition.categoryId || relevantCategoryIds.has(definition.categoryId)
+  );
 
   if (!applicable.length) {
     section.classList.add('hidden');
