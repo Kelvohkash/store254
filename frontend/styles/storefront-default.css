@@ -1883,3 +1883,69 @@ html[data-storefront="true"] .store-showcase-metric {
     left: 0.35rem !important;
   }
 }
+
+/* Keep the store hero inside the viewport when users increase display scaling. */
+@media (max-width: 959px) {
+  html[data-storefront="true"] .store-banner-inner {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-storefront="true"] .store-banner-copy,
+  html[data-storefront="true"] #store-info-banner .store-banner-copy {
+    width: 100% !important;
+    min-width: 0;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  html[data-storefront="true"] #banner-store-subdomain {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  html[data-storefront="true"] .store-banner-copy h1,
+  html[data-storefront="true"] #banner-store-name,
+  html[data-storefront="true"] #banner-store-desc {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  html[data-storefront="true"] .store-banner-actions,
+  html[data-storefront="true"] .store-banner-actions > * {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  html[data-storefront="true"] .store-banner-actions #banner-store-call-btn,
+  html[data-storefront="true"] .store-banner-actions .store-contact {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  html[data-storefront="true"] #banner-store-call-btn svg {
+    flex: 0 0 auto;
+  }
+
+  html[data-storefront="true"] #banner-store-call-btn span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 380px) {
+  html[data-storefront="true"] .store-banner-copy h1,
+  html[data-storefront="true"] #banner-store-name {
+    font-size: clamp(1.2rem, 6vw, 1.55rem) !important;
+  }
+
+  html[data-storefront="true"] .store-banner-actions #banner-store-call-btn,
+  html[data-storefront="true"] .store-banner-actions .store-contact {
+    font-size: 0.72rem !important;
+  }
+}
