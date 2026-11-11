@@ -69,13 +69,13 @@ async function applyStorefrontSettings(settings = {}) {
   await loadDefaultStorefrontStyles();
 }
 
-function setHeaderLogo(src = DEFAULT_STORE_LOGO, alt = "Store254") {
+function setHeaderLogo(src = DEFAULT_STORE_LOGO, alt = "Store254", fallbackSrc = DEFAULT_STORE_LOGO) {
   const logo = document.getElementById("header-platform-logo");
   if (!logo) return;
 
   logo.onerror = () => {
     logo.onerror = null;
-    logo.src = DEFAULT_STORE_LOGO;
+    logo.src = fallbackSrc;
     logo.alt = "Store254";
   };
   logo.src = src || DEFAULT_STORE_LOGO;

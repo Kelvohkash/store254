@@ -31,7 +31,7 @@ function renderStoreBanner() {
     callBtn.classList.add("hidden");
   }
 
-  setHeaderLogo(settings.logoUrl || DEFAULT_STORE_LOGO, state.activeTenant.name);
+  setHeaderLogo(settings.logoUrl || DEFAULT_STOREFRONT_LOGO, state.activeTenant.name, DEFAULT_STOREFRONT_LOGO);
   const headerStoreIdentity = document.getElementById("header-store-identity");
   const headerStoreName = document.getElementById("header-store-name");
   if (headerStoreName) {
