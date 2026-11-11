@@ -1,7 +1,5 @@
 // Categories & Dynamic Faceted Filters Engine
 
-let lastCategoryNavigationKey = null;
-
 const ATTRIBUTE_LABELS = {
   brand: "Brand",
   screen_size: "Screen Size",
@@ -139,7 +137,7 @@ function buildDealsPillHtml() {
   `;
 }
 
-function renderCategoryNavigation() {
+function renderCategoryNavigation(animateLevelChange = false) {
   const container = document.getElementById("category-pills");
   const breadcrumbPath = document.getElementById("storefront-breadcrumb-path");
   const backWrap = document.getElementById("storefront-drilldown-back");
@@ -301,11 +299,8 @@ function renderCategoryNavigation() {
     pillsHtml += buildDealsPillHtml();
   }
 
-  const navigationKey = currentSlug || "__all_departments__";
-  const shouldPeelTransition = lastCategoryNavigationKey !== null && lastCategoryNavigationKey !== navigationKey;
-  lastCategoryNavigationKey = navigationKey;
   container.innerHTML = pillsHtml;
-  if (shouldPeelTransition) {
+  if (animateLevelChange) {
     Array.from(container.children).forEach((pill, index) => {
       pill.classList.add("filter-paper-peel-in");
       pill.style.setProperty("--filter-peel-delay", `${Math.min(index, 8) * 34}ms`);
@@ -432,9 +427,13 @@ async function loadCategories() {
 }
 
 function selectCategory(slug) {
+  const shouldAnimate = state.selectedCategory !== slug;
   state.selectedCategory = slug;
   renderCategoryNavigation();
-  Promise.all([loadDynamicFilters(), loadItems()]).then(scrollCatalogItemsIntoView);
+  Promise.all([loadDynamicFilters(), loadItems()]).then(() => {
+    if (shouldAnimate && state.selectedCategory === slug) renderCategoryNavigation(true);
+    scrollCatalogItemsIntoView();
+  });
 }
 
 let searchDebounceTimer = null;

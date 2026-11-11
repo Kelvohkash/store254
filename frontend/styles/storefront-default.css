@@ -1688,9 +1688,12 @@ html[data-storefront="true"] .store-showcase-metric {
   }
 
   html[data-storefront="true"] .drilldown-tabs-container {
+    position: relative !important;
+    left: 50% !important;
     box-sizing: border-box !important;
     width: 100vw !important;
-    margin-left: calc(50% - 50vw) !important;
+    margin-left: 0 !important;
+    transform: translateX(-50%) !important;
     padding-inline: max(1rem, calc((100vw - 80rem) / 2 + 1.5rem)) !important;
     border-right: 0 !important;
     border-left: 0 !important;
