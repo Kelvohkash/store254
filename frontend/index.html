@@ -3,6 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    (() => {
+      const host = window.location.hostname.toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      const hasExplicitStore = Boolean(params.get("store") || params.get("subdomain") || window.location.hash.startsWith("#store="));
+      const isPlatformHost = host === "store254.co.ke" || host === "www.store254.co.ke" || host === "api.store254.co.ke" ||
+        host === "localhost" || host === "127.0.0.1" || host.endsWith(".workers.dev") || host.endsWith(".pages.dev");
+      const storeSubdomain = host.endsWith(".store254.co.ke") && !["www", "api"].includes(host.slice(0, -".store254.co.ke".length));
+      const localSubdomain = host.endsWith(".localhost") && !["www", "api"].includes(host.slice(0, -".localhost".length));
+      if (hasExplicitStore || storeSubdomain || localSubdomain || (!isPlatformHost && !host.endsWith(".localhost"))) {
+        document.documentElement.setAttribute("data-storefront", "true");
+      }
+    })();
+  </script>
   <title>Store254 | Kenyan online stores</title>
   <meta name="description" content="Browse independent Kenyan stores and shop directly from their online storefronts.">
   <link rel="icon" type="image/png" href="./assets/favicon.png">
@@ -19,6 +33,12 @@
   <link rel="stylesheet" href="./styles/storefront-quality.css">
   <link rel="stylesheet" href="./styles/platform-home.css">
   <link rel="stylesheet" href="./styles/ui-polish.css">
+  <style>
+    html[data-storefront="true"] #platform-hero { display: none !important; }
+    html[data-storefront="true"] #storefront-view { display: block !important; }
+    html[data-storefront="true"] .platform-nav-links,
+    html[data-storefront="true"] #platform-mobile-menu { display: none !important; }
+  </style>
 </head>
 <body class="text-slate-900 antialiased min-h-screen flex flex-col">
 

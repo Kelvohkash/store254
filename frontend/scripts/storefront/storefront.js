@@ -80,16 +80,23 @@ async function loadStoreProfile() {
   } else {
     const reason = res.data?.error?.message;
     showToast(reason || `We couldn’t load the ${state.activeTenantSlug} storefront. Please try again shortly.`, "error");
-    // Fallback to platform mode
+    // Keep tenant hosts in storefront mode even when the store is unavailable.
+    // Falling back to the platform homepage makes a store URL appear to change
+    // websites during refreshes or temporary API failures.
     state.activeTenant = null;
-    setHeaderLogo();
-    document.getElementById("header-platform-logo")?.classList.remove("hidden");
-    document.getElementById("header-store-identity")?.classList.add("hidden");
-    document.documentElement.removeAttribute("data-storefront");
-    document.getElementById("store-admin-footer-btn")?.classList.add("hidden");
-    document.getElementById("platform-hero")?.classList.remove("hidden");
-    document.getElementById("storefront-view")?.classList.add("hidden");
-    await loadPlatformStores();
+    document.documentElement.setAttribute("data-storefront", "true");
+    document.getElementById("platform-hero")?.classList.add("hidden");
+    document.getElementById("storefront-view")?.classList.remove("hidden");
+    document.getElementById("store-admin-footer-btn")?.classList.remove("hidden");
+    const catalog = document.getElementById("items-grid");
+    if (catalog) {
+      catalog.innerHTML = `
+        <div class="col-span-full rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
+          <h2 class="text-lg font-bold text-slate-900">This storefront is temporarily unavailable</h2>
+          <p class="mt-2 text-sm text-slate-500">Please try again in a moment.</p>
+          <button type="button" onclick="window.location.reload()" class="mt-5 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Try again</button>
+        </div>`;
+    }
   }
 
   renderIcons();
