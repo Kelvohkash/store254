@@ -224,12 +224,6 @@ function renderCategoryNavigation(animateLevelChange = false) {
 
   if (!currentSlug) {
     // Level 0: Start with general department tabs
-    pillsHtml += `
-      <button onclick="selectCategory('')" class="category-pill category-pill-active shrink-0" aria-selected="true" type="button">
-        <span>All Departments</span>
-        ${totalCount !== null ? `<span class="category-pill-count">${totalCount}</span>` : ""}
-      </button>
-    `;
     for (const cat of categories) {
       const count = getCategoryItemCount(cat.slug);
       pillsHtml += `
@@ -246,14 +240,6 @@ function renderCategoryNavigation(animateLevelChange = false) {
     // Level 1: User selected a root category (e.g. Electronics)
     // The first-level tabs are REMOVED and replaced with the electronics sub-filters!
     const subcategories = activeRoot.children || [];
-    const rootCount = getCategoryItemCount(activeRoot.slug);
-
-    pillsHtml += `
-      <button onclick="selectCategory('${escapeHtml(activeRoot.slug)}')" class="category-pill category-pill-active shrink-0" aria-selected="true" type="button">
-        <span>All ${escapeHtml(activeRoot.name)}</span>
-        ${rootCount !== null ? `<span class="category-pill-count">${rootCount}</span>` : ""}
-      </button>
-    `;
 
     for (const sub of subcategories) {
       const subCount = getCategoryItemCount(sub.slug);
@@ -275,15 +261,6 @@ function renderCategoryNavigation(animateLevelChange = false) {
   } else if (activeSub && parentOfSub) {
     // Level 2: User selected a subcategory (e.g. Smart TVs)
     // Replaced with TV-related filters: Brand dropdown, Screen Size, Resolution, Price, etc.!
-    const subCount = getCategoryItemCount(activeSub.slug);
-
-    pillsHtml += `
-      <button onclick="selectCategory('${escapeHtml(activeSub.slug)}')" class="category-pill category-pill-active shrink-0" aria-selected="true" type="button">
-        <span>All ${escapeHtml(activeSub.name)}</span>
-        ${subCount !== null ? `<span class="category-pill-count">${subCount}</span>` : ""}
-      </button>
-    `;
-
     // Render Brand dropdown and all category-specific spec dropdowns
     for (const facet of (state.facets || [])) {
       pillsHtml += buildFacetDropdownHtml(facet);
