@@ -1463,21 +1463,21 @@ html[data-storefront="true"] .product-card-add:hover {
 /* Apply the frosted glass treatment after the storefront theme's panel defaults. */
 html[data-storefront="true"] .store-banner-copy,
 html[data-storefront="true"] #store-info-banner .store-banner-copy {
-  background: color-mix(in srgb, var(--store-white, #fff) 62%, transparent) !important;
+  background: color-mix(in srgb, var(--store-white, #fff) 42%, transparent) !important;
   border-color: color-mix(in srgb, var(--store-primary, #15803d) 28%, rgba(255, 255, 255, 0.28)) !important;
   -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
 html[data-storefront="true"] .store-showcase-card {
-  background: color-mix(in srgb, var(--store-white, #fff) 60%, transparent) !important;
+  background: color-mix(in srgb, var(--store-white, #fff) 40%, transparent) !important;
   border-color: color-mix(in srgb, var(--store-primary, #15803d) 28%, rgba(255, 255, 255, 0.28)) !important;
   -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
 html[data-storefront="true"] .store-showcase-metric {
-  background: color-mix(in srgb, var(--store-white, #fff) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--store-white, #fff) 22%, transparent) !important;
   border-color: color-mix(in srgb, var(--store-ink, #0f172a) 12%, transparent) !important;
   -webkit-backdrop-filter: blur(12px) !important;
   backdrop-filter: blur(12px) !important;
