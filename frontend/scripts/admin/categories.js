@@ -27,9 +27,13 @@ async function loadCategoriesForDropdown() {
   if (parentCatEl) parentCatEl.innerHTML = '<option value="">None (top-level)</option>' + topLevelCategoryOptions(flatCategories);
 }
 
+let categoriesCurrentPage = 1;
+const categoriesPerPage = 10;
+
 async function loadCategories() {
   const r = await apiFetch('/categories');
   flatCategories = r.ok ? flattenTree(r.data?.data || []) : [];
+  categoriesCurrentPage = 1;
   renderCategoriesTable(flatCategories);
   // Reload parent dropdown
   const parentCatEl = document.getElementById('category-parent');
@@ -172,13 +176,34 @@ function toggleAdminCategory(catId) {
 function renderCategoriesTable(cats) {
   const tbody = document.getElementById('categories-table-body');
   if (!tbody) return;
-  if (!cats.length) {
+  const mainCats = (cats || []).filter(c => !c.parentId);
+  if (!mainCats.length) {
     tbody.innerHTML = '<tr><td colspan="4" class="px-5 py-10 text-center text-slate-400">No categories yet.</td></tr>';
+    renderPaginationControls({
+      containerId: 'categories-pagination',
+      currentPage: 1,
+      totalPages: 0,
+      totalItems: 0,
+      itemsPerPage: categoriesPerPage,
+      onPageChange: 'setCategoriesPage'
+    });
     return;
   }
-  tbody.innerHTML = cats.map(c => {
+
+  const totalPages = Math.ceil(mainCats.length / categoriesPerPage);
+  if (categoriesCurrentPage > totalPages) categoriesCurrentPage = totalPages;
+  if (categoriesCurrentPage < 1) categoriesCurrentPage = 1;
+
+  const startIdx = (categoriesCurrentPage - 1) * categoriesPerPage;
+  const pageMainCats = mainCats.slice(startIdx, startIdx + categoriesPerPage);
+  const pageMainCatIds = new Set(pageMainCats.map(c => c.id));
+
+  // Keep main categories on this page and their subcategories
+  const pageCats = (cats || []).filter(c => (!c.parentId && pageMainCatIds.has(c.id)) || (c.parentId && pageMainCatIds.has(c.parentId)));
+
+  tbody.innerHTML = pageCats.map(c => {
     const isMain = !c.parentId;
-    const children = isMain ? cats.filter(x => x.parentId === c.id) : [];
+    const children = isMain ? (cats || []).filter(x => x.parentId === c.id) : [];
     const isExpanded = expandedAdminCategories.has(c.id);
     const isParentExpanded = c.parentId ? expandedAdminCategories.has(c.parentId) : false;
 
@@ -225,8 +250,25 @@ function renderCategoriesTable(cats) {
       </tr>
     `;
   }).join('');
+
+  renderPaginationControls({
+    containerId: 'categories-pagination',
+    currentPage: categoriesCurrentPage,
+    totalPages,
+    totalItems: mainCats.length,
+    itemsPerPage: categoriesPerPage,
+    onPageChange: 'setCategoriesPage'
+  });
+
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
+window.setCategoriesPage = function(page) {
+  categoriesCurrentPage = page;
+  renderCategoriesTable(flatCategories);
+  const tableEl = document.getElementById('categories-table-body');
+  if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
 
 function openAddCategoryModal() {
   document.getElementById('category-modal-title').textContent = 'New Category';

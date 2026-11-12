@@ -1186,12 +1186,24 @@ ordersRouter.get("/", authMiddleware(true), requireRole(["OWNER", "ADMIN"]), asy
   if (!c.env?.DB) throw new AppError("Database not ready", 500);
   const db = createDb(c.env.DB);
 
+  const query = c.req.query();
+  const limit = Math.min(500, Math.max(1, parseInt(query.limit || "200", 10)));
+  const page = Math.max(1, parseInt(query.page || "1", 10));
+  const offset = (page - 1) * limit;
+
   const orderList = await db
     .select()
     .from(orders)
     .where(eq(orders.tenantId, tenant.id))
     .orderBy(desc(orders.createdAt))
-    .limit(50);
+    .limit(limit)
+    .offset(offset);
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(orders)
+    .where(eq(orders.tenantId, tenant.id));
+
   const orderItemList = orderList.length
     ? await db
         .select()
@@ -1213,11 +1225,90 @@ ordersRouter.get("/", authMiddleware(true), requireRole(["OWNER", "ADMIN"]), asy
     orderItemsByOrder.set(item.orderId, itemsForOrder);
   }
 
+  const formattedOrders = orderList.map((order) => ({
+    ...order,
+    items: orderItemsByOrder.get(order.id) || [],
+  }));
+
   return c.json({
     success: true,
-    data: orderList.map((order) => ({
-      ...order,
-      items: orderItemsByOrder.get(order.id) || [],
-    })),
+    data: formattedOrders,
+    total: Number(count) || orderList.length,
+    page,
+    limit,
   });
 });
+
+// Merchant Delete Order (Only for orders that are not paid or not completed)
+ordersRouter.delete(
+  "/:id",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const orderId = c.req.param("id");
+
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const db = createDb(c.env.DB);
+
+    const [order] = await db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.tenantId, tenant.id), eq(orders.id, orderId)))
+      .limit(1);
+
+    if (!order) {
+      throw new AppError("Order not found.", 404, "ORDER_NOT_FOUND");
+    }
+
+    // Orders that are both paid and completed cannot be deleted
+    if (order.paymentStatus === "PAID" && order.status === "COMPLETED") {
+      throw new AppError("Completed and paid orders cannot be deleted.", 400, "CANNOT_DELETE_COMPLETED_PAID_ORDER");
+    }
+
+    // If inventory was deducted and order was not cancelled, restore inventory
+    if (order.fulfillmentDetails?.inventoryDeducted === true && order.status !== "CANCELLED") {
+      const lines = await db
+        .select()
+        .from(orderItems)
+        .where(and(eq(orderItems.orderId, order.id), eq(orderItems.tenantId, tenant.id)));
+      for (const line of lines) {
+        if (line.itemId) {
+          if (line.variantId) {
+            await db
+              .update(itemVariants)
+              .set({
+                stockQuantity: sql`${itemVariants.stockQuantity} + ${line.quantity}`,
+                updatedAt: new Date(),
+              })
+              .where(and(eq(itemVariants.id, line.variantId), eq(itemVariants.itemId, line.itemId)));
+          } else {
+            await db
+              .update(items)
+              .set({
+                stockQuantity: sql`${items.stockQuantity} + ${line.quantity}`,
+                updatedAt: new Date(),
+              })
+              .where(and(eq(items.id, line.itemId), eq(items.tenantId, tenant.id)));
+          }
+        }
+      }
+    }
+
+    // Delete associated lines & payments, then delete the order
+    await db
+      .delete(orderItems)
+      .where(and(eq(orderItems.orderId, order.id), eq(orderItems.tenantId, tenant.id)));
+    await db
+      .delete(payments)
+      .where(and(eq(payments.orderId, order.id), eq(payments.tenantId, tenant.id)));
+    await db
+      .delete(orders)
+      .where(and(eq(orders.id, order.id), eq(orders.tenantId, tenant.id)));
+
+    return c.json({
+      success: true,
+      message: "Order deleted successfully",
+    });
+  }
+);

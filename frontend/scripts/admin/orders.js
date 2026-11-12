@@ -1,74 +1,151 @@
 // ORDERS
-  // ═══════════════════════════════════════
-  async function loadOrders() {
-    const r = await apiFetch('/orders?limit=100');
-    allOrders = r.ok ? (r.data?.data?.orders || r.data?.data || []) : [];
-    renderOrdersTable(allOrders);
-  }
+// ═══════════════════════════════════════
+let ordersCurrentPage = 1;
+const ordersPerPage = 10;
+let activeOrdersFilter = '';
+let currentFilteredOrders = [];
 
-  function filterOrders(status) {
-    renderOrdersTable(status ? allOrders.filter(o => o.status === status) : allOrders);
-    // Highlight active filter btn
-    ['','PENDING_PAYMENT','PROCESSING','SHIPPED','COMPLETED','CANCELLED'].forEach(s => {
-      const btn = document.getElementById(`order-filter-${s || 'all'}`);
-      if (btn) btn.className = `text-xs ${status === s ? 'btn-primary' : 'btn-secondary'}`;
+function canDeleteOrder(o) {
+  if (!o) return false;
+  // Only orders that are both PAID and COMPLETED cannot be deleted
+  return !(o.paymentStatus === 'PAID' && o.status === 'COMPLETED');
+}
+
+async function deleteOrder(id, orderNumber) {
+  const displayNum = (orderNumber || String(id).slice(0, 8)).toUpperCase();
+  if (!confirm(`Delete order #${displayNum}? This will cancel the order, restore any deducted stock, and remove the record permanently.`)) {
+    return;
+  }
+  const r = await apiFetch(`/orders/${id}`, { method: 'DELETE' });
+  if (r.ok) {
+    showToast(`Order #${displayNum} deleted.`);
+    allOrders = allOrders.filter(o => o.id !== id);
+    currentFilteredOrders = currentFilteredOrders.filter(o => o.id !== id);
+    const maxPage = Math.max(1, Math.ceil(currentFilteredOrders.length / ordersPerPage));
+    if (ordersCurrentPage > maxPage) ordersCurrentPage = maxPage;
+    renderOrdersTable(currentFilteredOrders);
+  } else {
+    showToast(apiErrorMessage(r, 'Failed to delete order.'), false);
+  }
+}
+window.deleteOrder = deleteOrder;
+
+async function loadOrders() {
+  const r = await apiFetch('/orders?limit=200');
+  allOrders = r.ok ? (r.data?.data?.orders || r.data?.data || []) : [];
+  ordersCurrentPage = 1;
+  filterOrders(activeOrdersFilter || '');
+}
+
+function filterOrders(status) {
+  activeOrdersFilter = status || '';
+  ordersCurrentPage = 1;
+  currentFilteredOrders = status ? allOrders.filter(o => o.status === status) : allOrders;
+  renderOrdersTable(currentFilteredOrders);
+  // Highlight active filter btn
+  ['','PENDING_PAYMENT','PROCESSING','SHIPPED','COMPLETED','CANCELLED'].forEach(s => {
+    const btn = document.getElementById(`order-filter-${s || 'all'}`);
+    if (btn) btn.className = `text-xs ${status === s ? 'btn-primary' : 'btn-secondary'}`;
+  });
+}
+
+function renderOrdersTable(orders) {
+  currentFilteredOrders = orders || [];
+  const tbody = document.getElementById('orders-table-body');
+  if (!tbody) return;
+  if (!orders.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">No orders found.</td></tr>';
+    renderPaginationControls({
+      containerId: 'orders-pagination',
+      currentPage: 1,
+      totalPages: 0,
+      totalItems: 0,
+      itemsPerPage: ordersPerPage,
+      onPageChange: 'setOrdersPage'
     });
+    return;
   }
 
-  function renderOrdersTable(orders) {
-    const tbody = document.getElementById('orders-table-body');
-    if (!orders.length) { tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">No orders found.</td></tr>'; return; }
-    tbody.innerHTML = orders.map(o => `
-      <tr class="hover:bg-slate-50 transition-colors cursor-pointer admin-order-row" onclick="openOrderDrawer(${inlineJs(o.id)})">
-        <td data-label="Order" class="px-5 py-3 font-mono font-black text-slate-900 text-xs">
-          <span class="order-id-badge">#${escHtml((o.orderNumber || String(o.id).slice(0,8)).toUpperCase())}</span>
-        </td>
-        <td data-label="Customer" class="px-5 py-3">
-          <div class="order-customer-cell flex items-center gap-2.5">
-            <div class="order-customer-avatar w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center justify-center shrink-0">
-              ${escHtml((o.customerName || 'G').trim().slice(0, 1).toUpperCase())}
-            </div>
-            <div class="min-w-0">
-              <p class="text-sm font-bold text-slate-900 truncate">${escHtml(o.customerName || 'Guest')}</p>
-              <p class="text-xs text-slate-400 truncate">${escHtml(o.customerEmail || 'No email')}</p>
-            </div>
+  const totalPages = Math.ceil(orders.length / ordersPerPage);
+  if (ordersCurrentPage > totalPages) ordersCurrentPage = totalPages;
+  if (ordersCurrentPage < 1) ordersCurrentPage = 1;
+
+  const startIdx = (ordersCurrentPage - 1) * ordersPerPage;
+  const pageOrders = orders.slice(startIdx, startIdx + ordersPerPage);
+
+  tbody.innerHTML = pageOrders.map(o => `
+    <tr class="hover:bg-slate-50 transition-colors cursor-pointer admin-order-row" onclick="openOrderDrawer(${inlineJs(o.id)})">
+      <td data-label="Order" class="px-5 py-3 font-mono font-black text-slate-900 text-xs">
+        <span class="order-id-badge">#${escHtml((o.orderNumber || String(o.id).slice(0,8)).toUpperCase())}</span>
+      </td>
+      <td data-label="Customer" class="px-5 py-3">
+        <div class="order-customer-cell flex items-center gap-2.5">
+          <div class="order-customer-avatar w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center justify-center shrink-0">
+            ${escHtml((o.customerName || 'G').trim().slice(0, 1).toUpperCase())}
           </div>
-        </td>
-        <td data-label="Items" class="px-5 py-3 text-xs text-slate-500">
-          <span class="order-items-badge inline-flex items-center gap-1 font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full text-[11px]">
-            ${(o.items || o.orderItems || []).length} item(s)
-          </span>
-        </td>
-        <td data-label="Total" class="px-5 py-3 font-black text-slate-900 text-sm">
-          <div class="order-total-cell">
-            <span class="order-total-label hidden text-xs font-semibold text-slate-500 mr-1">Total:</span>
-            <span class="order-total-val font-black text-emerald-700 text-sm">${fmt(o.totalAmount || 0)}</span>
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-slate-900 truncate">${escHtml(o.customerName || 'Guest')}</p>
+            <p class="text-xs text-slate-400 truncate">${escHtml(o.customerEmail || 'No email')}</p>
           </div>
-        </td>
-        <td data-label="Payment" class="px-5 py-3">
-          <div class="order-payment-box flex items-center justify-between gap-2">
-            <span class="order-payment-method text-[11px] font-bold text-slate-700">${o.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pay on delivery' : 'M-Pesa'}</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${o.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">${escHtml(formatStatusLabel(o.paymentStatus || 'UNPAID'))}</span>
-          </div>
-        </td>
-        <td data-label="Status" class="px-5 py-3">
-          <div class="order-status-wrap">
-            ${statusBadge(o.status)}
-          </div>
-        </td>
-        <td data-label="Update" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
-          <div class="order-update-wrap">
-            ${o.status === 'COMPLETED'
-              ? '<span class="text-xs font-semibold text-slate-500">Delivered</span>'
-              : `<select onchange="updateOrderStatus('${escHtml(o.id)}', this.value)" class="order-status-select text-xs border border-slate-300 rounded-lg px-2.5 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white shadow-sm">
-                  ${['PROCESSING','SHIPPED','CANCELLED'].map(s => `<option ${o.status===s?'selected':''} value="${s}">${formatStatusLabel(s)}</option>`).join('')}
-                </select>`}
-          </div>
-        </td>
-      </tr>
-    `).join('');
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-  }
+        </div>
+      </td>
+      <td data-label="Items" class="px-5 py-3 text-xs text-slate-500">
+        <span class="order-items-badge inline-flex items-center gap-1 font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full text-[11px]">
+          ${(o.items || o.orderItems || []).length} item(s)
+        </span>
+      </td>
+      <td data-label="Total" class="px-5 py-3 font-black text-slate-900 text-sm">
+        <div class="order-total-cell">
+          <span class="order-total-label hidden text-xs font-semibold text-slate-500 mr-1">Total:</span>
+          <span class="order-total-val font-black text-emerald-700 text-sm">${fmt(o.totalAmount || 0)}</span>
+        </div>
+      </td>
+      <td data-label="Payment" class="px-5 py-3">
+        <div class="order-payment-box flex items-center justify-between gap-2">
+          <span class="order-payment-method text-[11px] font-bold text-slate-700">${o.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pay on delivery' : 'M-Pesa'}</span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${o.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">${escHtml(formatStatusLabel(o.paymentStatus || 'UNPAID'))}</span>
+        </div>
+      </td>
+      <td data-label="Status" class="px-5 py-3">
+        <div class="order-status-wrap">
+          ${statusBadge(o.status)}
+        </div>
+      </td>
+      <td data-label="Update" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
+        <div class="order-update-wrap flex items-center justify-end gap-1.5">
+          ${o.status === 'COMPLETED'
+            ? '<span class="text-xs font-semibold text-slate-500">Delivered</span>'
+            : `<select onchange="updateOrderStatus('${escHtml(o.id)}', this.value)" class="order-status-select text-xs border border-slate-300 rounded-lg px-2.5 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white shadow-sm">
+                ${['PROCESSING','SHIPPED','CANCELLED'].map(s => `<option ${o.status===s?'selected':''} value="${s}">${formatStatusLabel(s)}</option>`).join('')}
+              </select>`}
+          ${canDeleteOrder(o) ? `
+            <button type="button" onclick="deleteOrder(${inlineJs(o.id)}, ${inlineJs(o.orderNumber || o.id.slice(0,8))})" class="order-delete-btn" title="Delete Order">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          ` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  renderPaginationControls({
+    containerId: 'orders-pagination',
+    currentPage: ordersCurrentPage,
+    totalPages,
+    totalItems: orders.length,
+    itemsPerPage: ordersPerPage,
+    onPageChange: 'setOrdersPage'
+  });
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+window.setOrdersPage = function(page) {
+  ordersCurrentPage = page;
+  renderOrdersTable(currentFilteredOrders);
+  const tableEl = document.getElementById('orders-table-body');
+  if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
 
   async function updateOrderStatus(orderId, newStatus) {
     const r = await apiFetch(`/orders/${orderId}/status`, { method: 'PATCH', body: JSON.stringify({ status: newStatus }) });
@@ -210,6 +287,15 @@
         ` : o.status === 'SHIPPED'
           ? '<p class="text-[11px] text-slate-500">Waiting for the customer to confirm delivery before collecting payment.</p>'
           : '<p class="text-[11px] text-slate-500">Mark this order as shipped so the customer can confirm delivery.</p>'}
+      ` : ''}
+
+      ${canDeleteOrder(o) ? `
+        <div class="pt-2">
+          <button type="button" onclick="deleteOrder(${inlineJs(o.id)}, ${inlineJs(o.orderNumber || o.id.slice(0,8))}); document.getElementById('order-drawer').classList.add('hidden');" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>Delete Order</span>
+          </button>
+        </div>
       ` : ''}
     `;
     drawer.classList.remove('hidden');

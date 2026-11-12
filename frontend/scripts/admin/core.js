@@ -78,6 +78,74 @@ function inlineJs(value) {
   return JSON.stringify(String(value ?? '')).replace(/[<>&"]/g, ch => ({ '<': '\\u003c', '>': '\\u003e', '&': '\\u0026', '"': '&quot;' })[ch]);
 }
 
+function renderPaginationControls({ containerId, currentPage, totalPages, totalItems, itemsPerPage, onPageChange }) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!totalItems || totalPages <= 1) {
+    container.innerHTML = '';
+    container.classList.add('hidden');
+    return;
+  }
+  container.classList.remove('hidden');
+
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  let pagesHtml = '';
+  const maxButtons = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+  let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+  if (endPage - startPage + 1 < maxButtons) {
+    startPage = Math.max(1, endPage - maxButtons + 1);
+  }
+
+  pagesHtml += `
+    <button type="button" class="pagination-nav-btn ${currentPage <= 1 ? 'disabled' : ''}" 
+      ${currentPage <= 1 ? 'disabled' : `onclick="${onPageChange}(${currentPage - 1})"`}
+      aria-label="Previous page">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </button>
+  `;
+
+  if (startPage > 1) {
+    pagesHtml += `<button type="button" class="pagination-page-btn" onclick="${onPageChange}(1)">1</button>`;
+    if (startPage > 2) {
+      pagesHtml += `<span class="pagination-ellipsis">…</span>`;
+    }
+  }
+
+  for (let p = startPage; p <= endPage; p++) {
+    pagesHtml += `<button type="button" class="pagination-page-btn ${p === currentPage ? 'active' : ''}" onclick="${onPageChange}(${p})">${p}</button>`;
+  }
+
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      pagesHtml += `<span class="pagination-ellipsis">…</span>`;
+    }
+    pagesHtml += `<button type="button" class="pagination-page-btn" onclick="${onPageChange}(${totalPages})">${totalPages}</button>`;
+  }
+
+  pagesHtml += `
+    <button type="button" class="pagination-nav-btn ${currentPage >= totalPages ? 'disabled' : ''}" 
+      ${currentPage >= totalPages ? 'disabled' : `onclick="${onPageChange}(${currentPage + 1})"`}
+      aria-label="Next page">
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>
+  `;
+
+  container.innerHTML = `
+    <div class="admin-pagination-bar">
+      <div class="admin-pagination-info">
+        Showing <span class="font-bold text-slate-800">${startItem}–${endItem}</span> of <span class="font-bold text-slate-800">${totalItems}</span>
+      </div>
+      <div class="admin-pagination-controls">
+        ${pagesHtml}
+      </div>
+    </div>
+  `;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
 async function apiFetch(path, opts = {}) {
   const isFormData = typeof FormData !== 'undefined' && opts.body instanceof FormData;
   const headers = isFormData ? { ...(opts.headers || {}) } : { 'Content-Type': 'application/json', ...(opts.headers || {}) };

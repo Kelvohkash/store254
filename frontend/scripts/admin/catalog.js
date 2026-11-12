@@ -88,11 +88,16 @@ async function loadProductAttributeFields(categoryId, initialAttributes = null) 
   }).join('');
 }
 
+let productsCurrentPage = 1;
+const productsPerPage = 10;
+let currentFilteredProducts = [];
+
 async function loadProducts() {
-  const r = await apiFetch('/items?limit=100&includeAll=true');
+  const r = await apiFetch('/items?limit=200&includeAll=true');
   const rawItems = r.ok ? (r.data?.data?.items || r.data?.data || []) : [];
   allProducts = Array.isArray(rawItems) ? rawItems : [];
-  renderProductsTable(allProducts);
+  productsCurrentPage = 1;
+  filterProducts();
 
   // Also load categories for the dropdown
   if (typeof loadCategoriesForDropdown === 'function') {
@@ -100,14 +105,38 @@ async function loadProducts() {
   }
 }
 
+function filterProducts() {
+  const q = (document.getElementById('product-search')?.value || '').toLowerCase().trim();
+  productsCurrentPage = 1;
+  currentFilteredProducts = q ? allProducts.filter(p => p.title.toLowerCase().includes(q)) : allProducts;
+  renderProductsTable(currentFilteredProducts);
+}
+
 function renderProductsTable(products) {
+  currentFilteredProducts = products || [];
   const tbody = document.getElementById('products-table-body');
   if (!tbody) return;
   if (products.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="px-5 py-10 text-center text-slate-400">No products yet. Add your first product!</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="px-5 py-10 text-center text-slate-400">No products found.</td></tr>';
+    renderPaginationControls({
+      containerId: 'products-pagination',
+      currentPage: 1,
+      totalPages: 0,
+      totalItems: 0,
+      itemsPerPage: productsPerPage,
+      onPageChange: 'setProductsPage'
+    });
     return;
   }
-  tbody.innerHTML = products.map(p => `
+
+  const totalPages = Math.ceil(products.length / productsPerPage);
+  if (productsCurrentPage > totalPages) productsCurrentPage = totalPages;
+  if (productsCurrentPage < 1) productsCurrentPage = 1;
+
+  const startIdx = (productsCurrentPage - 1) * productsPerPage;
+  const pageProducts = products.slice(startIdx, startIdx + productsPerPage);
+
+  tbody.innerHTML = pageProducts.map(p => `
     <tr class="hover:bg-slate-50 transition-colors">
       <td data-label="Product" class="px-5 py-3">
         <div class="flex items-center gap-3">
@@ -134,13 +163,25 @@ function renderProductsTable(products) {
       </td>
     </tr>
   `).join('');
-  lucide.createIcons();
+
+  renderPaginationControls({
+    containerId: 'products-pagination',
+    currentPage: productsCurrentPage,
+    totalPages,
+    totalItems: products.length,
+    itemsPerPage: productsPerPage,
+    onPageChange: 'setProductsPage'
+  });
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-function filterProducts() {
-  const q = document.getElementById('product-search').value.toLowerCase();
-  renderProductsTable(q ? allProducts.filter(p => p.title.toLowerCase().includes(q)) : allProducts);
-}
+window.setProductsPage = function(page) {
+  productsCurrentPage = page;
+  renderProductsTable(currentFilteredProducts);
+  const tableEl = document.getElementById('products-table-body');
+  if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
 
 function openAddProductModal() {
   productAttributeDraft = {};
@@ -255,7 +296,10 @@ async function deleteProduct(id, title) {
   if (r.ok) {
     showToast('Product deleted.');
     allProducts = allProducts.filter(p => p.id !== id);
-    renderProductsTable(allProducts);
+    currentFilteredProducts = currentFilteredProducts.filter(p => p.id !== id);
+    const maxPage = Math.max(1, Math.ceil(currentFilteredProducts.length / productsPerPage));
+    if (productsCurrentPage > maxPage) productsCurrentPage = maxPage;
+    renderProductsTable(currentFilteredProducts);
   } else {
     showToast(apiErrorMessage(r, 'Failed to delete.'), false);
   }
