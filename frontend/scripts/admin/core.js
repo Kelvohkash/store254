@@ -17,6 +17,11 @@ if (host.endsWith('.store254.co.ke')) {
   const parts = host.split('.');
   tenantSlug = (parts.length >= 3 && parts[0] !== 'store254' && parts[0] !== 'www') ? parts[0] : null;
 }
+const urlParams = new URLSearchParams(window.location.search);
+const queryStore = urlParams.get('store') || urlParams.get('subdomain');
+if (queryStore) {
+  tenantSlug = queryStore.toLowerCase().trim();
+}
 
 // Remove legacy persisted owner credentials; the current token stays in memory only.
 localStorage.removeItem('store254_owner_token');
@@ -273,3 +278,157 @@ async function bootApp(user) {
   }
   lucide.createIcons();
 }
+
+// ═══════════════════════════════════════
+// PASSWORD RECOVERY
+// ═══════════════════════════════════════
+function openForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (!modal) return;
+  const loginEmail = document.getElementById('login-email')?.value.trim();
+  const forgotEmail = document.getElementById('forgot-email');
+  if (forgotEmail && loginEmail && loginEmail.includes('@')) {
+    forgotEmail.value = loginEmail;
+  }
+  document.getElementById('forgot-password-success')?.classList.add('hidden');
+  document.getElementById('forgot-password-form')?.classList.remove('hidden');
+  document.getElementById('forgot-password-error')?.classList.add('hidden');
+  modal.classList.remove('hidden');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  forgotEmail?.focus();
+}
+window.openForgotPasswordModal = openForgotPasswordModal;
+
+async function handleForgotPassword(e) {
+  e.preventDefault();
+  const btn = document.getElementById('forgot-password-submit-btn');
+  const errEl = document.getElementById('forgot-password-error');
+  const formEl = document.getElementById('forgot-password-form');
+  const successEl = document.getElementById('forgot-password-success');
+  const email = document.getElementById('forgot-email')?.value.trim();
+
+  if (!email) return;
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="animate-spin w-4 h-4 inline-block mr-1.5" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Sending...';
+  errEl.classList.add('hidden');
+
+  const r = await apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({
+      email,
+      clientOrigin: window.location.origin
+    })
+  });
+
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i><span>Send Reset Link</span>';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  if (!r.ok) {
+    errEl.textContent = apiErrorMessage(r, 'Could not process password recovery. Please check the email.');
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  formEl.classList.add('hidden');
+  successEl.classList.remove('hidden');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+window.handleForgotPassword = handleForgotPassword;
+
+function openResetPasswordModal(token = '', email = '') {
+  const modal = document.getElementById('reset-password-modal');
+  if (!modal) return;
+  closeModal('forgot-password-modal');
+
+  const tokenInput = document.getElementById('reset-token');
+  const emailInput = document.getElementById('reset-email');
+  const otpWrap = document.getElementById('reset-otp-wrap');
+  const otpInput = document.getElementById('reset-otp');
+
+  if (tokenInput) tokenInput.value = token || '';
+  if (emailInput && email) emailInput.value = email;
+
+  // If there's no direct URL token, show 6-digit OTP input
+  if (!token && otpWrap) {
+    otpWrap.classList.remove('hidden');
+    if (otpInput) otpInput.required = true;
+  } else if (otpWrap) {
+    otpWrap.classList.add('hidden');
+    if (otpInput) otpInput.required = false;
+  }
+
+  document.getElementById('reset-password-success')?.classList.add('hidden');
+  document.getElementById('reset-password-form')?.classList.remove('hidden');
+  document.getElementById('reset-password-error')?.classList.add('hidden');
+  modal.classList.remove('hidden');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+window.openResetPasswordModal = openResetPasswordModal;
+
+async function handleResetPassword(e) {
+  e.preventDefault();
+  const btn = document.getElementById('reset-password-submit-btn');
+  const errEl = document.getElementById('reset-password-error');
+  const formEl = document.getElementById('reset-password-form');
+  const successEl = document.getElementById('reset-password-success');
+
+  const email = document.getElementById('reset-email')?.value.trim();
+  const token = document.getElementById('reset-token')?.value.trim();
+  const otp = document.getElementById('reset-otp')?.value.trim();
+  const newPassword = document.getElementById('reset-new-password')?.value;
+  const confirmPassword = document.getElementById('reset-confirm-password')?.value;
+
+  if (newPassword !== confirmPassword) {
+    errEl.textContent = 'Passwords do not match. Please re-type your new password.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    errEl.textContent = 'Password must be at least 6 characters long.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="animate-spin w-4 h-4 inline-block mr-1.5" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Updating...';
+  errEl.classList.add('hidden');
+
+  const r = await apiFetch('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({
+      email,
+      token: token || undefined,
+      otp: otp || undefined,
+      newPassword,
+    })
+  });
+
+  btn.disabled = false;
+  btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i><span>Save New Password</span>';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  if (!r.ok) {
+    errEl.textContent = apiErrorMessage(r, 'Failed to update password. Code or link may have expired.');
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  formEl.classList.add('hidden');
+  successEl.classList.remove('hidden');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+window.handleResetPassword = handleResetPassword;
+
+// Check on load if URL has reset_token
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const resetToken = urlParams.get('reset_token') || urlParams.get('token');
+  const resetEmail = urlParams.get('email') || '';
+  if (resetToken) {
+    setTimeout(() => {
+      openResetPasswordModal(resetToken, resetEmail);
+    }, 150);
+  }
+});
