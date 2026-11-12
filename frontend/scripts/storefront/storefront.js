@@ -94,6 +94,7 @@ async function loadStoreProfile() {
     document.getElementById("store-admin-footer-btn")?.classList.remove("hidden");
     if (isSuspended) {
       document.documentElement.setAttribute("data-storefront-suspended", "true");
+      setHeaderLogo(DEFAULT_STORE_LOGO, "Store254");
       document.getElementById("store-admin-footer-btn")?.classList.add("hidden");
       document.getElementById("whatsapp-quick-contact")?.classList.add("hidden");
       const storefront = document.getElementById("storefront-view");
