@@ -239,11 +239,20 @@ export class EmailService {
         return false;
       }
 
-      await socket.write(`MAIL FROM:<${user}>\r\n`);
-      const mailFrom = await readResponse();
+      // Extract email address from from header (e.g. "Store254 Security <password_recovery@store254.co.ke>")
+      const senderMatch = from.match(/<([^>]+)>/);
+      const preferredSender = senderMatch ? senderMatch[1] : (from.includes("@") ? from.trim() : user);
+
+      await socket.write(`MAIL FROM:<${preferredSender}>\r\n`);
+      let mailFrom = await readResponse();
       if (!mailFrom || mailFrom.code !== 250) {
-        await socket.close();
-        return false;
+        // Fallback to login user if custom alias is rejected by SMTP
+        await socket.write(`MAIL FROM:<${user}>\r\n`);
+        mailFrom = await readResponse();
+        if (!mailFrom || mailFrom.code !== 250) {
+          await socket.close();
+          return false;
+        }
       }
 
       await socket.write(`RCPT TO:<${options.to}>\r\n`);
@@ -263,6 +272,7 @@ export class EmailService {
       const normalizedHtml = options.html.replace(/\r?\n/g, "\r\n");
       const mimeMsg = [
         `From: ${from}`,
+        `Reply-To: ${from}`,
         `To: ${options.to}`,
         `Subject: ${options.subject}`,
         `MIME-Version: 1.0`,
