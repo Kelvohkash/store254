@@ -81,7 +81,7 @@ async function loadStoreProfile() {
     updateWishlistButton();
   } else {
     const reason = res.data?.error?.message;
-    showToast(reason || `We couldn’t load the ${state.activeTenantSlug} storefront. Please try again shortly.`, "error");
+    const isSuspended = res.data?.error?.code === "TENANT_SUSPENDED";
     // Keep tenant hosts in storefront mode even when the store is unavailable.
     // Falling back to the platform homepage makes a store URL appear to change
     // websites during refreshes or temporary API failures.
@@ -92,8 +92,34 @@ async function loadStoreProfile() {
     document.documentElement.removeAttribute("data-storefront-pending");
     document.getElementById("storefront-view")?.classList.remove("hidden");
     document.getElementById("store-admin-footer-btn")?.classList.remove("hidden");
+    if (isSuspended) {
+      document.documentElement.setAttribute("data-storefront-suspended", "true");
+      document.getElementById("store-admin-footer-btn")?.classList.add("hidden");
+      document.getElementById("whatsapp-quick-contact")?.classList.add("hidden");
+      const storefront = document.getElementById("storefront-view");
+      if (storefront) {
+        storefront.innerHTML = `
+          <section class="storefront-maintenance" aria-labelledby="maintenance-title" role="status">
+            <div class="storefront-maintenance-art" aria-hidden="true">
+              <span class="maintenance-orbit maintenance-orbit-one"></span>
+              <span class="maintenance-orbit maintenance-orbit-two"></span>
+              <span class="maintenance-spark maintenance-spark-one">✦</span>
+              <span class="maintenance-spark maintenance-spark-two">✦</span>
+              <div class="maintenance-toolbox"><i data-lucide="wrench"></i></div>
+            </div>
+            <p class="storefront-maintenance-eyebrow">A little pause while we fix things</p>
+            <h1 id="maintenance-title">We’re having technical difficulties</h1>
+            <p class="storefront-maintenance-copy">This store is taking a short break while we work behind the scenes. We’ll be back soon, so please check in again shortly.</p>
+            <div class="storefront-maintenance-status"><span></span> Our team is on it</div>
+            <button type="button" class="storefront-maintenance-retry" onclick="window.location.reload()"><i data-lucide="refresh-cw"></i> Check again</button>
+            <p class="storefront-maintenance-signoff">Thanks for your patience <span aria-hidden="true">♥</span></p>
+          </section>`;
+      }
+    } else {
+      showToast(reason || `We couldn’t load the ${state.activeTenantSlug} storefront. Please try again shortly.`, "error");
+    }
     const catalog = document.getElementById("items-grid");
-    if (catalog) {
+    if (!isSuspended && catalog) {
       catalog.innerHTML = `
         <div class="col-span-full rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
           <h2 class="text-lg font-bold text-slate-900">This storefront is temporarily unavailable</h2>
