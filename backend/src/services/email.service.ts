@@ -140,7 +140,8 @@ export class EmailService {
     const from = options.from || this.DEFAULT_SENDER;
 
     // In automated tests, skip outbound SMTP so tests can assert local logging and redaction
-    const isTest = typeof process !== "undefined" && (process.env?.NODE_ENV === "test" || Boolean(process.env?.VITEST));
+    const proc = (globalThis as unknown as { process?: { env?: Record<string, string> } }).process;
+    const isTest = typeof proc !== "undefined" && (proc.env?.NODE_ENV === "test" || Boolean(proc.env?.VITEST));
 
     // Try Gmail SMTP first with configured password_recovery credentials when not in test
     if (!isTest) {
