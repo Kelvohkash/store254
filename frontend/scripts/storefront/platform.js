@@ -178,7 +178,7 @@ function renderStoreCardMarkup(s, index) {
     : initial;
 
   return `
-    <a href="${storeUrl}" class="platform-store-card bg-white rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer text-left group flex flex-col justify-between no-underline">
+    <a href="${storeUrl}" class="platform-store-card bg-white rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer text-left group flex flex-col justify-between no-underline overflow-hidden">
       <div>
         <div class="platform-store-cover cover-${coverType}${bannerUrl ? " has-hero-photo" : ""}" ${coverStyle}>
           <span class="platform-store-avatar">${avatarContent}</span>
@@ -186,18 +186,18 @@ function renderStoreCardMarkup(s, index) {
         </div>
         <div class="platform-store-details">
           <div>
-            <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors truncate text-sm">${escapeHtml(s.name)}</h4>
-            <span class="text-[11px] text-slate-400 font-mono truncate block">${escapeHtml(s.subdomain)}.store254.co.ke</span>
+            <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors truncate text-sm sm:text-base">${escapeHtml(s.name)}</h4>
+            <span class="text-xs text-slate-400 font-mono truncate block mt-0.5">${escapeHtml(s.subdomain)}.store254.co.ke</span>
           </div>
-          <p class="text-[11px] text-slate-600 line-clamp-2 leading-relaxed mt-1">${desc}</p>
+          <p class="text-xs sm:text-[13px] text-slate-600 line-clamp-2 leading-relaxed mt-1.5">${desc}</p>
         </div>
       </div>
-      <div class="platform-store-card-footer mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600">
-        <span class="flex items-center gap-1 group-hover:translate-x-1 transition-transform text-[11px]">
+      <div class="platform-store-card-footer mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm font-bold text-emerald-600">
+        <span class="flex items-center gap-1.5 group-hover:translate-x-1 transition-transform text-xs sm:text-sm">
           <span>Visit Storefront</span>
-          <i data-lucide="arrow-right" class="w-3 h-3"></i>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
         </span>
-        <span class="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase">${escapeHtml(s.businessType || "Store")}</span>
+        <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider">${escapeHtml(s.businessType || "Store")}</span>
       </div>
     </a>
   `;
