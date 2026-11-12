@@ -22,9 +22,21 @@
     document.getElementById('stat-pending').textContent = pending;
     document.getElementById('stat-revenue').textContent = fmt(revenue);
 
-    // Pending badge in sidebar
+    // Pending badge in sidebar and mobile navigation
     const badge = document.getElementById('sidebar-pending-badge');
-    if (pending > 0) { badge.textContent = pending; badge.classList.remove('hidden'); }
+    if (badge) {
+      if (pending > 0) { badge.textContent = pending; badge.classList.remove('hidden'); }
+      else { badge.classList.add('hidden'); }
+    }
+    const mobileOrdersBadge = document.getElementById('mobile-nav-orders-badge');
+    if (mobileOrdersBadge) {
+      if (pending > 0) { mobileOrdersBadge.textContent = pending; mobileOrdersBadge.classList.remove('hidden'); }
+      else { mobileOrdersBadge.classList.add('hidden'); }
+    }
+    const mobileQuickBadge = document.getElementById('mobile-quick-orders-badge');
+    if (mobileQuickBadge) {
+      mobileQuickBadge.classList.toggle('hidden', pending <= 0);
+    }
 
     // Recent orders
     const container = document.getElementById('dashboard-recent-orders');

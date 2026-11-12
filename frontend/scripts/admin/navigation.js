@@ -47,13 +47,29 @@ function showPage(name) {
   if (titleEl) titleEl.textContent = titles[name] || name;
   const subEl = document.getElementById('page-subtitle');
   if (subEl) subEl.textContent = subs[name] || '';
+  const mobileInd = document.getElementById('mobile-page-indicator');
+  if (mobileInd) mobileInd.textContent = titles[name] || name;
   currentPage = name;
   document.body.classList.toggle('admin-page-open', name === 'settings' || name === 'payments');
   ['dashboard', 'products', 'categories', 'orders'].forEach((page) => {
     document.getElementById(`mobile-nav-${page}`)?.classList.toggle('active', page === name);
   });
   document.getElementById('mobile-nav-more')?.classList.toggle('active', name === 'settings' || name === 'payments');
-  document.getElementById('header-add-product')?.classList.toggle('hidden', name === 'categories');
+  
+  const headerAddBtn = document.getElementById('header-add-product');
+  if (headerAddBtn) {
+    if (name === 'categories') {
+      headerAddBtn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i><span>Category</span>';
+      headerAddBtn.onclick = () => { if (typeof openAddCategoryModal === 'function') openAddCategoryModal(); };
+      headerAddBtn.classList.remove('hidden');
+    } else if (name === 'settings' || name === 'payments') {
+      headerAddBtn.classList.add('hidden');
+    } else {
+      headerAddBtn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i><span>Add Product</span>';
+      headerAddBtn.onclick = () => { showPage('products'); setTimeout(openAddProductModal, 100); };
+      headerAddBtn.classList.remove('hidden');
+    }
+  }
 
   if (name === 'products' && typeof loadProducts === 'function') loadProducts();
   if (name === 'categories' && typeof loadCategories === 'function') loadCategories();

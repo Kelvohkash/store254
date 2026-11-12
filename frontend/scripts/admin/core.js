@@ -153,9 +153,22 @@ async function bootApp(user) {
   document.getElementById('app-shell').classList.remove('hidden');
   document.getElementById('app-shell').classList.add('flex');
 
+  const setStoreNames = (name) => {
+    ['sidebar-store-name', 'login-store-name', 'mobile-topbar-store-name', 'mobile-welcome-store', 'mobile-menu-store-name'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = name;
+    });
+    document.title = `${name} — Admin`;
+  };
+
   if (user) {
-    document.getElementById('sidebar-user-name').textContent = user.fullName || user.email;
-    document.getElementById('sidebar-user-role').textContent = user.role;
+    const displayName = user.fullName || user.email || 'Owner';
+    const sidebarUser = document.getElementById('sidebar-user-name');
+    if (sidebarUser) sidebarUser.textContent = displayName;
+    const sidebarRole = document.getElementById('sidebar-user-role');
+    if (sidebarRole) sidebarRole.textContent = user.role || 'OWNER';
+    const mobileUser = document.getElementById('mobile-menu-user-name');
+    if (mobileUser) mobileUser.textContent = displayName;
   }
 
   const subscription = typeof loadStoreSubscription === 'function'
@@ -163,9 +176,7 @@ async function bootApp(user) {
     : null;
   const isSuspended = subscription?.storeStatus === 'SUSPENDED';
   if (subscription?.storeName) {
-    document.getElementById('sidebar-store-name').textContent = subscription.storeName;
-    document.getElementById('login-store-name').textContent = subscription.storeName;
-    document.title = `${subscription.storeName} — Admin`;
+    setStoreNames(subscription.storeName);
   }
 
   // A suspended store can still reach the admin dashboard to pay and reactivate.
@@ -173,10 +184,8 @@ async function bootApp(user) {
     const profileRes = await apiFetch('/store');
     if (profileRes.ok && profileRes.data?.data) {
       const st = profileRes.data.data;
-      const name = st.name || tenantSlug;
-      document.getElementById('sidebar-store-name').textContent = name;
-      document.getElementById('login-store-name').textContent = name;
-      document.title = `${name} — Admin`;
+      const name = st.name || tenantSlug || 'My Store';
+      setStoreNames(name);
     }
   }
 
