@@ -409,7 +409,7 @@ ${safeBody}
               <tr>
                 <td align="left" style="vertical-align: middle;">
                   <a href="https://store254.co.ke" target="_blank" style="text-decoration: none; display: inline-block;">
-                    <img src="https://store254.co.ke/assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
+                    <img src="https://store254.co.ke/assets/store254Logo.webp" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
                   </a>
                 </td>
                 <td align="right" style="vertical-align: middle;">
@@ -490,7 +490,7 @@ ${safeBody}
               <tr>
                 <td align="left" style="vertical-align: middle;">
                   <a href="https://store254.co.ke" target="_blank" style="text-decoration: none; display: inline-block;">
-                    <img src="https://store254.co.ke/assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
+                    <img src="https://store254.co.ke/assets/store254Logo.webp" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
                   </a>
                 </td>
                 <td align="right" style="vertical-align: middle;">
@@ -565,7 +565,7 @@ ${safeBody}
         <div class="container">
           <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6;">
             <a href="https://store254.co.ke" target="_blank" style="text-decoration: none; display: inline-block;">
-              <img src="https://store254.co.ke/assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
+              <img src="https://store254.co.ke/assets/store254Logo.webp" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
             </a>
           </div>
           <div class="badge">Application Under Review</div>
@@ -622,7 +622,7 @@ ${safeBody}
         <div class="container">
           <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6;">
             <a href="https://store254.co.ke" target="_blank" style="text-decoration: none; display: inline-block;">
-              <img src="https://store254.co.ke/assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
+              <img src="https://store254.co.ke/assets/store254Logo.webp" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
             </a>
           </div>
           <div class="badge">Store Activated</div>
