@@ -155,3 +155,23 @@ attributesRouter.put(
     return c.json({ success: true, message: "Product field updated successfully.", data: updated });
   }
 );
+
+// Delete a store's dynamic product field / filter.
+attributesRouter.delete(
+  "/:id",
+  authMiddleware(true),
+  requireRole(["OWNER", "ADMIN"]),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const { id } = c.req.param();
+    const db = createDb(c.env.DB);
+    const [existing] = await db.select().from(attributeDefinitions)
+      .where(and(eq(attributeDefinitions.id, id), eq(attributeDefinitions.tenantId, tenant.id))).limit(1);
+    if (!existing) throw new AppError("Product field not found.", 404, "ATTRIBUTE_NOT_FOUND");
+
+    await db.delete(attributeDefinitions)
+      .where(and(eq(attributeDefinitions.id, id), eq(attributeDefinitions.tenantId, tenant.id)));
+
+    return c.json({ success: true, message: "Product field deleted successfully." });
+  }
+);

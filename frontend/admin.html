@@ -34,8 +34,8 @@
 
       <form onsubmit="handleLogin(event)">
         <div class="mb-4">
-          <label class="label">Email</label>
-          <input id="login-email" type="email" required class="input" placeholder="owner@example.com" />
+          <label class="label">Email or Username</label>
+          <input id="login-email" type="text" required class="input" placeholder="admin or owner@example.com" />
         </div>
         <div class="mb-6">
           <label class="label">Password</label>
@@ -326,9 +326,9 @@
       <!-- ══════════ CATEGORIES PAGE ══════════ -->
       <section id="page-categories" class="hidden">
         <div class="flex items-center justify-between mb-5">
-          <p class="text-sm text-slate-500">Organise your products into categories</p>
+          <p class="text-sm text-slate-500">Organise your products into categories and category-specific filters</p>
           <div class="flex gap-2">
-            <button type="button" onclick="openAddAttributeModal()" class="btn-secondary">
+            <button type="button" onclick="openAddAttributeModal('')" class="btn-secondary">
               <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> Add Product Filter
             </button>
             <button onclick="openAddCategoryModal()" class="btn-primary">
@@ -336,17 +336,13 @@
             </button>
           </div>
         </div>
-        <div class="mb-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-          <h3 class="text-sm font-black text-slate-900 mb-3">Configured product fields</h3>
-          <div id="attribute-definitions-list" class="divide-y divide-slate-100 text-sm"><p class="py-3 text-xs text-slate-400">Loading fields…</p></div>
-        </div>
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wide">
               <tr>
-                <th class="px-5 py-3 text-left">Name</th>
-                <th class="px-5 py-3 text-left">Slug</th>
-                <th class="px-5 py-3 text-left">Parent</th>
+                <th class="px-5 py-3 text-left">Category / Filter</th>
+                <th class="px-5 py-3 text-left">Slug / Details</th>
+                <th class="px-5 py-3 text-left">Type / Parent</th>
                 <th class="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>

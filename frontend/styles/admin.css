@@ -247,6 +247,28 @@
     .admin-topbar { border-color: var(--admin-line); background: rgba(255, 255, 255, 0.96); }
     .sidebar-backdrop { display: none; }
     #login-screen > div > .bg-white { border-radius: 8px; box-shadow: 0 16px 48px rgba(23, 37, 31, 0.1); }
+
+    /* Category & Filter Rows */
+    tr.admin-cat-sub.is-collapsed,
+    tr.admin-cat-filter.is-collapsed {
+      display: none;
+    }
+    tr.admin-cat-sub.is-visible {
+      background: #fbfdfc;
+    }
+    tr.admin-cat-filter.is-visible {
+      background: #faf7fd;
+    }
+    tr.admin-cat-filter.is-visible:hover {
+      background: #f4effb;
+    }
+    tr.admin-cat-global {
+      background: #f6faf7;
+      border-bottom: 2px solid #d2ded7;
+    }
+    tr.admin-cat-global:hover {
+      background: #eef6f0;
+    }
     @media (max-width: 767px) {
       .admin-shell { height: auto; min-height: 100vh; overflow: visible; }
       .admin-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; height: 100dvh; transform: translateX(-105%); transition: transform 180ms ease; box-shadow: 12px 0 32px rgba(10, 25, 18, 0.18); }
@@ -832,7 +854,8 @@
         overflow: hidden;
         margin-bottom: 0.85rem;
       }
-      #page-categories tbody tr.admin-cat-sub.is-collapsed {
+      #page-categories tbody tr.admin-cat-sub.is-collapsed,
+      #page-categories tbody tr.admin-cat-filter.is-collapsed {
         display: none !important;
       }
       #page-categories tbody tr.admin-cat-sub.is-visible {
@@ -844,6 +867,28 @@
         background: #fbfdfc !important;
         box-shadow: 0 2px 8px rgba(18, 38, 28, 0.05) !important;
         margin-bottom: 0.65rem !important;
+      }
+      #page-categories tbody tr.admin-cat-filter.is-visible {
+        display: grid !important;
+        margin-left: 0.85rem !important;
+        border: 1.5px solid #d8cde9 !important;
+        border-left: 4px solid #7c3aed !important;
+        border-radius: 1rem !important;
+        background: #faf7fd !important;
+        box-shadow: 0 2px 8px rgba(109, 40, 217, 0.04) !important;
+        margin-bottom: 0.65rem !important;
+      }
+      #page-categories tbody tr.admin-cat-subfilter.is-visible {
+        margin-left: 1.5rem !important;
+        border-left: 4px solid #9333ea !important;
+      }
+      #page-categories tbody tr.admin-cat-global {
+        border-color: #147653 !important;
+        background: #f4f9f6 !important;
+      }
+      #page-categories tbody tr.admin-cat-filter td[data-label="Category"] {
+        background: #f4effb !important;
+        border-bottom: 1px solid #e7ddf6 !important;
       }
       .admin-cat-toggle-btn {
         font-size: 0.72rem !important;
@@ -900,18 +945,18 @@
       #page-categories tbody td[data-label="Actions"] {
         grid-row: 3;
         grid-column: 1 / -1;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
         gap: 0.5rem;
         padding: 0.65rem 0.95rem !important;
         background: #f7faf8;
         border-top: 1.5px solid #e1ebe4 !important;
       }
       #page-categories tbody td[data-label="Actions"] button {
+        flex: 1;
         min-height: 2.35rem;
-        padding: 0.35rem 0.7rem;
+        padding: 0.35rem 0.5rem;
         border-radius: 0.75rem;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         font-weight: 800;
         display: flex;
         align-items: center;
