@@ -158,6 +158,17 @@ async function handleSaveAttributeDefinition(event) {
   await loadAttributeDefinitions();
 }
 
+let expandedAdminCategories = new Set();
+
+function toggleAdminCategory(catId) {
+  if (expandedAdminCategories.has(catId)) {
+    expandedAdminCategories.delete(catId);
+  } else {
+    expandedAdminCategories.add(catId);
+  }
+  renderCategoriesTable(flatCategories);
+}
+
 function renderCategoriesTable(cats) {
   const tbody = document.getElementById('categories-table-body');
   if (!tbody) return;
@@ -165,17 +176,56 @@ function renderCategoriesTable(cats) {
     tbody.innerHTML = '<tr><td colspan="4" class="px-5 py-10 text-center text-slate-400">No categories yet.</td></tr>';
     return;
   }
-  tbody.innerHTML = cats.map(c => `
-    <tr class="hover:bg-slate-50 transition-colors">
-      <td data-label="Category" class="px-5 py-3 font-bold text-slate-900 text-sm"><span class="${c.parentId ? 'ml-6 border-l-2 border-slate-200 pl-3' : ''}">${c.parentId ? '↳ ' : ''}${escHtml(c.name)}</span></td>
-      <td data-label="Slug" class="px-5 py-3 text-xs text-slate-400 font-mono">${escHtml(c.slug || '')}</td>
-      <td data-label="Parent" class="px-5 py-3 text-xs text-slate-500">${c.parentId ? escHtml(c.parentName || '—') : '—'}</td>
-      <td data-label="Actions" class="px-5 py-3 text-right">
-        <button onclick="openEditCategoryModal(${inlineJs(c.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all">Edit</button>
-        <button onclick="deleteCategory(${inlineJs(c.id)}, ${inlineJs(c.name)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">Delete</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = cats.map(c => {
+    const isMain = !c.parentId;
+    const children = isMain ? cats.filter(x => x.parentId === c.id) : [];
+    const isExpanded = expandedAdminCategories.has(c.id);
+    const isParentExpanded = c.parentId ? expandedAdminCategories.has(c.parentId) : false;
+
+    if (isMain) {
+      return `
+        <tr class="admin-cat-row admin-cat-main hover:bg-slate-50 transition-colors cursor-pointer" onclick="toggleAdminCategory(${inlineJs(c.id)})">
+          <td data-label="Category" class="px-5 py-3 font-bold text-slate-900 text-sm">
+            <div class="flex items-center justify-between w-full gap-2">
+              <span class="font-bold text-slate-900 text-sm">${escHtml(c.name)}</span>
+              ${children.length > 0 ? `
+                <button type="button" onclick="event.stopPropagation(); toggleAdminCategory(${inlineJs(c.id)})" class="admin-cat-toggle-btn text-[11px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 ${isExpanded ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-700 border-slate-200'}">
+                  <span>${children.length} subcategor${children.length === 1 ? 'y' : 'ies'}</span>
+                  <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
+                </button>
+              ` : ''}
+            </div>
+          </td>
+          <td data-label="Slug" class="px-5 py-3 text-xs text-slate-400 font-mono">${escHtml(c.slug || '')}</td>
+          <td data-label="Parent" class="px-5 py-3 text-xs text-slate-500">—</td>
+          <td data-label="Actions" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
+            <button onclick="openEditCategoryModal(${inlineJs(c.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all">Edit</button>
+            <button onclick="deleteCategory(${inlineJs(c.id)}, ${inlineJs(c.name)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">Delete</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    // Subcategory row
+    return `
+      <tr class="admin-cat-row admin-cat-sub hover:bg-slate-50 transition-colors ${isParentExpanded ? 'is-visible' : 'is-collapsed'}" data-parent-id="${escHtml(c.parentId)}">
+        <td data-label="Category" class="px-5 py-3 font-bold text-slate-900 text-sm">
+          <div class="flex items-center gap-2 pl-3 border-l-2 border-emerald-500">
+            <span class="text-emerald-600 font-bold">↳</span>
+            <span class="font-bold text-slate-800 text-sm">${escHtml(c.name)}</span>
+            <span class="text-[10px] text-slate-400 font-semibold">(${escHtml(c.parentName || 'Subcategory')})</span>
+          </div>
+        </td>
+        <td data-label="Slug" class="px-5 py-3 text-xs text-slate-400 font-mono">${escHtml(c.slug || '')}</td>
+        <td data-label="Parent" class="px-5 py-3 text-xs text-slate-500">${escHtml(c.parentName || '—')}</td>
+        <td data-label="Actions" class="px-5 py-3 text-right">
+          <button onclick="openEditCategoryModal(${inlineJs(c.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all">Edit</button>
+          <button onclick="deleteCategory(${inlineJs(c.id)}, ${inlineJs(c.name)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">Delete</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function openAddCategoryModal() {

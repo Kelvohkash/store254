@@ -477,12 +477,12 @@
         grid-template-columns: 1fr auto;
         gap: 0;
         padding: 0;
-        border: 1.5px solid #cbdad0 !important;
+        border: 2px solid #577867 !important;
         border-radius: 1.15rem !important;
         background: #ffffff !important;
-        box-shadow: 0 4px 16px rgba(18, 38, 28, 0.07), 0 1px 3px rgba(18, 38, 28, 0.04) !important;
+        box-shadow: 0 4px 18px rgba(15, 35, 24, 0.13), 0 2px 6px rgba(15, 35, 24, 0.08) !important;
         overflow: hidden;
-        margin-bottom: 0.85rem;
+        margin-bottom: 0.95rem;
         cursor: pointer;
         transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
       }
@@ -505,19 +505,19 @@
       #page-orders tbody td[data-label="Order"] {
         grid-row: 1;
         grid-column: 1;
-        background: #f5f8f6;
+        background: #f4f8f5;
         padding: 0.75rem 0.95rem !important;
-        border-bottom: 1px solid #e1ebe4 !important;
+        border-bottom: 1.5px solid #d2ded7 !important;
         display: flex;
         align-items: center;
       }
       #page-orders .order-id-badge {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-weight: 800;
-        font-size: 0.8rem;
+        font-size: 0.74rem;
         color: #162a20;
         background: #ffffff;
-        border: 1.5px solid #d0ded6;
+        border: 1.5px solid #cad8cf;
         border-radius: 0.5rem;
         padding: 0.2rem 0.55rem;
         display: inline-block;
@@ -525,12 +525,18 @@
       #page-orders tbody td[data-label="Status"] {
         grid-row: 1;
         grid-column: 2;
-        background: #f5f8f6;
+        background: #f4f8f5;
         padding: 0.75rem 0.95rem !important;
-        border-bottom: 1px solid #e1ebe4 !important;
+        border-bottom: 1.5px solid #d2ded7 !important;
         display: flex;
         justify-content: flex-end;
         align-items: center;
+      }
+      #page-orders .order-status-pill {
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        letter-spacing: normal !important;
+        padding: 0.18rem 0.55rem !important;
       }
       /* ROW 2: Customer */
       #page-orders tbody td[data-label="Customer"] {
@@ -573,7 +579,7 @@
         padding: 0.55rem 0.95rem 0.65rem !important;
         display: flex;
         align-items: center;
-        border-top: 1px dashed #e5ede7 !important;
+        border-top: 1.5px dashed #cadad1 !important;
       }
       #page-orders .order-items-badge {
         font-size: 0.75rem;
@@ -591,7 +597,7 @@
         display: flex;
         justify-content: flex-end;
         align-items: center;
-        border-top: 1px dashed #e5ede7 !important;
+        border-top: 1.5px dashed #cadad1 !important;
       }
       #page-orders .order-total-cell {
         display: flex;
@@ -605,9 +611,9 @@
         color: #72847a;
       }
       #page-orders .order-total-val {
-        font-size: 1.08rem;
+        font-size: 1.05rem;
         font-weight: 900;
-        color: #106945;
+        color: #0b633d;
       }
       /* ROW 4: Payment Info Box */
       #page-orders tbody td[data-label="Payment"] {
@@ -620,8 +626,8 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.55rem 0.8rem;
-        background: #f4f8f5;
-        border: 1.5px solid #dbe7df;
+        background: #eef5f1;
+        border: 1.5px solid #bcd2c4;
         border-radius: 0.75rem;
       }
       #page-orders .order-payment-method {
@@ -641,22 +647,23 @@
         justify-content: space-between;
         gap: 0.75rem;
         padding: 0.65rem 0.95rem !important;
-        background: #f7faf8;
-        border-top: 1.5px solid #e1ebe4 !important;
+        background: #f4f8f5;
+        border-top: 1.5px solid #d2ded7 !important;
       }
       #page-orders tbody td[data-label="Update"]::before {
         display: inline-flex !important;
         content: "Update Status:";
-        font-size: 0.75rem;
+        font-size: 0.74rem;
         font-weight: 800;
         color: #4b6054;
       }
       #page-orders .order-status-select {
-        min-height: 2.35rem;
-        font-size: 0.78rem;
-        font-weight: 800;
-        border-radius: 0.65rem;
-        padding: 0.35rem 0.75rem;
+        height: 2.15rem;
+        min-height: 2.15rem;
+        font-size: 0.74rem !important;
+        font-weight: 700 !important;
+        border-radius: 0.55rem;
+        padding: 0.2rem 0.65rem;
         border: 1.5px solid #cbdad0;
         background: #ffffff;
         color: #162a20;
@@ -688,12 +695,32 @@
         grid-template-columns: 1fr auto;
         gap: 0;
         padding: 0;
-        border: 1.5px solid #cbdad0 !important;
+        border: 2px solid #577867 !important;
         border-radius: 1.15rem !important;
         background: #ffffff !important;
-        box-shadow: 0 4px 16px rgba(18, 38, 28, 0.07), 0 1px 3px rgba(18, 38, 28, 0.04) !important;
+        box-shadow: 0 4px 16px rgba(18, 38, 28, 0.08), 0 1px 3px rgba(18, 38, 28, 0.04) !important;
         overflow: hidden;
         margin-bottom: 0.85rem;
+      }
+      #page-categories tbody tr.admin-cat-sub.is-collapsed {
+        display: none !important;
+      }
+      #page-categories tbody tr.admin-cat-sub.is-visible {
+        display: grid !important;
+        margin-left: 0.85rem !important;
+        border: 1.5px solid #cad8cf !important;
+        border-left: 4px solid #147653 !important;
+        border-radius: 1rem !important;
+        background: #fbfdfc !important;
+        box-shadow: 0 2px 8px rgba(18, 38, 28, 0.05) !important;
+        margin-bottom: 0.65rem !important;
+      }
+      .admin-cat-toggle-btn {
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        border-radius: 0.5rem;
+        padding: 0.15rem 0.5rem;
+        text-transform: none;
       }
       #page-categories tbody td {
         padding: 0 !important;

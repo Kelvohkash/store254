@@ -48,7 +48,7 @@
         <td data-label="Payment" class="px-5 py-3">
           <div class="order-payment-box flex items-center justify-between gap-2">
             <span class="order-payment-method text-[11px] font-bold text-slate-700">${o.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pay on delivery' : 'M-Pesa'}</span>
-            <span class="text-[10px] font-black px-2 py-0.5 rounded-full border ${o.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">${escHtml(o.paymentStatus || 'UNPAID')}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${o.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">${escHtml(formatStatusLabel(o.paymentStatus || 'UNPAID'))}</span>
           </div>
         </td>
         <td data-label="Status" class="px-5 py-3">
@@ -59,9 +59,9 @@
         <td data-label="Update" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
           <div class="order-update-wrap">
             ${o.status === 'COMPLETED'
-              ? '<span class="text-[10px] font-semibold text-slate-400">Customer confirmed</span>'
-              : `<select onchange="updateOrderStatus('${escHtml(o.id)}', this.value)" class="order-status-select text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white shadow-sm">
-                  ${['PROCESSING','SHIPPED','CANCELLED'].map(s => `<option ${o.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
+              ? '<span class="text-xs font-semibold text-slate-500">Delivered</span>'
+              : `<select onchange="updateOrderStatus('${escHtml(o.id)}', this.value)" class="order-status-select text-xs border border-slate-300 rounded-lg px-2.5 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white shadow-sm">
+                  ${['PROCESSING','SHIPPED','CANCELLED'].map(s => `<option ${o.status===s?'selected':''} value="${s}">${formatStatusLabel(s)}</option>`).join('')}
                 </select>`}
           </div>
         </td>

@@ -36,10 +36,21 @@ function ago(d) {
   const m = Math.floor(diff / 60000), h = Math.floor(m / 60), days = Math.floor(h / 24);
   return days > 0 ? `${days}d ago` : h > 0 ? `${h}h ago` : m > 0 ? `${m}m ago` : 'just now';
 }
+function formatStatusLabel(s) {
+  const map = {
+    PENDING_PAYMENT: 'Pending payment',
+    PROCESSING: 'Processing',
+    SHIPPED: 'Shipped',
+    COMPLETED: 'Delivered',
+    CANCELLED: 'Cancelled',
+  };
+  return map[s] || String(s || '').replace(/_/g, ' ');
+}
+
 function statusBadge(s) {
   const cls = { PENDING_PAYMENT: 'badge-status-pending', PROCESSING: 'badge-status-confirmed', SHIPPED: 'badge-status-confirmed', COMPLETED: 'badge-status-completed', CANCELLED: 'badge-status-cancelled' }[s] || 'bg-slate-100 text-slate-600';
   const safeStatus = ['PENDING_PAYMENT', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED'].includes(s) ? s : 'UNKNOWN';
-  return `<span class="text-[10px] font-black px-2 py-0.5 rounded-full border ${cls}">${safeStatus === 'COMPLETED' ? 'DELIVERED' : safeStatus}</span>`;
+  return `<span class="order-status-pill text-[11px] font-semibold px-2 py-0.5 rounded-full border ${cls}">${escHtml(formatStatusLabel(safeStatus))}</span>`;
 }
 function showToast(msg, ok = true) {
   const el = document.getElementById('toast-top');
