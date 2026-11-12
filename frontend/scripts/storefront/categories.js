@@ -213,6 +213,37 @@ function renderCategoryNavigation(animateLevelChange = false) {
     }
   }
 
+  // Browse categories as compact cards before showing product results. A root
+  // with children opens those children; selecting a leaf returns to products.
+  const categoryCards = document.getElementById("category-cards-grid");
+  if (categoryCards) {
+    const cardCategories = !currentSlug
+      ? categories
+      : activeRoot && (activeRoot.children || []).length > 0
+        ? activeRoot.children
+        : [];
+    categoryCards.classList.toggle("hidden", cardCategories.length === 0);
+    container.classList.toggle("hidden", cardCategories.length > 0);
+    document.getElementById("items-grid")?.classList.toggle("hidden", cardCategories.length > 0);
+    categoryCards.innerHTML = cardCategories.map((category) => {
+      const count = getCategoryItemCount(category.slug);
+      const icon = /baby|child|kids|clothing|fashion/i.test(category.name) ? "shirt"
+        : /electronic|phone|computer|tv|tech/i.test(category.name) ? "monitor"
+          : /home|furniture|kitchen/i.test(category.name) ? "armchair" : "shapes";
+      return `
+        <button type="button" class="category-card" onclick="selectCategory('${escapeHtml(category.slug)}')" aria-label="Browse ${escapeHtml(category.name)}">
+          <span class="category-card-icon"><i data-lucide="${icon}" class="w-5 h-5"></i></span>
+          <span class="category-card-copy">
+            <span class="category-card-title">${escapeHtml(category.name)}</span>
+            ${category.description ? `<span class="category-card-description">${escapeHtml(category.description)}</span>` : ""}
+            ${count !== null ? `<span class="category-card-count">${count} ${count === 1 ? "item" : "items"}</span>` : ""}
+          </span>
+          <i data-lucide="chevron-right" class="category-card-arrow"></i>
+        </button>`;
+    }).join("");
+    renderIcons(categoryCards);
+  }
+
   // 1. Render URL-Like Breadcrumb Trail for Backtracking
   if (breadcrumbPath) {
     if (!currentSlug) {

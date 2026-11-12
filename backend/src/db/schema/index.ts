@@ -3,7 +3,6 @@ export * from "./users";
 export * from "./categories";
 export * from "./attributes";
 export * from "./items";
-export * from "./offers";
 export * from "./orders";
 export * from "./payment-configs";
 export * from "./auth-tokens";

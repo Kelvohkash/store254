@@ -110,7 +110,7 @@ function renderProductsTable(products) {
   }
   tbody.innerHTML = products.map(p => `
     <tr class="hover:bg-slate-50 transition-colors">
-      <td class="px-5 py-3">
+      <td data-label="Product" class="px-5 py-3">
         <div class="flex items-center gap-3">
           ${p.images?.[0] ? `<img src="${escHtml(p.images[0])}" class="w-9 h-9 rounded-lg object-cover border border-slate-200" onerror="this.style.display='none'">` : `<div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center"><i data-lucide="image" class="w-4 h-4 text-slate-400"></i></div>`}
           <div>
@@ -119,18 +119,18 @@ function renderProductsTable(products) {
           </div>
         </div>
       </td>
-      <td class="px-5 py-3 text-xs text-slate-500">${escHtml(p.categoryName || '—')}</td>
-      <td class="px-5 py-3">
+      <td data-label="Category" class="px-5 py-3 text-xs text-slate-500">${escHtml(p.categoryName || '—')}</td>
+      <td data-label="Price" class="px-5 py-3">
         <p class="font-black text-slate-900 text-sm">${fmt(p.basePrice)}</p>
         ${p.compareAtPrice ? `<p class="text-xs text-slate-400 line-through">${fmt(p.compareAtPrice)}</p>` : ''}
       </td>
-      <td class="px-5 py-3">
+      <td data-label="Stock" class="px-5 py-3">
         <span class="text-sm font-bold ${p.stockQuantity <= 0 ? 'text-red-600' : p.stockQuantity < 5 ? 'text-amber-600' : 'text-slate-700'}">${p.trackInventory ? p.stockQuantity : '∞'}</span>
       </td>
-      <td class="px-5 py-3">
+      <td data-label="Status" class="px-5 py-3">
         <span class="text-[10px] font-black px-2 py-0.5 rounded-full border ${p.status === 'PUBLISHED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : p.status === 'DRAFT' ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-red-50 text-red-600 border-red-200'}">${escHtml(p.status)}</span>
       </td>
-      <td class="px-5 py-3 text-right">
+      <td data-label="Actions" class="px-5 py-3 text-right">
         <button onclick="openEditProductModal(${inlineJs(p.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-all mr-1">Edit</button>
         <button onclick="deleteProduct(${inlineJs(p.id)}, ${inlineJs(p.title)})" class="text-xs font-bold text-slate-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-all">Delete</button>
       </td>

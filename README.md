@@ -60,7 +60,6 @@ npm run db:migrate:prod
 - **Multi-Tenancy:** Automated subdomain resolution (`alicebabycare.store254.co.ke`) and custom apex domains (`alicebabycare.com`).
 - **Catalog Engine:** Recursive hierarchical categories, dynamic attribute definitions (Brand, Screen Size, Resolution, Duration), and product/service variants.
 - **Storefront Filters:** Faceted search and dynamic price range aggregation.
-- **Offers & Promotions:** Coupon codes (`WELCOME10`, `FLASH500`), flash sales, and cart discount calculations.
 - **Checkout Payments:** Customers can pay with M-Pesa STK Push when the store has configured it, or place an order with cash payment due on delivery. For shipped COD orders, merchants can reveal Till/Paybill instructions in customer order history or send an M-Pesa prompt; after delivery, merchants can manually record payment.
 - **Onboarding & Super Admin:** Stores onboard with `status: PENDING`. Super Admin inspects and activates stores at `/api/platform/admin/stores`.
 - **Email OTP Recovery:** Password recovery OTPs dispatched from `recovery@store254.co.ke`.

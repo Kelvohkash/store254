@@ -45,8 +45,6 @@ function renderCartDrawer() {
   populateCheckoutCustomerDetails();
   const container = document.getElementById("cart-items-container");
   const subtotalEl = document.getElementById("cart-subtotal");
-  const discountRow = document.getElementById("cart-discount-row");
-  const discountEl = document.getElementById("cart-discount");
   const totalEl = document.getElementById("cart-total");
   const serviceBookingSection = document.getElementById("service-booking-section");
   if (!container) return;
@@ -61,7 +59,6 @@ function renderCartDrawer() {
         <p class="text-xs text-slate-500 mt-1">Explore our catalog to add items!</p>
       </div>`;
     if (subtotalEl) subtotalEl.textContent = "KES 0";
-    if (discountRow) discountRow.classList.add("hidden");
     if (totalEl) totalEl.textContent = "KES 0";
     if (serviceBookingSection) serviceBookingSection.classList.add("hidden");
     renderIcons();
@@ -93,20 +90,8 @@ function renderCartDrawer() {
   });
   container.innerHTML = html;
 
-  let discountAmount = 0;
-  if (state.appliedCoupon) {
-    discountAmount = state.appliedCoupon.type === "PERCENTAGE"
-      ? Math.round((subtotal * state.appliedCoupon.value) / 100)
-      : state.appliedCoupon.value;
-  }
-  const finalTotal = Math.max(1, subtotal - discountAmount);
-
   if (subtotalEl) subtotalEl.textContent = `KES ${subtotal.toLocaleString()}`;
-  if (discountRow) {
-    discountRow.classList.toggle("hidden", discountAmount === 0);
-    if (discountEl) discountEl.textContent = `- KES ${discountAmount.toLocaleString()}`;
-  }
-  if (totalEl) totalEl.textContent = `KES ${finalTotal.toLocaleString()}`;
+  if (totalEl) totalEl.textContent = `KES ${subtotal.toLocaleString()}`;
   renderIcons();
 }
 
@@ -139,43 +124,5 @@ async function refreshCheckoutCustomerProfile() {
   if (profileRes.ok && profileRes.data?.success && profileRes.data.data?.role === "CUSTOMER") {
     persistCustomerSession(profileRes.data.data, state.customerToken || null);
     populateCheckoutCustomerDetails();
-  }
-}
-
-async function applyCoupon() {
-  const codeInput = document.getElementById("coupon-code-input");
-  if (!codeInput) return;
-  const code = codeInput.value.trim().toUpperCase();
-  if (!code) {
-    showToast("Please enter a promotion code", "error");
-    return;
-  }
-
-  const subtotal = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  if (subtotal <= 0) {
-    showToast("Add items to your cart before applying a coupon", "error");
-    return;
-  }
-
-  const res = await apiFetch("/api/offers/validate-coupon", {
-    method: "POST",
-    body: JSON.stringify({ code, orderAmount: subtotal, itemIds: state.cart.map((i) => i.itemId) }),
-  });
-
-  if (res.ok && res.data.success) {
-    const d = res.data.data;
-    state.appliedCoupon = {
-      code: d.couponCode || code,
-      type: d.discountType,
-      value: d.discountValue,
-      discountAmount: d.discountAmount,
-      title: d.title,
-    };
-    showToast(`Coupon "${state.appliedCoupon.code}" applied (-KES ${Number(d.discountAmount || 0).toLocaleString()})`);
-    renderCartDrawer();
-  } else {
-    showToast(res.data.error?.message || "Invalid or expired coupon", "error");
-    state.appliedCoupon = null;
-    renderCartDrawer();
   }
 }

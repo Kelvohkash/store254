@@ -340,6 +340,8 @@
         <!-- Active Filter Chips Bar (Shared PC & Mobile: One-click removal of any active filter) -->
         <div id="active-filters-bar" class="active-filters-bar hidden mb-4" aria-live="polite"></div>
 
+        <div id="category-cards-grid" class="category-cards-grid hidden" aria-label="Browse categories"></div>
+
         <!-- Full-Width Responsive Items Grid: 2 columns on Mobile, 3/4 columns or List on Desktop -->
         <div id="items-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 xl:gap-5"></div>
       </section>
@@ -561,15 +563,6 @@
           </div>
         </div>
 
-        <!-- Coupon Code Box -->
-        <div class="mb-6">
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Promotion / Coupon</label>
-          <div class="flex gap-2">
-            <input type="text" id="coupon-code-input" placeholder="e.g. WELCOME10, FLASH500" class="flex-1 text-xs uppercase font-mono p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500">
-            <button onclick="applyCoupon()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-colors">Apply</button>
-          </div>
-        </div>
-
         <!-- Customer Details -->
         <div class="space-y-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
           <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Customer & Delivery Details</h4>
@@ -594,10 +587,6 @@
         <div class="flex justify-between text-xs text-slate-600 mb-1.5">
           <span>Subtotal</span>
           <span id="cart-subtotal" class="font-bold text-slate-900">KES 0</span>
-        </div>
-        <div id="cart-discount-row" class="hidden flex justify-between text-xs text-rose-600 font-bold mb-1.5">
-          <span>Discount</span>
-          <span id="cart-discount">- KES 0</span>
         </div>
         <div class="flex justify-between text-base font-black text-slate-900 mb-4">
           <span>Total</span>

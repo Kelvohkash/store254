@@ -50,6 +50,13 @@
       "when": 1794230000000,
       "tag": "0006_inventory_deducted",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794466587583,
+      "tag": "0007_remove_promotions",
+      "breakpoints": true
     }
   ]
 }

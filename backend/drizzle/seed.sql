@@ -148,42 +148,7 @@ INSERT OR REPLACE INTO `items` (
     unixepoch()
   );
 
--- 6. Promotions & Coupon Offers
-INSERT OR REPLACE INTO `promotions` (
-  `id`, `tenant_id`, `title`, `code`, `discount_type`, `discount_value`, `min_order_amount`, `applies_to`, `starts_at`, `ends_at`, `is_active`, `created_at`, `updated_at`
-) VALUES
-  (
-    'promo-welcome10',
-    'tenant-alice-babycare-101',
-    'Welcome 10% Off Storewide',
-    'WELCOME10',
-    'PERCENTAGE',
-    10,
-    2000,
-    'ALL',
-    unixepoch(),
-    unixepoch() + 31536000, -- 1 year validity
-    1,
-    unixepoch(),
-    unixepoch()
-  ),
-  (
-    'promo-flash500',
-    'tenant-alice-babycare-101',
-    'Flash Sale: KES 500 Off',
-    'FLASH500',
-    'FIXED_AMOUNT',
-    500,
-    5000,
-    'ALL',
-    unixepoch(),
-    unixepoch() + 31536000,
-    1,
-    unixepoch(),
-    unixepoch()
-  );
-
--- 7. Payment Configuration: Disabled by Default
+-- 6. Payment Configuration: Disabled by Default
 INSERT OR REPLACE INTO `tenant_payment_configs` (
   `id`, `tenant_id`, `provider`, `is_enabled`, `shortcode_type`, `shortcode`, `passkey`, `consumer_key`, `consumer_secret`, `is_sandbox`, `created_at`, `updated_at`
 ) VALUES (

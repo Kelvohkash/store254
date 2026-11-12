@@ -23,7 +23,6 @@ export const orders = sqliteTable(
     discountAmount: integer("discount_amount").notNull().default(0),
     shippingFee: integer("shipping_fee").notNull().default(0),
     totalAmount: integer("total_amount").notNull(),
-    couponCode: text("coupon_code"),
     status: text("status", {
       enum: ["PENDING_PAYMENT", "PAID", "PROCESSING", "SHIPPED", "COMPLETED", "CANCELLED"],
     })

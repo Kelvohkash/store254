@@ -6,7 +6,6 @@ import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { orders, orderItems, payments } from "../../db/schema/orders";
 import { items, itemVariants } from "../../db/schema/items";
-import { promotions } from "../../db/schema/offers";
 import { tenantPaymentConfigs } from "../../db/schema/payment-configs";
 import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
 import { generateUUID, generateSecureToken, hashOtp } from "../../security/crypto";
@@ -61,7 +60,6 @@ const checkoutSchema = z.object({
   shippingAddress: z.record(z.unknown()).default({}),
   bookingDetails: serviceBookingDetailsSchema.optional(),
   items: z.array(checkoutItemSchema).min(1, "Cart cannot be empty"),
-  couponCode: z.string().optional(),
   notes: z.string().max(500).optional(),
 }).superRefine((checkout, context) => {
   if (checkout.paymentMethod === "CASH_ON_DELIVERY" && !checkout.deliveryAddress) {
@@ -241,47 +239,8 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
     });
   }
 
-  // 6. Evaluate Coupon / Promotion discount
-  let discountAmount = 0;
-  let appliedCouponCode: string | null = null;
-
-  if (body.couponCode) {
-    const code = body.couponCode.trim().toUpperCase();
-    const now = new Date();
-
-    const [promo] = await db
-      .select()
-      .from(promotions)
-      .where(and(eq(promotions.tenantId, tenant.id), eq(promotions.code, code)))
-      .limit(1);
-
-    if (
-      promo &&
-      promo.isActive &&
-      promo.startsAt <= now &&
-      (!promo.endsAt || promo.endsAt >= now) &&
-      (!promo.usageLimit || promo.usageCount < promo.usageLimit) &&
-      subtotal >= promo.minOrderAmount
-    ) {
-      appliedCouponCode = code;
-      if (promo.discountType === "PERCENTAGE") {
-        discountAmount = Math.round((subtotal * promo.discountValue) / 100);
-        if (promo.maxDiscountAmount && discountAmount > promo.maxDiscountAmount) {
-          discountAmount = promo.maxDiscountAmount;
-        }
-      } else if (promo.discountType === "FIXED_AMOUNT") {
-        discountAmount = Math.min(subtotal, promo.discountValue);
-      }
-
-      await db
-        .update(promotions)
-        .set({ usageCount: sql`${promotions.usageCount} + 1` })
-        .where(and(eq(promotions.id, promo.id), eq(promotions.tenantId, tenant.id)));
-    }
-  }
-
   const shippingFee = 0;
-  const totalAmount = Math.max(1, subtotal - discountAmount + shippingFee);
+  const totalAmount = Math.max(1, subtotal + shippingFee);
 
   // 7. Insert Order (including service appointment booking details)
   const orderId = generateUUID();
@@ -301,10 +260,8 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
     bookingDetails: body.bookingDetails || {},
     currency: tenant.currency || "KES",
     subtotal,
-    discountAmount,
     shippingFee,
     totalAmount,
-    couponCode: appliedCouponCode,
     status: body.paymentMethod === "CASH_ON_DELIVERY" ? "PROCESSING" : "PENDING_PAYMENT",
     paymentStatus: "PENDING",
     paymentMethod: body.paymentMethod,
@@ -369,7 +326,6 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
           orderId,
           orderNumber,
           subtotal,
-          discountAmount,
           totalAmount,
           currency: tenant.currency || "KES",
           paymentMethod: body.paymentMethod,
@@ -454,7 +410,6 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
         orderId,
         orderNumber,
         subtotal,
-        discountAmount,
         totalAmount,
         currency: tenant.currency || "KES",
         checkoutRequestId,

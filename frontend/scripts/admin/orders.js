@@ -20,19 +20,19 @@
     if (!orders.length) { tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">No orders found.</td></tr>'; return; }
     tbody.innerHTML = orders.map(o => `
       <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="openOrderDrawer(${inlineJs(o.id)})">
-        <td class="px-5 py-3 font-mono font-black text-slate-900 text-xs">#${escHtml((o.orderNumber || String(o.id).slice(0,8)).toUpperCase())}</td>
-        <td class="px-5 py-3">
+        <td data-label="Order" class="px-5 py-3 font-mono font-black text-slate-900 text-xs">#${escHtml((o.orderNumber || String(o.id).slice(0,8)).toUpperCase())}</td>
+        <td data-label="Customer" class="px-5 py-3">
           <p class="text-sm font-bold text-slate-900">${escHtml(o.customerName || 'Guest')}</p>
           <p class="text-xs text-slate-400">${escHtml(o.customerEmail || '')}</p>
         </td>
-        <td class="px-5 py-3 text-xs text-slate-500">${(o.items || o.orderItems || []).length} item(s)</td>
-        <td class="px-5 py-3 font-black text-slate-900 text-sm">${fmt(o.totalAmount || 0)}</td>
-        <td class="px-5 py-3">
+        <td data-label="Items" class="px-5 py-3 text-xs text-slate-500">${(o.items || o.orderItems || []).length} item(s)</td>
+        <td data-label="Total" class="px-5 py-3 font-black text-slate-900 text-sm">${fmt(o.totalAmount || 0)}</td>
+        <td data-label="Payment" class="px-5 py-3">
           <p class="text-[10px] font-bold text-slate-600">${o.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pay on delivery' : 'M-Pesa'}</p>
           <span class="text-[10px] font-black px-2 py-0.5 rounded-full border ${o.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">${escHtml(o.paymentStatus || 'UNPAID')}</span>
         </td>
-        <td class="px-5 py-3">${statusBadge(o.status)}</td>
-        <td class="px-5 py-3 text-right" onclick="event.stopPropagation()">
+        <td data-label="Status" class="px-5 py-3">${statusBadge(o.status)}</td>
+        <td data-label="Update" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
           ${o.status === 'COMPLETED'
             ? '<span class="text-[10px] font-semibold text-slate-400">Customer confirmed</span>'
             : `<select onchange="updateOrderStatus('${escHtml(o.id)}', this.value)" class="text-xs border border-slate-300 rounded-lg px-2 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500">
@@ -190,4 +190,3 @@
   }
 
   // ═══════════════════════════════════════
-  

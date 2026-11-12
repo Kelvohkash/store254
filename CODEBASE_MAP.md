@@ -117,7 +117,6 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 | `product-editor.js` and `catalog.js` | Product CRUD, images, variants, and inventory. | Product form handlers and catalog loading | Product management forms, inventory controls, or file uploads. |
 | `categories.js` | Store category hierarchy, creation, editing, and ordering. | `loadAdminCategories()`, `saveCategory()` | Managing store product categories. |
 | `orders.js` | Merchant order management, fulfillment status updates, customer details. | `loadAdminOrders()`, `updateOrderStatus()` | Fulfilling orders, viewing receipts, or dispatching packages. |
-| `promotions.js` | Promotion and coupon management. | Promotion form and API handlers | Creating promotional offers and discount codes. |
 | `payments.js` | Merchant payment settings and page startup. | Payment settings handlers | Updating merchant payment setup. |
 | `design.js` | Store name, profile, social links, and accent-colour settings. | `loadSettings()`, `saveStoreSettings()` | Updating storefront appearance and business profile controls. |
 | `design-branding.js` | Branding media upload and custom domain configuration. | `uploadStoreBrandingImage()`, `saveCustomDomain()` | Updating branding media or custom domain settings. |
@@ -164,7 +163,6 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 | `backend/src/db/schema/attributes.ts` | Dynamic filter attributes and product attribute values. | `attributes`, `itemAttributeValues` | Enhancing product faceted search capabilities. |
 | `backend/src/db/schema/orders.ts` | Customer orders, line items, delivery details, status enum. | `orders`, `orderItems` | Modifying order status types, shipping details, or checkout fields. |
 | `backend/src/db/schema/payment-configs.ts`| M-Pesa configurations, Till/Paybill numbers, credentials. | `paymentConfigs`, `mpesaTransactions` | Storing additional payment gateways or callback metadata. |
-| `backend/src/db/schema/offers.ts` | Discount coupons, percentage/flat discounts, usage limits. | `offers` | Adding discount conditions or promo rules. |
 | `backend/src/db/schema/reviews.ts` | Customer reviews, ratings (1–5), verified buyer flag, responses. | `reviews` | Updating review data structures. |
 | `backend/src/db/schema/users.ts` | Merchant accounts, hashed passwords, roles (merchant, superadmin). | `users` | Adding merchant profile fields or multi-user permissions. |
 | `backend/src/db/schema/auth-tokens.ts` | Session tokens and API credentials. | `authTokens` | Updating session expiration or token storage. |
@@ -203,7 +201,6 @@ Tenant detection is executed in `frontend/scripts/storefront/state.js` -> `detec
 | `/api/payments/mpesa/stk` | `payments/mpesa.routes.ts` | Initiate Safaricom STK Push to customer phone. |
 | `/api/payments/mpesa/callback` | `payments/mpesa.routes.ts` | Webhook receiver for Safaricom Daraja transaction callbacks. |
 | `/api/payments/settings` | `payments/settings.routes.ts` | Merchant M-Pesa credential configuration. |
-| `/api/offers` | `offers/offers.routes.ts` | Validate coupon codes and apply discounts during checkout. |
 | `/api/reviews` | `catalog/reviews.routes.ts` | List product reviews and submit new customer ratings. |
 
 ---

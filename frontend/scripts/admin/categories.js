@@ -161,10 +161,10 @@ function renderCategoriesTable(cats) {
   }
   tbody.innerHTML = cats.map(c => `
     <tr class="hover:bg-slate-50 transition-colors">
-      <td class="px-5 py-3 font-bold text-slate-900 text-sm"><span class="${c.parentId ? 'ml-6 border-l-2 border-slate-200 pl-3' : ''}">${c.parentId ? '↳ ' : ''}${escHtml(c.name)}</span></td>
-      <td class="px-5 py-3 text-xs text-slate-400 font-mono">${escHtml(c.slug || '')}</td>
-      <td class="px-5 py-3 text-xs text-slate-500">${c.parentId ? escHtml(c.parentName || '—') : '—'}</td>
-      <td class="px-5 py-3 text-right">
+      <td data-label="Category" class="px-5 py-3 font-bold text-slate-900 text-sm"><span class="${c.parentId ? 'ml-6 border-l-2 border-slate-200 pl-3' : ''}">${c.parentId ? '↳ ' : ''}${escHtml(c.name)}</span></td>
+      <td data-label="Slug" class="px-5 py-3 text-xs text-slate-400 font-mono">${escHtml(c.slug || '')}</td>
+      <td data-label="Parent" class="px-5 py-3 text-xs text-slate-500">${c.parentId ? escHtml(c.parentName || '—') : '—'}</td>
+      <td data-label="Actions" class="px-5 py-3 text-right">
         <button onclick="openEditCategoryModal(${inlineJs(c.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all">Edit</button>
         <button onclick="deleteCategory(${inlineJs(c.id)}, ${inlineJs(c.name)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">Delete</button>
       </td>

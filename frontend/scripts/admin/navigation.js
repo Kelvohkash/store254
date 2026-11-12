@@ -13,9 +13,15 @@ function toggleAdminSidebar(forceOpen) {
   backdrop.classList.toggle('is-visible', shouldOpen);
 }
 
+let mobilePageReturnTo = 'dashboard';
+
 function showPage(name) {
+  if ((name === 'settings' || name === 'payments') && currentPage !== 'settings' && currentPage !== 'payments') {
+    mobilePageReturnTo = currentPage || 'dashboard';
+  }
   toggleAdminSidebar(false);
-  ['dashboard', 'products', 'categories', 'orders', 'promotions', 'settings', 'payments'].forEach(p => {
+  toggleMobileAdminMenu(false);
+  ['dashboard', 'products', 'categories', 'orders', 'settings', 'payments'].forEach(p => {
     const el = document.getElementById(`page-${p}`);
     if (el) el.classList.toggle('hidden', p !== name);
     const nav = document.getElementById(`nav-${p}`);
@@ -26,7 +32,6 @@ function showPage(name) {
     products: 'Products',
     categories: 'Categories',
     orders: 'Orders',
-    promotions: 'Promotions & Coupons',
     settings: 'Store Settings',
     payments: 'M-Pesa & Payments',
   };
@@ -35,7 +40,6 @@ function showPage(name) {
     products: 'Manage your product catalog',
     categories: 'Organise products into categories',
     orders: 'View and manage customer orders',
-    promotions: 'Manage discount codes and offers',
     settings: 'Update your store profile and design',
     payments: 'Configure M-Pesa payment credentials',
   };
@@ -44,20 +48,38 @@ function showPage(name) {
   const subEl = document.getElementById('page-subtitle');
   if (subEl) subEl.textContent = subs[name] || '';
   currentPage = name;
+  document.body.classList.toggle('admin-page-open', name === 'settings' || name === 'payments');
+  ['dashboard', 'products', 'categories', 'orders'].forEach((page) => {
+    document.getElementById(`mobile-nav-${page}`)?.classList.toggle('active', page === name);
+  });
+  document.getElementById('mobile-nav-more')?.classList.toggle('active', name === 'settings' || name === 'payments');
 
   if (name === 'products' && typeof loadProducts === 'function') loadProducts();
   if (name === 'categories' && typeof loadCategories === 'function') loadCategories();
   if (name === 'orders' && typeof loadOrders === 'function') loadOrders();
-  if (name === 'promotions' && typeof loadPromotions === 'function') loadPromotions();
   if (name === 'settings' && typeof loadSettings === 'function') loadSettings();
   if (name === 'payments' && typeof loadPaymentSettings === 'function') loadPaymentSettings();
   if (window.lucide?.createIcons) lucide.createIcons();
 }
 
+function closeMobileAdminPage() {
+  showPage(mobilePageReturnTo || 'dashboard');
+}
+
+function toggleMobileAdminMenu(forceOpen) {
+  const menu = document.getElementById('mobile-admin-menu');
+  if (!menu) return;
+  const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : menu.classList.contains('hidden');
+  menu.classList.toggle('hidden', !shouldOpen);
+  document.body.classList.toggle('admin-menu-open', shouldOpen);
+  if (shouldOpen && window.lucide?.createIcons) lucide.createIcons();
+}
+
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    ['product-modal', 'category-modal', 'promo-modal', 'order-drawer'].forEach(id => {
+    ['product-modal', 'category-modal', 'order-drawer'].forEach(id => {
       document.getElementById(id)?.classList.add('hidden');
     });
+    toggleMobileAdminMenu(false);
   }
 });

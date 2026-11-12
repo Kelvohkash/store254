@@ -21,7 +21,6 @@ import { attributesRouter } from "./modules/catalog/attributes.routes";
 import { itemsRouter } from "./modules/catalog/items.routes";
 import { reviewsRouter } from "./modules/catalog/reviews.routes";
 import { filtersRouter } from "./modules/filters/filters.routes";
-import { offersRouter } from "./modules/offers/offers.routes";
 import { ordersRouter } from "./modules/orders/orders.routes";
 import { paymentSettingsRouter } from "./modules/payments/settings.routes";
 import { mpesaRouter } from "./modules/payments/mpesa.routes";
@@ -120,7 +119,6 @@ tenantScope.route("/attributes", attributesRouter);
 tenantScope.route("/items", itemsRouter);
 tenantScope.route("/items", reviewsRouter);
 tenantScope.route("/filters", filtersRouter);
-tenantScope.route("/offers", offersRouter);
 tenantScope.route("/orders", ordersRouter);
 tenantScope.route("/payments/settings", paymentSettingsRouter);
 

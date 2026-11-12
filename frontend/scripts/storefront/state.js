@@ -116,7 +116,6 @@ const state = {
   items: [],
   allStoreItems: null,
   cart: getInitialCart(),
-  appliedCoupon: null,
   customerToken: getInitialCustomerStorage("token", "store254_customer_token"),
   customerUser: JSON.parse(getInitialCustomerStorage("user", "store254_customer_user") || "null"),
   merchantToken: null,

@@ -6,7 +6,7 @@ export const auditLogs = sqliteTable(
     id: text("id").primaryKey(),
     tenantId: text("tenant_id").notNull(),
     userId: text("user_id"),
-    action: text("action").notNull(), // e.g. "TENANT_REGISTERED", "ITEM_CREATED", "PROMOTION_APPLIED"
+    action: text("action").notNull(), // e.g. "TENANT_REGISTERED", "ITEM_CREATED"
     ipAddress: text("ip_address"),
     details: text("details", { mode: "json" })
       .$type<Record<string, unknown>>()

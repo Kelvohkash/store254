@@ -67,7 +67,6 @@ async function submitCheckout(paymentMethod) {
       variantId: i.variantId || undefined,
       quantity: i.quantity,
     })),
-    couponCode: state.appliedCoupon?.code,
     bookingDetails,
   };
 

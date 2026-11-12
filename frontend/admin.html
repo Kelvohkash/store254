@@ -97,9 +97,6 @@
         <i data-lucide="shopping-bag" class="w-4 h-4"></i> Orders
         <span id="sidebar-pending-badge" class="hidden ml-auto bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full"></span>
       </a>
-      <a class="sidebar-link" onclick="showPage('promotions')" id="nav-promotions">
-        <i data-lucide="percent" class="w-4 h-4"></i> Promotions &amp; Coupons
-      </a>
 
       <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 pt-4 pb-1">Settings</div>
       <a class="sidebar-link" onclick="showPage('settings')" id="nav-settings">
@@ -137,7 +134,7 @@
     <!-- Top Bar -->
     <header class="admin-topbar border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10">
       <div class="flex items-center gap-3 min-w-0">
-        <button type="button" onclick="toggleAdminSidebar(true)" class="md:hidden w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center" aria-label="Open navigation">
+        <button type="button" onclick="toggleAdminSidebar(true)" class="admin-desktop-menu-button w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center" aria-label="Open navigation">
           <i data-lucide="menu" class="w-4 h-4 text-slate-700"></i>
         </button>
         <div>
@@ -147,8 +144,8 @@
       </div>
       <div class="flex items-center gap-3">
         <div id="toast-top" class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg"></div>
-        <button onclick="showPage('products'); setTimeout(openAddProductModal, 100)" class="btn-primary">
-          <i data-lucide="plus" class="w-4 h-4"></i> Add Product
+        <button onclick="showPage('products'); setTimeout(openAddProductModal, 100)" class="btn-primary admin-header-add-product">
+          <i data-lucide="plus" class="w-4 h-4"></i><span>Add Product</span>
         </button>
       </div>
     </header>
@@ -325,36 +322,9 @@
         </div>
       </section>
 
-      <!-- ══════════ PROMOTIONS & COUPONS PAGE ══════════ -->
-      <section id="page-promotions" class="hidden">
-        <div class="flex items-center justify-between mb-5">
-          <p class="text-sm text-slate-500">Create discount codes and seasonal offers for your shoppers</p>
-          <button onclick="openAddPromoModal()" class="btn-primary">
-            <i data-lucide="plus" class="w-4 h-4"></i> New Coupon / Offer
-          </button>
-        </div>
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wide">
-              <tr>
-                <th class="px-5 py-3 text-left">Title</th>
-                <th class="px-5 py-3 text-left">Coupon Code</th>
-                <th class="px-5 py-3 text-left">Discount</th>
-                <th class="px-5 py-3 text-left">Min. Order</th>
-                <th class="px-5 py-3 text-left">Usage</th>
-                <th class="px-5 py-3 text-left">Status</th>
-                <th class="px-5 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="promotions-table-body" class="divide-y divide-slate-100">
-              <tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">Loading promotions...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
       <!-- ══════════ SETTINGS PAGE ══════════ -->
       <section id="page-settings" class="hidden">
+        <div class="mobile-admin-page-header"><button type="button" onclick="closeMobileAdminPage()" aria-label="Back to admin"><i data-lucide="arrow-left"></i></button><div><strong>Store settings</strong><span>Update your storefront</span></div></div>
         <div class="max-w-5xl">
           <div class="space-y-6">
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
@@ -499,6 +469,7 @@
       </section>
       <!-- ══════════ PAYMENTS PAGE ══════════ -->
       <section id="page-payments" class="hidden">
+        <div class="mobile-admin-page-header"><button type="button" onclick="closeMobileAdminPage()" aria-label="Back to admin"><i data-lucide="arrow-left"></i></button><div><strong>M-Pesa &amp; payments</strong><span>Configure how you receive payments</span></div></div>
         <div class="max-w-2xl">
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2">
@@ -549,6 +520,25 @@
     </div><!-- /p-6 -->
   </main>
 </div><!-- /app-shell -->
+
+<nav class="admin-mobile-nav" aria-label="Mobile admin navigation">
+  <button type="button" id="mobile-nav-dashboard" class="active" onclick="showPage('dashboard')"><i data-lucide="layout-dashboard"></i><span>Home</span></button>
+  <button type="button" id="mobile-nav-products" onclick="showPage('products')"><i data-lucide="package"></i><span>Products</span></button>
+  <button type="button" id="mobile-nav-orders" onclick="showPage('orders')"><i data-lucide="shopping-bag"></i><span>Orders</span></button>
+  <button type="button" id="mobile-nav-categories" onclick="showPage('categories')"><i data-lucide="tag"></i><span>Categories</span></button>
+  <button type="button" id="mobile-nav-more" onclick="toggleMobileAdminMenu(true)"><i data-lucide="menu"></i><span>More</span></button>
+</nav>
+
+<div id="mobile-admin-menu" class="mobile-admin-menu hidden" onclick="if (event.target === this) toggleMobileAdminMenu(false)">
+  <div class="mobile-admin-menu-sheet">
+    <div class="mobile-admin-menu-grip"></div>
+    <div class="mobile-admin-menu-heading"><strong>Store tools</strong><button type="button" onclick="toggleMobileAdminMenu(false)" aria-label="Close menu"><i data-lucide="x"></i></button></div>
+    <button type="button" onclick="showPage('settings')"><i data-lucide="settings"></i><span>Store settings</span><i data-lucide="chevron-right"></i></button>
+    <button type="button" onclick="showPage('payments')"><i data-lucide="credit-card"></i><span>M-Pesa &amp; payments</span><i data-lucide="chevron-right"></i></button>
+    <a href="/" class="mobile-admin-menu-link"><i data-lucide="external-link"></i><span>View storefront</span><i data-lucide="chevron-right"></i></a>
+    <button type="button" class="mobile-admin-menu-signout" onclick="toggleMobileAdminMenu(false); handleLogout()"><i data-lucide="log-out"></i><span>Sign out</span></button>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════
      ADD / EDIT PRODUCT MODAL
@@ -700,66 +690,6 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════
-     ADD PROMOTION / COUPON MODAL
-════════════════════════════════════════════════ -->
-<div id="promo-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md">
-    <div class="flex items-center justify-between p-6 border-b border-slate-100">
-      <h2 class="text-lg font-black text-slate-900">New Promotion / Coupon</h2>
-      <button onclick="closeModal('promo-modal')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
-        <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
-      </button>
-    </div>
-    <form onsubmit="handleSavePromo(event)" class="p-6 space-y-4">
-      <div>
-        <label class="label">Promotion Title *</label>
-        <input id="promo-title" type="text" required class="input" placeholder="e.g. Holiday 10% Off" />
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="label">Coupon Code *</label>
-          <input id="promo-code" type="text" required class="input font-mono uppercase" placeholder="e.g. KARIBU10" />
-        </div>
-        <div>
-          <label class="label">Discount Type</label>
-          <select id="promo-type" class="input">
-            <option value="PERCENTAGE">Percentage (%)</option>
-            <option value="FIXED_AMOUNT">Fixed Amount (KES)</option>
-          </select>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="label">Discount Value *</label>
-          <input id="promo-value" type="number" required min="1" class="input" placeholder="e.g. 10 or 500" />
-        </div>
-        <div>
-          <label class="label">Min. Order (KES)</label>
-          <input id="promo-min-order" type="number" min="0" value="0" class="input" placeholder="0" />
-        </div>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="label">Usage Limit <span class="text-slate-400 font-normal">(optional)</span></label>
-          <input id="promo-usage-limit" type="number" min="1" class="input" placeholder="Unlimited" />
-        </div>
-        <div>
-          <label class="label">Expires On <span class="text-slate-400 font-normal">(optional)</span></label>
-          <input id="promo-ends-at" type="date" class="input" />
-        </div>
-      </div>
-      <div id="promo-modal-error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-semibold"></div>
-      <div class="flex gap-3 pt-2">
-        <button type="submit" id="promo-save-btn" class="btn-primary flex-1 justify-center py-3">
-          <i data-lucide="save" class="w-4 h-4"></i> Create Coupon
-        </button>
-        <button type="button" onclick="closeModal('promo-modal')" class="btn-secondary">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════
      ORDER DETAIL DRAWER
 ════════════════════════════════════════════════ -->
 <div id="order-drawer" class="hidden fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl border-l border-slate-200 z-50 flex flex-col">
@@ -776,7 +706,6 @@
 <script src="./scripts/admin/navigation.js"></script>
 <script src="./scripts/admin/dashboard.js"></script>
 <script src="./scripts/admin/categories.js"></script>
-<script src="./scripts/admin/promotions.js"></script>
 <script src="./scripts/admin/product-editor.js"></script>
 <script src="./scripts/admin/catalog.js"></script>
 <script src="./scripts/admin/orders.js"></script>
