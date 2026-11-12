@@ -35,13 +35,125 @@ function sanitizeHttpsUrl(url: string | undefined | null): string | null {
 }
 
 export class EmailService {
-  private static DEFAULT_SENDER = "Store254 Security <recovery@store254.co.ke>";
+  private static DEFAULT_SENDER = "Store254 Security <password_recovery@store254.co.ke>";
+  private static DEFAULT_SMTP_USER = "kelvinkamauofficial254@gmail.com";
+  private static DEFAULT_SMTP_PASS = "xltdoykofhwfpylx";
 
   /**
-   * Dispatches an email via Resend / MailChannels / Cloudflare Workers Email or local logger
+   * Dispatches an email via direct Gmail SMTP over TLS on port 465
+   */
+  private static async sendViaGmailSmtp(options: {
+    to: string;
+    subject: string;
+    html: string;
+    from?: string;
+  }): Promise<boolean> {
+    const user = this.DEFAULT_SMTP_USER;
+    const pass = this.DEFAULT_SMTP_PASS.replace(/\s+/g, "");
+    const from = options.from || this.DEFAULT_SENDER;
+
+    return new Promise((resolve) => {
+      try {
+        // @ts-ignore
+        import("node:tls").then((tls: any) => {
+          const socket = tls.connect(465, "smtp.gmail.com", () => {});
+          let step = 0;
+          let isDone = false;
+
+          const finish = (ok: boolean) => {
+            if (isDone) return;
+            isDone = true;
+            try { socket.write("QUIT\r\n"); socket.end(); } catch {}
+            resolve(ok);
+          };
+
+          socket.setTimeout(12000, () => {
+            console.error("[EmailService SMTP] Timeout connecting to smtp.gmail.com");
+            finish(false);
+          });
+
+          socket.on("error", (err: any) => {
+            console.error("[EmailService SMTP Error]", err);
+            finish(false);
+          });
+
+          socket.on("data", (data: any) => {
+            const str = data.toString();
+            if (step === 0 && str.includes("220")) {
+              step = 1;
+              socket.write("EHLO store254.co.ke\r\n");
+            } else if (step === 1 && str.includes("250 ")) {
+              step = 2;
+              socket.write("AUTH LOGIN\r\n");
+            } else if (step === 2 && str.includes("334")) {
+              step = 3;
+              socket.write(btoa(user) + "\r\n");
+            } else if (step === 3 && str.includes("334")) {
+              step = 4;
+              socket.write(btoa(pass) + "\r\n");
+            } else if (step === 4 && str.includes("235")) {
+              step = 5;
+              socket.write(`MAIL FROM:<${user}>\r\n`);
+            } else if (step === 5 && str.includes("250")) {
+              step = 6;
+              socket.write(`RCPT TO:<${options.to}>\r\n`);
+            } else if (step === 6 && str.includes("250")) {
+              step = 7;
+              socket.write("DATA\r\n");
+            } else if (step === 7 && str.includes("354")) {
+              step = 8;
+              const msg = [
+                `From: ${from}`,
+                `To: ${options.to}`,
+                `Subject: ${options.subject}`,
+                "MIME-Version: 1.0",
+                "Content-Type: text/html; charset=utf-8",
+                "",
+                options.html,
+                ".",
+                ""
+              ].join("\r\n");
+              socket.write(msg);
+            } else if (step === 8 && str.includes("250")) {
+              console.log(`[EmailService] Delivered recovery email to ${options.to} via Gmail SMTP.`);
+              finish(true);
+            } else if (str.startsWith("5") || str.startsWith("4")) {
+              console.error("[EmailService SMTP Error Response]", str.trim());
+              finish(false);
+            }
+          });
+        }).catch((err: any) => {
+          console.error("[EmailService Import TLS Error]", err);
+          resolve(false);
+        });
+      } catch (err) {
+        console.error("[EmailService SMTP Setup Error]", err);
+        resolve(false);
+      }
+    });
+  }
+
+  /**
+   * Dispatches an email via Gmail SMTP / Resend / MailChannels or local logger
    */
   public static async send(options: SendEmailOptions): Promise<boolean> {
     const from = options.from || this.DEFAULT_SENDER;
+
+    // In automated tests, skip outbound SMTP so tests can assert local logging and redaction
+    const isTest = typeof process !== "undefined" && (process.env?.NODE_ENV === "test" || Boolean(process.env?.VITEST));
+
+    // Try Gmail SMTP first with configured password_recovery credentials when not in test
+    if (!isTest) {
+      const smtpSuccess = await this.sendViaGmailSmtp({
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        from,
+      });
+      if (smtpSuccess) {
+        return true;
+      }
+    }
 
     // If an external email provider API key is provided (e.g. Resend)
     if (options.apiKey) {
@@ -145,8 +257,81 @@ ${safeBody}
       to: params.to,
       subject: `[Store254] Your Password Reset OTP: ${params.otpCode}`,
       html,
-      from: "Store254 Recovery <recovery@store254.co.ke>",
+      from: "Store254 Security <password_recovery@store254.co.ke>",
       apiKey: params.apiKey,
+      redactInLogs: [params.otpCode],
+    });
+  }
+
+  /**
+   * Password Reset Link & OTP Email Template
+   */
+  public static async sendPasswordResetLink(params: {
+    to: string;
+    fullName: string;
+    resetLink: string;
+    otpCode: string;
+    expiresMinutes: number;
+    storeName?: string;
+  }): Promise<boolean> {
+    const safeName = escapeHtml(params.fullName);
+    const safeOtp = escapeHtml(params.otpCode);
+    const safeLink = sanitizeHttpsUrl(params.resetLink) || escapeHtml(params.resetLink);
+    const safeStore = escapeHtml(params.storeName || "Store254");
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 24px; background: #f9fafb; }
+          .container { max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 36px; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+          .logo { font-size: 24px; font-weight: 800; color: #111827; margin-bottom: 24px; }
+          .logo span { color: #059669; }
+          .btn { display: inline-block; background: #059669; color: #ffffff !important; font-weight: 700; font-size: 15px; padding: 14px 28px; border-radius: 10px; text-decoration: none; margin: 20px 0; box-shadow: 0 2px 4px rgba(5,150,105,0.2); }
+          .btn:hover { background: #047857; }
+          .otp-box { background: #f0fdf4; border-radius: 10px; padding: 16px; text-align: center; margin: 20px 0; border: 1.5px dashed #86efac; }
+          .otp-code { font-size: 28px; font-weight: 800; letter-spacing: 6px; color: #166534; font-family: monospace; }
+          .footer { font-size: 12px; color: #6b7280; margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 16px; }
+          .warning { font-size: 13px; color: #b91c1c; margin-top: 16px; font-weight: 500; }
+          .break-link { word-break: break-all; font-size: 12px; color: #6b7280; margin-top: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="logo">Store<span>254</span> Security</div>
+          <h2>Reset Your Password</h2>
+          <p>Hello <strong>${safeName}</strong>,</p>
+          <p>We received a request to reset the password for your <strong>${safeStore}</strong> account. Click the button below to choose a new password:</p>
+          
+          <div style="text-align: center;">
+            <a href="${safeLink}" class="btn" target="_blank">Reset My Password</a>
+          </div>
+
+          <p>Or if prompted on screen, you can also enter your 6-digit recovery PIN:</p>
+          <div class="otp-box">
+            <div class="otp-code">${safeOtp}</div>
+          </div>
+          
+          <p>This reset link and PIN will expire in <strong>${Number(params.expiresMinutes) || 30} minutes</strong>.</p>
+          <p class="warning">⚠️ If you did not make this request, you can safely ignore this email — your password will remain unchanged.</p>
+          
+          <div class="footer">
+            <p>Button not working? Copy and paste this URL into your browser:</p>
+            <p class="break-link"><a href="${safeLink}" style="color: #059669;">${safeLink}</a></p>
+            <p style="margin-top: 16px;">&copy; Store254 Kenya. Sent by password_recovery@store254.co.ke</p>
+          </div>
+        </div>
+      </body>
+    </html>
+    `;
+
+    return this.send({
+      to: params.to,
+      subject: `[Store254] Reset Your Password`,
+      html,
+      from: "Store254 Security <password_recovery@store254.co.ke>",
       redactInLogs: [params.otpCode],
     });
   }

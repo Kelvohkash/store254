@@ -166,18 +166,21 @@ async function loadPlatformStores() {
 
   if (!container) return;
 
-  if (stores.length === 0) {
+  // Separate real merchant stores from demo businesses
+  const liveStores = stores.filter((s) => s && s.id && !s.id.startsWith("tenant-demo-"));
+
+  if (liveStores.length === 0) {
     container.innerHTML = `
-      <div class="col-span-full bg-white rounded-3xl p-8 border border-slate-200 text-center shadow-sm">
-        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
-          <i data-lucide="store" class="w-6 h-6"></i>
+      <div class="col-span-full bg-white rounded-2xl p-6 border border-slate-200 text-center shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2.5">
+          <i data-lucide="store" class="w-5 h-5"></i>
         </div>
-        <h4 class="font-bold text-slate-900 text-base">Your store could be here</h4>
+        <h4 class="font-bold text-slate-900 text-sm">Your store could be here</h4>
         <p class="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
           Create a dedicated storefront for your products and services.
         </p>
-        <button onclick="toggleDrawer('onboard-modal', true)" class="mt-4 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all inline-flex items-center gap-1.5">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+        <button onclick="toggleDrawer('onboard-modal', true)" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all inline-flex items-center gap-1.5">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
           <span>Onboard Your Store</span>
         </button>
       </div>
@@ -194,7 +197,7 @@ async function loadPlatformStores() {
     GENERAL: "maker",
   };
 
-  container.innerHTML = stores.map((s, index) => {
+  container.innerHTML = liveStores.map((s, index) => {
     const rawBanner = s.settings?.bannerUrl || s.bannerUrl || s.settings?.heroBannerUrl;
     const bannerUrl = safeShowcaseImageUrl(rawBanner) || FEATURED_STORE_FALLBACK_IMAGES[index % FEATURED_STORE_FALLBACK_IMAGES.length];
     const logoUrl = safeShowcaseImageUrl(s.settings?.logoUrl || s.logoUrl);
@@ -211,7 +214,7 @@ async function loadPlatformStores() {
       : initial;
 
     return `
-      <a href="${storeUrl}" class="platform-store-card bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-left group flex flex-col justify-between no-underline">
+      <a href="${storeUrl}" class="platform-store-card bg-white rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer text-left group flex flex-col justify-between no-underline">
         <div>
           <div class="platform-store-cover cover-${coverType}${bannerUrl ? " has-hero-photo" : ""}" ${coverStyle}>
             <span class="platform-store-avatar">${avatarContent}</span>
@@ -219,18 +222,18 @@ async function loadPlatformStores() {
           </div>
           <div class="platform-store-details">
             <div>
-              <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors truncate">${escapeHtml(s.name)}</h4>
-              <span class="text-xs text-slate-400 font-mono truncate block">${escapeHtml(s.subdomain)}.store254.co.ke</span>
+              <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors truncate text-sm">${escapeHtml(s.name)}</h4>
+              <span class="text-[11px] text-slate-400 font-mono truncate block">${escapeHtml(s.subdomain)}.store254.co.ke</span>
             </div>
-            <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed">${desc}</p>
+            <p class="text-[11px] text-slate-600 line-clamp-2 leading-relaxed mt-1">${desc}</p>
           </div>
         </div>
-        <div class="platform-store-card-footer mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600">
-          <span class="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+        <div class="platform-store-card-footer mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600">
+          <span class="flex items-center gap-1 group-hover:translate-x-1 transition-transform text-[11px]">
             <span>Visit Storefront</span>
-            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            <i data-lucide="arrow-right" class="w-3 h-3"></i>
           </span>
-          <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-mono uppercase">${escapeHtml(s.businessType || "Store")}</span>
+          <span class="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase">${escapeHtml(s.businessType || "Store")}</span>
         </div>
       </a>
     `;
@@ -239,11 +242,234 @@ async function loadPlatformStores() {
   renderIcons();
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 10 Interactive Demo Stores Catalog & Showcase
+// ═══════════════════════════════════════════════════════════════════════════
+const DEMO_STORES_CATALOG = [
+  {
+    id: "tenant-demo-fashion-01",
+    subdomain: "zuritrends",
+    name: "Zuri Trends Kenya",
+    categoryGroup: "RETAIL",
+    businessTypeLabel: "Fashion Boutique",
+    icon: "shirt",
+    accentColor: "#e11d48",
+    tagline: "Contemporary Nairobi Boutique",
+    description: "Curated Nairobi contemporary fashion boutique with quality clothes, designer shoes, and premium accessories.",
+    categories: ["Clothes (Men's & Women's)", "Shoes (Sneakers & Loafers)", "Accessories"],
+    itemsCount: 8,
+  },
+  {
+    id: "tenant-demo-electronics-02",
+    subdomain: "nexustech",
+    name: "Nexus Tech Hub",
+    categoryGroup: "ELECTRONICS",
+    businessTypeLabel: "Electronics & Tech",
+    icon: "smartphone",
+    accentColor: "#2563eb",
+    tagline: "Gadgets & Everyday Tech",
+    description: "Smartphones, Apple iPads, noise-canceling audio gear, and 65W GaN fast chargers with official warranties.",
+    categories: ["Smartphones & Tablets", "Audio & Sound", "Computing & Power"],
+    itemsCount: 9,
+  },
+  {
+    id: "tenant-demo-salon-03",
+    subdomain: "lushsalon",
+    name: "Lush & Glow Hair Salon",
+    categoryGroup: "BEAUTY",
+    businessTypeLabel: "Hair Salon & Spa",
+    icon: "sparkles",
+    accentColor: "#db2777",
+    tagline: "Luxury Hair & Nail Bar",
+    description: "Bespoke hair styling, knotless braids, HD lace wig installation, and Russian BIAB gel manicures in Kilimani.",
+    categories: ["Hair Styling & Braids", "Nails & Spa", "Facials & Skin"],
+    itemsCount: 8,
+  },
+  {
+    id: "tenant-demo-barbershop-04",
+    subdomain: "executivecuts",
+    name: "The Executive Barber Club",
+    categoryGroup: "BEAUTY",
+    businessTypeLabel: "Barber Lounge",
+    icon: "scissors",
+    accentColor: "#d97706",
+    tagline: "Gentlemen's Premium Grooming",
+    description: "Premier gentleman's grooming lounge offering precision skin fades, hot towel razor shaves, and dreadlocks care.",
+    categories: ["Precision Haircuts", "Beard & Facial Grooming", "VIP Packages"],
+    itemsCount: 8,
+  },
+  {
+    id: "tenant-demo-massage-05",
+    subdomain: "serenityspa",
+    name: "Serenity Holistic Wellness Spa",
+    categoryGroup: "WELLNESS",
+    businessTypeLabel: "Massage & Wellness",
+    icon: "heart-pulse",
+    accentColor: "#059669",
+    tagline: "Holistic Health & Spa",
+    description: "Tranquil sanctuary in Westlands providing holistic therapeutic body massages, deep tissue relief, and aromatherapy.",
+    categories: ["Full Body Massages", "Specialized Therapies", "Couples Packages"],
+    itemsCount: 8,
+  },
+  {
+    id: "tenant-demo-photographer-06",
+    subdomain: "lenscraft",
+    name: "Lenscraft Visuals & Studios",
+    categoryGroup: "CREATIVE",
+    businessTypeLabel: "Photography & Media",
+    icon: "camera",
+    accentColor: "#4f46e5",
+    tagline: "Cinematic Visuals & Studio",
+    description: "Award-winning commercial photography, cinematic wedding visuals, executive studio portraits, and product shoots.",
+    categories: ["Portrait & Studio", "Events & Weddings", "Commercial & Brand"],
+    itemsCount: 8,
+  },
+  {
+    id: "tenant-demo-vacanthouse-07",
+    subdomain: "nairobihomes",
+    name: "UrbanNest Vacant Homes & Letting",
+    categoryGroup: "PROPERTY",
+    businessTypeLabel: "Rental Properties",
+    icon: "home",
+    accentColor: "#0284c7",
+    tagline: "Verified Rentals & Letting",
+    description: "Verified residential rental listings, vacant apartments, modern Kilimani studios, and Karen family townhouses.",
+    categories: ["Studios & Bedsitters", "1 & 2 Bedroom Apts", "Townhouses & Villas"],
+    itemsCount: 8,
+  },
+  {
+    id: "tenant-demo-realestate-08",
+    subdomain: "primeacres",
+    name: "PrimeAcres Properties & Land",
+    categoryGroup: "PROPERTY",
+    businessTypeLabel: "Land & Real Estate",
+    icon: "map-pin",
+    accentColor: "#15803d",
+    tagline: "Titled Land & Developments",
+    description: "Trusted Kenyan real estate consultancy offering titled residential 50x100 plots, commercial land, and villas.",
+    categories: ["Titled Land & Plots", "Properties For Sale", "Commercial Spaces"],
+    itemsCount: 8,
+  },
+  {
+    id: "tenant-demo-portfolio-09",
+    subdomain: "alexkimani",
+    name: "Alex Kimani | Cloud & Web Engineer",
+    categoryGroup: "CREATIVE",
+    businessTypeLabel: "Personal Portfolio",
+    icon: "code",
+    accentColor: "#7c3aed",
+    tagline: "Full-Stack Software Consultant",
+    description: "Independent Full-Stack Software Engineer & Cloud Architect specializing in scalable web apps, mobile solutions, and UX.",
+    categories: ["Full-Stack Development", "UI/UX & Product Design", "Cloud Audits"],
+    itemsCount: 8,
+  },
+  {
+    id: "tenant-demo-drivingschool-10",
+    subdomain: "safedrive",
+    name: "Apex SafeDrive Driving Academy",
+    categoryGroup: "EDUCATION",
+    businessTypeLabel: "Driving School",
+    icon: "gauge",
+    accentColor: "#ea580c",
+    tagline: "NTSA Certified Academy",
+    description: "NTSA-certified driving school in Nairobi providing comprehensive manual & automatic driving courses and bodaboda licensing.",
+    categories: ["Light Vehicles (Class B)", "Motorcycle & TukTuk", "Defensive Driving"],
+    itemsCount: 8,
+  },
+];
+
+let activeDemoFilter = "ALL";
+
+function renderDemoStoresShowcase(filter = "ALL") {
+  const container = document.getElementById("demo-stores-grid");
+  if (!container) return;
+
+  activeDemoFilter = filter;
+  const filtered = filter === "ALL"
+    ? DEMO_STORES_CATALOG
+    : DEMO_STORES_CATALOG.filter((s) => s.categoryGroup === filter);
+
+  container.innerHTML = filtered.map((store) => {
+    const storeUrl = getStoreUrl(store.subdomain);
+    const adminUrl = `/admin.html?store=${encodeURIComponent(store.subdomain)}`;
+    const isProduct = store.categoryGroup === "RETAIL" || store.categoryGroup === "ELECTRONICS";
+    const countBadge = `${store.itemsCount} ${isProduct ? "Items" : "Services"}`;
+
+    return `
+      <article class="demo-card bg-white rounded-xl border border-slate-200 hover:border-emerald-500 p-3 sm:p-3.5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+        <div>
+          <div class="flex items-center justify-between gap-1.5 mb-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700">
+              <i data-lucide="${escapeHtml(store.icon)}" class="w-3 h-3" style="color: ${escapeHtml(store.accentColor)}"></i>
+              <span>${escapeHtml(store.businessTypeLabel)}</span>
+            </span>
+            <span class="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full font-bold border border-emerald-100">
+              ${escapeHtml(countBadge)}
+            </span>
+          </div>
+
+          <h3 class="font-bold text-slate-900 text-sm group-hover:text-emerald-600 transition-colors leading-snug">
+            ${escapeHtml(store.name)}
+          </h3>
+          <span class="text-[10px] text-slate-400 font-mono block mt-0.5">${escapeHtml(store.subdomain)}.store254.co.ke</span>
+          
+          <p class="text-[11px] text-slate-600 mt-1.5 line-clamp-2 leading-relaxed">
+            ${escapeHtml(store.description)}
+          </p>
+
+          <div class="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1">
+            ${store.categories.slice(0, 2).map((cat) => `
+              <span class="text-[9px] font-medium bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200/70">
+                ${escapeHtml(cat)}
+              </span>
+            `).join("")}
+          </div>
+        </div>
+
+        <div class="mt-3 pt-2.5 border-t border-slate-100 flex flex-col gap-1.5">
+          <div class="flex items-center gap-1.5">
+            <a href="${storeUrl}" class="flex-1 py-1.5 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold text-center transition-all flex items-center justify-center gap-1 no-underline shadow-sm">
+              <span>Shop Store</span>
+              <i data-lucide="arrow-right" class="w-3 h-3"></i>
+            </a>
+            <a href="${adminUrl}" class="py-1.5 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg text-[11px] font-semibold text-center transition-all flex items-center justify-center gap-1 no-underline border border-slate-200 shrink-0" title="Manage Store (Admin pass: 1234)">
+              <i data-lucide="shield" class="w-3 h-3 text-slate-400"></i>
+              <span>Admin</span>
+            </a>
+          </div>
+          <div class="flex items-center justify-between text-[9px] text-slate-400 px-0.5 font-mono">
+            <span>admin: <strong class="text-emerald-700">1234</strong></span>
+            <span>demo: <strong class="text-amber-700">demo</strong></span>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  renderIcons();
+}
+
+function filterDemoStores(category, btnElement) {
+  const tabs = document.querySelectorAll("#demo-filter-tabs .demo-tab");
+  tabs.forEach((tab) => {
+    tab.classList.remove("active", "bg-emerald-500", "text-white", "shadow-sm");
+    tab.classList.add("text-slate-300");
+  });
+
+  if (btnElement) {
+    btnElement.classList.add("active", "bg-emerald-500", "text-white", "shadow-sm");
+    btnElement.classList.remove("text-slate-300");
+  }
+
+  renderDemoStoresShowcase(category);
+}
+
 // Initialization
 window.addEventListener("DOMContentLoaded", () => {
   if (typeof setThemePalette === "function") setThemePalette("trust-forest");
   renderIcons();
   updateCartBadge();
+  renderDemoStoresShowcase("ALL");
   loadStoreProfile().then(() => {
     const url = new URL(window.location.href);
     const loginResult = url.searchParams.get("_customer_login");

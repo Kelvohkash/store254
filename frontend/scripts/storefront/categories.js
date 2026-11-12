@@ -443,7 +443,6 @@ function renderCategoryNavigation(animateLevelChange = false) {
       for (const cat of categories) {
         const isSelected = state.selectedCategory === cat.slug;
         const children = cat.children || [];
-        const expanded = isSelected || children.some((sub) => state.selectedCategory === sub.slug);
         const isChildSelected = children.some((sub) => state.selectedCategory === sub.slug);
         const expanded = isSelected || isChildSelected;
         const count = getCategoryItemCount(cat.slug);

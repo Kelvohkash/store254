@@ -38,7 +38,10 @@
           <input id="login-email" type="text" required class="input" placeholder="admin or owner@example.com" />
         </div>
         <div class="mb-6">
-          <label class="label">Password</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="label mb-0" for="login-password">Password</label>
+            <button type="button" onclick="openForgotPasswordModal()" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline">Forgot password?</button>
+          </div>
           <div class="relative">
             <input id="login-password" type="password" required class="input pr-10" placeholder="••••••••" />
             <button type="button" onclick="togglePasswordVis('login-password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -810,6 +813,136 @@
     </button>
   </div>
   <div id="order-drawer-content" class="flex-1 overflow-y-auto p-5 space-y-4"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     FORGOT PASSWORD MODAL
+════════════════════════════════════════════════ -->
+<div id="forgot-password-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md my-8 overflow-hidden">
+    <div class="flex items-center justify-between p-6 border-b border-slate-100">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+          <i data-lucide="key-round" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h2 class="text-base font-black text-slate-900">Reset Your Password</h2>
+          <p class="text-[11px] text-slate-400">Sent from password_recovery@store254.co.ke</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeModal('forgot-password-modal')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all">
+        <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
+      </button>
+    </div>
+    <div class="p-6">
+      <div id="forgot-password-success" class="hidden mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-xs font-semibold space-y-2">
+        <div class="flex items-center gap-2 font-black text-sm text-emerald-900">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+          <span>Recovery Email Sent!</span>
+        </div>
+        <p id="forgot-password-success-msg">A password reset link has been dispatched to your inbox from <strong>password_recovery@store254.co.ke</strong>.</p>
+        <p class="text-[11px] text-emerald-700 leading-relaxed">Please check your inbox (and spam or promotions tab) and click the link inside to set a new password.</p>
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="openResetPasswordModal('', document.getElementById('forgot-email').value)" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-center text-xs transition-all">
+            Enter 6-Digit PIN
+          </button>
+          <button type="button" onclick="closeModal('forgot-password-modal')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all">
+            Done
+          </button>
+        </div>
+      </div>
+
+      <form id="forgot-password-form" onsubmit="handleForgotPassword(event)" class="space-y-4">
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Enter the email address registered with your store. We will send a secure password reset link directly to your inbox.
+        </p>
+        <div>
+          <label class="label" for="forgot-email">Store Owner / Admin Email *</label>
+          <input id="forgot-email" type="email" required class="input" placeholder="e.g. owner@example.com" />
+        </div>
+        <div id="forgot-password-error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-xs font-semibold"></div>
+        <div class="flex gap-2 pt-2">
+          <button id="forgot-password-submit-btn" type="submit" class="btn-primary flex-1 justify-center py-3">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>Send Reset Link</span>
+          </button>
+          <button type="button" onclick="closeModal('forgot-password-modal')" class="btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     RESET PASSWORD MODAL
+════════════════════════════════════════════════ -->
+<div id="reset-password-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md my-8 overflow-hidden">
+    <div class="flex items-center justify-between p-6 border-b border-slate-100">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h2 class="text-base font-black text-slate-900">Set New Password</h2>
+          <p class="text-[11px] text-slate-400">Choose a strong password for your admin account</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeModal('reset-password-modal')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all">
+        <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
+      </button>
+    </div>
+    <div class="p-6">
+      <div id="reset-password-success" class="hidden mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 text-xs font-semibold space-y-2">
+        <div class="flex items-center gap-2 font-black text-sm text-emerald-900">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+          <span>Password updated successfully!</span>
+        </div>
+        <p>Your password has been changed. You can now log into your store admin with your new password.</p>
+        <button type="button" onclick="closeModal('reset-password-modal'); document.getElementById('login-password').value=''; document.getElementById('login-email').value=document.getElementById('reset-email').value; document.getElementById('login-password').focus();" class="mt-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all">
+          Sign In Now
+        </button>
+      </div>
+
+      <form id="reset-password-form" onsubmit="handleResetPassword(event)" class="space-y-4">
+        <input id="reset-token" type="hidden" />
+        <div>
+          <label class="label" for="reset-email">Account Email *</label>
+          <input id="reset-email" type="email" required class="input" placeholder="owner@example.com" />
+        </div>
+        <div id="reset-otp-wrap" class="hidden">
+          <label class="label" for="reset-otp">6-Digit Recovery PIN *</label>
+          <input id="reset-otp" type="text" maxlength="6" inputmode="numeric" class="input font-mono tracking-widest text-center font-black" placeholder="123456" />
+        </div>
+        <div>
+          <label class="label" for="reset-new-password">New Password *</label>
+          <div class="relative">
+            <input id="reset-new-password" type="password" required minlength="6" class="input pr-10" placeholder="Minimum 6 characters" />
+            <button type="button" onclick="togglePasswordVis('reset-new-password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="label" for="reset-confirm-password">Confirm New Password *</label>
+          <div class="relative">
+            <input id="reset-confirm-password" type="password" required minlength="6" class="input pr-10" placeholder="Re-enter new password" />
+            <button type="button" onclick="togglePasswordVis('reset-confirm-password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+        <div id="reset-password-error" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-xs font-semibold"></div>
+        <div class="flex gap-2 pt-2">
+          <button id="reset-password-submit-btn" type="submit" class="btn-primary flex-1 justify-center py-3">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Save New Password</span>
+          </button>
+          <button type="button" onclick="closeModal('reset-password-modal')" class="btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script src="./scripts/admin/core.js"></script>
