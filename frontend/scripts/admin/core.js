@@ -312,7 +312,8 @@ async function handleForgotPassword(e) {
   btn.innerHTML = '<svg class="animate-spin w-4 h-4 inline-block mr-1.5" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Sending...';
   errEl.classList.add('hidden');
 
-  const r = await apiFetch('/auth/forgot-password', {
+  const endpoint = tenantSlug ? '/auth/forgot-password' : '/platform/forgot-password';
+  const r = await apiFetch(endpoint, {
     method: 'POST',
     body: JSON.stringify({
       email,
@@ -395,7 +396,8 @@ async function handleResetPassword(e) {
   btn.innerHTML = '<svg class="animate-spin w-4 h-4 inline-block mr-1.5" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Updating...';
   errEl.classList.add('hidden');
 
-  const r = await apiFetch('/auth/reset-password', {
+  const endpoint = tenantSlug ? '/auth/reset-password' : '/platform/reset-password';
+  const r = await apiFetch(endpoint, {
     method: 'POST',
     body: JSON.stringify({
       email,
