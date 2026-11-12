@@ -193,75 +193,46 @@ function buildResetFiltersPillHtml() {
   `;
 }
 
-function getCategoryPhoto(category) {
-  if (category.imageUrl) return category.imageUrl;
-  if (category.bannerUrl) return category.bannerUrl;
+function getCategoryIcon(category) {
+  if (category.icon) return category.icon;
 
-  const allItems = state.allStoreItems || state.items || [];
-  const matchingItem = allItems.find((item) => {
-    if (!item.images || !item.images.length) return false;
-    if (item.categoryId === category.id) return true;
-    if (category.children && category.children.some((c) => c.id === item.categoryId)) return true;
-    return matchesCategory(item.categoryId, category.slug);
-  });
-  if (matchingItem && matchingItem.images && matchingItem.images[0]) {
-    return matchingItem.images[0];
-  }
+  const text = `${category.name || ""} ${category.slug || ""}`.toLowerCase();
 
-  const name = (category.name || "").toLowerCase();
-  const slug = (category.slug || "").toLowerCase();
-  const text = `${name} ${slug}`;
+  // Fashion & Apparel
+  if (/shoe|footwear|sneaker|heel|boot|loafer/.test(text)) return "footprints";
+  if (/cloth|shirt|trouser|pant|dress|skirt|jacket|hoodie|suit|men|women|fashion|wear|outfit|activewear/.test(text)) return "shirt";
+  if (/bag|backpack|purse|wallet|handbag/.test(text)) return "briefcase";
+  if (/watch|accessory|jewelry|ring|necklace|glasses/.test(text)) return "watch";
 
-  if (/shoe|footwear|sneaker|heel|boot|loafer/.test(text)) {
-    return "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/cloth|dress|shirt|trouser|jacket|hoodie|suit|men|women|fashion|wear|outfit/.test(text)) {
-    return "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/phone|smartphone|tablet|iphone|samsung|mobile/.test(text)) {
-    return "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/laptop|computer|macbook|pc|desktop/.test(text)) {
-    return "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/audio|sound|headphone|earphone|speaker/.test(text)) {
-    return "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/electronic|tv|gadget|smart home|charger|cable/.test(text)) {
-    return "https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/braid|wig|hair|weave|styling|salon|cut/.test(text)) {
-    return "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/barber|fade|shave|beard|grooming/.test(text)) {
-    return "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/massage|spa|wellness|facial|scrub|relax/.test(text)) {
-    return "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/photo|camera|portrait|studio|wedding|video/.test(text)) {
-    return "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/apartment|house|home|vacant|rental|villa|flat|studio/.test(text)) {
-    return "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/land|plot|real estate|commercial|acre/.test(text)) {
-    return "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/code|software|cloud|web|engineer|design|dev/.test(text)) {
-    return "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/drive|driving|license|motorcycle|vehicle|car|lesson/.test(text)) {
-    return "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/bag|watch|accessory|jewelry|ring/.test(text)) {
-    return "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80";
-  }
-  if (/furniture|decor|bed|sofa|table/.test(text)) {
-    return "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop&q=80";
-  }
+  // Tech & Electronics
+  if (/phone|smartphone|tablet|mobile|iphone|android/.test(text)) return "smartphone";
+  if (/laptop|computer|macbook|pc|desktop/.test(text)) return "laptop";
+  if (/audio|sound|headphone|earphone|speaker|pod/.test(text)) return "headphones";
+  if (/tv|screen|monitor|display/.test(text)) return "tv";
+  if (/camera|lens|video|photo/.test(text)) return "camera";
+  if (/power|charger|cable|battery|adapter/.test(text)) return "zap";
+  if (/smart home|iot|gadget/.test(text)) return "cpu";
 
-  return "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&auto=format&fit=crop&q=80";
+  // Beauty, Salon & Grooming
+  if (/hair|salon|braid|wig|weave|styling|cut/.test(text)) return "sparkles";
+  if (/barber|fade|shave|beard|grooming/.test(text)) return "scissors";
+  if (/massage|spa|wellness|therapy|relax|body/.test(text)) return "heart-pulse";
+  if (/nail|manicure|pedicure|skin|facial|cosmetic/.test(text)) return "flower-2";
+
+  // Real Estate & Property
+  if (/apartment|house|home|vacant|rental|flat|villa|studio|letting/.test(text)) return "home";
+  if (/land|plot|acre|commercial|property|estate/.test(text)) return "map-pin";
+
+  // Services & Professional
+  if (/code|software|cloud|web|engineer|design|dev|portfolio/.test(text)) return "code";
+  if (/drive|driving|license|motorcycle|vehicle|car|lesson|academy/.test(text)) return "gauge";
+  if (/wedding|event|celebration/.test(text)) return "calendar";
+
+  // Home & Living
+  if (/furniture|decor|bed|sofa|table|chair/.test(text)) return "armchair";
+  if (/food|drink|grocery|snack|restaurant|dining/.test(text)) return "utensils";
+
+  return "folder";
 }
 
 function renderCategoryNavigation(animateLevelChange = false) {
@@ -296,7 +267,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
     }
   }
 
-  // Browse categories as product-style cards with photos and titles
+  // Browse categories as compact icon cards
   const categoryCards = document.getElementById("category-cards-grid");
   const isSearchActive = Boolean(document.getElementById("search-input")?.value?.trim() || document.getElementById("mobile-search-input")?.value?.trim());
   const isWishlistActive = Boolean(state.showWishlistOnly);
@@ -320,43 +291,35 @@ function renderCategoryNavigation(animateLevelChange = false) {
     if (cardCategories.length > 0) {
       categoryCards.classList.remove("hidden");
       categoryCards.innerHTML = `
-        <div class="col-span-full flex items-center justify-between pt-1 pb-2 border-b border-slate-100 mb-3">
-          <h2 class="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+        <div class="col-span-full flex items-center justify-between mb-0.5">
+          <h2 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
             <i data-lucide="layers" class="w-3.5 h-3.5 text-emerald-600"></i>
             <span>${escapeHtml(sectionTitle)}</span>
           </h2>
           <span class="text-[11px] text-slate-400 font-semibold">${cardCategories.length} ${cardCategories.length === 1 ? 'category' : 'categories'}</span>
         </div>
         ${cardCategories.map((cat) => {
-          const photo = getCategoryPhoto(cat);
+          const icon = getCategoryIcon(cat);
           const count = getCategoryItemCount(cat.slug);
           const hasChildren = (cat.children || []).length > 0;
-          const subCountText = hasChildren ? `${cat.children.length} subcategories` : "";
-          const itemCountText = count !== null ? `${count} ${count === 1 ? 'item' : 'items'}` : 'Browse';
+          const countLabel = hasChildren
+            ? `${cat.children.length} subcategories`
+            : count !== null
+              ? `${count} ${count === 1 ? "item" : "items"}`
+              : "Browse";
 
           return `
-            <article class="product-card category-card flex flex-col group cursor-pointer" onclick="selectCategory('${escapeHtml(cat.slug)}')">
-              <div class="product-card-media relative overflow-hidden flex items-center justify-center">
-                <img src="${escapeHtml(photo)}" alt="${escapeHtml(cat.name)}" loading="lazy" decoding="async" width="400" height="400" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                <div class="product-badge-rail absolute top-2.5 inset-x-2.5 flex items-center justify-between pointer-events-none">
-                  <span class="product-tag-pill font-mono">${hasChildren ? 'Department' : 'Category'}</span>
-                </div>
-              </div>
-              <div class="product-card-content flex-1 flex flex-col justify-between">
-                <div>
-                  <div class="product-card-meta-row flex items-center justify-between gap-1.5 mb-1">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">${itemCountText}</span>
-                    ${subCountText ? `<span class="product-stock-note">${subCountText}</span>` : ""}
-                  </div>
-                  <h3 class="product-card-title">${escapeHtml(cat.name)}</h3>
-                  ${cat.description ? `<p class="product-card-desc">${escapeHtml(cat.description)}</p>` : ""}
-                </div>
-                <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600">
-                  <span>${hasChildren ? "Open Subcategories" : "View Items"}</span>
-                  <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i>
-                </div>
-              </div>
-            </article>
+            <button type="button" class="category-card" onclick="selectCategory('${escapeHtml(cat.slug)}')" aria-label="Browse ${escapeHtml(cat.name)}">
+              <span class="category-card-icon">
+                <i data-lucide="${icon}" class="w-5 h-5"></i>
+              </span>
+              <span class="category-card-copy">
+                <span class="category-card-title">${escapeHtml(cat.name)}</span>
+                ${cat.description ? `<span class="category-card-description">${escapeHtml(cat.description)}</span>` : ""}
+                <span class="category-card-count">${escapeHtml(countLabel)}</span>
+              </span>
+              <i data-lucide="chevron-right" class="category-card-arrow"></i>
+            </button>
           `;
         }).join("")}
       `;

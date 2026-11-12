@@ -81,23 +81,6 @@
 .platform-stores-heading .platform-eyebrow { margin-bottom: 0.4rem; }
 .platform-stores-heading h2 { margin: 0; font-size: 1.55rem; font-weight: 700; }
 .platform-stores-heading > p { margin: 0 0 0.15rem; color: var(--store-muted); font-size: 0.8rem; }
-.platform-stores-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-  padding-top: 1rem;
-}
-.platform-stores-grid > a {
-  min-height: 12rem;
-  padding: 1.2rem !important;
-  border: 1px solid var(--store-line) !important;
-  border-radius: 6px !important;
-  background: #fff !important;
-  box-shadow: none !important;
-}
-.platform-stores-grid > a:hover { border-color: #9db5a5 !important; box-shadow: 0 8px 22px rgba(28, 54, 41, 0.08) !important; }
-.platform-stores-grid > a .bg-emerald-50 { background: #e8eee8 !important; color: var(--store-green) !important; border-radius: 6px !important; }
-.platform-stores-grid > a h4 { font-size: 0.95rem; }
 
 #storefront-view { padding-top: 1.6rem !important; }
 #category-pills { gap: 0.5rem !important; }

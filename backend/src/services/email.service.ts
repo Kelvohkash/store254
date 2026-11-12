@@ -55,7 +55,7 @@ export class EmailService {
       if (cfSockets && typeof cfSockets.connect === "function") {
         const socket = cfSockets.connect(
           { hostname: "smtp.gmail.com", port: 465 },
-          { secureTransport: "on" }
+          { secureTransport: "on", allowHalfOpen: false } as any
         );
         if (socket.opened) {
           await socket.opened;

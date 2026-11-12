@@ -297,6 +297,7 @@ platformRouter.post(
       isUsed: false,
     });
 
+    const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
     const origin = (c.req.valid("json") as any).clientOrigin || c.req.header("origin") || `https://${primaryDomain}`;
     const resetLink = `${origin}/admin.html?reset_token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(normalizedEmail)}`;
 
