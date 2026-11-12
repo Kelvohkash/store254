@@ -99,6 +99,41 @@
     .subscription-feedback.is-success { color: #147653; font-weight: 700; }
     .subscription-only-nav[hidden] { display: none !important; }
     .admin-sidebar .sidebar-link[hidden], .admin-mobile-nav button[hidden] { display: none !important; }
+    .order-id-badge {
+      display: inline-flex;
+      align-items: center;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: -0.01em;
+      color: #162a20;
+      background: #edf4f0;
+      border: 1px solid #d0ded6;
+      border-radius: 0.5rem;
+      padding: 0.2rem 0.55rem;
+    }
+    .order-customer-avatar {
+      width: 1.85rem;
+      height: 1.85rem;
+      border-radius: 999px;
+      background: #e8f4ed;
+      color: #147653;
+      font-weight: 800;
+      font-size: 0.75rem;
+      display: grid;
+      place-items: center;
+      border: 1px solid #cbe3d4;
+      flex-shrink: 0;
+    }
+    .order-items-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #495e52;
+      background: #edf4ef;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid #dbe6de;
+    }
     .admin-table-wrap { overflow-x: auto; border: 1px solid var(--admin-line); border-radius: 8px; background: #fff; }
     .admin-topbar { border-color: var(--admin-line); background: rgba(255, 255, 255, 0.96); }
     .sidebar-backdrop { display: none; }
@@ -279,12 +314,14 @@
       #page-products tbody tr {
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 0.45rem 0.75rem;
-        padding: 0.9rem;
-        border: 1px solid #e1e9e3;
-        border-radius: 1.15rem;
-        background: #ffffff;
-        box-shadow: 0 2px 8px rgba(18, 40, 28, 0.04);
+        gap: 0;
+        padding: 0;
+        border: 1.5px solid #cbdad0 !important;
+        border-radius: 1.15rem !important;
+        background: #ffffff !important;
+        box-shadow: 0 4px 16px rgba(18, 38, 28, 0.07), 0 1px 3px rgba(18, 38, 28, 0.04) !important;
+        overflow: hidden;
+        margin-bottom: 0.85rem;
       }
       #page-products tbody td {
         padding: 0 !important;
@@ -297,12 +334,14 @@
         text-align: center !important;
         font-size: 0.85rem;
       }
-      /* Top row: Thumbnail & Title */
+      /* Top row: Thumbnail & Title & Status */
       #page-products tbody td[data-label="Product"] {
-        grid-column: 1 / -1;
+        grid-row: 1;
+        grid-column: 1;
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        padding: 0.85rem 0.95rem 0.45rem !important;
       }
       #page-products tbody td[data-label="Product"] img,
       #page-products tbody td[data-label="Product"] .w-9 {
@@ -310,71 +349,83 @@
         height: 3.4rem !important;
         border-radius: 0.85rem !important;
         object-fit: cover;
+        border: 1px solid #d4ded7;
         flex-shrink: 0;
       }
       #page-products tbody td[data-label="Product"] p {
-        font-size: 0.9rem !important;
+        font-size: 0.92rem !important;
         font-weight: 800 !important;
-        color: #182a20 !important;
+        color: #162a20 !important;
         line-height: 1.35;
         overflow-wrap: anywhere;
       }
-      /* Category chip */
-      #page-products tbody td[data-label="Category"] {
-        grid-column: 1;
-        font-size: 0.74rem;
-        color: #63756b;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-      }
-      /* Status badge */
+      /* Status badge on top right */
       #page-products tbody td[data-label="Status"] {
+        grid-row: 1;
         grid-column: 2;
         display: flex;
         justify-content: flex-end;
-        align-items: center;
+        align-items: flex-start;
+        padding: 0.85rem 0.95rem 0.45rem 0 !important;
+      }
+      /* Category chip */
+      #page-products tbody td[data-label="Category"] {
+        grid-row: 2;
+        grid-column: 1 / -1;
+        font-size: 0.74rem;
+        color: #5c7065;
+        font-weight: 600;
+        padding: 0 0.95rem 0.55rem !important;
       }
       /* Price */
       #page-products tbody td[data-label="Price"] {
+        grid-row: 3;
         grid-column: 1;
         display: flex;
         align-items: baseline;
         gap: 0.4rem;
+        padding: 0.55rem 0.95rem 0.65rem !important;
+        border-top: 1px dashed #e5ede7 !important;
       }
       #page-products tbody td[data-label="Price"] p:first-child {
-        font-size: 1rem;
+        font-size: 1.05rem;
         font-weight: 900;
-        color: #116443;
+        color: #106945;
       }
       /* Stock */
       #page-products tbody td[data-label="Stock"] {
+        grid-row: 3;
         grid-column: 2;
         display: flex;
         justify-content: flex-end;
         align-items: center;
+        padding: 0.55rem 0.95rem 0.65rem 0 !important;
+        border-top: 1px dashed #e5ede7 !important;
       }
       #page-products tbody td[data-label="Stock"] span {
         font-size: 0.72rem;
-        font-weight: 700;
-        padding: 0.15rem 0.55rem;
+        font-weight: 800;
+        padding: 0.2rem 0.65rem;
         border-radius: 999px;
-        background: #f1f6f3;
+        background: #edf5f0;
+        color: #244b36;
+        border: 1px solid #d4e3da;
       }
       /* Product Action Buttons */
       #page-products tbody td[data-label="Actions"] {
+        grid-row: 4;
         grid-column: 1 / -1;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 0.5rem;
-        margin-top: 0.35rem;
-        padding-top: 0.65rem !important;
-        border-top: 1px solid #edf3ef;
+        padding: 0.65rem 0.95rem !important;
+        background: #f7faf8;
+        border-top: 1.5px solid #e1ebe4 !important;
       }
       #page-products tbody td[data-label="Actions"] button {
         min-height: 2.35rem;
         border-radius: 0.75rem;
-        font-weight: 700;
+        font-weight: 800;
         font-size: 0.78rem;
         display: flex;
         align-items: center;
@@ -384,12 +435,12 @@
       #page-products tbody td[data-label="Actions"] button:first-child {
         background: #eaf5ef;
         color: #147653;
-        border: 1px solid #cce8d7;
+        border: 1.5px solid #bce1cb;
       }
       #page-products tbody td[data-label="Actions"] button:last-child {
         background: #fff3f1;
         color: #b54135;
-        border: 1px solid #f9d5d1;
+        border: 1.5px solid #f9d1cd;
       }
 
       /* ORDERS PAGE ON PHONE */
@@ -411,7 +462,7 @@
         font-size: 0.75rem;
         font-weight: 700;
         white-space: nowrap;
-        border: 1px solid #e1e9e3;
+        border: 1px solid #cbdad0;
         background: #f5f8f6;
         color: #4f6357;
       }
@@ -424,16 +475,20 @@
       #page-orders tbody tr {
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 0.45rem 0.75rem;
-        padding: 0.95rem;
-        border: 1px solid #e1e9e3;
-        border-radius: 1.15rem;
-        background: #ffffff;
-        box-shadow: 0 2px 8px rgba(18, 40, 28, 0.04);
+        gap: 0;
+        padding: 0;
+        border: 1.5px solid #cbdad0 !important;
+        border-radius: 1.15rem !important;
+        background: #ffffff !important;
+        box-shadow: 0 4px 16px rgba(18, 38, 28, 0.07), 0 1px 3px rgba(18, 38, 28, 0.04) !important;
+        overflow: hidden;
+        margin-bottom: 0.85rem;
         cursor: pointer;
+        transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
       }
       #page-orders tbody tr:active {
-        background: #fbfdfc;
+        transform: scale(0.99);
+        border-color: #147653 !important;
       }
       #page-orders tbody td {
         padding: 0 !important;
@@ -446,90 +501,166 @@
         text-align: center !important;
         font-size: 0.85rem;
       }
-      /* Order # */
+      /* ROW 1: Header (Order # on left, Status on right) */
       #page-orders tbody td[data-label="Order"] {
+        grid-row: 1;
         grid-column: 1;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-weight: 900;
-        font-size: 0.85rem;
-        color: #14281e;
+        background: #f5f8f6;
+        padding: 0.75rem 0.95rem !important;
+        border-bottom: 1px solid #e1ebe4 !important;
         display: flex;
         align-items: center;
       }
-      /* Status */
+      #page-orders .order-id-badge {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-weight: 800;
+        font-size: 0.8rem;
+        color: #162a20;
+        background: #ffffff;
+        border: 1.5px solid #d0ded6;
+        border-radius: 0.5rem;
+        padding: 0.2rem 0.55rem;
+        display: inline-block;
+      }
       #page-orders tbody td[data-label="Status"] {
+        grid-row: 1;
         grid-column: 2;
+        background: #f5f8f6;
+        padding: 0.75rem 0.95rem !important;
+        border-bottom: 1px solid #e1ebe4 !important;
         display: flex;
         justify-content: flex-end;
         align-items: center;
       }
-      /* Customer */
+      /* ROW 2: Customer */
       #page-orders tbody td[data-label="Customer"] {
+        grid-row: 2;
         grid-column: 1 / -1;
-        padding: 0.15rem 0;
+        padding: 0.85rem 0.95rem 0.55rem !important;
       }
-      #page-orders tbody td[data-label="Customer"] p:first-child {
-        font-size: 0.92rem;
+      #page-orders .order-customer-avatar {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        background: #e8f4ed;
+        color: #147653;
         font-weight: 800;
-        color: #1e3328;
+        font-size: 0.82rem;
+        display: grid;
+        place-items: center;
+        border: 1px solid #cbe3d4;
+        flex-shrink: 0;
       }
-      #page-orders tbody td[data-label="Customer"] p:last-child {
-        font-size: 0.72rem;
+      #page-orders .order-customer-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      #page-orders .order-customer-cell p:first-child {
+        font-size: 0.94rem;
+        font-weight: 800;
+        color: #162a20;
+      }
+      #page-orders .order-customer-cell p:last-child {
+        font-size: 0.74rem;
+        color: #63776d;
+        margin-top: 0.1rem;
+      }
+      /* ROW 3: Items & Total */
+      #page-orders tbody td[data-label="Items"] {
+        grid-row: 3;
+        grid-column: 1;
+        padding: 0.55rem 0.95rem 0.65rem !important;
+        display: flex;
+        align-items: center;
+        border-top: 1px dashed #e5ede7 !important;
+      }
+      #page-orders .order-items-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #495e52;
+        background: #edf4ef;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        border: 1px solid #dbe6de;
+      }
+      #page-orders tbody td[data-label="Total"] {
+        grid-row: 3;
+        grid-column: 2;
+        padding: 0.55rem 0.95rem 0.65rem !important;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        border-top: 1px dashed #e5ede7 !important;
+      }
+      #page-orders .order-total-cell {
+        display: flex;
+        align-items: baseline;
+        gap: 0.35rem;
+      }
+      #page-orders .order-total-label {
+        display: inline-block !important;
+        font-size: 0.75rem;
+        font-weight: 700;
         color: #72847a;
       }
-      /* Items */
-      #page-orders tbody td[data-label="Items"] {
-        grid-column: 1;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #5c6f64;
-        display: flex;
-        align-items: center;
-      }
-      /* Total */
-      #page-orders tbody td[data-label="Total"] {
-        grid-column: 2;
-        font-size: 1.05rem;
+      #page-orders .order-total-val {
+        font-size: 1.08rem;
         font-weight: 900;
-        color: #116443;
-        text-align: right;
+        color: #106945;
       }
-      /* Payment badge */
+      /* ROW 4: Payment Info Box */
       #page-orders tbody td[data-label="Payment"] {
+        grid-row: 4;
         grid-column: 1 / -1;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.4rem 0.7rem !important;
-        border-radius: 0.65rem;
-        background: #f7faf8;
-        font-size: 0.72rem;
+        padding: 0.35rem 0.95rem 0.75rem !important;
       }
-      /* Update status */
+      #page-orders .order-payment-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.55rem 0.8rem;
+        background: #f4f8f5;
+        border: 1.5px solid #dbe7df;
+        border-radius: 0.75rem;
+      }
+      #page-orders .order-payment-method {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #24382d;
+      }
+      /* ROW 5: Status Update Footer */
       #page-orders tbody td[data-label="Update"] {
+        grid-row: 5;
         grid-column: 1 / -1;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.5rem;
-        margin-top: 0.25rem;
-        padding-top: 0.65rem !important;
-        border-top: 1px solid #edf3ef;
+        gap: 0.75rem;
+        padding: 0.65rem 0.95rem !important;
+        background: #f7faf8;
+        border-top: 1.5px solid #e1ebe4 !important;
       }
       #page-orders tbody td[data-label="Update"]::before {
-        display: inline-block !important;
-        content: "Status:";
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: #72847a;
-      }
-      #page-orders tbody td[data-label="Update"] select {
-        min-height: 2.3rem;
+        display: inline-flex !important;
+        content: "Update Status:";
         font-size: 0.75rem;
-        font-weight: 700;
+        font-weight: 800;
+        color: #4b6054;
+      }
+      #page-orders .order-status-select {
+        min-height: 2.35rem;
+        font-size: 0.78rem;
+        font-weight: 800;
         border-radius: 0.65rem;
-        padding: 0.35rem 0.65rem;
-        border-color: #cbd8cf;
+        padding: 0.35rem 0.75rem;
+        border: 1.5px solid #cbdad0;
+        background: #ffffff;
+        color: #162a20;
+        box-shadow: 0 1px 3px rgba(18, 38, 28, 0.05);
       }
 
       /* CATEGORIES PAGE ON PHONE */
@@ -555,12 +686,14 @@
       #page-categories tbody tr {
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 0.45rem 0.75rem;
-        padding: 0.85rem;
-        border: 1px solid #e1e9e3;
-        border-radius: 1.15rem;
-        background: #ffffff;
-        box-shadow: 0 2px 8px rgba(18, 40, 28, 0.04);
+        gap: 0;
+        padding: 0;
+        border: 1.5px solid #cbdad0 !important;
+        border-radius: 1.15rem !important;
+        background: #ffffff !important;
+        box-shadow: 0 4px 16px rgba(18, 38, 28, 0.07), 0 1px 3px rgba(18, 38, 28, 0.04) !important;
+        overflow: hidden;
+        margin-bottom: 0.85rem;
       }
       #page-categories tbody td {
         padding: 0 !important;
@@ -573,39 +706,69 @@
         text-align: center !important;
         font-size: 0.85rem;
       }
+      #page-categories tbody td[data-label="Category"],
       #page-categories tbody td[data-label="Name"] {
+        grid-row: 1;
         grid-column: 1;
-        font-size: 0.92rem;
+        font-size: 0.94rem;
         font-weight: 800;
-        color: #1a2d22;
+        color: #162a20;
         display: flex;
         align-items: center;
-      }
-      #page-categories tbody td[data-label="Actions"] {
-        grid-column: 2;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-      }
-      #page-categories tbody td[data-label="Actions"] button {
-        min-height: 2.2rem;
-        padding: 0.35rem 0.7rem;
-        border-radius: 0.65rem;
-        font-size: 0.75rem;
-        font-weight: 700;
-        border: 1px solid #dfeae2;
-      }
-      #page-categories tbody td[data-label="Slug"] {
-        grid-column: 1;
-        font-family: ui-monospace, SFMono-Regular, monospace;
-        font-size: 0.7rem;
-        color: #76887e;
+        background: #f5f8f6;
+        padding: 0.75rem 0.95rem !important;
+        border-bottom: 1px solid #e1ebe4 !important;
       }
       #page-categories tbody td[data-label="Parent"] {
+        grid-row: 1;
         grid-column: 2;
+        font-size: 0.74rem;
+        color: #5c7065;
+        font-weight: 600;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        background: #f5f8f6;
+        padding: 0.75rem 0.95rem 0.75rem 0 !important;
+        border-bottom: 1px solid #e1ebe4 !important;
+      }
+      #page-categories tbody td[data-label="Slug"] {
+        grid-row: 2;
+        grid-column: 1 / -1;
+        font-family: ui-monospace, SFMono-Regular, monospace;
         font-size: 0.72rem;
-        color: #76887e;
-        text-align: right;
+        color: #52675a;
+        padding: 0.65rem 0.95rem !important;
+      }
+      #page-categories tbody td[data-label="Actions"] {
+        grid-row: 3;
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        padding: 0.65rem 0.95rem !important;
+        background: #f7faf8;
+        border-top: 1.5px solid #e1ebe4 !important;
+      }
+      #page-categories tbody td[data-label="Actions"] button {
+        min-height: 2.35rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 0.75rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #page-categories tbody td[data-label="Actions"] button:first-child {
+        background: #eaf5ef;
+        color: #147653;
+        border: 1.5px solid #bce1cb;
+      }
+      #page-categories tbody td[data-label="Actions"] button:last-child {
+        background: #fff3f1;
+        color: #b54135;
+        border: 1.5px solid #f9d1cd;
       }
 
       /* SETTINGS & PAYMENTS SUBPAGES ON PHONE */

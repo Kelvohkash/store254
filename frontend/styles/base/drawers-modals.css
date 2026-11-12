@@ -158,4 +158,5 @@
   .platform-stores-section { margin-top: 2.5rem; }
   .platform-stores-heading { align-items: start; flex-direction: column; }
   .platform-stores-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 0.65rem !important; }
+  .platform-stores-grid .platform-store-cover { width: 100% !important; height: auto !important; aspect-ratio: 1 / 1 !important; min-height: 0 !important; }
 }

@@ -172,6 +172,18 @@ function buildPriceDropdownHtml() {
   `;
 }
 
+function buildCategoryFilterDividerHtml() {
+  return `
+    <div class="category-filter-divider shrink-0 flex items-center gap-1.5 px-2 my-auto self-stretch" aria-hidden="true">
+      <span class="category-filter-divider-line"></span>
+      <span class="category-filter-divider-label">
+        <i data-lucide="sliders-horizontal" class="w-3 h-3 text-slate-400"></i>
+        <span>Filters</span>
+      </span>
+    </div>
+  `;
+}
+
 function buildResetFiltersPillHtml() {
   return `
     <button type="button" onclick="resetFilters()" class="category-pill category-pill-inactive shrink-0" aria-label="Reset filters and show all categories" title="Reset filters and return to all categories">
@@ -213,36 +225,14 @@ function renderCategoryNavigation(animateLevelChange = false) {
     }
   }
 
-  // Browse categories as compact cards before showing product results. A root
-  // with children opens those children; selecting a leaf returns to products.
+  // Keep catalog products grid and category pill strip always visible
   const categoryCards = document.getElementById("category-cards-grid");
   if (categoryCards) {
-    const cardCategories = !currentSlug
-      ? categories
-      : activeRoot && (activeRoot.children || []).length > 0
-        ? activeRoot.children
-        : [];
-    categoryCards.classList.toggle("hidden", cardCategories.length === 0);
-    container.classList.toggle("hidden", cardCategories.length > 0);
-    document.getElementById("items-grid")?.classList.toggle("hidden", cardCategories.length > 0);
-    categoryCards.innerHTML = cardCategories.map((category) => {
-      const count = getCategoryItemCount(category.slug);
-      const icon = /baby|child|kids|clothing|fashion/i.test(category.name) ? "shirt"
-        : /electronic|phone|computer|tv|tech/i.test(category.name) ? "monitor"
-          : /home|furniture|kitchen/i.test(category.name) ? "armchair" : "shapes";
-      return `
-        <button type="button" class="category-card" onclick="selectCategory('${escapeHtml(category.slug)}')" aria-label="Browse ${escapeHtml(category.name)}">
-          <span class="category-card-icon"><i data-lucide="${icon}" class="w-5 h-5"></i></span>
-          <span class="category-card-copy">
-            <span class="category-card-title">${escapeHtml(category.name)}</span>
-            ${category.description ? `<span class="category-card-description">${escapeHtml(category.description)}</span>` : ""}
-            ${count !== null ? `<span class="category-card-count">${count} ${count === 1 ? "item" : "items"}</span>` : ""}
-          </span>
-          <i data-lucide="chevron-right" class="category-card-arrow"></i>
-        </button>`;
-    }).join("");
-    renderIcons(categoryCards);
+    categoryCards.classList.add("hidden");
+    categoryCards.innerHTML = "";
   }
+  container.classList.remove("hidden");
+  document.getElementById("items-grid")?.classList.remove("hidden");
 
   // 1. Render URL-Like Breadcrumb Trail for Backtracking
   if (breadcrumbPath) {
@@ -281,7 +271,13 @@ function renderCategoryNavigation(animateLevelChange = false) {
   let pillsHtml = "";
 
   if (!currentSlug) {
-    // Level 0: Start with general department tabs
+    // Level 0: Show ONLY main categories upfront
+    pillsHtml += `
+      <button onclick="selectCategory('')" class="category-pill category-pill-active shrink-0" aria-selected="true" type="button">
+        <span>All</span>
+        ${totalCount !== null ? `<span class="category-pill-count">${totalCount}</span>` : ""}
+      </button>
+    `;
     for (const cat of categories) {
       const count = getCategoryItemCount(cat.slug);
       pillsHtml += `
@@ -291,14 +287,30 @@ function renderCategoryNavigation(animateLevelChange = false) {
         </button>
       `;
     }
-    // The all-categories level contains root categories and Price only.
+    // Distinct separator between categories and filters
+    pillsHtml += buildCategoryFilterDividerHtml();
     pillsHtml += buildPriceDropdownHtml();
     pillsHtml += buildResetFiltersPillHtml();
   } else if (activeRoot) {
-    // A selected parent shows only its direct children and Price. Attribute
-    // facets belong to a selected child category, not beside the child list.
+    // Level 1: User pressed/selected a main category - NOW show its subcategories!
     const subcategories = activeRoot.children || [];
 
+    // Back to All button
+    pillsHtml += `
+      <button onclick="selectCategory('')" class="category-pill category-pill-inactive shrink-0" aria-selected="false" type="button" title="View all departments">
+        <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+        <span>All</span>
+      </button>
+    `;
+
+    // Active main category pill
+    pillsHtml += `
+      <button onclick="selectCategory('${escapeHtml(activeRoot.slug)}')" class="category-pill category-pill-active shrink-0" aria-selected="true" type="button">
+        <span>${escapeHtml(activeRoot.name)}</span>
+      </button>
+    `;
+
+    // Render direct subcategories
     for (const sub of subcategories) {
       const subCount = getCategoryItemCount(sub.slug);
       pillsHtml += `
@@ -309,18 +321,41 @@ function renderCategoryNavigation(animateLevelChange = false) {
       `;
     }
 
-    // Keep the parent level focused on its direct children and Price.
+    // Distinct separator between categories and filters
+    pillsHtml += buildCategoryFilterDividerHtml();
     pillsHtml += buildPriceDropdownHtml();
     pillsHtml += buildResetFiltersPillHtml();
   } else if (activeSub && parentOfSub) {
-    // Level 2: User selected a subcategory (e.g. Smart TVs)
-    // Replaced with TV-related filters: Brand dropdown, Screen Size, Resolution, Price, etc.!
-    // Render Brand dropdown and all category-specific spec dropdowns
+    // Level 2: User selected a subcategory
+    pillsHtml += `
+      <button onclick="selectCategory('${escapeHtml(parentOfSub.slug)}')" class="category-pill category-pill-inactive shrink-0" aria-selected="false" type="button" title="Back to ${escapeHtml(parentOfSub.name)}">
+        <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+        <span>${escapeHtml(parentOfSub.name)}</span>
+      </button>
+    `;
+    pillsHtml += `
+      <button onclick="selectCategory('${escapeHtml(activeSub.slug)}')" class="category-pill category-pill-active shrink-0" aria-selected="true" type="button">
+        <span>${escapeHtml(activeSub.name)}</span>
+      </button>
+    `;
+
+    // Sibling subcategories
+    for (const sibling of (parentOfSub.children || [])) {
+      if (sibling.slug === activeSub.slug) continue;
+      const sibCount = getCategoryItemCount(sibling.slug);
+      pillsHtml += `
+        <button onclick="selectCategory('${escapeHtml(sibling.slug)}')" class="category-pill category-pill-inactive shrink-0" aria-selected="false" type="button">
+          <span>${escapeHtml(sibling.name)}</span>
+          ${sibCount !== null ? `<span class="category-pill-count">${sibCount}</span>` : ""}
+        </button>
+      `;
+    }
+
+    // Distinct separator between categories and filters
+    pillsHtml += buildCategoryFilterDividerHtml();
     for (const facet of (state.facets || [])) {
       pillsHtml += buildFacetDropdownHtml(facet);
     }
-
-    // A selected child shows only its applicable category facets and Price.
     pillsHtml += buildPriceDropdownHtml();
     pillsHtml += buildResetFiltersPillHtml();
   }
@@ -409,15 +444,20 @@ function renderCategoryNavigation(animateLevelChange = false) {
         const isSelected = state.selectedCategory === cat.slug;
         const children = cat.children || [];
         const expanded = isSelected || children.some((sub) => state.selectedCategory === sub.slug);
+        const isChildSelected = children.some((sub) => state.selectedCategory === sub.slug);
+        const expanded = isSelected || isChildSelected;
         const count = getCategoryItemCount(cat.slug);
-        mobileHtml += `<div class="category-filter-group">
+        mobileHtml += `<div class="category-filter-group ${expanded ? 'is-expanded' : ''}">
           <button onclick="selectCategory('${escapeHtml(cat.slug)}')" class="category-pill ${
-            isSelected ? "category-pill-active" : "category-pill-inactive"
-          }" aria-selected="${isSelected}" aria-expanded="${expanded}" type="button">
-            <span>${escapeHtml(cat.name)}</span>
+            isSelected ? "category-pill-active" : isChildSelected ? "category-pill-parent-active" : "category-pill-inactive"
+          }" aria-selected="${isSelected || isChildSelected}" aria-expanded="${expanded}" type="button">
+            <span class="flex items-center gap-1.5">
+              <span>${escapeHtml(cat.name)}</span>
+              ${children.length > 0 ? `<i data-lucide="${expanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5 opacity-60"></i>` : ''}
+            </span>
             ${count !== null ? `<span class="category-pill-count">${count}</span>` : ""}
           </button>`;
-        if (children.length > 0) {
+        if (children.length > 0 && expanded) {
           mobileHtml += `<div class="category-subcategory-list" aria-label="${escapeHtml(cat.name)} subcategories">`;
           for (const sub of children) {
             const isSubSelected = state.selectedCategory === sub.slug;
@@ -434,6 +474,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
         mobileHtml += `</div>`;
       }
       mobileCategoryContainer.innerHTML = mobileHtml;
+      renderIcons(mobileCategoryContainer);
       mobileCategorySection?.classList.remove("hidden");
     } else {
       mobileCategoryContainer.innerHTML = "";

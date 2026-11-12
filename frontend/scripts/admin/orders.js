@@ -19,28 +19,55 @@
     const tbody = document.getElementById('orders-table-body');
     if (!orders.length) { tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">No orders found.</td></tr>'; return; }
     tbody.innerHTML = orders.map(o => `
-      <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="openOrderDrawer(${inlineJs(o.id)})">
-        <td data-label="Order" class="px-5 py-3 font-mono font-black text-slate-900 text-xs">#${escHtml((o.orderNumber || String(o.id).slice(0,8)).toUpperCase())}</td>
+      <tr class="hover:bg-slate-50 transition-colors cursor-pointer admin-order-row" onclick="openOrderDrawer(${inlineJs(o.id)})">
+        <td data-label="Order" class="px-5 py-3 font-mono font-black text-slate-900 text-xs">
+          <span class="order-id-badge">#${escHtml((o.orderNumber || String(o.id).slice(0,8)).toUpperCase())}</span>
+        </td>
         <td data-label="Customer" class="px-5 py-3">
-          <p class="text-sm font-bold text-slate-900">${escHtml(o.customerName || 'Guest')}</p>
-          <p class="text-xs text-slate-400">${escHtml(o.customerEmail || '')}</p>
+          <div class="order-customer-cell flex items-center gap-2.5">
+            <div class="order-customer-avatar w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center justify-center shrink-0">
+              ${escHtml((o.customerName || 'G').trim().slice(0, 1).toUpperCase())}
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-slate-900 truncate">${escHtml(o.customerName || 'Guest')}</p>
+              <p class="text-xs text-slate-400 truncate">${escHtml(o.customerEmail || 'No email')}</p>
+            </div>
+          </div>
         </td>
-        <td data-label="Items" class="px-5 py-3 text-xs text-slate-500">${(o.items || o.orderItems || []).length} item(s)</td>
-        <td data-label="Total" class="px-5 py-3 font-black text-slate-900 text-sm">${fmt(o.totalAmount || 0)}</td>
+        <td data-label="Items" class="px-5 py-3 text-xs text-slate-500">
+          <span class="order-items-badge inline-flex items-center gap-1 font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full text-[11px]">
+            ${(o.items || o.orderItems || []).length} item(s)
+          </span>
+        </td>
+        <td data-label="Total" class="px-5 py-3 font-black text-slate-900 text-sm">
+          <div class="order-total-cell">
+            <span class="order-total-label hidden text-xs font-semibold text-slate-500 mr-1">Total:</span>
+            <span class="order-total-val font-black text-emerald-700 text-sm">${fmt(o.totalAmount || 0)}</span>
+          </div>
+        </td>
         <td data-label="Payment" class="px-5 py-3">
-          <p class="text-[10px] font-bold text-slate-600">${o.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pay on delivery' : 'M-Pesa'}</p>
-          <span class="text-[10px] font-black px-2 py-0.5 rounded-full border ${o.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">${escHtml(o.paymentStatus || 'UNPAID')}</span>
+          <div class="order-payment-box flex items-center justify-between gap-2">
+            <span class="order-payment-method text-[11px] font-bold text-slate-700">${o.paymentMethod === 'CASH_ON_DELIVERY' ? 'Pay on delivery' : 'M-Pesa'}</span>
+            <span class="text-[10px] font-black px-2 py-0.5 rounded-full border ${o.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">${escHtml(o.paymentStatus || 'UNPAID')}</span>
+          </div>
         </td>
-        <td data-label="Status" class="px-5 py-3">${statusBadge(o.status)}</td>
+        <td data-label="Status" class="px-5 py-3">
+          <div class="order-status-wrap">
+            ${statusBadge(o.status)}
+          </div>
+        </td>
         <td data-label="Update" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
-          ${o.status === 'COMPLETED'
-            ? '<span class="text-[10px] font-semibold text-slate-400">Customer confirmed</span>'
-            : `<select onchange="updateOrderStatus('${escHtml(o.id)}', this.value)" class="text-xs border border-slate-300 rounded-lg px-2 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                ${['PROCESSING','SHIPPED','CANCELLED'].map(s => `<option ${o.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
-              </select>`}
+          <div class="order-update-wrap">
+            ${o.status === 'COMPLETED'
+              ? '<span class="text-[10px] font-semibold text-slate-400">Customer confirmed</span>'
+              : `<select onchange="updateOrderStatus('${escHtml(o.id)}', this.value)" class="order-status-select text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white shadow-sm">
+                  ${['PROCESSING','SHIPPED','CANCELLED'].map(s => `<option ${o.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
+                </select>`}
+          </div>
         </td>
       </tr>
     `).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   async function updateOrderStatus(orderId, newStatus) {
