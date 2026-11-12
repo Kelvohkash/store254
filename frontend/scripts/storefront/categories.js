@@ -311,14 +311,12 @@ function renderCategoryNavigation(animateLevelChange = false) {
           return `
             <button type="button" class="category-card" onclick="selectCategory('${escapeHtml(cat.slug)}')" aria-label="Browse ${escapeHtml(cat.name)}">
               <span class="category-card-icon">
-                <i data-lucide="${icon}" class="w-5 h-5"></i>
+                <i data-lucide="${icon}" class="w-5 h-5 sm:w-6 sm:h-6"></i>
               </span>
               <span class="category-card-copy">
                 <span class="category-card-title">${escapeHtml(cat.name)}</span>
-                ${cat.description ? `<span class="category-card-description">${escapeHtml(cat.description)}</span>` : ""}
                 <span class="category-card-count">${escapeHtml(countLabel)}</span>
               </span>
-              <i data-lucide="chevron-right" class="category-card-arrow"></i>
             </button>
           `;
         }).join("")}
