@@ -40,6 +40,123 @@ export class EmailService {
   private static DEFAULT_SMTP_PASS = "xltdoykofhwfpylx";
 
   /**
+   * Unified SMTP Socket interface supporting both Cloudflare Workers (cloudflare:sockets)
+   * and Node.js (node:tls).
+   */
+  private static async createSmtpSocket(): Promise<{
+    write: (data: string) => Promise<void>;
+    readChunk: () => Promise<string | null>;
+    close: () => Promise<void>;
+  } | null> {
+    // 1. Try Cloudflare Workers native socket (cloudflare:sockets)
+    try {
+      // @ts-ignore
+      const cfSockets = await import("cloudflare:sockets");
+      if (cfSockets && typeof cfSockets.connect === "function") {
+        const socket = cfSockets.connect(
+          { hostname: "smtp.gmail.com", port: 465 },
+          { secureTransport: "on" }
+        );
+        if (socket.opened) {
+          await socket.opened;
+        }
+        const writer = socket.writable.getWriter();
+        const reader = socket.readable.getReader();
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+        return {
+          write: async (d: string) => {
+            await writer.write(encoder.encode(d));
+          },
+          readChunk: async () => {
+            const { value, done } = await reader.read();
+            if (done || !value) return null;
+            return decoder.decode(value);
+          },
+          close: async () => {
+            try { await writer.close(); } catch {}
+            try { await socket.close(); } catch {}
+          }
+        };
+      }
+    } catch {
+      // Not in Cloudflare Workers environment or cloudflare:sockets unavailable
+    }
+
+    // 2. Fallback: Node.js node:tls
+    try {
+      // @ts-ignore
+      const tls = await import("node:tls");
+      return new Promise((resolve) => {
+        const socket = tls.connect(465, "smtp.gmail.com", () => {
+          const queue: string[] = [];
+          let waiter: ((chunk: string | null) => void) | null = null;
+          let isClosed = false;
+
+          socket.on("data", (chunk: any) => {
+            const str = chunk.toString("utf-8");
+            if (waiter) {
+              const w = waiter;
+              waiter = null;
+              w(str);
+            } else {
+              queue.push(str);
+            }
+          });
+
+          socket.on("error", (err: any) => {
+            console.error("[EmailService SMTP TLS Error]", err);
+            isClosed = true;
+            if (waiter) {
+              const w = waiter;
+              waiter = null;
+              w(null);
+            }
+          });
+
+          socket.on("close", () => {
+            isClosed = true;
+            if (waiter) {
+              const w = waiter;
+              waiter = null;
+              w(null);
+            }
+          });
+
+          resolve({
+            write: async (data: string) => {
+              return new Promise<void>((res, rej) => {
+                socket.write(data, (err: any) => {
+                  if (err) rej(err);
+                  else res();
+                });
+              });
+            },
+            readChunk: async () => {
+              if (queue.length > 0) return queue.shift()!;
+              if (isClosed) return null;
+              return new Promise<string | null>((res) => {
+                waiter = res;
+              });
+            },
+            close: async () => {
+              try { socket.end(); socket.destroy(); } catch {}
+            }
+          });
+        });
+
+        socket.on("error", (err: any) => {
+          console.error("[EmailService Socket Connect Error]", err);
+          resolve(null);
+        });
+      });
+    } catch (err) {
+      console.error("[EmailService Import TLS Error]", err);
+      return null;
+    }
+  }
+
+  /**
    * Dispatches an email via direct Gmail SMTP over TLS on port 465
    */
   private static async sendViaGmailSmtp(options: {
@@ -48,89 +165,133 @@ export class EmailService {
     html: string;
     from?: string;
   }): Promise<boolean> {
-    const user = this.DEFAULT_SMTP_USER;
-    const pass = this.DEFAULT_SMTP_PASS.replace(/\s+/g, "");
-    const from = options.from || this.DEFAULT_SENDER;
+    const proc = (globalThis as unknown as { process?: { env?: Record<string, string> } }).process;
+    const user = (typeof proc !== "undefined" && proc?.env?.GMAIL_SMTP_USER) || this.DEFAULT_SMTP_USER;
+    const rawPass = (typeof proc !== "undefined" && proc?.env?.GMAIL_SMTP_PASS) || this.DEFAULT_SMTP_PASS;
+    const pass = rawPass.replace(/\s+/g, "");
+    const from = options.from || (typeof proc !== "undefined" && proc?.env?.GMAIL_SENDER) || this.DEFAULT_SENDER;
 
-    return new Promise((resolve) => {
-      try {
-        // @ts-ignore
-        import("node:tls").then((tls: any) => {
-          const socket = tls.connect(465, "smtp.gmail.com", () => {});
-          let step = 0;
-          let isDone = false;
+    try {
+      const socket = await this.createSmtpSocket();
+      if (!socket) return false;
 
-          const finish = (ok: boolean) => {
-            if (isDone) return;
-            isDone = true;
-            try { socket.write("QUIT\r\n"); socket.end(); } catch {}
-            resolve(ok);
-          };
+      let buffer = "";
 
-          socket.setTimeout(12000, () => {
-            console.error("[EmailService SMTP] Timeout connecting to smtp.gmail.com");
-            finish(false);
-          });
+      const readLine = async (): Promise<string | null> => {
+        while (true) {
+          const crlfIdx = buffer.indexOf("\r\n");
+          if (crlfIdx !== -1) {
+            const line = buffer.slice(0, crlfIdx);
+            buffer = buffer.slice(crlfIdx + 2);
+            return line;
+          }
+          const chunk = await socket.readChunk();
+          if (chunk === null) return null;
+          buffer += chunk;
+        }
+      };
 
-          socket.on("error", (err: any) => {
-            console.error("[EmailService SMTP Error]", err);
-            finish(false);
-          });
+      const readResponse = async (): Promise<{ code: number; text: string } | null> => {
+        let lastLine = "";
+        while (true) {
+          const line = await readLine();
+          if (line === null) return null;
+          lastLine = line;
+          if (line.length >= 3 && line.charAt(3) !== "-") {
+            const code = parseInt(line.slice(0, 3), 10);
+            return { code, text: lastLine };
+          }
+        }
+      };
 
-          socket.on("data", (data: any) => {
-            const str = data.toString();
-            if (step === 0 && str.includes("220")) {
-              step = 1;
-              socket.write("EHLO store254.co.ke\r\n");
-            } else if (step === 1 && str.includes("250 ")) {
-              step = 2;
-              socket.write("AUTH LOGIN\r\n");
-            } else if (step === 2 && str.includes("334")) {
-              step = 3;
-              socket.write(btoa(user) + "\r\n");
-            } else if (step === 3 && str.includes("334")) {
-              step = 4;
-              socket.write(btoa(pass) + "\r\n");
-            } else if (step === 4 && str.includes("235")) {
-              step = 5;
-              socket.write(`MAIL FROM:<${user}>\r\n`);
-            } else if (step === 5 && str.includes("250")) {
-              step = 6;
-              socket.write(`RCPT TO:<${options.to}>\r\n`);
-            } else if (step === 6 && str.includes("250")) {
-              step = 7;
-              socket.write("DATA\r\n");
-            } else if (step === 7 && str.includes("354")) {
-              step = 8;
-              const msg = [
-                `From: ${from}`,
-                `To: ${options.to}`,
-                `Subject: ${options.subject}`,
-                "MIME-Version: 1.0",
-                "Content-Type: text/html; charset=utf-8",
-                "",
-                options.html,
-                ".",
-                ""
-              ].join("\r\n");
-              socket.write(msg);
-            } else if (step === 8 && str.includes("250")) {
-              console.log(`[EmailService] Delivered recovery email to ${options.to} via Gmail SMTP.`);
-              finish(true);
-            } else if (str.startsWith("5") || str.startsWith("4")) {
-              console.error("[EmailService SMTP Error Response]", str.trim());
-              finish(false);
-            }
-          });
-        }).catch((err: any) => {
-          console.error("[EmailService Import TLS Error]", err);
-          resolve(false);
-        });
-      } catch (err) {
-        console.error("[EmailService SMTP Setup Error]", err);
-        resolve(false);
+      const greeting = await readResponse();
+      if (!greeting || greeting.code !== 220) {
+        await socket.close();
+        return false;
       }
-    });
+
+      await socket.write("EHLO store254.co.ke\r\n");
+      const ehlo = await readResponse();
+      if (!ehlo || ehlo.code !== 250) {
+        await socket.close();
+        return false;
+      }
+
+      await socket.write("AUTH LOGIN\r\n");
+      const authPrompt1 = await readResponse();
+      if (!authPrompt1 || authPrompt1.code !== 334) {
+        await socket.close();
+        return false;
+      }
+
+      await socket.write(btoa(user) + "\r\n");
+      const authPrompt2 = await readResponse();
+      if (!authPrompt2 || authPrompt2.code !== 334) {
+        await socket.close();
+        return false;
+      }
+
+      await socket.write(btoa(pass) + "\r\n");
+      const authResult = await readResponse();
+      if (!authResult || authResult.code !== 235) {
+        console.error("[EmailService SMTP Auth Failed]", authResult?.text);
+        await socket.close();
+        return false;
+      }
+
+      await socket.write(`MAIL FROM:<${user}>\r\n`);
+      const mailFrom = await readResponse();
+      if (!mailFrom || mailFrom.code !== 250) {
+        await socket.close();
+        return false;
+      }
+
+      await socket.write(`RCPT TO:<${options.to}>\r\n`);
+      const rcptTo = await readResponse();
+      if (!rcptTo || rcptTo.code !== 250) {
+        await socket.close();
+        return false;
+      }
+
+      await socket.write("DATA\r\n");
+      const dataPrompt = await readResponse();
+      if (!dataPrompt || dataPrompt.code !== 354) {
+        await socket.close();
+        return false;
+      }
+
+      const normalizedHtml = options.html.replace(/\r?\n/g, "\r\n");
+      const mimeMsg = [
+        `From: ${from}`,
+        `To: ${options.to}`,
+        `Subject: ${options.subject}`,
+        `MIME-Version: 1.0`,
+        `Content-Type: text/html; charset=utf-8`,
+        ``,
+        normalizedHtml,
+        `.`,
+        ``
+      ].join("\r\n");
+
+      await socket.write(mimeMsg);
+      const dataResult = await readResponse();
+      if (!dataResult || dataResult.code !== 250) {
+        console.error("[EmailService SMTP Send Data Error]", dataResult?.text);
+        await socket.close();
+        return false;
+      }
+
+      try {
+        await socket.write("QUIT\r\n");
+      } catch {}
+      await socket.close();
+
+      console.log(`[EmailService] Delivered recovery email to ${options.to} via Gmail SMTP.`);
+      return true;
+    } catch (err) {
+      console.error("[EmailService SMTP Session Error]", err);
+      return false;
+    }
   }
 
   /**

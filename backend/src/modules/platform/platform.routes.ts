@@ -42,11 +42,13 @@ const registerStoreSchema = z.object({
 // Forgot Password Schemas
 const forgotPasswordSchema = z.object({
   email: z.string().email(),
+  clientOrigin: z.string().url().optional(),
 });
 
 const resetPasswordSchema = z.object({
   email: z.string().email(),
-  otp: z.string().length(6, "OTP must be exactly 6 digits"),
+  otp: z.string().min(6).max(8).optional(),
+  token: z.string().min(16).max(128).optional(),
   newPassword: z
     .string()
     .min(SECURITY_LIMITS.MIN_PASSWORD_LENGTH)
@@ -270,11 +272,23 @@ platformRouter.post(
       .set({ isUsed: true })
       .where(eq(passwordResetOtps.email, normalizedEmail));
 
-    // Generate 6-digit numeric OTP and hash it
+    // Generate 6-digit numeric OTP and URL reset token
     const otp = generateNumericOtp(6);
     const hashedOtp = await hashOtp(otp);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
+    const resetToken = generateUUID() + "-" + generateNumericOtp(8);
+    const hashedToken = await hashOtp(resetToken);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes validity
 
+    // Store URL token record
+    await db.insert(passwordResetOtps).values({
+      id: generateUUID(),
+      email: normalizedEmail,
+      otpHash: hashedToken,
+      expiresAt,
+      isUsed: false,
+    });
+
+    // Store 6-digit OTP record
     await db.insert(passwordResetOtps).values({
       id: generateUUID(),
       email: normalizedEmail,
@@ -283,29 +297,38 @@ platformRouter.post(
       isUsed: false,
     });
 
-    // Send official email from recovery@store254.co.ke
-    await EmailService.sendPasswordResetOtp({
+    const origin = (c.req.valid("json") as any).clientOrigin || c.req.header("origin") || `https://${primaryDomain}`;
+    const resetLink = `${origin}/admin.html?reset_token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(normalizedEmail)}`;
+
+    // Send official recovery email with direct reset button & OTP
+    await EmailService.sendPasswordResetLink({
       to: normalizedEmail,
       fullName: user.fullName || "Store Owner",
+      resetLink,
       otpCode: otp,
-      expiresMinutes: 15,
+      expiresMinutes: 30,
+      storeName: "Store254 Platform",
     });
 
     return c.json({
       success: true,
-      message: "If an account exists with this email, a recovery OTP has been sent.",
+      message: "If an account exists with this email, a recovery link has been sent.",
     });
   }
 );
 
-// Platform Password Recovery: Verify OTP & Reset Password
+// Platform Password Recovery: Verify Token / OTP & Reset Password
 platformRouter.post(
   "/reset-password",
   rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
   zValidator("json", resetPasswordSchema),
   async (c) => {
-    const { email, otp, newPassword } = c.req.valid("json");
+    const { email, otp, token, newPassword } = c.req.valid("json");
     const normalizedEmail = email.toLowerCase().trim();
+
+    if (!otp && !token) {
+      throw new AppError("Either reset token or OTP code is required.", 400, "MISSING_TOKEN");
+    }
 
     if (!c.env?.DB) {
       throw new AppError("Database binding not initialized.", 500);
@@ -314,8 +337,10 @@ platformRouter.post(
     const db = createDb(c.env.DB);
     const now = new Date();
 
-    // Find latest unused, non-expired OTP record
-    const [record] = await db
+    const candidateCodes = [token, otp].filter(Boolean) as string[];
+
+    // Find active records
+    const activeRecords = await db
       .select()
       .from(passwordResetOtps)
       .where(
@@ -325,37 +350,32 @@ platformRouter.post(
           gt(passwordResetOtps.expiresAt, now)
         )
       )
-      .orderBy(desc(passwordResetOtps.createdAt))
-      .limit(1);
+      .orderBy(desc(passwordResetOtps.createdAt));
 
-    if (!record) {
-      throw new AppError("Invalid or expired OTP code. Please request a new one.", 400, "INVALID_OTP");
+    if (!activeRecords.length) {
+      throw new AppError("Invalid or expired password reset link.", 400, "INVALID_TOKEN");
     }
 
-    // Check attempts
-    if (record.attempts >= record.maxAttempts) {
-      await db
-        .update(passwordResetOtps)
-        .set({ isUsed: true })
-        .where(eq(passwordResetOtps.id, record.id));
-      throw new AppError("Too many incorrect OTP attempts. Code has been invalidated.", 400, "OTP_LOCKED");
+    let matchedRecord = null;
+    for (const record of activeRecords) {
+      for (const code of candidateCodes) {
+        if (await verifyOtp(code, record.otpHash)) {
+          matchedRecord = record;
+          break;
+        }
+      }
+      if (matchedRecord) break;
     }
 
-    // Verify OTP using constant-time comparison
-    const isValid = await verifyOtp(otp, record.otpHash);
-    if (!isValid) {
-      await db
-        .update(passwordResetOtps)
-        .set({ attempts: record.attempts + 1 })
-        .where(eq(passwordResetOtps.id, record.id));
-      throw new AppError("Incorrect OTP code. Please check and try again.", 400, "INCORRECT_OTP");
+    if (!matchedRecord) {
+      throw new AppError("Incorrect or expired recovery code.", 400, "INVALID_TOKEN");
     }
 
-    // Mark OTP as used
+    // Invalidate all tokens for this email
     await db
       .update(passwordResetOtps)
       .set({ isUsed: true })
-      .where(eq(passwordResetOtps.id, record.id));
+      .where(eq(passwordResetOtps.email, normalizedEmail));
 
     // Hash new password and update all matching user accounts for this email
     const newPasswordHash = await hashPassword(newPassword);
