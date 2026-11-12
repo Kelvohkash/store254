@@ -75,7 +75,13 @@ mpesaRouter.post("/platform-callback", async (c) => {
     const dueBase = store.subscriptionDueAt && store.subscriptionDueAt.getTime() > paidAt.getTime()
       ? store.subscriptionDueAt.getTime()
       : paidAt.getTime();
-    const subscriptionDueAt = new Date(dueBase + payment.intervalDays * 24 * 60 * 60 * 1000);
+    const dueDate = new Date(dueBase);
+    const dayOfMonth = dueDate.getUTCDate();
+    dueDate.setUTCDate(1);
+    dueDate.setUTCMonth(dueDate.getUTCMonth() + payment.intervalMonths);
+    const lastDayOfMonth = new Date(Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth() + 1, 0)).getUTCDate();
+    dueDate.setUTCDate(Math.min(dayOfMonth, lastDayOfMonth));
+    const subscriptionDueAt = dueDate;
     await db.update(tenants).set({ status: "ACTIVE", subscriptionDueAt, updatedAt: paidAt }).where(eq(tenants.id, store.id));
     if (store.status === "SUSPENDED") {
       const [owner] = await db.select({ email: users.email }).from(users)

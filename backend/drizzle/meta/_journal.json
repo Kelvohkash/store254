@@ -64,6 +64,13 @@
       "when": 1794473075100,
       "tag": "0008_platform_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794474000000,
+      "tag": "0009_monthly_billing",
+      "breakpoints": true
     }
   ]
 }

@@ -25,7 +25,7 @@ function storeRowMarkup(store) {
   const dueDate = store.subscriptionDueAt ? new Date(store.subscriptionDueAt) : null;
   const isBillingDue = dueDate && !Number.isNaN(dueDate.getTime()) && dueDate <= new Date();
   const billingLabel = dueDate && !Number.isNaN(dueDate.getTime())
-    ? isBillingDue ? "Payment due" : `Next due ${formatDate(dueDate)}`
+    ? isBillingDue ? "Payment overdue" : `Covered until ${formatDate(dueDate)}`
     : "Billing not started";
 
   const action = status === "PENDING"
@@ -39,6 +39,9 @@ function storeRowMarkup(store) {
   const billingReady = window.platformBillingUiState?.darajaConfigured && window.platformBillingUiState?.amount > 0;
   const billingAction = canPrompt
     ? `<button class="row-action is-billing" type="button" data-store-action="payment-prompt" data-store-id="${escapeHtml(store.id)}" ${billingReady ? "" : "disabled title=\"Configure billing and Daraja first\""}><span>↗</span> M-Pesa prompt</button>`
+    : "";
+  const trialAction = status === "ACTIVE"
+    ? `<button class="row-action is-billing" type="button" data-store-action="grant-trial" data-store-id="${escapeHtml(store.id)}"><span>＋</span> Free month</button>`
     : "";
 
   return `<tr>
@@ -66,6 +69,7 @@ function storeRowMarkup(store) {
       <div class="actions-group">
         ${action}
         ${billingAction}
+        ${trialAction}
         ${storeUrl ? `<a href="${storeUrl}" target="_blank" rel="noopener" class="row-action is-link" title="Visit storefront">↗</a>` : ""}
       </div>
     </td>

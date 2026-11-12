@@ -45,7 +45,6 @@
     const settings = result.data.data || {};
     window.platformBillingUiState = settings;
     document.getElementById("platform-billing-amount").value = settings.amount || "";
-    document.getElementById("platform-billing-interval").value = settings.intervalDays || "";
     document.getElementById("platform-billing-shortcode-type").value = settings.shortcodeType || "PAYBILL";
     const status = document.getElementById("daraja-status");
     const ready = settings.darajaConfigured;
@@ -61,17 +60,16 @@
   async function saveBillingSettings() {
     const button = document.getElementById("save-billing-settings");
     const amount = Number(document.getElementById("platform-billing-amount").value);
-    const intervalDays = Number(document.getElementById("platform-billing-interval").value);
     const shortcodeType = document.getElementById("platform-billing-shortcode-type").value;
-    if (!Number.isInteger(amount) || amount <= 0 || !Number.isInteger(intervalDays) || intervalDays < 1 || intervalDays > 366) {
-      setAdminNotice("Enter a subscription amount and a billing period between 1 and 366 days.", true);
+    if (!Number.isInteger(amount) || amount <= 0) {
+      setAdminNotice("Enter a valid monthly subscription amount.", true);
       return;
     }
     button.disabled = true;
     button.textContent = "Saving…";
     const result = await platformApiFetch("/billing/settings", {
       method: "PUT",
-      body: JSON.stringify({ amount, intervalDays, shortcodeType }),
+      body: JSON.stringify({ amount, shortcodeType }),
     });
     button.disabled = false;
     button.textContent = "Save billing settings";
@@ -104,8 +102,8 @@
       setAdminNotice("Daraja credentials are missing. Add them to the backend Worker secrets in Cloudflare first.", true);
       return;
     }
-    if (!settings.amount || !settings.intervalDays) {
-      setAdminNotice("Save a subscription amount and billing period first.", true);
+    if (!settings.amount) {
+      setAdminNotice("Save a monthly subscription amount first.", true);
       return;
     }
     let phoneNumber = store.ownerPhone || "";
@@ -115,7 +113,7 @@
     }
     const confirmed = await confirmDialog(
       `Send payment prompt to ${store.name}?`,
-      `Daraja will send a KES ${Number(settings.amount).toLocaleString("en-KE")} M-Pesa prompt to ${phoneNumber}. A successful payment covers ${settings.intervalDays} days and reactivates a suspended store.`,
+      `Daraja will send a KES ${Number(settings.amount).toLocaleString("en-KE")} M-Pesa prompt to ${phoneNumber}. A successful payment covers one month and reactivates a suspended store.`,
       false
     );
     if (!confirmed) return;
@@ -158,6 +156,30 @@
     const store = stores.find((entry) => entry.id === button.dataset.storeId);
     if (!store) return;
     const action = button.dataset.storeAction;
+    if (action === "grant-trial") {
+      const confirmed = await confirmDialog(
+        `Give ${store.name} one free month?`,
+        "The store will not see a payment due card until the new monthly coverage period ends.",
+        false,
+      );
+      if (!confirmed) return;
+      button.disabled = true;
+      button.textContent = "Adding month…";
+      const result = await platformApiFetch(`/stores/${encodeURIComponent(store.id)}/billing/trial`, { method: "PATCH" });
+      if (!result.ok || !result.data.success) {
+        button.disabled = false;
+        button.textContent = "Free month";
+        if (result.status === 401) {
+          window.location.replace("./super-admin-login.html");
+          return;
+        }
+        setAdminNotice(result.data.error?.message || "Could not add a free month.", true);
+        return;
+      }
+      setAdminNotice(result.data.message || "One free month has been added.");
+      await loadDashboard();
+      return;
+    }
     if (action === "payment-prompt") {
       await handleBillingPrompt(store, button);
       return;

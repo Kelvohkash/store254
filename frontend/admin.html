@@ -239,14 +239,11 @@
           <div class="flex gap-2">
             <input id="product-search" type="search" placeholder="Search products..." class="input w-56" oninput="filterProducts()" />
           </div>
-          <button onclick="openAddProductModal()" class="btn-primary">
-            <i data-lucide="plus" class="w-4 h-4"></i> New Product
-          </button>
         </div>
 
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wide">
+            <thead class="bg-slate-50 text-xs font-medium text-slate-500 uppercase tracking-wide">
               <tr>
                 <th class="px-5 py-3 text-left">Product</th>
                 <th class="px-5 py-3 text-left">Category</th>
@@ -267,39 +264,18 @@
       <section id="page-categories" class="hidden">
         <div class="flex items-center justify-between mb-5">
           <p class="text-sm text-slate-500">Organise your products into categories</p>
-          <button onclick="openAddCategoryModal()" class="btn-primary">
-            <i data-lucide="plus" class="w-4 h-4"></i> New Category
-          </button>
-        </div>
-        <div class="mb-5 grid gap-5 xl:grid-cols-2">
-          <form onsubmit="handleSaveAttributeDefinition(event)" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
-            <input id="attribute-id" type="hidden" />
-            <div>
-              <h3 class="text-sm font-black text-slate-900">Product filters</h3>
-              <p class="text-xs text-slate-500 mt-1">Set up custom details that merchants can add to their products.</p>
-            </div>
-            <label class="label">Field name *<input id="attribute-name" required maxlength="100" class="input mt-1" oninput="syncAttributeCodeFromName()" /></label>
-            <input id="attribute-code" type="hidden" />
-            <div class="grid grid-cols-2 gap-3">
-              <label class="label">For category<select id="attribute-category" class="input mt-1"><option value="">All categories</option></select></label>
-              <label class="label">Field type<select id="attribute-type" class="input mt-1"><option value="SELECT">Choice list</option><option value="TEXT">Text</option><option value="NUMBER">Number</option><option value="BOOLEAN">Yes / No</option><option value="MULTISELECT">Multiple choices</option><option value="RANGE">Range</option></select></label>
-            </div>
-            <label class="label">Choices <span class="font-normal text-slate-400">(comma separated; for Choice list)</span><input id="attribute-options" class="input mt-1" /></label>
-            <div class="grid grid-cols-2 gap-3">
-              <label class="label">Unit <span class="font-normal text-slate-400">(optional)</span><input id="attribute-unit" maxlength="20" class="input mt-1" /></label>
-              <div class="flex flex-col justify-center gap-2 pt-3 text-xs font-semibold text-slate-700">
-                <label class="flex items-center gap-2"><input id="attribute-filterable" type="checkbox" checked class="rounded border-slate-300 text-emerald-600"> Show as a storefront filter</label>
-                <label class="flex items-center gap-2"><input id="attribute-required" type="checkbox" class="rounded border-slate-300 text-emerald-600"> Required on products</label>
-              </div>
-            </div>
-            <div id="attribute-form-error" class="hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-xs font-semibold"></div>
-            <button type="submit" id="attribute-save-btn" class="btn-primary">Add Product Field</button>
-            <button type="button" id="attribute-cancel-edit-btn" onclick="cancelEditAttributeDefinition()" class="hidden btn-secondary">Cancel Edit</button>
-          </form>
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-            <h3 class="text-sm font-black text-slate-900 mb-3">Configured product fields</h3>
-            <div id="attribute-definitions-list" class="divide-y divide-slate-100 text-sm"><p class="py-3 text-xs text-slate-400">Loading fields…</p></div>
+          <div class="flex gap-2">
+            <button type="button" onclick="openAddAttributeModal()" class="btn-secondary">
+              <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> Add Product Filter
+            </button>
+            <button onclick="openAddCategoryModal()" class="btn-primary">
+              <i data-lucide="plus" class="w-4 h-4"></i> New Category
+            </button>
           </div>
+        </div>
+        <div class="mb-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <h3 class="text-sm font-black text-slate-900 mb-3">Configured product fields</h3>
+          <div id="attribute-definitions-list" class="divide-y divide-slate-100 text-sm"><p class="py-3 text-xs text-slate-400">Loading fields…</p></div>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <table class="w-full text-sm">
@@ -361,15 +337,15 @@
                   <div>
                   <label class="label" for="settings-primary-color">Store accent colour</label>
                   <select id="settings-primary-color" class="input">
-                    <option value="#2563eb">Ocean blue</option>
-                    <option value="#0284c7">Sky sapphire</option>
-                    <option value="#16805a">Forest green</option>
-                    <option value="#0d9488">Tropical teal</option>
-                    <option value="#8b3fa5">Plum</option>
-                    <option value="#4f46e5">Royal indigo</option>
-                    <option value="#9a3412">Warm terracotta</option>
-                    <option value="#d97706">Sunset amber</option>
-                    <option value="#0f172a">Midnight onyx</option>
+                    <option value="#2563eb">Blue</option>
+                    <option value="#0284c7">Light blue</option>
+                    <option value="#16805a">Green</option>
+                    <option value="#0d9488">Turquoise</option>
+                    <option value="#8b3fa5">Purple</option>
+                    <option value="#4f46e5">Deep blue</option>
+                    <option value="#9a3412">Brown</option>
+                    <option value="#d97706">Orange</option>
+                    <option value="#0f172a">Navy blue</option>
                   </select>
                   </div>
                   <div>
@@ -563,6 +539,43 @@
     <button type="button" onclick="showPage('payments')"><i data-lucide="credit-card"></i><span>M-Pesa &amp; payments</span><i data-lucide="chevron-right"></i></button>
     <a href="/" class="mobile-admin-menu-link"><i data-lucide="external-link"></i><span>View storefront</span><i data-lucide="chevron-right"></i></a>
     <button type="button" class="mobile-admin-menu-signout" onclick="toggleMobileAdminMenu(false); handleLogout()"><i data-lucide="log-out"></i><span>Sign out</span></button>
+  </div>
+</div>
+
+<div id="attribute-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-4 overflow-y-auto" onclick="if (event.target === this) closeModal('attribute-modal')" role="dialog" aria-modal="true" aria-labelledby="attribute-modal-title">
+  <div class="attribute-modal-panel bg-white rounded-3xl shadow-2xl w-full max-w-xl my-8">
+    <div class="flex items-center justify-between p-6 border-b border-slate-100">
+      <div>
+        <h2 id="attribute-modal-title" class="text-lg font-black text-slate-900">Add Product Filter</h2>
+        <p class="mt-1 text-xs text-slate-500">Set up custom details merchants can add to their products.</p>
+      </div>
+      <button type="button" onclick="closeModal('attribute-modal')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center" aria-label="Close product filter form">
+        <i data-lucide="x" class="w-4 h-4 text-slate-600"></i>
+      </button>
+    </div>
+    <form onsubmit="handleSaveAttributeDefinition(event)" class="attribute-modal-form p-6 space-y-3">
+      <input id="attribute-id" type="hidden" />
+      <label class="label">Field name *<input id="attribute-name" required maxlength="100" class="input mt-1" oninput="syncAttributeCodeFromName()" /></label>
+      <input id="attribute-code" type="hidden" />
+      <div class="grid grid-cols-2 gap-3">
+        <label class="label">For category<select id="attribute-category" class="input mt-1"><option value="">All categories</option></select></label>
+        <label class="label">Field type<select id="attribute-type" class="input mt-1"><option value="SELECT">Choice list</option><option value="TEXT">Text</option><option value="NUMBER">Number</option><option value="BOOLEAN">Yes / No</option><option value="MULTISELECT">Multiple choices</option><option value="RANGE">Range</option></select></label>
+      </div>
+      <label class="label">Choices <span class="font-normal text-slate-400">(comma separated; for Choice list)</span><input id="attribute-options" class="input mt-1" /></label>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="label">Unit <span class="font-normal text-slate-400">(optional)</span><input id="attribute-unit" maxlength="20" class="input mt-1" /></label>
+        <div class="flex flex-col justify-center gap-2 pt-3 text-xs font-semibold text-slate-700">
+          <label class="flex items-center gap-2"><input id="attribute-filterable" type="checkbox" checked class="rounded border-slate-300 text-emerald-600"> Show as a storefront filter</label>
+          <label class="flex items-center gap-2"><input id="attribute-required" type="checkbox" class="rounded border-slate-300 text-emerald-600"> Required on products</label>
+        </div>
+      </div>
+      <div id="attribute-form-error" class="hidden rounded-xl bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-xs font-semibold"></div>
+      <div class="flex flex-wrap gap-3 pt-2">
+        <button type="submit" id="attribute-save-btn" class="btn-primary">Add Product Field</button>
+        <button type="button" id="attribute-cancel-edit-btn" onclick="cancelEditAttributeDefinition(); closeModal('attribute-modal')" class="hidden btn-secondary">Cancel Edit</button>
+        <button type="button" onclick="closeModal('attribute-modal')" class="btn-secondary">Cancel</button>
+      </div>
+    </form>
   </div>
 </div>
 

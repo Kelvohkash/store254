@@ -28,7 +28,6 @@ const adminLoginSchema = z.object({
 
 const platformBillingSettingsSchema = z.object({
   amount: z.number().int().min(1).max(10_000_000),
-  intervalDays: z.number().int().min(1).max(366),
   shortcodeType: z.enum(["PAYBILL", "BUY_GOODS"]),
 });
 const platformBillingPromptSchema = z.object({
@@ -393,6 +392,7 @@ platformAdminRouter.patch("/stores/:id/activate", async (c) => {
     .update(tenants)
     .set({
       status: "ACTIVE",
+      subscriptionDueAt: store.subscriptionDueAt || new Date(),
       updatedAt: new Date(),
     })
     .where(eq(tenants.id, store.id));
@@ -503,6 +503,25 @@ platformAdminRouter.patch("/stores/:id/reactivate", async (c) => {
   });
 });
 
+platformAdminRouter.patch("/stores/:id/billing/trial", async (c) => {
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const db = createDb(c.env.DB);
+  const [store] = await db.select().from(tenants).where(eq(tenants.id, c.req.param("id"))).limit(1);
+  if (!store) throw new AppError("Store not found.", 404, "STORE_NOT_FOUND");
+  if (store.status !== "ACTIVE") throw new AppError("A free month can only be added to an active store.", 409, "STORE_NOT_ACTIVE");
+
+  const now = new Date();
+  const base = store.subscriptionDueAt && store.subscriptionDueAt > now ? store.subscriptionDueAt : now;
+  const trialEnd = new Date(base);
+  const dayOfMonth = trialEnd.getUTCDate();
+  trialEnd.setUTCDate(1);
+  trialEnd.setUTCMonth(trialEnd.getUTCMonth() + 1);
+  const lastDay = new Date(Date.UTC(trialEnd.getUTCFullYear(), trialEnd.getUTCMonth() + 1, 0)).getUTCDate();
+  trialEnd.setUTCDate(Math.min(dayOfMonth, lastDay));
+  await db.update(tenants).set({ subscriptionDueAt: trialEnd, updatedAt: now }).where(eq(tenants.id, store.id));
+  return c.json({ success: true, message: `One free month has been added for ${store.name}.`, data: { id: store.id, subscriptionDueAt: trialEnd } });
+});
+
 platformAdminRouter.get("/billing/settings", async (c) => {
   if (!c.env?.DB) throw new AppError("Database not ready", 500);
   const db = createDb(c.env.DB);
@@ -520,7 +539,7 @@ platformAdminRouter.get("/billing/settings", async (c) => {
     success: true,
     data: {
       amount: settings?.amount || null,
-      intervalDays: settings?.intervalDays || null,
+      intervalMonths: 1,
       shortcodeType: settings?.shortcodeType || "PAYBILL",
       darajaConfigured,
       darajaMode: c.env.MPESA_IS_SANDBOX === "true" ? "SANDBOX" : "PRODUCTION",
@@ -530,16 +549,16 @@ platformAdminRouter.get("/billing/settings", async (c) => {
 
 platformAdminRouter.put("/billing/settings", zValidator("json", platformBillingSettingsSchema), async (c) => {
   if (!c.env?.DB) throw new AppError("Database not ready", 500);
-  const { amount, intervalDays, shortcodeType } = c.req.valid("json");
+  const { amount, shortcodeType } = c.req.valid("json");
   const db = createDb(c.env.DB);
   await db.insert(platformBillingSettings).values({
-    id: "platform", amount, intervalDays, shortcodeType, updatedAt: new Date(),
+    id: "platform", amount, intervalMonths: 1, shortcodeType, updatedAt: new Date(),
   }).onConflictDoUpdate({
     target: platformBillingSettings.id,
-    set: { amount, intervalDays, shortcodeType, updatedAt: new Date() },
+    set: { amount, intervalMonths: 1, shortcodeType, updatedAt: new Date() },
   });
 
-  return c.json({ success: true, message: "Store billing settings saved.", data: { amount, intervalDays, shortcodeType } });
+  return c.json({ success: true, message: "Monthly store billing settings saved.", data: { amount, intervalMonths: 1, shortcodeType } });
 });
 
 platformAdminRouter.post(
@@ -599,7 +618,7 @@ platformAdminRouter.post(
       id: paymentId,
       tenantId: store.id,
       amount: billingSettings.amount,
-      intervalDays: billingSettings.intervalDays,
+      intervalMonths: billingSettings.intervalMonths,
       phoneNumber,
       status: "INITIATED",
       callbackTokenHash: await hashOtp(callbackToken),

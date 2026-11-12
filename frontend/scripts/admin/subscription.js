@@ -20,17 +20,17 @@ function updateSubscriptionCard(data) {
   const card = document.getElementById('subscription-card');
   if (!card || !data) return;
   storeSubscriptionState = data;
-  card.classList.remove('hidden');
-
   const suspended = data.storeStatus === 'SUSPENDED';
   const pendingApproval = data.storeStatus === 'PENDING';
   const amount = Number(data.amount) || 0;
   const dueDate = subscriptionDate(data.subscriptionDueAt);
-  const isDue = !dueDate || new Date(data.subscriptionDueAt).getTime() <= Date.now();
+  const isDue = Boolean(data.subscriptionDueAt) && new Date(data.subscriptionDueAt).getTime() < Date.now();
   const latest = data.latestPayment;
   const pendingPayment = latest?.status === 'INITIATED' &&
     Date.now() - new Date(latest.createdAt).getTime() < 5 * 60 * 1000;
-  const configured = amount > 0 && Number(data.intervalDays) > 0;
+  const configured = amount > 0;
+  const shouldShowCard = suspended || (!pendingApproval && isDue);
+  card.classList.toggle('hidden', !shouldShowCard);
   const canPay = configured && data.darajaConfigured && !pendingApproval && !pendingPayment;
 
   const badge = document.getElementById('subscription-status-badge');
@@ -61,8 +61,8 @@ function updateSubscriptionCard(data) {
   badge.classList.toggle('is-suspended', suspended);
 
   document.getElementById('subscription-amount').textContent = configured ? fmt(amount) : 'Not configured';
-  document.getElementById('subscription-period').textContent = configured ? `${data.intervalDays} days` : '—';
-  document.getElementById('subscription-due-date').textContent = dueDate || 'Payment required';
+  document.getElementById('subscription-period').textContent = configured ? 'Monthly' : '—';
+  document.getElementById('subscription-due-date').textContent = dueDate || '—';
   const phoneInput = document.getElementById('subscription-phone');
   if (phoneInput && !phoneInput.value && data.ownerPhone) phoneInput.value = data.ownerPhone;
 

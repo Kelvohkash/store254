@@ -186,7 +186,6 @@
       #page-categories > .flex { align-items: stretch; gap: 0.65rem; }
       #page-products > .flex > div { flex: 1; min-width: 0; }
       #product-search { width: 100%; min-height: 2.8rem; }
-      #page-products > .flex > .btn-primary,
       #page-categories > .flex > .btn-primary { min-height: 2.8rem; white-space: nowrap; }
       #page-orders > .flex {
         display: flex;
@@ -335,7 +334,8 @@
       .mobile-admin-page-header span { color: #718077; font-size: 0.68rem; }
 
       #product-modal,
-      #category-modal {
+      #category-modal,
+      #attribute-modal {
         position: fixed;
         inset: 0;
         z-index: 70;
@@ -346,7 +346,8 @@
         background: rgba(8, 18, 13, 0.62);
       }
       #product-modal > div,
-      #category-modal > div {
+      #category-modal > div,
+      #attribute-modal > .attribute-modal-panel {
         width: 100%;
         max-width: none;
         max-height: 100dvh;
@@ -358,10 +359,13 @@
         border-radius: 0;
       }
       #product-modal > div > .flex.items-center,
-      #category-modal > div > .flex.items-center { flex: 0 0 auto; padding: 1rem; }
+      #category-modal > div > .flex.items-center,
+      #attribute-modal > .attribute-modal-panel > .flex.items-center { flex: 0 0 auto; padding: 1rem; }
       #product-modal form,
-      #category-modal form { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1rem; }
+      #category-modal form,
+      #attribute-modal .attribute-modal-form { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1rem; }
       #product-modal .grid.grid-cols-2 { grid-template-columns: minmax(0, 1fr); }
+      #attribute-modal .grid.grid-cols-2 { grid-template-columns: minmax(0, 1fr); }
       #product-modal .grid.grid-cols-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       #product-modal .border.border-slate-200.rounded-2xl { padding: 0.8rem; }
       #product-modal .flex.gap-3.pt-2,

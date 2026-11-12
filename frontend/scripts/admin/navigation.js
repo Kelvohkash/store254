@@ -78,7 +78,7 @@ function toggleMobileAdminMenu(forceOpen) {
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    ['product-modal', 'category-modal', 'order-drawer'].forEach(id => {
+    ['product-modal', 'category-modal', 'attribute-modal', 'order-drawer'].forEach(id => {
       document.getElementById(id)?.classList.add('hidden');
     });
     toggleMobileAdminMenu(false);

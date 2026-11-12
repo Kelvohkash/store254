@@ -4,7 +4,7 @@ import { tenants } from "./tenants";
 export const platformBillingSettings = sqliteTable("platform_billing_settings", {
   id: text("id").primaryKey(),
   amount: integer("amount").notNull().default(0),
-  intervalDays: integer("interval_days").notNull().default(30),
+  intervalMonths: integer("interval_months").notNull().default(1),
   shortcodeType: text("shortcode_type", { enum: ["PAYBILL", "BUY_GOODS"] }).notNull().default("PAYBILL"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
@@ -19,7 +19,7 @@ export const platformBillingPayments = sqliteTable(
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
     amount: integer("amount").notNull(),
-    intervalDays: integer("interval_days").notNull(),
+    intervalMonths: integer("interval_months").notNull(),
     phoneNumber: text("phone_number").notNull(),
     status: text("status", { enum: ["INITIATED", "COMPLETED", "FAILED"] })
       .notNull()

@@ -78,6 +78,14 @@ async function loadAttributeDefinitions() {
   }).join('');
 }
 
+function openAddAttributeModal() {
+  cancelEditAttributeDefinition();
+  document.getElementById('attribute-modal-title').textContent = 'Add Product Filter';
+  document.getElementById('attribute-modal').classList.remove('hidden');
+  lucide.createIcons();
+  document.getElementById('attribute-name').focus();
+}
+
 function editAttributeDefinition(id) {
   const definition = attributeDefinitionsCache.find((item) => item.id === id);
   if (!definition) return;
@@ -92,10 +100,12 @@ function editAttributeDefinition(id) {
   document.getElementById('attribute-unit').value = definition.unit || '';
   document.getElementById('attribute-filterable').checked = Boolean(definition.isFilterable);
   document.getElementById('attribute-required').checked = Boolean(definition.isRequired);
+  document.getElementById('attribute-modal-title').textContent = 'Edit Product Filter';
   document.getElementById('attribute-save-btn').textContent = 'Save Changes';
   document.getElementById('attribute-cancel-edit-btn').classList.remove('hidden');
   document.getElementById('attribute-form-error').classList.add('hidden');
-  document.getElementById('attribute-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.getElementById('attribute-modal').classList.remove('hidden');
+  lucide.createIcons();
   document.getElementById('attribute-name').focus();
 }
 
@@ -143,6 +153,7 @@ async function handleSaveAttributeDefinition(event) {
     return;
   }
   cancelEditAttributeDefinition();
+  closeModal('attribute-modal');
   showToast(id ? 'Product field updated.' : 'Product field added.');
   await loadAttributeDefinitions();
 }

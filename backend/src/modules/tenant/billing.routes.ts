@@ -58,7 +58,7 @@ tenantBillingRouter.get("/subscription", async (c) => {
       subscriptionDueAt: store?.subscriptionDueAt || null,
       ownerPhone: owner?.phone || null,
       amount: settings?.amount || null,
-      intervalDays: settings?.intervalDays || null,
+      intervalMonths: settings?.intervalMonths || 1,
       darajaConfigured,
       latestPayment: latestPayment || null,
     },
@@ -85,7 +85,7 @@ tenantBillingRouter.post(
 
     const [billingSettings] = await db.select().from(platformBillingSettings)
       .where(eq(platformBillingSettings.id, "platform")).limit(1);
-    if (!billingSettings || billingSettings.amount < 1 || billingSettings.intervalDays < 1) {
+    if (!billingSettings || billingSettings.amount < 1) {
       throw new AppError("Subscription billing is not configured yet. Contact Store254 support.", 409, "PLATFORM_BILLING_NOT_CONFIGURED");
     }
 
@@ -116,7 +116,7 @@ tenantBillingRouter.post(
       id: paymentId,
       tenantId: tenant.id,
       amount: billingSettings.amount,
-      intervalDays: billingSettings.intervalDays,
+      intervalMonths: billingSettings.intervalMonths,
       phoneNumber,
       status: "INITIATED",
       callbackTokenHash: await hashOtp(callbackToken),
