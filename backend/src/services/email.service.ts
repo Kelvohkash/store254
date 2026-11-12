@@ -232,7 +232,20 @@ ${safeBody}
       </head>
       <body>
         <div class="container">
-          <div class="logo">Store<span>254</span> Security</div>
+          <div style="margin-bottom: 28px; padding-bottom: 18px; border-bottom: 1px solid #f3f4f6;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="left" style="vertical-align: middle;">
+                  <a href="https://store254.co.ke" target="_blank" style="text-decoration: none; display: inline-block;">
+                    <img src="https://store254.co.ke/assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
+                  </a>
+                </td>
+                <td align="right" style="vertical-align: middle;">
+                  <span style="display: inline-block; font-size: 11px; font-weight: 700; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 10px; border-radius: 9999px; letter-spacing: 0.5px; text-transform: uppercase;">Security</span>
+                </td>
+              </tr>
+            </table>
+          </div>
           <h2>Password Recovery Request</h2>
           <p>Hello <strong>${safeName}</strong>,</p>
           <p>We received a request to reset the password for your account. Use the 6-digit One-Time PIN (OTP) below to proceed:</p>
@@ -300,7 +313,20 @@ ${safeBody}
       </head>
       <body>
         <div class="container">
-          <div class="logo">Store<span>254</span> Security</div>
+          <div style="margin-bottom: 28px; padding-bottom: 18px; border-bottom: 1px solid #f3f4f6;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="left" style="vertical-align: middle;">
+                  <a href="https://store254.co.ke" target="_blank" style="text-decoration: none; display: inline-block;">
+                    <img src="https://store254.co.ke/assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
+                  </a>
+                </td>
+                <td align="right" style="vertical-align: middle;">
+                  <span style="display: inline-block; font-size: 11px; font-weight: 700; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 10px; border-radius: 9999px; letter-spacing: 0.5px; text-transform: uppercase;">Security</span>
+                </td>
+              </tr>
+            </table>
+          </div>
           <h2>Reset Your Password</h2>
           <p>Hello <strong>${safeName}</strong>,</p>
           <p>We received a request to reset the password for your <strong>${safeStore}</strong> account. Click the button below to choose a new password:</p>
@@ -365,7 +391,11 @@ ${safeBody}
       </head>
       <body>
         <div class="container">
-          <div class="logo">Store<span>254</span></div>
+          <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6;">
+            <a href="https://store254.co.ke" target="_blank" style="text-decoration: none; display: inline-block;">
+              <img src="https://store254.co.ke/assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
+            </a>
+          </div>
           <div class="badge">Application Under Review</div>
           <h2>Welcome to Store254!</h2>
           <p>Thank you for registering <strong>${safeStoreName}</strong> on the Store254 platform.</p>
@@ -418,7 +448,11 @@ ${safeBody}
       </head>
       <body>
         <div class="container">
-          <div class="logo">Store<span>254</span></div>
+          <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6;">
+            <a href="https://store254.co.ke" target="_blank" style="text-decoration: none; display: inline-block;">
+              <img src="https://store254.co.ke/assets/Store254_Digital_Marketplace_Logo_transparent.png" alt="Store254" height="42" style="height: 42px; width: auto; max-width: 190px; display: block; border: 0;" />
+            </a>
+          </div>
           <div class="badge">Store Activated</div>
           <h2>Your Store is Live! 🎉</h2>
           <p>Great news! The Store254 Super Admin team has reviewed and activated your business store: <strong>${safeStoreName}</strong>.</p>
