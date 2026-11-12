@@ -48,6 +48,7 @@ body {
   font-weight: 600;
   background: #f4f7f5;
 }
+.admin-loading[hidden] { display: none !important; }
 .loading-spinner {
   width: 2.2rem;
   height: 2.2rem;

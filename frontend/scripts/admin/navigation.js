@@ -53,6 +53,7 @@ function showPage(name) {
     document.getElementById(`mobile-nav-${page}`)?.classList.toggle('active', page === name);
   });
   document.getElementById('mobile-nav-more')?.classList.toggle('active', name === 'settings' || name === 'payments');
+  document.getElementById('header-add-product')?.classList.toggle('hidden', name === 'categories');
 
   if (name === 'products' && typeof loadProducts === 'function') loadProducts();
   if (name === 'categories' && typeof loadCategories === 'function') loadCategories();

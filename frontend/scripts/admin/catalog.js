@@ -77,12 +77,11 @@ async function loadProductAttributeFields(categoryId, initialAttributes = null) 
         <option value="">Choose…</option><option value="true" ${String(value) === 'true' ? 'selected' : ''}>Yes</option><option value="false" ${String(value) === 'false' ? 'selected' : ''}>No</option>
       </select>`;
     } else if (type === 'SELECT') {
-      control = `<input id="${escHtml(id)}" data-product-attribute-code="${escHtml(code)}" data-product-attribute-type="TEXT" type="text" list="${escHtml(id)}-options" value="${escHtml(value)}" class="input" placeholder="${escHtml(name)}" ${required}>
+      control = `<input id="${escHtml(id)}" data-product-attribute-code="${escHtml(code)}" data-product-attribute-type="TEXT" type="text" list="${escHtml(id)}-options" value="${escHtml(value)}" class="input" ${required}>
         <datalist id="${escHtml(id)}-options">${options.map((option) => `<option value="${escHtml(option)}"></option>`).join('')}</datalist>`;
     } else {
       const isNumber = type === 'NUMBER' || type === 'RANGE';
-      const hint = type === 'MULTISELECT' ? 'Separate values with commas' : `${name}${definition.unit ? ` (${definition.unit})` : ''}`;
-      control = `<input id="${escHtml(id)}" data-product-attribute-code="${escHtml(code)}" data-product-attribute-type="${isNumber ? type : 'TEXT'}" type="${isNumber ? 'number' : 'text'}" value="${escHtml(value)}" class="input" placeholder="${escHtml(hint)}" ${required}>`;
+      control = `<input id="${escHtml(id)}" data-product-attribute-code="${escHtml(code)}" data-product-attribute-type="${isNumber ? type : 'TEXT'}" type="${isNumber ? 'number' : 'text'}" value="${escHtml(value)}" class="input" ${required}>`;
     }
 
     return `<label class="block text-xs font-bold text-slate-700" for="${escHtml(id)}">${escHtml(name)}${definition.isRequired ? ' *' : ''}${control}</label>`;

@@ -132,6 +132,14 @@ authRouter.post(
       throw new AppError("Invalid email or password.", 401, "INVALID_CREDENTIALS");
     }
 
+    if (tenant.status === "SUSPENDED" && !["OWNER", "ADMIN"].includes(user.role)) {
+      throw new AppError(
+        "This store is temporarily paused. Store customers cannot sign in until it is active again.",
+        403,
+        "STORE_SUSPENDED"
+      );
+    }
+
     await db
       .update(users)
       .set({ lastLoginAt: new Date() })

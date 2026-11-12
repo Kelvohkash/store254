@@ -158,17 +158,29 @@ async function bootApp(user) {
     document.getElementById('sidebar-user-role').textContent = user.role;
   }
 
-  // Fetch store profile
-  const profileRes = await apiFetch('/store');
-  if (profileRes.ok && profileRes.data?.data) {
-    const st = profileRes.data.data;
-    const name = st.name || tenantSlug;
-    document.getElementById('sidebar-store-name').textContent = name;
-    document.getElementById('login-store-name').textContent = name;
-    document.title = `${name} — Admin`;
+  const subscription = typeof loadStoreSubscription === 'function'
+    ? await loadStoreSubscription()
+    : null;
+  const isSuspended = subscription?.storeStatus === 'SUSPENDED';
+  if (subscription?.storeName) {
+    document.getElementById('sidebar-store-name').textContent = subscription.storeName;
+    document.getElementById('login-store-name').textContent = subscription.storeName;
+    document.title = `${subscription.storeName} — Admin`;
   }
 
-  if (typeof loadDashboard === 'function') {
+  // A suspended store can still reach the admin dashboard to pay and reactivate.
+  if (!isSuspended) {
+    const profileRes = await apiFetch('/store');
+    if (profileRes.ok && profileRes.data?.data) {
+      const st = profileRes.data.data;
+      const name = st.name || tenantSlug;
+      document.getElementById('sidebar-store-name').textContent = name;
+      document.getElementById('login-store-name').textContent = name;
+      document.title = `${name} — Admin`;
+    }
+  }
+
+  if (!isSuspended && typeof loadDashboard === 'function') {
     await loadDashboard();
   }
   lucide.createIcons();

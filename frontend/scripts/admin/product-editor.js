@@ -97,7 +97,7 @@ function addProductVariantRow(v = {}) {
   const row = document.createElement('div');
   row.className = 'variant-row grid grid-cols-[1fr_90px_75px_32px] gap-2 items-center';
   row.innerHTML = `
-    <input type="text" class="input text-xs py-1.5 variant-title" placeholder="Variant (e.g. Large / Red)" value="${escHtml(v.title || '')}" />
+    <input type="text" class="input text-xs py-1.5 variant-title" value="${escHtml(v.title || '')}" />
     <input type="number" min="1" class="input text-xs py-1.5 variant-price" placeholder="KES Price" value="${escHtml(v.price || '')}" />
     <input type="number" min="0" class="input text-xs py-1.5 variant-stock" placeholder="Stock" value="${escHtml(v.stockQuantity ?? 5)}" />
     <button type="button" onclick="this.closest('.variant-row').remove()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center">✕</button>

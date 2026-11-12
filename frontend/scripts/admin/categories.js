@@ -52,11 +52,6 @@ function syncAttributeCodeFromName() {
   codeEl.value = nameEl.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 
-function markAttributeCodeEdited() {
-  const codeEl = document.getElementById('attribute-code');
-  if (codeEl) codeEl.dataset.edited = 'true';
-}
-
 async function loadAttributeDefinitions() {
   const container = document.getElementById('attribute-definitions-list');
   if (!container) return;

@@ -150,7 +150,17 @@ export function tenantMiddleware(
       return next();
     }
 
-    if (tenant.status === "SUSPENDED") {
+    const requestPath = new URL(c.req.url).pathname;
+    const requestMethod = c.req.method.toUpperCase();
+    const suspendedPaymentPath =
+      (requestPath === "/api/auth/login" && requestMethod === "POST") ||
+      (requestPath === "/api/auth/me" && requestMethod === "GET") ||
+      (requestPath === "/api/auth/logout" && requestMethod === "POST") ||
+      (requestPath === "/api/billing/subscription" && requestMethod === "GET") ||
+      (requestPath === "/api/billing/subscription/payment-prompt" && requestMethod === "POST") ||
+      (/^\/api\/billing\/subscription\/payments\/[^/]+$/.test(requestPath) && requestMethod === "GET");
+
+    if (tenant.status === "SUSPENDED" && !suspendedPaymentPath) {
       throw new AppError(
         "This store has been temporarily suspended. Please contact support.",
         403,

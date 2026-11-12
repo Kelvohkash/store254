@@ -25,6 +25,7 @@ import { ordersRouter } from "./modules/orders/orders.routes";
 import { paymentSettingsRouter } from "./modules/payments/settings.routes";
 import { mpesaRouter } from "./modules/payments/mpesa.routes";
 import { tenantSettingsRouter } from "./modules/tenant/tenant.routes";
+import { tenantBillingRouter } from "./modules/tenant/billing.routes";
 
 const app = new Hono<AppEnv>();
 
@@ -111,6 +112,7 @@ tenantScope.get("/store", (c) => {
 
 // Store Profile & Custom Domain Management (Owners/Admins)
 tenantScope.route("/store/settings", tenantSettingsRouter);
+tenantScope.route("/billing", tenantBillingRouter);
 
 // Tenant Sub-routes
 tenantScope.route("/auth", authRouter);

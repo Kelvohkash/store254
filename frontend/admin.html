@@ -6,6 +6,9 @@
   <title>Store Admin — Store254</title>
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="./styles/tailwind.generated.css">
   <link rel="stylesheet" href="./styles/admin.css">
@@ -144,7 +147,7 @@
       </div>
       <div class="flex items-center gap-3">
         <div id="toast-top" class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg"></div>
-        <button onclick="showPage('products'); setTimeout(openAddProductModal, 100)" class="btn-primary admin-header-add-product">
+        <button id="header-add-product" onclick="showPage('products'); setTimeout(openAddProductModal, 100)" class="btn-primary admin-header-add-product">
           <i data-lucide="plus" class="w-4 h-4"></i><span>Add Product</span>
         </button>
       </div>
@@ -154,7 +157,32 @@
 
       <!-- ══════════ DASHBOARD PAGE ══════════ -->
       <section id="page-dashboard">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <section id="subscription-card" class="dashboard-panel subscription-card mb-6 hidden" aria-labelledby="subscription-card-title">
+          <div class="subscription-card-heading">
+            <div class="subscription-card-icon"><i data-lucide="badge-check" class="w-5 h-5"></i></div>
+            <div class="subscription-card-copy">
+              <span id="subscription-status-badge" class="subscription-status-badge">Checking subscription</span>
+              <h2 id="subscription-card-title">Store subscription</h2>
+              <p id="subscription-card-message">Checking your store subscription status…</p>
+            </div>
+          </div>
+          <div class="subscription-card-details">
+            <div><span>Subscription fee</span><strong id="subscription-amount">—</strong></div>
+            <div><span>Billing period</span><strong id="subscription-period">—</strong></div>
+            <div><span>Paid until</span><strong id="subscription-due-date">—</strong></div>
+          </div>
+          <div class="subscription-card-actions">
+            <label for="subscription-phone">M-Pesa phone number</label>
+            <div class="subscription-phone-row">
+              <input id="subscription-phone" type="tel" inputmode="tel" autocomplete="tel" class="input" aria-describedby="subscription-feedback" />
+              <button id="subscription-pay-button" type="button" class="btn-primary">Pay subscription</button>
+              <button id="subscription-check-button" type="button" class="btn-secondary hidden">Check payment</button>
+            </div>
+            <p id="subscription-feedback" class="subscription-feedback" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <div id="dashboard-metrics" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div class="stat-card">
             <div class="flex items-center justify-between mb-3">
               <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Products</p>
@@ -194,7 +222,7 @@
         </div>
 
         <!-- Recent Orders on Dashboard -->
-        <div class="dashboard-panel">
+        <div id="dashboard-recent-orders-panel" class="dashboard-panel">
           <div class="p-5 border-b border-slate-100 flex items-center justify-between">
             <h3 class="font-black text-slate-900">Recent Orders</h3>
             <button onclick="showPage('orders')" class="text-xs font-bold text-emerald-600 hover:underline">View all →</button>
@@ -248,19 +276,17 @@
             <input id="attribute-id" type="hidden" />
             <div>
               <h3 class="text-sm font-black text-slate-900">Product filters</h3>
-              <p class="text-xs text-slate-500 mt-1">Set up fields such as Brand, Screen Size, Resolution, and Warranty.</p>
+              <p class="text-xs text-slate-500 mt-1">Set up custom details that merchants can add to their products.</p>
             </div>
-            <div class="grid grid-cols-2 gap-3">
-              <label class="label">Field name *<input id="attribute-name" required maxlength="100" class="input mt-1" placeholder="e.g. Screen Size" oninput="syncAttributeCodeFromName()" /></label>
-              <label class="label">Field key *<input id="attribute-code" required maxlength="50" pattern="[A-Za-z][A-Za-z0-9_-]*" class="input mt-1" placeholder="e.g. screen_size" oninput="markAttributeCodeEdited()" /></label>
-            </div>
+            <label class="label">Field name *<input id="attribute-name" required maxlength="100" class="input mt-1" oninput="syncAttributeCodeFromName()" /></label>
+            <input id="attribute-code" type="hidden" />
             <div class="grid grid-cols-2 gap-3">
               <label class="label">For category<select id="attribute-category" class="input mt-1"><option value="">All categories</option></select></label>
               <label class="label">Field type<select id="attribute-type" class="input mt-1"><option value="SELECT">Choice list</option><option value="TEXT">Text</option><option value="NUMBER">Number</option><option value="BOOLEAN">Yes / No</option><option value="MULTISELECT">Multiple choices</option><option value="RANGE">Range</option></select></label>
             </div>
-            <label class="label">Choices <span class="font-normal text-slate-400">(comma separated; for Choice list)</span><input id="attribute-options" class="input mt-1" placeholder="Samsung, Sony, LG" /></label>
+            <label class="label">Choices <span class="font-normal text-slate-400">(comma separated; for Choice list)</span><input id="attribute-options" class="input mt-1" /></label>
             <div class="grid grid-cols-2 gap-3">
-              <label class="label">Unit <span class="font-normal text-slate-400">(optional)</span><input id="attribute-unit" maxlength="20" class="input mt-1" placeholder="inches" /></label>
+              <label class="label">Unit <span class="font-normal text-slate-400">(optional)</span><input id="attribute-unit" maxlength="20" class="input mt-1" /></label>
               <div class="flex flex-col justify-center gap-2 pt-3 text-xs font-semibold text-slate-700">
                 <label class="flex items-center gap-2"><input id="attribute-filterable" type="checkbox" checked class="rounded border-slate-300 text-emerald-600"> Show as a storefront filter</label>
                 <label class="flex items-center gap-2"><input id="attribute-required" type="checkbox" class="rounded border-slate-300 text-emerald-600"> Required on products</label>
@@ -555,20 +581,20 @@
       <input type="hidden" id="product-id" />
       <div>
         <label class="label">Product Title *</label>
-        <input id="product-title" type="text" required class="input" placeholder="e.g. Baby Walker Deluxe" />
+        <input id="product-title" type="text" required class="input" />
       </div>
       <div>
         <label class="label">Description</label>
-        <textarea id="product-description" class="input" rows="3" placeholder="Describe your product..."></textarea>
+        <textarea id="product-description" class="input" rows="3"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="label">Price (KES) *</label>
-          <input id="product-price" type="number" required min="1" class="input" placeholder="e.g. 2500" />
+          <input id="product-price" type="number" required min="1" class="input" />
         </div>
         <div>
           <label class="label">Compare-at Price</label>
-          <input id="product-compare-price" type="number" min="1" class="input" placeholder="e.g. 3200" />
+          <input id="product-compare-price" type="number" min="1" class="input" />
         </div>
       </div>
       <div class="grid grid-cols-2 gap-3">
@@ -590,7 +616,7 @@
       <section id="product-attributes-section" class="hidden rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4 space-y-3" aria-live="polite">
         <div>
           <p class="text-xs font-black text-slate-800 uppercase tracking-wide">Product Details</p>
-          <p class="text-[11px] text-slate-500">These details power category filters such as Brand and Screen Size.</p>
+          <p class="text-[11px] text-slate-500">Add any extra details for this product.</p>
         </div>
         <div id="product-attributes-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
       </section>
@@ -701,6 +727,7 @@
 <script src="./scripts/admin/core.js"></script>
 <script src="./scripts/admin/navigation.js"></script>
 <script src="./scripts/admin/dashboard.js"></script>
+<script src="./scripts/admin/subscription.js"></script>
 <script src="./scripts/admin/categories.js"></script>
 <script src="./scripts/admin/product-editor.js"></script>
 <script src="./scripts/admin/catalog.js"></script>
