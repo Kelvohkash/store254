@@ -1,7 +1,7 @@
 import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray, gt } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
@@ -10,18 +10,29 @@ import { items } from "../../db/schema/items";
 import { orders } from "../../db/schema/orders";
 import { tenantPaymentConfigs } from "../../db/schema/payment-configs";
 import { AppError } from "../../security/error-handler";
-import { hashOtp, timingSafeEqual } from "../../security/crypto";
+import { generateSecureToken, generateUUID, hashOtp, timingSafeEqual } from "../../security/crypto";
 import { EmailService } from "../../services/email.service";
 import { sign, verify } from "hono/jwt";
 import { rateLimiter } from "../../security/rate-limiter";
 import { requireSecret } from "../../security/secrets";
 import { encryptPaymentConfig } from "../../security/payment-credentials";
+import { normalizeKenyanPhone, initiateMpesaStkPush } from "../../security/mpesa";
+import { platformBillingPayments, platformBillingSettings } from "../../db/schema/platform-billing";
 
 export const platformAdminRouter = new Hono<AppEnv>();
 
 const adminLoginSchema = z.object({
   username: z.string().trim().min(1).max(120),
   password: z.string().min(1).max(256),
+});
+
+const platformBillingSettingsSchema = z.object({
+  amount: z.number().int().min(1).max(10_000_000),
+  intervalDays: z.number().int().min(1).max(366),
+  shortcodeType: z.enum(["PAYBILL", "BUY_GOODS"]),
+});
+const platformBillingPromptSchema = z.object({
+  phoneNumber: z.string().trim().min(9).max(20).optional(),
 });
 
 async function matchesSecret(provided: string, expected: string): Promise<boolean> {
@@ -251,6 +262,7 @@ platformAdminRouter.get("/stores", async (c) => {
       businessType: tenants.businessType,
       currency: tenants.currency,
       status: tenants.status,
+      subscriptionDueAt: tenants.subscriptionDueAt,
       createdAt: tenants.createdAt,
       updatedAt: tenants.updatedAt,
     })
@@ -272,9 +284,16 @@ platformAdminRouter.get("/stores", async (c) => {
     );
   }
 
+  const owners = storeList.length
+    ? await db.select({ tenantId: users.tenantId, phone: users.phone })
+        .from(users)
+        .where(and(inArray(users.tenantId, storeList.map((store) => store.id)), eq(users.role, "OWNER")))
+    : [];
+  const ownerPhoneByTenant = new Map(owners.map((owner) => [owner.tenantId, owner.phone]));
+
   return c.json({
     success: true,
-    data: storeList,
+    data: storeList.map((store) => ({ ...store, ownerPhone: ownerPhoneByTenant.get(store.id) || null })),
     pagination: {
       page,
       limit,
@@ -441,6 +460,201 @@ platformAdminRouter.patch("/stores/:id/deactivate", async (c) => {
       status: "SUSPENDED",
     },
   });
+});
+
+// Reactivate a previously suspended storefront (separate from first approval).
+platformAdminRouter.patch("/stores/:id/reactivate", async (c) => {
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const db = createDb(c.env.DB);
+  const [store] = await db
+    .select()
+    .from(tenants)
+    .where(eq(tenants.id, c.req.param("id")))
+    .limit(1);
+
+  if (!store) throw new AppError("Store not found.", 404, "STORE_NOT_FOUND");
+  if (store.status !== "SUSPENDED") {
+    throw new AppError("Only suspended stores can be reactivated.", 409, "STORE_NOT_SUSPENDED");
+  }
+
+  await db.update(tenants)
+    .set({ status: "ACTIVE", updatedAt: new Date() })
+    .where(and(eq(tenants.id, store.id), eq(tenants.status, "SUSPENDED")));
+
+  const [owner] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(and(eq(users.tenantId, store.id), eq(users.role, "OWNER")))
+    .limit(1);
+  const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
+  if (owner) {
+    await EmailService.sendStoreActivated({
+      to: owner.email,
+      storeName: store.name,
+      subdomain: store.subdomain,
+      primaryDomain,
+    });
+  }
+
+  return c.json({
+    success: true,
+    message: `Store "${store.name}" has been reactivated.`,
+    data: { id: store.id, name: store.name, status: "ACTIVE", storeUrl: `https://${store.subdomain}.${primaryDomain}` },
+  });
+});
+
+platformAdminRouter.get("/billing/settings", async (c) => {
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const db = createDb(c.env.DB);
+  const [settings] = await db
+    .select()
+    .from(platformBillingSettings)
+    .where(eq(platformBillingSettings.id, "platform"))
+    .limit(1);
+  const darajaConfigured = Boolean(
+    c.env.MPESA_CONSUMER_KEY && c.env.MPESA_CONSUMER_SECRET &&
+    c.env.MPESA_PASSKEY && c.env.MPESA_SHORTCODE
+  );
+
+  return c.json({
+    success: true,
+    data: {
+      amount: settings?.amount || null,
+      intervalDays: settings?.intervalDays || null,
+      shortcodeType: settings?.shortcodeType || "PAYBILL",
+      darajaConfigured,
+      darajaMode: c.env.MPESA_IS_SANDBOX === "true" ? "SANDBOX" : "PRODUCTION",
+    },
+  });
+});
+
+platformAdminRouter.put("/billing/settings", zValidator("json", platformBillingSettingsSchema), async (c) => {
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const { amount, intervalDays, shortcodeType } = c.req.valid("json");
+  const db = createDb(c.env.DB);
+  await db.insert(platformBillingSettings).values({
+    id: "platform", amount, intervalDays, shortcodeType, updatedAt: new Date(),
+  }).onConflictDoUpdate({
+    target: platformBillingSettings.id,
+    set: { amount, intervalDays, shortcodeType, updatedAt: new Date() },
+  });
+
+  return c.json({ success: true, message: "Store billing settings saved.", data: { amount, intervalDays, shortcodeType } });
+});
+
+platformAdminRouter.post(
+  "/stores/:id/billing/payment-prompt",
+  rateLimiter({ max: 5, windowMs: 60 * 1000 }),
+  zValidator("json", platformBillingPromptSchema),
+  async (c) => {
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const db = createDb(c.env.DB);
+    const storeId = c.req.param("id");
+    const [store] = await db.select().from(tenants).where(eq(tenants.id, storeId)).limit(1);
+    if (!store) throw new AppError("Store not found.", 404, "STORE_NOT_FOUND");
+    if (!["ACTIVE", "SUSPENDED"].includes(store.status)) {
+      throw new AppError("Payment prompts are available after a store has been approved.", 409, "STORE_NOT_APPROVED");
+    }
+
+    const [owner] = await db
+      .select({ phone: users.phone })
+      .from(users)
+      .where(and(eq(users.tenantId, store.id), eq(users.role, "OWNER")))
+      .limit(1);
+    const phoneNumber = normalizeKenyanPhone(c.req.valid("json").phoneNumber || owner?.phone || "");
+    if (!phoneNumber) throw new AppError("Add a valid Kenyan mobile number to the store owner profile before sending a payment prompt.", 400, "OWNER_PHONE_REQUIRED");
+
+    const [billingSettings] = await db
+      .select()
+      .from(platformBillingSettings)
+      .where(eq(platformBillingSettings.id, "platform"))
+      .limit(1);
+    if (!billingSettings || billingSettings.amount < 1) {
+      throw new AppError("Set the store subscription amount and billing period first.", 409, "PLATFORM_BILLING_NOT_CONFIGURED");
+    }
+
+    const [pendingPrompt] = await db.select({ id: platformBillingPayments.id })
+      .from(platformBillingPayments)
+      .where(and(
+        eq(platformBillingPayments.tenantId, store.id),
+        eq(platformBillingPayments.status, "INITIATED"),
+        gt(platformBillingPayments.createdAt, new Date(Date.now() - 5 * 60 * 1000))
+      ))
+      .limit(1);
+    if (pendingPrompt) throw new AppError("An M-Pesa prompt is already pending for this store.", 409, "BILLING_PROMPT_PENDING");
+
+    const credentials = {
+      consumerKey: requireSecret(c.env.MPESA_CONSUMER_KEY, "MPESA_CONSUMER_KEY"),
+      consumerSecret: requireSecret(c.env.MPESA_CONSUMER_SECRET, "MPESA_CONSUMER_SECRET"),
+      passkey: requireSecret(c.env.MPESA_PASSKEY, "MPESA_PASSKEY"),
+      shortcode: requireSecret(c.env.MPESA_SHORTCODE, "MPESA_SHORTCODE"),
+      shortcodeType: billingSettings.shortcodeType,
+      isSandbox: c.env.MPESA_IS_SANDBOX === "true",
+    };
+
+    const paymentId = generateUUID();
+    const callbackToken = generateSecureToken();
+    const now = new Date();
+    await db.insert(platformBillingPayments).values({
+      id: paymentId,
+      tenantId: store.id,
+      amount: billingSettings.amount,
+      intervalDays: billingSettings.intervalDays,
+      phoneNumber,
+      status: "INITIATED",
+      callbackTokenHash: await hashOtp(callbackToken),
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    try {
+      const primaryDomain = c.env.PRIMARY_DOMAIN || "store254.co.ke";
+      const callbackUrl = `https://api.${primaryDomain}/api/payments/mpesa/platform-callback?token=${encodeURIComponent(callbackToken)}`;
+      const stk = await initiateMpesaStkPush({
+        phoneNumber,
+        amount: billingSettings.amount,
+        orderNumber: `SUB${paymentId.replace(/-/g, "").slice(0, 7)}`,
+        storeName: "Store254 subscription",
+        callbackUrl,
+        credentials,
+      });
+      await db.update(platformBillingPayments).set({
+        merchantRequestId: stk.merchantRequestId,
+        checkoutRequestId: stk.checkoutRequestId,
+        updatedAt: new Date(),
+      }).where(eq(platformBillingPayments.id, paymentId));
+    } catch (error) {
+      await db.update(platformBillingPayments).set({
+        status: "FAILED",
+        resultDesc: error instanceof Error ? error.message.slice(0, 500) : "Safaricom rejected the payment request.",
+        updatedAt: new Date(),
+      }).where(eq(platformBillingPayments.id, paymentId));
+      console.error("[Platform Billing] STK push could not be started", { paymentId, error });
+      throw new AppError("Safaricom could not start the M-Pesa prompt. Check the Daraja settings and try again.", 502, "MPESA_PROMPT_FAILED");
+    }
+
+    return c.json({
+      success: true,
+      message: `M-Pesa payment prompt sent to ${phoneNumber}.`,
+      data: { paymentId, amount: billingSettings.amount, phoneNumber },
+    }, 202);
+  }
+);
+
+platformAdminRouter.get("/billing/payments/:id", async (c) => {
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const db = createDb(c.env.DB);
+  const [payment] = await db.select({
+    status: platformBillingPayments.status,
+    amount: platformBillingPayments.amount,
+    phoneNumber: platformBillingPayments.phoneNumber,
+    receipt: platformBillingPayments.mpesaReceiptNumber,
+    resultDesc: platformBillingPayments.resultDesc,
+  }).from(platformBillingPayments)
+    .where(eq(platformBillingPayments.id, c.req.param("id")))
+    .limit(1);
+  if (!payment) throw new AppError("Payment request not found.", 404, "BILLING_PAYMENT_NOT_FOUND");
+  return c.json({ success: true, data: payment });
 });
 
 // 5. Delete Store (Permanent Cascade)

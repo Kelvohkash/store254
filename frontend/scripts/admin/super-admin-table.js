@@ -22,12 +22,24 @@ function storeRowMarkup(store) {
   const status = ["ACTIVE", "PENDING", "SUSPENDED"].includes(store.status) ? store.status : "UNKNOWN";
   const statusLabel = { ACTIVE: "Active", PENDING: "Needs review", SUSPENDED: "Suspended", UNKNOWN: "Unknown" }[status];
   const category = formatCategory(store.businessType);
+  const dueDate = store.subscriptionDueAt ? new Date(store.subscriptionDueAt) : null;
+  const isBillingDue = dueDate && !Number.isNaN(dueDate.getTime()) && dueDate <= new Date();
+  const billingLabel = dueDate && !Number.isNaN(dueDate.getTime())
+    ? isBillingDue ? "Payment due" : `Next due ${formatDate(dueDate)}`
+    : "Billing not started";
 
   const action = status === "PENDING"
     ? `<button class="row-action is-approve" type="button" data-store-action="activate" data-store-id="${escapeHtml(store.id)}"><span>✓</span> Approve store</button>`
     : status === "ACTIVE"
       ? `<button class="row-action is-danger" type="button" data-store-action="deactivate" data-store-id="${escapeHtml(store.id)}"><span>Ⅱ</span> Suspend</button>`
-      : '<span class="text-muted" aria-label="No available action">—</span>';
+      : status === "SUSPENDED"
+        ? `<button class="row-action is-approve" type="button" data-store-action="reactivate" data-store-id="${escapeHtml(store.id)}"><span>↻</span> Reactivate</button>`
+        : '<span class="text-muted" aria-label="No available action">—</span>';
+  const canPrompt = ["ACTIVE", "SUSPENDED"].includes(status);
+  const billingReady = window.platformBillingUiState?.darajaConfigured && window.platformBillingUiState?.amount > 0;
+  const billingAction = canPrompt
+    ? `<button class="row-action is-billing" type="button" data-store-action="payment-prompt" data-store-id="${escapeHtml(store.id)}" ${billingReady ? "" : "disabled title=\"Configure billing and Daraja first\""}><span>↗</span> M-Pesa prompt</button>`
+    : "";
 
   return `<tr>
     <td>
@@ -49,10 +61,11 @@ function storeRowMarkup(store) {
     </td>
     <td><span class="category-pill">${escapeHtml(category)}</span></td>
     <td class="date-cell">${escapeHtml(formatDate(store.createdAt))}</td>
-    <td><span class="status-badge status-${status.toLowerCase()}"><i class="status-dot"></i>${escapeHtml(statusLabel)}</span></td>
+    <td><span class="status-badge status-${status.toLowerCase()}"><i class="status-dot"></i>${escapeHtml(statusLabel)}</span><small class="billing-due-label ${isBillingDue ? "is-due" : ""}">${escapeHtml(billingLabel)}</small></td>
     <td class="actions-cell">
       <div class="actions-group">
         ${action}
+        ${billingAction}
         ${storeUrl ? `<a href="${storeUrl}" target="_blank" rel="noopener" class="row-action is-link" title="Visit storefront">↗</a>` : ""}
       </div>
     </td>

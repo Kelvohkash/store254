@@ -57,6 +57,13 @@
       "when": 1794466587583,
       "tag": "0007_remove_promotions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794473075100,
+      "tag": "0008_platform_billing",
+      "breakpoints": true
     }
   ]
 }

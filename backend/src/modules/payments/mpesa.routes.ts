@@ -6,8 +6,90 @@ import { payments, orders, orderItems } from "../../db/schema/orders";
 import { items, itemVariants } from "../../db/schema/items";
 import { hashOtp, timingSafeEqual } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
+import { platformBillingPayments } from "../../db/schema/platform-billing";
+import { tenants } from "../../db/schema/tenants";
+import { users } from "../../db/schema/users";
+import { EmailService } from "../../services/email.service";
 
 export const mpesaRouter = new Hono<AppEnv>();
+
+// Public Daraja callback for platform subscription payments. Each request has
+// its own high-entropy capability and is reconciled against the exact amount.
+mpesaRouter.post("/platform-callback", async (c) => {
+  const token = c.req.query("token");
+  if (!token || !c.env?.DB) return c.json({ ResultCode: 1, ResultDesc: "Unauthorized callback" }, 403);
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ResultCode: 1, ResultDesc: "Invalid JSON" }, 400);
+  }
+  const callback = body?.Body?.stkCallback;
+  const checkoutRequestId = callback?.CheckoutRequestID;
+  if (!callback || typeof checkoutRequestId !== "string") {
+    return c.json({ ResultCode: 1, ResultDesc: "Missing STK callback" }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+  const [payment] = await db.select().from(platformBillingPayments)
+    .where(eq(platformBillingPayments.checkoutRequestId, checkoutRequestId)).limit(1);
+  if (!payment) return c.json({ ResultCode: 0, ResultDesc: "Payment request not found but acknowledged" });
+  if (payment.status === "COMPLETED") return c.json({ ResultCode: 0, ResultDesc: "Already processed" });
+  if (!timingSafeEqual(await hashOtp(token), payment.callbackTokenHash) ||
+      (payment.merchantRequestId && callback.MerchantRequestID !== payment.merchantRequestId)) {
+    return c.json({ ResultCode: 1, ResultDesc: "Unauthorized callback" }, 403);
+  }
+
+  const resultCode = Number(callback.ResultCode);
+  if (resultCode !== 0 || !Array.isArray(callback.CallbackMetadata?.Item)) {
+    await db.update(platformBillingPayments).set({
+      status: "FAILED",
+      resultCode: Number.isFinite(resultCode) ? resultCode : -1,
+      resultDesc: String(callback.ResultDesc || "Payment cancelled or failed").slice(0, 500),
+      updatedAt: new Date(),
+    }).where(and(eq(platformBillingPayments.id, payment.id), eq(platformBillingPayments.status, "INITIATED")));
+    return c.json({ ResultCode: 0, ResultDesc: "Payment failure recorded" });
+  }
+
+  const metadata = new Map<string, unknown>(callback.CallbackMetadata.Item.map((item: { Name: string; Value: unknown }) => [item.Name, item.Value]));
+  const paidAmount = Number(metadata.get("Amount"));
+  const receipt = String(metadata.get("MpesaReceiptNumber") || "");
+  if (!Number.isFinite(paidAmount) || paidAmount !== payment.amount || !receipt) {
+    await db.update(platformBillingPayments).set({
+      status: "FAILED", resultCode: -1,
+      resultDesc: "Payment amount or receipt mismatch; reconciliation required.", updatedAt: new Date(),
+    }).where(and(eq(platformBillingPayments.id, payment.id), eq(platformBillingPayments.status, "INITIATED")));
+    return c.json({ ResultCode: 0, ResultDesc: "Payment rejected for reconciliation" });
+  }
+
+  const paidAt = new Date();
+  const updated = await db.update(platformBillingPayments).set({
+    status: "COMPLETED", resultCode: 0, resultDesc: String(callback.ResultDesc || "Success").slice(0, 500),
+    mpesaReceiptNumber: receipt, paidAt, updatedAt: paidAt,
+  }).where(and(eq(platformBillingPayments.id, payment.id), eq(platformBillingPayments.status, "INITIATED")))
+    .returning({ id: platformBillingPayments.id });
+  if (!updated.length) return c.json({ ResultCode: 0, ResultDesc: "Already processed" });
+
+  const [store] = await db.select().from(tenants).where(eq(tenants.id, payment.tenantId)).limit(1);
+  if (store) {
+    const dueBase = store.subscriptionDueAt && store.subscriptionDueAt.getTime() > paidAt.getTime()
+      ? store.subscriptionDueAt.getTime()
+      : paidAt.getTime();
+    const subscriptionDueAt = new Date(dueBase + payment.intervalDays * 24 * 60 * 60 * 1000);
+    await db.update(tenants).set({ status: "ACTIVE", subscriptionDueAt, updatedAt: paidAt }).where(eq(tenants.id, store.id));
+    if (store.status === "SUSPENDED") {
+      const [owner] = await db.select({ email: users.email }).from(users)
+        .where(and(eq(users.tenantId, store.id), eq(users.role, "OWNER"))).limit(1);
+      if (owner) {
+        await EmailService.sendStoreActivated({
+          to: owner.email, storeName: store.name, subdomain: store.subdomain,
+          primaryDomain: c.env.PRIMARY_DOMAIN || "store254.co.ke",
+        });
+      }
+    }
+  }
+  return c.json({ ResultCode: 0, ResultDesc: "Subscription payment recorded" });
+});
 
 /**
  * Safaricom STK Push Server-to-Server Callback

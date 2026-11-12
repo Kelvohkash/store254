@@ -26,6 +26,7 @@
       <div class="sidebar-label">WORKSPACE</div>
       <a class="sidebar-link is-current" href="#overview"><span class="nav-icon"><i data-lucide="layout-dashboard"></i></span> Overview</a>
       <a class="sidebar-link" href="#businesses"><span class="nav-icon"><i data-lucide="store"></i></span> Businesses <span id="sidebar-store-count" class="sidebar-count">—</span></a>
+      <a class="sidebar-link" href="#billing-settings"><span class="nav-icon"><i data-lucide="smartphone"></i></span> Billing &amp; Daraja</a>
       <a class="sidebar-link" href="./" target="_blank" rel="noopener"><span class="nav-icon"><i data-lucide="external-link"></i></span> Marketplace</a>
       
       <div class="sidebar-bottom">
@@ -72,6 +73,28 @@
         </section>
 
         <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+        <section id="billing-settings" class="business-section platform-billing-section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">MERCHANT SUBSCRIPTIONS</p>
+              <h2>Billing &amp; Daraja</h2>
+              <p class="section-subtitle">Set the store fee and payment period. A payment request sends an M-Pesa prompt to the store owner.</p>
+            </div>
+            <span id="daraja-status" class="daraja-status" role="status">Checking Daraja…</span>
+          </div>
+          <div class="platform-billing-card">
+            <div class="platform-billing-fields">
+              <label><span>Subscription fee (KES)</span><input id="platform-billing-amount" type="number" min="1" step="1" inputmode="numeric" placeholder="Enter amount"></label>
+              <label><span>Billing period (days)</span><input id="platform-billing-interval" type="number" min="1" max="366" step="1" inputmode="numeric" placeholder="e.g. 30"></label>
+              <label><span>Daraja shortcode type</span><select id="platform-billing-shortcode-type"><option value="PAYBILL">Paybill</option><option value="BUY_GOODS">Buy Goods / Till</option></select></label>
+            </div>
+            <div class="platform-billing-footer">
+              <p><strong id="daraja-mode">Production</strong><span id="daraja-secret-help">Daraja credentials are read securely from Cloudflare Worker secrets.</span></p>
+              <button id="save-billing-settings" class="modal-btn primary" type="button">Save billing settings</button>
+            </div>
+          </div>
+        </section>
 
         <section class="metric-grid" aria-label="Marketplace overview">
           <article class="metric-card metric-total">

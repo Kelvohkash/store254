@@ -3,3 +3,22 @@
 @import url("./super-admin/components-cards.css");
 @import url("./super-admin/tables-data.css");
 @import url("./super-admin/modals-responsive.css");
+
+.platform-billing-section { margin-bottom: 2rem; }
+.platform-billing-card { padding: 1.25rem; border: 1px solid var(--border-light); border-radius: 1rem; background: #fff; box-shadow: var(--card-shadow); }
+.platform-billing-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.platform-billing-fields label { display: grid; gap: .45rem; color: var(--text-muted); font-size: .72rem; font-weight: 750; }
+.platform-billing-fields input, .platform-billing-fields select { width: 100%; min-height: 2.75rem; padding: .65rem .75rem; border: 1px solid var(--border-light); border-radius: .65rem; background: #fff; color: var(--text-main); font: inherit; font-size: .82rem; }
+.platform-billing-fields input:focus, .platform-billing-fields select:focus { outline: 2px solid #bbf7d0; border-color: #22a45a; }
+.platform-billing-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #edf2ef; }
+.platform-billing-footer p { display: grid; gap: .25rem; margin: 0; color: var(--text-subtle); font-size: .69rem; }
+.platform-billing-footer p strong { color: var(--text-main); font-size: .72rem; }
+.daraja-status { padding: .45rem .7rem; border: 1px solid #fde68a; border-radius: 999px; background: #fffbeb; color: #92400e; font-size: .65rem; font-weight: 800; }
+.daraja-status.is-ready { border-color: #a7f3d0; background: #ecfdf5; color: #065f46; }
+.daraja-status.is-missing { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+.billing-due-label { display: block; margin-top: .35rem; color: var(--text-subtle); font-size: .62rem; font-weight: 700; }
+.billing-due-label.is-due { color: #b91c1c; }
+.actions-group { flex-wrap: wrap; max-width: 19rem; }
+.row-action.is-billing { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+.row-action.is-billing:hover { background: #dbeafe; }
+@media (max-width: 850px) { .platform-billing-fields { grid-template-columns: 1fr; } .platform-billing-footer { align-items: stretch; flex-direction: column; } .platform-billing-footer .modal-btn { width: 100%; } }

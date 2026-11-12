@@ -32,6 +32,12 @@ jobs:
       - name: Install backend dependencies
         run: npm --prefix backend ci
 
+      - name: Apply pending database migrations
+        run: npx wrangler d1 migrations apply store254-db --remote --config backend/wrangler.toml
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 29ebb98162982a3dbbd217a589591b10
+
       - name: Publish backend
         run: npm run deploy:backend
         env:

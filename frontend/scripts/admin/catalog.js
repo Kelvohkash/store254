@@ -115,7 +115,6 @@ function renderProductsTable(products) {
           ${p.images?.[0] ? `<img src="${escHtml(p.images[0])}" class="w-9 h-9 rounded-lg object-cover border border-slate-200" onerror="this.style.display='none'">` : `<div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center"><i data-lucide="image" class="w-4 h-4 text-slate-400"></i></div>`}
           <div>
             <p class="font-bold text-slate-900 text-sm">${escHtml(p.title)}</p>
-            <p class="text-xs text-slate-400 font-mono">${escHtml(p.slug)}</p>
           </div>
         </div>
       </td>
@@ -141,7 +140,7 @@ function renderProductsTable(products) {
 
 function filterProducts() {
   const q = document.getElementById('product-search').value.toLowerCase();
-  renderProductsTable(q ? allProducts.filter(p => p.title.toLowerCase().includes(q) || (p.slug || '').includes(q)) : allProducts);
+  renderProductsTable(q ? allProducts.filter(p => p.title.toLowerCase().includes(q)) : allProducts);
 }
 
 function openAddProductModal() {
@@ -153,7 +152,6 @@ function openAddProductModal() {
   document.getElementById('product-price').value = '';
   document.getElementById('product-compare-price').value = '';
   document.getElementById('product-stock').value = '0';
-  document.getElementById('product-sku').value = '';
   if (typeof setProductImages === 'function') {
     setProductImages([]);
   } else {
@@ -181,7 +179,6 @@ async function openEditProductModal(id) {
   document.getElementById('product-price').value = p.basePrice;
   document.getElementById('product-compare-price').value = p.compareAtPrice || '';
   document.getElementById('product-stock').value = p.stockQuantity || 0;
-  document.getElementById('product-sku').value = p.sku || '';
   if (typeof setProductImages === 'function') {
     setProductImages(p.images || []);
   } else {
@@ -225,7 +222,6 @@ async function handleSaveProduct(e) {
     basePrice: parseInt(document.getElementById('product-price').value) || 0,
     compareAtPrice: parseInt(document.getElementById('product-compare-price').value) || undefined,
     stockQuantity: parseInt(document.getElementById('product-stock').value) || 0,
-    sku: document.getElementById('product-sku').value.trim() || undefined,
     images,
     status: document.getElementById('product-status').value,
     itemType: document.getElementById('product-type').value,

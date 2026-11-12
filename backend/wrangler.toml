@@ -19,6 +19,7 @@ PRIMARY_DOMAIN = "store254.co.ke"
 FRONTEND_ORIGINS = "https://store254.co.ke,https://www.store254.co.ke"
 GOOGLE_REDIRECT_URI = "https://store254.co.ke/auth/google/callback"
 GOOGLE_CLIENT_ID = "999633376431-0kb2a6s3tjd2992ngpbsutbj707pk95a.apps.googleusercontent.com"
+MPESA_IS_SANDBOX = "false"
 
 # ─── Secrets ────────────────────────────────────────────────────────────────
 # DO NOT put secret values here. Set them via Cloudflare Dashboard or CLI:
@@ -70,6 +71,7 @@ binding = "DB"
 database_name = "store254-db"
 database_id = "02484baf-0725-47fc-83c2-cf4f1a54db47"
 migrations_dir = "drizzle"
+migrations_pattern = "drizzle/000*.sql"
 
 # ─── Cloudflare R2 Media Bucket ─────────────────────────────────────────────
 [[r2_buckets]]

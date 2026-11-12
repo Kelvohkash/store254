@@ -16,7 +16,6 @@ export const itemsRouter = new Hono<AppEnv>();
 
 const variantInputSchema = z.object({
   title: z.string().min(1).max(100),
-  sku: z.string().optional(),
   price: z.number().int().positive(),
   compareAtPrice: z.number().int().positive().optional(),
   stockQuantity: z.number().int().min(0).default(0),
@@ -49,7 +48,6 @@ export const createItemSchema = z.object({
   basePrice: z.number().int().positive(),
   compareAtPrice: z.number().int().positive().optional(),
   costPrice: z.number().int().positive().optional(),
-  sku: z.string().optional(),
   barcode: z.string().optional(),
   trackInventory: z.boolean().default(true),
   stockQuantity: z.number().int().min(0).default(0),
@@ -294,6 +292,7 @@ itemsRouter.post(
     }
 
     const itemId = generateUUID();
+    const sku = `SKU-${itemId.replace(/-/g, "").slice(0, 12).toUpperCase()}`;
 
     await db.insert(items).values({
       id: itemId,
@@ -306,7 +305,7 @@ itemsRouter.post(
       basePrice: body.basePrice,
       compareAtPrice: body.compareAtPrice || null,
       costPrice: body.costPrice || null,
-      sku: body.sku || null,
+      sku,
       barcode: body.barcode || null,
       trackInventory: body.trackInventory,
       stockQuantity: body.stockQuantity,
@@ -318,14 +317,15 @@ itemsRouter.post(
 
     // Insert variants if provided
     const createdVariants: ItemVariant[] = [];
-    for (const v of body.variants) {
+    for (const [index, v] of body.variants.entries()) {
       const variantId = generateUUID();
+      const variantSku = `${sku}-${String(index + 1).padStart(2, "0")}`;
       await db.insert(itemVariants).values({
         id: variantId,
         tenantId: tenant.id,
         itemId: itemId,
         title: v.title,
-        sku: v.sku || null,
+        sku: variantSku,
         price: v.price,
         compareAtPrice: v.compareAtPrice || null,
         stockQuantity: v.stockQuantity,
@@ -337,7 +337,7 @@ itemsRouter.post(
         tenantId: tenant.id,
         itemId,
         title: v.title,
-        sku: v.sku || null,
+        sku: variantSku,
         price: v.price,
         compareAtPrice: v.compareAtPrice || null,
         stockQuantity: v.stockQuantity,
@@ -386,7 +386,7 @@ itemsRouter.put(
 
     // Verify item belongs to this tenant
     const [existing] = await db
-      .select({ id: items.id, images: items.images })
+      .select({ id: items.id, images: items.images, sku: items.sku })
       .from(items)
       .where(and(eq(items.id, id), eq(items.tenantId, tenant.id)))
       .limit(1);
@@ -422,7 +422,9 @@ itemsRouter.put(
       }
     }
 
+    const sku = existing.sku || `SKU-${existing.id.replace(/-/g, "").slice(0, 12).toUpperCase()}`;
     const updateData: Record<string, unknown> = { updatedAt: new Date() };
+    if (!existing.sku) updateData.sku = sku;
     if (body.title !== undefined) updateData.title = body.title;
     if (body.slug !== undefined) updateData.slug = slugify(body.slug);
     if (body.description !== undefined) updateData.description = body.description;
@@ -430,7 +432,6 @@ itemsRouter.put(
     if (body.basePrice !== undefined) updateData.basePrice = body.basePrice;
     if (body.compareAtPrice !== undefined) updateData.compareAtPrice = body.compareAtPrice;
     if (body.costPrice !== undefined) updateData.costPrice = body.costPrice;
-    if (body.sku !== undefined) updateData.sku = body.sku;
     if (body.barcode !== undefined) updateData.barcode = body.barcode;
     if (body.trackInventory !== undefined) updateData.trackInventory = body.trackInventory;
     if (body.stockQuantity !== undefined) updateData.stockQuantity = body.stockQuantity;
@@ -446,13 +447,13 @@ itemsRouter.put(
       await db
         .delete(itemVariants)
         .where(and(eq(itemVariants.itemId, id), eq(itemVariants.tenantId, tenant.id)));
-      for (const v of body.variants) {
+      for (const [index, v] of body.variants.entries()) {
         await db.insert(itemVariants).values({
           id: generateUUID(),
           tenantId: tenant.id,
           itemId: id,
           title: v.title,
-          sku: v.sku || null,
+          sku: `${sku}-${String(index + 1).padStart(2, "0")}`,
           price: v.price,
           compareAtPrice: v.compareAtPrice || null,
           stockQuantity: v.stockQuantity,
