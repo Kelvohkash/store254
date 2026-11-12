@@ -194,30 +194,47 @@ async function loadPlatformStores() {
     GENERAL: "maker",
   };
 
-  container.innerHTML = stores.map((s) => `
-    <a href="${getStoreUrl(s.subdomain)}" class="bg-white rounded-2xl p-6 border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-left group flex flex-col justify-between no-underline">
-      <div>
-        <div class="platform-store-cover cover-${coverMap[s.businessType] || "maker"}">
-          <span>${escapeHtml((s.name || "S").trim().slice(0, 1).toUpperCase())}</span>
-          <small>${escapeHtml((s.businessType || "Independent store").replace(/_/g, " "))}</small>
-        </div>
-        <div class="platform-store-details">
-          <div>
-            <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">${escapeHtml(s.name)}</h4>
-            <span class="text-xs text-slate-400 font-mono">${escapeHtml(s.subdomain)}.store254.co.ke</span>
+  container.innerHTML = stores.map((s, index) => {
+    const rawBanner = s.settings?.bannerUrl || s.bannerUrl || s.settings?.heroBannerUrl;
+    const bannerUrl = safeShowcaseImageUrl(rawBanner) || FEATURED_STORE_FALLBACK_IMAGES[index % FEATURED_STORE_FALLBACK_IMAGES.length];
+    const logoUrl = safeShowcaseImageUrl(s.settings?.logoUrl || s.logoUrl);
+    const coverType = coverMap[s.businessType] || "maker";
+    const initial = escapeHtml((s.name || "S").trim().slice(0, 1).toUpperCase());
+    const badgeLabel = escapeHtml((s.businessType || "Independent store").replace(/_/g, " "));
+    const storeUrl = getStoreUrl(s.subdomain);
+    const desc = escapeHtml(s.settings?.description || "Browse this store’s online catalog and pay the seller directly.");
+    const coverStyle = bannerUrl
+      ? `style="background-image: linear-gradient(180deg, rgba(16, 30, 22, 0.2), rgba(16, 30, 22, 0.72)), url('${escapeHtml(bannerUrl)}'); background-size: cover; background-position: center;"`
+      : "";
+    const avatarContent = logoUrl
+      ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(s.name)}" class="w-full h-full object-cover rounded-full" onerror="this.parentElement.textContent='${initial}'">`
+      : initial;
+
+    return `
+      <a href="${storeUrl}" class="platform-store-card bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all cursor-pointer text-left group flex flex-col justify-between no-underline">
+        <div>
+          <div class="platform-store-cover cover-${coverType}${bannerUrl ? " has-hero-photo" : ""}" ${coverStyle}>
+            <span class="platform-store-avatar">${avatarContent}</span>
+            <small>${badgeLabel}</small>
           </div>
-          <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed">${escapeHtml(s.settings?.description || "Browse this store’s online catalog and pay the seller directly.")}</p>
+          <div class="platform-store-details">
+            <div>
+              <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors truncate">${escapeHtml(s.name)}</h4>
+              <span class="text-xs text-slate-400 font-mono truncate block">${escapeHtml(s.subdomain)}.store254.co.ke</span>
+            </div>
+            <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed">${desc}</p>
+          </div>
         </div>
-      </div>
-      <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600">
-        <span class="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-          <span>Visit Storefront</span>
-          <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-        </span>
-        <span class="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded text-[10px] font-mono uppercase">${escapeHtml(s.businessType || "Store")}</span>
-      </div>
-    </a>
-  `).join("");
+        <div class="platform-store-card-footer mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600">
+          <span class="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            <span>Visit Storefront</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </span>
+          <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-mono uppercase">${escapeHtml(s.businessType || "Store")}</span>
+        </div>
+      </a>
+    `;
+  }).join("");
 
   renderIcons();
 }
