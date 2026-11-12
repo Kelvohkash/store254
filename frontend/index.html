@@ -815,13 +815,13 @@
       <form onsubmit="handleOnboardSubmit(event)" class="space-y-4 text-xs">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Business / Store Name</label>
-          <input type="text" id="onboard-name" required placeholder="e.g. Nairobi Sound & Electronics" class="w-full p-2.5 rounded-xl border border-slate-300">
+          <input type="text" id="onboard-name" required class="w-full p-2.5 rounded-xl border border-slate-300">
         </div>
 
         <div>
           <label class="block font-bold text-slate-700 mb-1">Desired Subdomain</label>
           <div class="flex items-center">
-            <input type="text" id="onboard-subdomain" required oninput="checkSubdomainAvailability(this.value)" placeholder="nairobisound" class="flex-1 p-2.5 rounded-l-xl border border-r-0 border-slate-300 lowercase font-mono">
+            <input type="text" id="onboard-subdomain" required oninput="checkSubdomainAvailability(this.value)" class="flex-1 p-2.5 rounded-l-xl border border-r-0 border-slate-300 lowercase font-mono">
             <span class="bg-slate-100 border border-slate-300 px-3 py-2.5 text-slate-500 rounded-r-xl font-mono text-[11px]">.store254.co.ke</span>
           </div>
           <p id="onboard-subdomain-status" class="mt-1 text-[11px] font-semibold hidden" aria-live="polite"></p>
@@ -839,17 +839,17 @@
 
         <div>
           <label class="block font-bold text-slate-700 mb-1">Owner Full Name</label>
-          <input type="text" id="onboard-owner-name" required placeholder="Your Name" class="w-full p-2.5 rounded-xl border border-slate-300">
+          <input type="text" id="onboard-owner-name" required class="w-full p-2.5 rounded-xl border border-slate-300">
         </div>
 
         <div>
           <label class="block font-bold text-slate-700 mb-1">Owner Email</label>
-          <input type="email" id="onboard-email" required placeholder="owner@gmail.com" class="w-full p-2.5 rounded-xl border border-slate-300">
+          <input type="email" id="onboard-email" required class="w-full p-2.5 rounded-xl border border-slate-300">
         </div>
 
         <div>
           <label class="block font-bold text-slate-700 mb-1">Password</label>
-          <input type="password" id="onboard-password" required placeholder="••••••••" class="w-full p-2.5 rounded-xl border border-slate-300">
+          <input type="password" id="onboard-password" required class="w-full p-2.5 rounded-xl border border-slate-300">
         </div>
 
         <button type="submit" id="btn-onboard" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md mt-2 flex items-center justify-center gap-2">
@@ -887,7 +887,7 @@
       <form id="form-recovery-step1" onsubmit="handleRequestOtp(event)" class="space-y-4 text-xs">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Registered Store Owner Email</label>
-          <input type="email" id="recovery-email" required placeholder="owner@gmail.com" class="w-full p-2.5 rounded-xl border border-slate-300">
+          <input type="email" id="recovery-email" required class="w-full p-2.5 rounded-xl border border-slate-300">
         </div>
         <button type="submit" id="btn-request-otp" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
           <i data-lucide="mail" class="w-4 h-4"></i>

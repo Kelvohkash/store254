@@ -339,11 +339,27 @@ html[data-storefront="true"] #header-platform-logo {
     overflow: hidden !important;
   }
   .header-logo-frame,
+  html:not([data-storefront="true"]) .header-logo-frame {
+    width: 9rem !important;
+    height: 2.45rem !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    flex-shrink: 0 !important;
+  }
+  html:not([data-storefront="true"]) #header-platform-logo {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: left center !important;
+  }
   html[data-storefront="true"] .header-logo-frame {
-    width: 2.2rem !important;
-    height: 2.2rem !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
     padding: 0.18rem !important;
-    border-radius: 0.55rem !important;
+    border-radius: 0.65rem !important;
     flex-shrink: 0 !important;
   }
   #header-store-identity,
