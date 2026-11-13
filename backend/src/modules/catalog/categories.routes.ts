@@ -9,6 +9,7 @@ import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { slugify } from "../../security/sanitize";
 import { AppError } from "../../security/error-handler";
+import { classifyCategoryIcon } from "../../catalog/category-classifier";
 
 export const categoriesRouter = new Hono<AppEnv>();
 
@@ -17,7 +18,7 @@ const createCategorySchema = z.object({
   slug: z.string().optional(),
   parentId: z.string().min(1).nullable().optional(),
   description: z.string().max(500).optional(),
-  icon: z.string().max(255).optional(),
+  icon: z.string().max(255).nullable().optional(),
   displayOrder: z.number().int().default(0),
 });
 
@@ -83,9 +84,10 @@ categoriesRouter.post(
     const slug = body.slug ? slugify(body.slug) : slugify(body.name);
 
     // If parentId provided, verify it exists and belongs to this tenant
+    let parentName: string | null = null;
     if (body.parentId) {
       const [parent] = await db
-        .select({ id: categories.id, parentId: categories.parentId })
+        .select({ id: categories.id, parentId: categories.parentId, name: categories.name })
         .from(categories)
         .where(and(eq(categories.id, body.parentId), eq(categories.tenantId, tenant.id)))
         .limit(1);
@@ -96,6 +98,7 @@ categoriesRouter.post(
       if (parent.parentId) {
         throw new AppError("Categories can only be nested one level below a top-level category.", 400, "CATEGORY_DEPTH_EXCEEDED");
       }
+      parentName = parent.name;
     }
 
     // Verify slug uniqueness within tenant
@@ -113,6 +116,18 @@ categoriesRouter.post(
       );
     }
 
+    const explicitIcon = body.icon?.trim();
+    const resolvedIcon =
+      explicitIcon ||
+      classifyCategoryIcon({
+        name: body.name,
+        slug,
+        description: body.description,
+        parentName,
+        businessType: tenant.businessType,
+        storeName: tenant.name,
+      }).icon;
+
     const categoryId = generateUUID();
 
     await db.insert(categories).values({
@@ -122,7 +137,7 @@ categoriesRouter.post(
       name: body.name,
       slug,
       description: body.description || null,
-      icon: body.icon || null,
+      icon: resolvedIcon,
       displayOrder: body.displayOrder,
       isActive: true,
     });
@@ -159,6 +174,7 @@ categoriesRouter.put(
       .where(and(eq(categories.id, id), eq(categories.tenantId, tenant.id))).limit(1);
     if (!existing) throw new AppError("Category not found.", 404, "NOT_FOUND");
 
+    let parentName: string | null = null;
     if (body.parentId) {
       let ancestorId: string | null = body.parentId;
       while (ancestorId) {
@@ -169,11 +185,12 @@ categoriesRouter.put(
         ancestorId = ancestor.parentId;
       }
 
-      const [parent] = await db.select({ parentId: categories.parentId }).from(categories)
+      const [parent] = await db.select({ parentId: categories.parentId, name: categories.name }).from(categories)
         .where(and(eq(categories.id, body.parentId), eq(categories.tenantId, tenant.id))).limit(1);
       if (parent?.parentId) {
         throw new AppError("Categories can only be nested one level below a top-level category.", 400, "CATEGORY_DEPTH_EXCEEDED");
       }
+      parentName = parent?.name || null;
 
       const [child] = await db.select({ id: categories.id }).from(categories)
         .where(and(eq(categories.parentId, id), eq(categories.tenantId, tenant.id))).limit(1);
@@ -189,12 +206,26 @@ categoriesRouter.put(
       throw new AppError(`A category with slug "${slug}" already exists in your store.`, 409, "SLUG_EXISTS");
     }
 
+    const explicitIcon = typeof body.icon === "string" ? body.icon.trim() : undefined;
+    const resolvedIcon =
+      explicitIcon ||
+      (body.icon === null || body.icon === "" || !existing.icon
+        ? classifyCategoryIcon({
+            name: body.name,
+            slug,
+            description: body.description,
+            parentName,
+            businessType: tenant.businessType,
+            storeName: tenant.name,
+          }).icon
+        : existing.icon);
+
     await db.update(categories).set({
       name: body.name,
       slug,
       parentId: body.parentId || null,
       description: body.description || null,
-      icon: body.icon || null,
+      icon: resolvedIcon,
       displayOrder: body.displayOrder,
     }).where(and(eq(categories.id, id), eq(categories.tenantId, tenant.id)));
     const [updated] = await db.select().from(categories).where(eq(categories.id, id)).limit(1);

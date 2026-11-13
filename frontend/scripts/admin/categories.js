@@ -395,13 +395,22 @@ function renderCategoriesTable(cats) {
     if (categoryFilters.length) parts.push(`${categoryFilters.length} filter${categoryFilters.length === 1 ? '' : 's'}`);
     const summaryText = parts.join(' · ');
 
+    const resolvedCatIcon = window.Store254CategoryClassifier
+      ? window.Store254CategoryClassifier.resolveIcon(c, { businessType: tenantInfo?.businessType, storeName: tenantInfo?.name })
+      : (c.icon || 'tag');
+
     rowsHtml += `
       <tr class="admin-cat-row admin-cat-main hover:bg-slate-50 transition-colors cursor-pointer" onclick="toggleAdminCategory(${inlineJs(c.id)})">
         <td data-label="Category" class="px-5 py-3 font-bold text-slate-900 text-sm">
           <div class="flex items-center justify-between w-full gap-2">
-            <div class="min-w-0">
-              <span class="font-bold text-slate-900 text-sm block truncate">${escHtml(c.name)}</span>
-              ${c.slug ? `<span class="admin-cat-mobile-slug">/${escHtml(c.slug)}</span>` : ''}
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+                <i data-lucide="${escHtml(resolvedCatIcon)}" class="w-3.5 h-3.5"></i>
+              </span>
+              <div class="min-w-0">
+                <span class="font-bold text-slate-900 text-sm block truncate">${escHtml(c.name)}</span>
+                ${c.slug ? `<span class="admin-cat-mobile-slug">/${escHtml(c.slug)}</span>` : ''}
+              </div>
             </div>
             ${parts.length > 0 ? `
               <button type="button" onclick="event.stopPropagation(); toggleAdminCategory(${inlineJs(c.id)})" class="admin-cat-toggle-btn text-[11px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 shrink-0 ${isExpanded ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-700 border-slate-200'}">
@@ -432,12 +441,18 @@ function renderCategoriesTable(cats) {
     // 1. Render Subcategories under this main category
     for (const sub of children) {
       const subFilters = showFiltersInTree ? allFilters.filter(f => f.categoryId === sub.id) : [];
+      const resolvedSubIcon = window.Store254CategoryClassifier
+        ? window.Store254CategoryClassifier.resolveIcon(sub, { parentName: c.name, businessType: tenantInfo?.businessType, storeName: tenantInfo?.name })
+        : (sub.icon || 'tag');
       rowsHtml += `
         <tr class="admin-cat-row admin-cat-sub hover:bg-slate-50 transition-colors ${isExpanded ? 'is-visible' : 'is-collapsed'}" data-parent-id="${escHtml(sub.parentId)}">
           <td data-label="Category" class="px-5 py-3 font-bold text-slate-900 text-sm">
             <div class="flex items-center justify-between w-full gap-2 pl-3 border-l-2 border-emerald-500">
               <div class="flex items-center gap-2 min-w-0">
                 <span class="text-emerald-600 font-bold shrink-0">↳</span>
+                <span class="w-6 h-6 rounded-md bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
+                  <i data-lucide="${escHtml(resolvedSubIcon)}" class="w-3 h-3"></i>
+                </span>
                 <div class="min-w-0">
                   <span class="font-bold text-slate-800 text-sm block truncate">${escHtml(sub.name)}</span>
                   ${sub.slug ? `<span class="admin-cat-mobile-slug">/${escHtml(sub.slug)}</span>` : ''}
@@ -511,6 +526,86 @@ window.setCategoriesPage = function(page) {
   if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 };
 
+function getCategoryClassifierContext() {
+  const name = document.getElementById('category-name')?.value?.trim() || '';
+  const description = document.getElementById('category-desc')?.value?.trim() || '';
+  const parentId = document.getElementById('category-parent')?.value || '';
+  const parentCat = parentId ? flatCategories.find(c => c.id === parentId) : null;
+  return {
+    name,
+    description,
+    parentName: parentCat?.name || '',
+    businessType: typeof tenantInfo !== 'undefined' ? tenantInfo?.businessType : '',
+    storeName: typeof tenantInfo !== 'undefined' ? tenantInfo?.name : '',
+  };
+}
+
+function updateCategoryIconPreviewUi(iconName, mode, domainLabel) {
+  const iconInput = document.getElementById('category-icon');
+  const modeInput = document.getElementById('category-icon-mode');
+  const preview = document.getElementById('category-icon-preview');
+  const badge = document.getElementById('category-icon-badge');
+  const domainEl = document.getElementById('category-icon-domain');
+  const resetBtn = document.getElementById('category-icon-reset');
+  if (!iconInput || !preview) return;
+
+  iconInput.value = iconName;
+  if (modeInput) modeInput.value = mode;
+  preview.innerHTML = `<i data-lucide="${escHtml(iconName)}" class="w-4 h-4"></i>`;
+
+  if (badge) {
+    if (mode === 'manual') {
+      badge.textContent = 'Custom';
+      badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800';
+    } else {
+      badge.textContent = 'Auto';
+      badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+    }
+  }
+  if (domainEl) domainEl.textContent = domainLabel || iconName;
+  if (resetBtn) resetBtn.classList.toggle('hidden', mode !== 'manual');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function handleCategoryClassifierInput() {
+  const mode = document.getElementById('category-icon-mode')?.value || 'auto';
+  if (mode === 'manual') return;
+  if (!window.Store254CategoryClassifier) return;
+  const result = window.Store254CategoryClassifier.classify(getCategoryClassifierContext());
+  updateCategoryIconPreviewUi(result.icon, 'auto', `${result.domain} (${result.icon})`);
+  renderCategoryIconPicker(document.getElementById('category-icon-search')?.value || '');
+}
+
+function selectManualCategoryIcon(iconName) {
+  updateCategoryIconPreviewUi(iconName, 'manual', `Custom icon (${iconName})`);
+  renderCategoryIconPicker(document.getElementById('category-icon-search')?.value || '');
+}
+
+function resetCategoryIconToAuto() {
+  const modeInput = document.getElementById('category-icon-mode');
+  if (modeInput) modeInput.value = 'auto';
+  handleCategoryClassifierInput();
+}
+
+function renderCategoryIconPicker(filterText = '') {
+  const grid = document.getElementById('category-icon-picker-grid');
+  if (!grid || !window.Store254CategoryClassifier) return;
+  const q = String(filterText || '').trim().toLowerCase();
+  const activeIcon = document.getElementById('category-icon')?.value || 'package';
+  const list = window.Store254CategoryClassifier.CURATED_ICON_CATALOG.filter(entry =>
+    !q || entry.icon.includes(q) || entry.label.toLowerCase().includes(q)
+  );
+  grid.innerHTML = list.map(entry => {
+    const selected = entry.icon === activeIcon;
+    return `
+      <button type="button" onclick="selectManualCategoryIcon('${escHtml(entry.icon)}')" title="${escHtml(entry.label)} (${escHtml(entry.icon)})" class="w-9 h-9 rounded-xl border flex items-center justify-center transition-all ${selected ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-400 hover:text-emerald-700'}">
+        <i data-lucide="${escHtml(entry.icon)}" class="w-4 h-4"></i>
+      </button>
+    `;
+  }).join('') || '<div class="col-span-8 text-center text-[11px] text-slate-400 py-3">No matching icons</div>';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
 function openAddCategoryModal() {
   document.getElementById('category-modal-title').textContent = 'New Category';
   document.getElementById('category-save-btn').innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Create Category';
@@ -518,8 +613,12 @@ function openAddCategoryModal() {
   document.getElementById('category-name').value = '';
   document.getElementById('category-desc').value = '';
   document.getElementById('category-parent').value = '';
+  const searchEl = document.getElementById('category-icon-search');
+  if (searchEl) searchEl.value = '';
+  document.getElementById('category-icon-mode').value = 'auto';
   document.getElementById('category-modal-error').classList.add('hidden');
   document.getElementById('category-modal').classList.remove('hidden');
+  handleCategoryClassifierInput();
   lucide.createIcons();
 }
 
@@ -547,8 +646,20 @@ function openEditCategoryModal(id) {
   document.getElementById('category-name').value = category.name;
   document.getElementById('category-desc').value = category.description || '';
   parentSelect.value = category.parentId || '';
+  const searchEl = document.getElementById('category-icon-search');
+  if (searchEl) searchEl.value = '';
   document.getElementById('category-modal-error').classList.add('hidden');
   document.getElementById('category-modal').classList.remove('hidden');
+
+  if (window.Store254CategoryClassifier) {
+    const classified = window.Store254CategoryClassifier.classify(getCategoryClassifierContext());
+    if (category.icon && category.icon !== classified.icon) {
+      updateCategoryIconPreviewUi(category.icon, 'manual', `Custom icon (${category.icon})`);
+    } else {
+      updateCategoryIconPreviewUi(classified.icon, 'auto', `${classified.domain} (${classified.icon})`);
+    }
+    renderCategoryIconPicker('');
+  }
   lucide.createIcons();
 }
 
@@ -556,10 +667,12 @@ async function handleSaveCategory(e) {
   e.preventDefault();
   const errEl = document.getElementById('category-modal-error');
   errEl.classList.add('hidden');
+  const iconVal = document.getElementById('category-icon')?.value?.trim() || undefined;
   const body = {
     name: document.getElementById('category-name').value.trim(),
     description: document.getElementById('category-desc').value.trim() || undefined,
     parentId: document.getElementById('category-parent').value || undefined,
+    icon: iconVal,
   };
   const id = document.getElementById('category-id').value;
   const r = await apiFetch(id ? `/categories/${id}` : '/categories', { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
