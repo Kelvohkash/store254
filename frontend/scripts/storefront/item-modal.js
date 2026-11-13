@@ -67,11 +67,37 @@ function renderItemImageGallery(images, title) {
   setItemModalImage(0);
 }
 
-async function viewItemDetails(itemId) {
-  const item = state.items.find((i) => i.id === itemId);
+async function viewItemDetails(itemId, options = { updateHistory: true }) {
+  const item = state.items.find((i) => i.id === itemId || i.slug === itemId);
   if (!item) return;
 
-  state.currentItemId = itemId;
+  state.currentItemId = item.id;
+  state.currentItemSlug = item.slug || "";
+  if (state.activeTenant?.name) {
+    document.title = `${item.title} | ${state.activeTenant.name}`;
+  }
+  if (
+    options?.updateHistory !== false &&
+    item.slug &&
+    typeof window !== "undefined" &&
+    window.history &&
+    typeof getStorefrontRouteUrl === "function"
+  ) {
+    const nextUrl = getStorefrontRouteUrl({ itemSlug: item.slug });
+    const currentHistoryState =
+      window.history.state && typeof window.history.state === "object"
+        ? window.history.state
+        : {};
+    window.history.pushState(
+      {
+        ...currentHistoryState,
+        __storefrontCategory: state.selectedCategory || "",
+        __storefrontItem: item.slug,
+      },
+      "",
+      nextUrl
+    );
+  }
   const isService = item.itemType === "SERVICE";
   const attrs = item.attributes || {};
   const fallbackImage =

@@ -70,3 +70,37 @@ window.addEventListener("keydown", (event) => {
     }
   }
 });
+
+function parseInitialStorefrontRoute() {
+  const path = window.location.pathname || "/";
+  const catMatch = path.match(/^\/category\/([^/]+)\/?$/);
+  const itemMatch = path.match(/^\/item\/([^/]+)\/?$/);
+  const params = new URLSearchParams(window.location.search);
+  let categorySlug = "";
+  let itemSlug = "";
+  try {
+    if (catMatch) categorySlug = decodeURIComponent(catMatch[1]);
+    if (itemMatch) itemSlug = decodeURIComponent(itemMatch[1]);
+  } catch {}
+  return {
+    categorySlug,
+    itemSlug,
+    query: (params.get("q") || "").trim(),
+  };
+}
+
+function getStorefrontRouteUrl(options = {}) {
+  const { categorySlug = "", itemSlug = "" } = options;
+  const params = new URLSearchParams(window.location.search);
+  const explicitStore = params.get("store") || params.get("subdomain") || "";
+  let path = "/";
+  if (itemSlug) {
+    path = `/item/${encodeURIComponent(itemSlug)}`;
+  } else if (categorySlug) {
+    path = `/category/${encodeURIComponent(categorySlug)}`;
+  }
+  const nextParams = new URLSearchParams();
+  if (explicitStore) nextParams.set("store", explicitStore);
+  const qs = nextParams.toString();
+  return `${path}${qs ? `?${qs}` : ""}`;
+}

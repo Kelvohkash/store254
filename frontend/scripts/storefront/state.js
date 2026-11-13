@@ -97,14 +97,22 @@ function getInitialCart() {
 }
 
 // Global Reactive State
+const INITIAL_STOREFRONT_ROUTE =
+  typeof parseInitialStorefrontRoute === "function"
+    ? parseInitialStorefrontRoute()
+    : { categorySlug: "", itemSlug: "", query: "" };
+
 const state = {
   activeTenantSlug: INITIAL_TENANT_SLUG,
   activeTenant: null,
   currentItemId: null,
+  currentItemSlug: null,
+  initialItemSlug: INITIAL_STOREFRONT_ROUTE.itemSlug || "",
+  initialSearchQuery: INITIAL_STOREFRONT_ROUTE.query || "",
   currentItemImages: [],
   currentItemImageIndex: 0,
   categories: [],
-  selectedCategory: "",
+  selectedCategory: INITIAL_STOREFRONT_ROUTE.categorySlug || "",
   activeFilters: {},
   onlyDeals: false,
   itemTypeFilter: "",

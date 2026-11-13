@@ -26,6 +26,7 @@ import { paymentSettingsRouter } from "./modules/payments/settings.routes";
 import { mpesaRouter } from "./modules/payments/mpesa.routes";
 import { tenantSettingsRouter } from "./modules/tenant/tenant.routes";
 import { tenantBillingRouter } from "./modules/tenant/billing.routes";
+import { seoPlatformRouter, seoTenantRouter } from "./modules/seo/seo.routes";
 
 const app = new Hono<AppEnv>();
 
@@ -69,8 +70,9 @@ app.get("/health", (c) => {
   });
 });
 
-// Platform registration, landing page, and superadmin management
+// Platform registration, landing page, SEO discovery, and superadmin management
 app.route("/api/platform/admin", platformAdminRouter);
+app.route("/api/platform", seoPlatformRouter);
 app.route("/api/platform", platformRouter);
 app.route("/auth/google", googleGatewayRouter);
 
@@ -111,6 +113,7 @@ tenantScope.get("/store", (c) => {
 });
 
 // Store Profile & Custom Domain Management (Owners/Admins)
+tenantScope.route("/seo", seoTenantRouter);
 tenantScope.route("/store/settings", tenantSettingsRouter);
 tenantScope.route("/billing", tenantBillingRouter);
 

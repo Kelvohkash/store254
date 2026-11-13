@@ -1,6 +1,7 @@
 // Categories & Dynamic Faceted Filters Engine
 
 const STOREFRONT_CATEGORY_HISTORY_KEY = "__storefrontCategory";
+const STOREFRONT_ITEM_HISTORY_KEY = "__storefrontItem";
 
 if (typeof window !== "undefined" && window.history) {
   const currentHistoryState = window.history.state && typeof window.history.state === "object"
@@ -8,7 +9,11 @@ if (typeof window !== "undefined" && window.history) {
     : {};
   if (!(STOREFRONT_CATEGORY_HISTORY_KEY in currentHistoryState)) {
     window.history.replaceState(
-      { ...currentHistoryState, [STOREFRONT_CATEGORY_HISTORY_KEY]: state.selectedCategory || "" },
+      {
+        ...currentHistoryState,
+        [STOREFRONT_CATEGORY_HISTORY_KEY]: state.selectedCategory || "",
+        [STOREFRONT_ITEM_HISTORY_KEY]: state.initialItemSlug || "",
+      },
       "",
       window.location.href,
     );
@@ -16,6 +21,16 @@ if (typeof window !== "undefined" && window.history) {
 
   window.addEventListener("popstate", (event) => {
     const historyState = event.state;
+    const itemSlug = historyState && typeof historyState === "object"
+      ? (historyState[STOREFRONT_ITEM_HISTORY_KEY] || "")
+      : "";
+    if (!itemSlug && state.currentItemId && typeof toggleDrawer === "function") {
+      toggleDrawer("item-details-modal", false, { skipHistory: true });
+    } else if (itemSlug && itemSlug !== state.currentItemSlug && typeof viewItemDetails === "function") {
+      const match = (state.items || []).find((i) => i.slug === itemSlug);
+      if (match) void viewItemDetails(match.id, { updateHistory: false });
+    }
+
     if (!historyState || typeof historyState !== "object" || !(STOREFRONT_CATEGORY_HISTORY_KEY in historyState)) return;
     const previousCategory = historyState[STOREFRONT_CATEGORY_HISTORY_KEY] || "";
     if (previousCategory === (state.selectedCategory || "")) return;
@@ -308,8 +323,12 @@ function renderCategoryNavigation(animateLevelChange = false) {
               ? `${count} ${count === 1 ? "item" : "items"}`
               : "Browse";
 
+          const catHref = typeof getStorefrontRouteUrl === "function"
+            ? getStorefrontRouteUrl({ categorySlug: cat.slug })
+            : `/category/${encodeURIComponent(cat.slug)}`;
+
           return `
-            <button type="button" class="category-card" onclick="selectCategory('${escapeHtml(cat.slug)}')" aria-label="Browse ${escapeHtml(cat.name)}">
+            <a href="${escapeHtml(catHref)}" class="category-card" onclick="event.preventDefault(); selectCategory('${escapeHtml(cat.slug)}')" aria-label="Browse ${escapeHtml(cat.name)}">
               <span class="category-card-icon">
                 <i data-lucide="${icon}" class="w-5 h-5 sm:w-6 sm:h-6"></i>
               </span>
@@ -317,7 +336,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
                 <span class="category-card-title">${escapeHtml(cat.name)}</span>
                 <span class="category-card-count">${escapeHtml(countLabel)}</span>
               </span>
-            </button>
+            </a>
           `;
         }).join("")}
       `;
@@ -568,14 +587,18 @@ async function loadCategories() {
 
 function selectCategory(slug) {
   const shouldAnimate = state.selectedCategory !== slug;
-  if (shouldAnimate && window.matchMedia?.("(max-width: 767px)").matches) {
+  document.getElementById("ssr-item-detail")?.remove();
+  if (shouldAnimate && document.documentElement.dataset.storefront === "true") {
     const currentHistoryState = window.history.state && typeof window.history.state === "object"
       ? window.history.state
       : {};
+    const targetUrl = typeof getStorefrontRouteUrl === "function"
+      ? getStorefrontRouteUrl({ categorySlug: slug || "" })
+      : window.location.href;
     window.history.pushState(
-      { ...currentHistoryState, [STOREFRONT_CATEGORY_HISTORY_KEY]: slug || "" },
+      { ...currentHistoryState, [STOREFRONT_CATEGORY_HISTORY_KEY]: slug || "", [STOREFRONT_ITEM_HISTORY_KEY]: "" },
       "",
-      window.location.href,
+      targetUrl,
     );
   }
   toggleFilterPopover(null);

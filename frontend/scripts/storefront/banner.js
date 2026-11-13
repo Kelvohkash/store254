@@ -43,8 +43,10 @@ function renderStoreBanner() {
   renderStoreSocialLinks(settings.socialLinks);
   renderStorefrontContact(settings);
 
-  // Update browser tab title
-  document.title = `${state.activeTenant.name} • Store254`;
+  // Update browser tab title unless viewing an individual product/service route
+  if (!state.currentItemSlug && !state.initialItemSlug) {
+    document.title = `${state.activeTenant.name} • Store254`;
+  }
 
   renderIcons();
 }
