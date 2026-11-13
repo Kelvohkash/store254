@@ -10,6 +10,7 @@ import { orders } from "../../db/schema/orders";
 import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
 import { AppError } from "../../security/error-handler";
 import { generateUUID } from "../../security/crypto";
+import { detectImageMimeFromBytes } from "../../lib/media-validation";
 
 export const tenantSettingsRouter = new Hono<AppEnv>();
 
@@ -301,29 +302,34 @@ tenantSettingsRouter.post(
       "image/jpeg": "jpg",
       "image/png": "png",
       "image/webp": "webp",
-      "image/gif": "gif",
     };
 
-    const ext = allowedTypes[file.type];
-    if (!ext) {
-      throw new AppError(
-        "Unsupported image format. Please upload JPEG, PNG, WEBP, or GIF.",
-        400,
-        "UNSUPPORTED_MEDIA_TYPE"
-      );
-    }
-
     const maxBytes = 5 * 1024 * 1024; // 5 MB
+    if (file.size <= 0) {
+      throw new AppError("Uploaded image file is empty.", 400, "EMPTY_FILE");
+    }
     if (file.size > maxBytes) {
       throw new AppError("Image exceeds the 5 MB maximum size.", 400, "FILE_TOO_LARGE");
     }
 
     const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    const detectedMime = detectImageMimeFromBytes(bytes);
+
+    if (!detectedMime || !allowedTypes[detectedMime]) {
+      throw new AppError(
+        "Unsupported image format. Please upload a valid JPEG, PNG, or WEBP image.",
+        400,
+        "UNSUPPORTED_MEDIA_TYPE"
+      );
+    }
+
+    const ext = allowedTypes[detectedMime];
     const key = `${tenant.id}/${generateUUID()}.${ext}`;
 
     await c.env.MEDIA_BUCKET.put(key, buffer, {
       httpMetadata: {
-        contentType: file.type,
+        contentType: detectedMime,
         cacheControl: "public, max-age=31536000, immutable",
       },
     });
@@ -332,6 +338,8 @@ tenantSettingsRouter.post(
       data: {
         url: `/api/media/${key}`,
         key,
+        contentType: detectedMime,
+        size: file.size,
       },
     });
   }

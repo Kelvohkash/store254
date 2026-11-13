@@ -85,15 +85,47 @@ app.get("/api/media/:tenantId/:fileName", async (c) => {
     return c.json({ success: false, message: "Media storage not configured" }, 404);
   }
   const key = `${c.req.param("tenantId")}/${c.req.param("fileName")}`;
+  const ifNoneMatch = c.req.header("if-none-match");
+  const edgeCache = (caches as unknown as { default?: Cache }).default;
+  const cacheKey = new Request(c.req.url, { method: "GET" });
+
+  if (edgeCache) {
+    const cached = await edgeCache.match(cacheKey);
+    if (cached) {
+      const cachedEtag = cached.headers.get("etag");
+      if (ifNoneMatch && cachedEtag && ifNoneMatch === cachedEtag) {
+        return new Response(null, { status: 304, headers: cached.headers });
+      }
+      return cached;
+    }
+  }
+
   const object = await c.env.MEDIA_BUCKET.get(key);
   if (!object) {
     return c.json({ success: false, message: "Media file not found" }, 404);
   }
+
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set("etag", object.httpEtag);
   headers.set("cache-control", "public, max-age=31536000, immutable");
-  return new Response(object.body, { headers });
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("cross-origin-resource-policy", "cross-origin");
+  headers.set("access-control-allow-origin", "*");
+  headers.set("accept-ranges", "bytes");
+  if (typeof object.size === "number") {
+    headers.set("content-length", String(object.size));
+  }
+
+  if (ifNoneMatch && ifNoneMatch === object.httpEtag) {
+    return new Response(null, { status: 304, headers });
+  }
+
+  const response = new Response(object.body, { headers });
+  if (edgeCache) {
+    c.executionCtx?.waitUntil?.(edgeCache.put(cacheKey, response.clone()));
+  }
+  return response;
 });
 
 // -------------------------------------------------------------

@@ -68,20 +68,46 @@ async function handleProductImageUpload(fileInput) {
     return;
   }
 
-  showToast("Uploading photo(s)...");
-  for (const file of files) {
-    const formData = new FormData();
-    formData.append("file", file);
-    const r = await apiFetch("/store/settings/media", { method: "POST", body: formData });
+  const optimizer = window.StoreMediaOptimizer;
+  showToast(`Optimizing & uploading ${files.length} photo(s)...`);
+
+  const results = await Promise.all(
+    files.map(async (rawFile) => {
+      const optimized = optimizer?.optimizeImageFileForUpload
+        ? await optimizer.optimizeImageFileForUpload(rawFile, "product")
+        : { file: rawFile, originalBytes: rawFile.size, optimizedBytes: rawFile.size, wasOptimized: false };
+
+      const formData = new FormData();
+      formData.append("file", optimized.file || rawFile);
+      const r = await apiFetch("/store/settings/media", { method: "POST", body: formData });
+      return { r, optimized };
+    })
+  );
+
+  let uploadedCount = 0;
+  let totalOriginal = 0;
+  let totalOptimized = 0;
+
+  for (const { r, optimized } of results) {
     if (r.ok && r.data?.data?.url) {
       currentProductImages.push(r.data.data.url);
+      uploadedCount += 1;
+      totalOriginal += optimized.originalBytes || 0;
+      totalOptimized += optimized.optimizedBytes || 0;
     } else {
       showToast(apiErrorMessage(r, "Failed to upload image."), false);
     }
   }
+
   fileInput.value = "";
   syncProductImagesState();
-  showToast("Photo(s) uploaded!");
+  if (uploadedCount > 0) {
+    if (optimizer?.formatImageBytes && totalOptimized > 0 && totalOptimized < totalOriginal) {
+      showToast(`Uploaded ${uploadedCount} optimized photo(s) (${optimizer.formatImageBytes(totalOriginal)} → ${optimizer.formatImageBytes(totalOptimized)})!`);
+    } else {
+      showToast(`Uploaded ${uploadedCount} photo(s)!`);
+    }
+  }
 }
 
 function renderVariantRows(variants = []) {

@@ -128,6 +128,29 @@ export default {
       url.pathname === "/auth" ||
       url.pathname.startsWith("/auth/")
     ) {
+      const isPublicMediaRead =
+        url.pathname.startsWith("/api/media/") &&
+        (request.method === "GET" || request.method === "HEAD");
+      const edgeCache = isPublicMediaRead
+        ? (caches as unknown as { default?: Cache }).default
+        : undefined;
+      const cacheKey = isPublicMediaRead ? new Request(url.toString(), { method: "GET" }) : undefined;
+
+      if (edgeCache && cacheKey) {
+        const cached = await edgeCache.match(cacheKey);
+        if (cached) {
+          const ifNoneMatch = request.headers.get("if-none-match");
+          const cachedEtag = cached.headers.get("etag");
+          if (ifNoneMatch && cachedEtag && ifNoneMatch === cachedEtag) {
+            return new Response(null, { status: 304, headers: cached.headers });
+          }
+          if (request.method === "HEAD") {
+            return new Response(null, { status: cached.status, headers: cached.headers });
+          }
+          return cached;
+        }
+      }
+
       const apiUrl = new URL(`${url.pathname}${url.search}`, "https://api.internal");
       const headers = new Headers(request.headers);
       headers.set("X-Forwarded-Host", url.host);
@@ -144,8 +167,11 @@ export default {
       if (url.pathname.startsWith("/auth/")) {
         return apiResponse;
       }
-      // Allow Googlebot-Image on public product photos (/api/media/*), disallow API JSON from search index.
+      // Allow Googlebot-Image on public product photos (/api/media/*) & cache immutable responses at edge.
       if (url.pathname.startsWith("/api/media/")) {
+        if (isPublicMediaRead && apiResponse.status === 200 && edgeCache && cacheKey) {
+          ctx.waitUntil(edgeCache.put(cacheKey, apiResponse.clone()));
+        }
         return apiResponse;
       }
       return withRobotsHeader(apiResponse, "noindex, nofollow");
