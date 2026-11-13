@@ -52,6 +52,7 @@
           <strong>Platform Command Center</strong>
         </div>
         <div class="topbar-actions">
+          <a href="#billing-settings" class="daraja-status" id="topbar-daraja-pill" title="Jump to Billing &amp; Daraja">Daraja</a>
           <span class="live-label"><i></i> CLOUDFLARE EDGE LIVE</span>
           <button id="refresh-button" class="icon-button" type="button" aria-label="Refresh data" title="Refresh data">
             <i data-lucide="rotate-cw"></i>
@@ -59,12 +60,19 @@
         </div>
       </header>
 
+      <nav class="mobile-nav-strip" aria-label="Mobile quick navigation">
+        <a class="mobile-nav-chip" href="#overview">Overview</a>
+        <a class="mobile-nav-chip" href="#businesses">Businesses</a>
+        <a class="mobile-nav-chip" href="#billing-settings">Billing &amp; Daraja</a>
+        <button id="mobile-logout-button" class="mobile-nav-chip is-danger" type="button">Sign out</button>
+      </nav>
+
       <div class="page-wrap">
         <section id="overview" class="welcome-row">
           <div>
             <p class="eyebrow">STORE254 SUPER ADMIN</p>
             <h1>Platform Overview <span>✳</span></h1>
-            <p class="page-subtitle">Monitor registered merchants, review applications, and manage platform health.</p>
+            <p class="page-subtitle">Approve stores, amend subdomains, manage subscriptions, and monitor marketplace GMV.</p>
           </div>
           <a class="public-site-link" href="./" target="_blank" rel="noopener">
             <span>View marketplace</span>
@@ -73,28 +81,6 @@
         </section>
 
         <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
-
-        <section id="billing-settings" class="business-section platform-billing-section">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">MERCHANT SUBSCRIPTIONS</p>
-              <h2>Billing &amp; Daraja</h2>
-              <p class="section-subtitle">Set the store fee and payment period. A payment request sends an M-Pesa prompt to the store owner.</p>
-            </div>
-            <span id="daraja-status" class="daraja-status" role="status">Checking Daraja…</span>
-          </div>
-          <div class="platform-billing-card">
-            <div class="platform-billing-fields">
-              <label><span>Subscription fee (KES)</span><input id="platform-billing-amount" type="number" min="1" step="1" inputmode="numeric" placeholder="Enter amount"></label>
-              <label><span>Billing period</span><input type="text" value="Monthly" readonly aria-readonly="true"></label>
-              <label><span>Daraja shortcode type</span><select id="platform-billing-shortcode-type"><option value="PAYBILL">Paybill</option><option value="BUY_GOODS">Buy Goods / Till</option></select></label>
-            </div>
-            <div class="platform-billing-footer">
-              <p><strong id="daraja-mode">Production</strong><span id="daraja-secret-help">Daraja credentials are read securely from Cloudflare Worker secrets.</span></p>
-              <button id="save-billing-settings" class="modal-btn primary" type="button">Save billing settings</button>
-            </div>
-          </div>
-        </section>
 
         <section class="metric-grid" aria-label="Marketplace overview">
           <article class="metric-card metric-total">
@@ -163,7 +149,7 @@
             <div>
               <p class="eyebrow">THE STORE DIRECTORY</p>
               <h2>Registered Businesses</h2>
-              <p class="section-subtitle">Review new store applications and manage storefront access.</p>
+              <p class="section-subtitle">Approve stores, edit `.store254.co.ke` subdomains, send M-Pesa prompts, or permanently remove stores.</p>
             </div>
             <span id="result-count" class="result-count">Loading businesses…</span>
           </div>
@@ -171,14 +157,24 @@
           <div class="toolbar">
             <label class="search-box">
               <i data-lucide="search" class="search-icon"></i>
-              <input id="business-search" type="search" placeholder="Search by store name, subdomain, or owner..." autocomplete="off">
+              <input id="business-search" type="search" placeholder="Search store, subdomain, owner name, email, or phone..." autocomplete="off">
               <span class="search-shortcut">⌘K</span>
             </label>
-            <div class="filter-tabs" role="group" aria-label="Filter businesses by status">
-              <button type="button" class="filter-tab is-selected" data-status-filter="ALL">All <span id="filter-count-all">—</span></button>
-              <button type="button" class="filter-tab" data-status-filter="PENDING">Needs Review <span id="filter-count-pending">—</span></button>
-              <button type="button" class="filter-tab" data-status-filter="ACTIVE">Active <span id="filter-count-active">—</span></button>
-              <button type="button" class="filter-tab" data-status-filter="SUSPENDED">Suspended <span id="filter-count-suspended">—</span></button>
+            <div class="toolbar-filters">
+              <select id="business-category-filter" class="category-select" aria-label="Filter businesses by category">
+                <option value="ALL">All categories</option>
+                <option value="RETAIL">Retail</option>
+                <option value="ELECTRONICS">Electronics</option>
+                <option value="FURNITURE">Furniture</option>
+                <option value="SERVICES">Services</option>
+                <option value="GENERAL">General</option>
+              </select>
+              <div class="filter-tabs" role="group" aria-label="Filter businesses by status">
+                <button type="button" class="filter-tab is-selected" data-status-filter="ALL">All <span id="filter-count-all">—</span></button>
+                <button type="button" class="filter-tab" data-status-filter="PENDING">Needs Review <span id="filter-count-pending">—</span></button>
+                <button type="button" class="filter-tab" data-status-filter="ACTIVE">Active <span id="filter-count-active">—</span></button>
+                <button type="button" class="filter-tab" data-status-filter="SUSPENDED">Suspended <span id="filter-count-suspended">—</span></button>
+              </div>
             </div>
           </div>
 
@@ -186,11 +182,11 @@
             <table>
               <thead>
                 <tr>
-                  <th>BUSINESS</th>
+                  <th>BUSINESS &amp; OWNER</th>
                   <th>STORE ADDRESS</th>
                   <th>CATEGORY</th>
                   <th>REGISTERED</th>
-                  <th>STATUS</th>
+                  <th>STATUS &amp; BILLING</th>
                   <th class="actions-heading">ACTIONS</th>
                 </tr>
               </thead>
@@ -201,20 +197,42 @@
             <div id="empty-state" class="empty-state" hidden>
               <span><i data-lucide="store"></i></span>
               <strong>No businesses found</strong>
-              <p>Try adjusting your search query or status filter.</p>
+              <p>Try adjusting your search query or filters.</p>
             </div>
           </div>
-          <p class="table-footnote"><span class="secure-dot"></span> Sensitive actions require confirmation and are recorded in the audit log.</p>
+          <p class="table-footnote"><span class="secure-dot"></span> Subdomain edits take effect immediately across Cloudflare edge routing. Permanent deletions remove database records and uploaded R2 media.</p>
+        </section>
+
+        <section id="billing-settings" class="business-section platform-billing-section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">MERCHANT SUBSCRIPTIONS</p>
+              <h2>Billing &amp; Daraja</h2>
+              <p class="section-subtitle">Configure monthly subscription pricing and M-Pesa Daraja prompt settings.</p>
+            </div>
+            <span id="daraja-status" class="daraja-status" role="status">Checking Daraja…</span>
+          </div>
+          <div class="platform-billing-card">
+            <div class="platform-billing-fields">
+              <label><span>Subscription fee (KES)</span><input id="platform-billing-amount" type="number" min="1" step="1" inputmode="numeric" placeholder="Enter amount"></label>
+              <label><span>Billing period</span><input type="text" value="Monthly" readonly aria-readonly="true"></label>
+              <label><span>Daraja shortcode type</span><select id="platform-billing-shortcode-type"><option value="PAYBILL">Paybill</option><option value="BUY_GOODS">Buy Goods / Till</option></select></label>
+            </div>
+            <div class="platform-billing-footer">
+              <p><strong id="daraja-mode">Production</strong><span id="daraja-secret-help">Daraja credentials are read securely from Cloudflare Worker secrets.</span></p>
+              <button id="save-billing-settings" class="modal-btn primary" type="button">Save billing settings</button>
+            </div>
+          </div>
         </section>
 
         <footer class="admin-footer">
-          <span>Store254 Platform Administration &bull; Private Workspace</span>
+          <span>Store254 Platform Administration &bull; Kayzen Labs Software Company Limited</span>
           <span>Cloudflare Workers &bull; Year <span id="footer-date"></span></span>
         </footer>
       </div>
     </section>
 
-    <!-- Confirmation Modal Dialog -->
+    <!-- Confirmation & Safe Delete Modal Dialog -->
     <div id="confirm-modal" class="modal-backdrop" hidden>
       <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
         <div class="modal-header">
@@ -224,12 +242,47 @@
             <p id="confirm-modal-message">Are you sure you want to proceed?</p>
           </div>
         </div>
+        <div id="confirm-typed-wrap" class="modal-field" hidden>
+          <label id="confirm-typed-label" for="confirm-typed-input">Type subdomain to confirm</label>
+          <input id="confirm-typed-input" class="modal-input-plain" type="text" autocomplete="off" spellcheck="false" placeholder="">
+          <p id="confirm-typed-error" class="modal-field-error" hidden></p>
+        </div>
         <div class="modal-actions">
           <button type="button" id="confirm-cancel-btn" class="modal-btn secondary">Cancel</button>
           <button type="button" id="confirm-ok-btn" class="modal-btn primary">Confirm</button>
         </div>
       </div>
     </div>
+
+    <!-- Amend Subdomain Modal Dialog -->
+    <div id="subdomain-modal" class="modal-backdrop" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="subdomain-modal-title">
+        <div class="modal-header">
+          <div class="modal-icon" style="background:#dcfce7;color:#065f46;">🌐</div>
+          <div>
+            <h3 id="subdomain-modal-title">Amend Store Subdomain</h3>
+            <p id="subdomain-modal-subtitle">Update the live storefront URL immediately.</p>
+          </div>
+        </div>
+        <form id="subdomain-form" novalidate>
+          <div class="modal-field">
+            <label for="subdomain-input">New subdomain</label>
+            <div class="subdomain-input-group">
+              <input id="subdomain-input" type="text" minlength="2" maxlength="32" autocomplete="off" spellcheck="false" placeholder="e.g. alicebabycare" required>
+              <span class="subdomain-suffix">.store254.co.ke</span>
+            </div>
+            <p id="subdomain-preview" class="modal-field-hint">Preview: https://—.store254.co.ke/</p>
+            <p id="subdomain-error" class="modal-field-error" hidden></p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="subdomain-cancel-btn" class="modal-btn secondary">Cancel</button>
+            <button type="submit" id="subdomain-save-btn" class="modal-btn primary">Save Subdomain</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="admin-toast" class="admin-toast" role="status" aria-live="polite" hidden></div>
   </main>
   <script src="./scripts/admin/super-admin-api.js" defer></script>
   <script src="./scripts/admin/super-admin-table.js" defer></script>

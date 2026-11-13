@@ -63,7 +63,7 @@ async function handleOnboardSubmit(e) {
       renderIcons();
 
       if (res.ok && res.data.success) {
-        showToast("Application submitted! Pending Super Admin review.");
+        showToast("Application submitted! Pending review by Our 254 team.");
         toggleDrawer("onboard-modal", false);
       } else {
         showToast(res.data.error?.message || "Registration failed", "error");

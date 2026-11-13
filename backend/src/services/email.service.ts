@@ -305,16 +305,51 @@ export class EmailService {
   }
 
   /**
-   * Dispatches an email via Gmail SMTP / Resend / MailChannels or local logger
+   * Dispatches an email via Resend (preferred when apiKey is configured), Gmail SMTP fallback, or local logger
    */
   public static async send(options: SendEmailOptions): Promise<boolean> {
     const from = options.from || this.DEFAULT_SENDER;
 
-    // In automated tests, skip outbound SMTP so tests can assert local logging and redaction
+    // In automated tests, skip outbound network/SMTP so tests can assert local logging and redaction
     const proc = (globalThis as unknown as { process?: { env?: Record<string, string> } }).process;
     const isTest = typeof proc !== "undefined" && (proc.env?.NODE_ENV === "test" || Boolean(proc.env?.VITEST));
 
-    // Try Gmail SMTP first with configured password_recovery credentials when not in test
+    // Prefer Resend API when an API key is provided (verified domain store254.co.ke with SPF/DKIM/DMARC)
+    if (!isTest && options.apiKey) {
+      try {
+        const plainText = options.html
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${options.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from,
+            reply_to: "support@store254.co.ke",
+            to: [options.to],
+            subject: options.subject,
+            html: options.html,
+            text: plainText,
+          }),
+        });
+
+        if (res.ok) {
+          return true;
+        }
+        const errBody = await res.text().catch(() => "");
+        console.error(`[EmailService Resend Error] status=${res.status}`, errBody);
+      } catch (err) {
+        console.error("[EmailService Resend Error]", err);
+      }
+    }
+
+    // Fallback to Gmail SMTP when Resend is not configured or fails
     if (!isTest) {
       const smtpSuccess = await this.sendViaGmailSmtp({
         to: options.to,
@@ -324,29 +359,6 @@ export class EmailService {
       });
       if (smtpSuccess) {
         return true;
-      }
-    }
-
-    // If an external email provider API key is provided (e.g. Resend)
-    if (options.apiKey) {
-      try {
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${options.apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from,
-            to: [options.to],
-            subject: options.subject,
-            html: options.html,
-          }),
-        });
-
-        return res.ok;
-      } catch (err) {
-        console.error("[EmailService Error]", err);
       }
     }
 
@@ -458,6 +470,7 @@ ${safeBody}
     otpCode: string;
     expiresMinutes: number;
     storeName?: string;
+    apiKey?: string;
   }): Promise<boolean> {
     const safeName = escapeHtml(params.fullName);
     const safeOtp = escapeHtml(params.otpCode);
@@ -531,6 +544,7 @@ ${safeBody}
       html,
       from: "Store254 Security <password_recovery@store254.co.ke>",
       redactInLogs: [params.otpCode],
+      apiKey: params.apiKey,
     });
   }
 
@@ -572,7 +586,7 @@ ${safeBody}
           <h2>Welcome to Store254!</h2>
           <p>Thank you for registering <strong>${safeStoreName}</strong> on the Store254 platform.</p>
           <p>Your requested subdomain is: <strong>${safeSubdomain}.${safePrimaryDomain}</strong></p>
-          <p>As part of our trust & safety policy, all new store registrations are reviewed by our platform Super Admin team before going live. We verify business details to maintain a high-trust marketplace for all Kenyan consumers.</p>
+          <p>As part of our trust &amp; safety policy, all new store registrations are reviewed by Our 254 team before going live. We verify business details to maintain a high-trust marketplace for all Kenyan consumers.</p>
           <p>You will receive an email as soon as your store account is activated (typically within 1-2 hours during business hours).</p>
           <div class="footer">
             <p>&copy; Store254 Kenya. Need help? Reach us at support@store254.co.ke</p>
@@ -627,7 +641,7 @@ ${safeBody}
           </div>
           <div class="badge">Store Activated</div>
           <h2>Your Store is Live! 🎉</h2>
-          <p>Great news! The Store254 Super Admin team has reviewed and activated your business store: <strong>${safeStoreName}</strong>.</p>
+          <p>Great news! Our 254 team has reviewed and activated your business store: <strong>${safeStoreName}</strong>.</p>
           <p>Your online store is now accessible to customers at:</p>
           <p><a href="${storeUrl}" style="color: #2563eb; font-weight: 600; font-size: 16px;">${storeUrl}</a></p>
           

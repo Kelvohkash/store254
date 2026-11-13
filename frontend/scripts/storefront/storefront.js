@@ -117,8 +117,16 @@ async function loadStoreProfile() {
     document.getElementById("storefront-view")?.classList.remove("hidden");
     document.getElementById("store-admin-footer-btn")?.classList.remove("hidden");
     if (isSuspended) {
+      const suspendedDetails = res.data?.error?.details || {};
+      const storeLabel = suspendedDetails.storeName || state.activeTenantSlug || "This store";
+      const storeHost =
+        suspendedDetails.customDomain ||
+        (suspendedDetails.subdomain ? `${suspendedDetails.subdomain}.store254.co.ke` : "") ||
+        (state.activeTenantSlug ? `${state.activeTenantSlug}.store254.co.ke` : window.location.host);
+
       document.documentElement.setAttribute("data-storefront-suspended", "true");
-      setHeaderLogo(DEFAULT_STORE_LOGO, "Store254");
+      document.title = `${storeLabel} — Temporarily Paused | Store254`;
+      setHeaderLogo(DEFAULT_STORE_LOGO, `${storeLabel} (${storeHost})`);
       document.getElementById("store-admin-footer-btn")?.classList.add("hidden");
       document.getElementById("whatsapp-quick-contact")?.classList.add("hidden");
       const storefront = document.getElementById("storefront-view");
@@ -130,14 +138,17 @@ async function loadStoreProfile() {
               <span class="maintenance-orbit maintenance-orbit-two"></span>
               <span class="maintenance-spark maintenance-spark-one">✦</span>
               <span class="maintenance-spark maintenance-spark-two">✦</span>
-              <div class="maintenance-toolbox"><i data-lucide="wrench"></i></div>
+              <div class="maintenance-toolbox"><i data-lucide="pause-circle"></i></div>
             </div>
-            <p class="storefront-maintenance-eyebrow">A little pause while we fix things</p>
-            <h1 id="maintenance-title">We’re having technical difficulties</h1>
-            <p class="storefront-maintenance-copy">This store is taking a short break while we work behind the scenes. We’ll be back soon, so please check in again shortly.</p>
-            <div class="storefront-maintenance-status"><span></span> Our team is on it</div>
-            <button type="button" class="storefront-maintenance-retry" onclick="window.location.reload()"><i data-lucide="refresh-cw"></i> Check again</button>
-            <p class="storefront-maintenance-signoff">Thanks for your patience <span aria-hidden="true">♥</span></p>
+            <p class="storefront-maintenance-eyebrow">${escapeHtml(storeHost)} &bull; Storefront Paused</p>
+            <h1 id="maintenance-title">${escapeHtml(storeLabel)} is temporarily paused</h1>
+            <p class="storefront-maintenance-copy">Only this individual store (<strong>${escapeHtml(storeHost)}</strong>) is currently offline. The main Store254 platform and other Kenyan storefronts remain online.</p>
+            <div class="storefront-maintenance-status"><span></span> Store paused &bull; Store254 is online</div>
+            <div class="storefront-maintenance-actions">
+              <button type="button" class="storefront-maintenance-retry" onclick="window.location.reload()"><i data-lucide="refresh-cw"></i> Check this store again</button>
+              <a href="https://store254.co.ke/" class="storefront-maintenance-home">Browse Store254 Marketplace &rarr;</a>
+            </div>
+            <p class="storefront-maintenance-signoff">Store owner? <a href="/admin.html">Sign in to Store Admin</a> to manage billing &amp; reactivation.</p>
           </section>`;
       }
     } else {
@@ -145,11 +156,15 @@ async function loadStoreProfile() {
     }
     const catalog = document.getElementById("items-grid");
     if (!isSuspended && catalog) {
+      const targetHost = state.activeTenantSlug ? `${state.activeTenantSlug}.store254.co.ke` : window.location.host;
       catalog.innerHTML = `
         <div class="col-span-full rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
-          <h2 class="text-lg font-bold text-slate-900">This storefront is temporarily unavailable</h2>
-          <p class="mt-2 text-sm text-slate-500">Please try again in a moment.</p>
-          <button type="button" onclick="window.location.reload()" class="mt-5 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Try again</button>
+          <h2 class="text-lg font-bold text-slate-900">${escapeHtml(targetHost)} is temporarily unavailable</h2>
+          <p class="mt-2 text-sm text-slate-500">Only this individual storefront could not be loaded right now. Store254 platform services remain online.</p>
+          <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+            <button type="button" onclick="window.location.reload()" class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Try again</button>
+            <a href="https://store254.co.ke/" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 no-underline">Browse Store254 Marketplace</a>
+          </div>
         </div>`;
     }
   }

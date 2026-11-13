@@ -28,21 +28,28 @@ function storeRowMarkup(store) {
     ? isBillingDue ? "Payment overdue" : `Covered until ${formatDate(dueDate)}`
     : "Billing not started";
 
+  const ownerMeta = [store.ownerName, store.ownerEmail, store.ownerPhone]
+    .filter((val) => typeof val === "string" && val.trim().length > 0)
+    .slice(0, 2)
+    .join(" · ");
+
   const action = status === "PENDING"
-    ? `<button class="row-action is-approve" type="button" data-store-action="activate" data-store-id="${escapeHtml(store.id)}"><span>✓</span> Approve store</button>`
+    ? `<button class="row-action is-approve" type="button" data-store-action="activate" data-store-id="${escapeHtml(store.id)}"><i data-lucide="check"></i><span>Approve</span></button>`
     : status === "ACTIVE"
-      ? `<button class="row-action is-danger" type="button" data-store-action="deactivate" data-store-id="${escapeHtml(store.id)}"><span>Ⅱ</span> Suspend</button>`
+      ? `<button class="row-action is-danger" type="button" data-store-action="deactivate" data-store-id="${escapeHtml(store.id)}"><i data-lucide="pause"></i><span>Suspend</span></button>`
       : status === "SUSPENDED"
-        ? `<button class="row-action is-approve" type="button" data-store-action="reactivate" data-store-id="${escapeHtml(store.id)}"><span>↻</span> Reactivate</button>`
+        ? `<button class="row-action is-approve" type="button" data-store-action="reactivate" data-store-id="${escapeHtml(store.id)}"><i data-lucide="rotate-ccw"></i><span>Reactivate</span></button>`
         : '<span class="text-muted" aria-label="No available action">—</span>';
   const canPrompt = ["ACTIVE", "SUSPENDED"].includes(status);
   const billingReady = window.platformBillingUiState?.darajaConfigured && window.platformBillingUiState?.amount > 0;
   const billingAction = canPrompt
-    ? `<button class="row-action is-billing" type="button" data-store-action="payment-prompt" data-store-id="${escapeHtml(store.id)}" ${billingReady ? "" : "disabled title=\"Configure billing and Daraja first\""}><span>↗</span> M-Pesa prompt</button>`
+    ? `<button class="row-action is-billing" type="button" data-store-action="payment-prompt" data-store-id="${escapeHtml(store.id)}" ${billingReady ? "" : "disabled title=\"Configure billing and Daraja first\""}><i data-lucide="smartphone"></i><span>M-Pesa</span></button>`
     : "";
   const trialAction = status === "ACTIVE"
-    ? `<button class="row-action is-billing" type="button" data-store-action="grant-trial" data-store-id="${escapeHtml(store.id)}"><span>＋</span> Free month</button>`
+    ? `<button class="row-action is-billing" type="button" data-store-action="grant-trial" data-store-id="${escapeHtml(store.id)}"><i data-lucide="gift"></i><span>Free month</span></button>`
     : "";
+  const editSubdomainBtn = `<button class="row-action is-subtle" type="button" data-store-action="edit-subdomain" data-store-id="${escapeHtml(store.id)}" title="Amend store subdomain"><i data-lucide="pencil"></i><span>Subdomain</span></button>`;
+  const deleteBtn = `<button class="row-action is-delete" type="button" data-store-action="delete" data-store-id="${escapeHtml(store.id)}" title="Delete store permanently"><i data-lucide="trash-2"></i><span>Delete</span></button>`;
 
   return `<tr>
     <td>
@@ -50,7 +57,7 @@ function storeRowMarkup(store) {
         <span class="business-avatar" data-category="${escapeHtml(store.businessType || 'GENERAL')}" aria-hidden="true">${escapeHtml(name.trim().slice(0, 1).toUpperCase() || "S")}</span>
         <div>
           <strong class="business-name">${escapeHtml(name)}</strong>
-          <small class="business-type">${escapeHtml(category)}</small>
+          ${ownerMeta ? `<small class="business-owner-meta">${escapeHtml(ownerMeta)}</small>` : `<small class="business-type">${escapeHtml(category)}</small>`}
         </div>
       </div>
     </td>
@@ -58,7 +65,8 @@ function storeRowMarkup(store) {
       ${storeUrl ? `
         <div class="store-url-pill">
           <a class="store-link" href="${storeUrl}" target="_blank" rel="noopener">${escapeHtml(slug)}.store254.co.ke</a>
-          <button type="button" class="copy-url-btn" title="Copy store link" data-copy-url="${escapeHtml(storeUrl)}">⎘</button>
+          <button type="button" class="copy-url-btn" title="Copy store link" data-copy-url="${escapeHtml(storeUrl)}"><i data-lucide="copy"></i></button>
+          <button type="button" class="edit-url-btn" title="Amend subdomain" data-store-action="edit-subdomain" data-store-id="${escapeHtml(store.id)}"><i data-lucide="pencil"></i></button>
         </div>
       ` : '<span class="text-muted">—</span>'}
     </td>
@@ -68,23 +76,38 @@ function storeRowMarkup(store) {
     <td class="actions-cell">
       <div class="actions-group">
         ${action}
+        ${editSubdomainBtn}
         ${billingAction}
         ${trialAction}
-        ${storeUrl ? `<a href="${storeUrl}" target="_blank" rel="noopener" class="row-action is-link" title="Visit storefront">↗</a>` : ""}
+        ${storeUrl ? `<a href="${storeUrl}" target="_blank" rel="noopener" class="row-action is-link" title="Visit storefront"><i data-lucide="arrow-up-right"></i></a>` : ""}
+        ${deleteBtn}
       </div>
     </td>
   </tr>`;
 }
 
-function renderStoresTable(stores, selectedStatus, onAction) {
+function renderStoresTable(stores, filterOrStatus, onAction) {
   const searchInput = document.getElementById("business-search");
   const rowsContainer = document.getElementById("business-rows");
   const emptyState = document.getElementById("empty-state");
   const query = searchInput?.value.trim().toLowerCase() || "";
+  const selectedStatus = typeof filterOrStatus === "string" ? filterOrStatus : (filterOrStatus?.status || "ALL");
+  const selectedCategory = typeof filterOrStatus === "object" && filterOrStatus?.category ? filterOrStatus.category : "ALL";
+
   const visible = stores.filter((store) => {
     const matchesStatus = selectedStatus === "ALL" || store.status === selectedStatus;
-    const matchesQuery = !query || `${store.name || ""} ${store.subdomain || ""} ${store.businessType || ""}`.toLowerCase().includes(query);
-    return matchesStatus && matchesQuery;
+    const matchesCategory = selectedCategory === "ALL" || String(store.businessType || "GENERAL").toUpperCase() === selectedCategory;
+    const searchable = [
+      store.name,
+      store.subdomain,
+      store.customDomain,
+      store.businessType,
+      store.ownerName,
+      store.ownerEmail,
+      store.ownerPhone,
+    ].filter(Boolean).join(" ").toLowerCase();
+    const matchesQuery = !query || searchable.includes(query);
+    return matchesStatus && matchesCategory && matchesQuery;
   });
   document.getElementById("result-count").textContent = `${visible.length} ${visible.length === 1 ? "business" : "businesses"}`;
   rowsContainer.innerHTML = visible.map(storeRowMarkup).join("");
@@ -99,9 +122,7 @@ function renderStoresTable(stores, selectedStatus, onAction) {
     button.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(button.dataset.copyUrl);
-        const orig = button.textContent;
-        button.textContent = "✓";
-        setTimeout(() => { button.textContent = orig; }, 1400);
+        showAdminToast(`Copied ${button.dataset.copyUrl}`);
       } catch {
         setAdminNotice("Could not copy link to clipboard.", true);
       }

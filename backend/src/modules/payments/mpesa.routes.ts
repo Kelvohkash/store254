@@ -90,6 +90,7 @@ mpesaRouter.post("/platform-callback", async (c) => {
         await EmailService.sendStoreActivated({
           to: owner.email, storeName: store.name, subdomain: store.subdomain,
           primaryDomain: c.env.PRIMARY_DOMAIN || "store254.co.ke",
+          apiKey: c.env.RESEND_API_KEY,
         });
       }
     }

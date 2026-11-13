@@ -1,5 +1,7 @@
 import {
   PRIMARY_DOMAIN,
+  buildPlatformAboutHtml,
+  buildPlatformDirectoryHtml,
   buildPlatformSeoData,
   buildPlatformSitemapIndexXml,
   buildPlatformSitemapXml,
@@ -8,6 +10,7 @@ import {
   buildStorefrontSitemapXml,
   classifyHost,
   escapeHtml,
+  getDirectoryHubForBusinessType,
   parseStorefrontRoute,
   resolveTenantCanonicalOrigin,
   sanitizeSlug,
@@ -321,6 +324,58 @@ export default {
     const explicitStoreSlug = sanitizeSlug(url.searchParams.get("store") || url.searchParams.get("subdomain"));
     const isTenantContext = !hostInfo.isPlatformRoot || Boolean(explicitStoreSlug);
 
+    // About Page (/about) on platform root domain (kept off top header nav; indexed via sitemap & subtle footer link)
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      !isTenantContext &&
+      (url.pathname === "/about" || url.pathname === "/about/")
+    ) {
+      const aboutPage = buildPlatformAboutHtml(hostInfo.isPreviewHost);
+      return new Response(request.method === "HEAD" ? null : aboutPage.html, {
+        status: aboutPage.status,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "X-Robots-Tag": aboutPage.robots,
+          "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+        },
+      });
+    }
+
+    // Marketplace Directory Hub Pages (/directory and /directory/:category) on root domain
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      !isTenantContext &&
+      (url.pathname === "/directory" || url.pathname.startsWith("/directory/"))
+    ) {
+      const dirMatch = url.pathname.match(/^\/directory(?:\/([^/]+))?\/?$/);
+      if (dirMatch) {
+        const categorySlug = dirMatch[1] ? decodeURIComponent(dirMatch[1]) : "";
+        const page = Number(url.searchParams.get("page") || "1");
+        const { data: stores } = await fetchCachedSeoJson<PlatformStoreSeo[]>(
+          env.API,
+          "/api/platform/seo-stores",
+          "platform-stores",
+          { "X-Forwarded-Host": url.host },
+          clientIp,
+          ctx,
+          120
+        );
+        const dirPage = buildPlatformDirectoryHtml(stores || [], {
+          categorySlug,
+          page,
+          isPreview: hostInfo.isPreviewHost,
+        });
+        return new Response(request.method === "HEAD" ? null : dirPage.html, {
+          status: dirPage.status,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "X-Robots-Tag": dirPage.robots,
+            "Cache-Control": "public, max-age=120, stale-while-revalidate=600",
+          },
+        });
+      }
+    }
+
     // Admin routes get explicit noindex headers
     if (route.kind === "admin") {
       const adminRes = await env.ASSETS.fetch(request);
@@ -448,10 +503,23 @@ export default {
         isPreview: hostInfo.isPreviewHost,
       });
 
+      const directoryHub = getDirectoryHubForBusinessType(storefrontPayload.tenant.businessType);
       const rewriter = new HTMLRewriter()
-        .on("#platform-hero, .platform-nav-links, #platform-mobile-menu", {
+        .on("#platform-hero, .platform-nav-links, #platform-mobile-menu, #footer-about-link", {
           element(el) {
             el.remove();
+          },
+        })
+        .on("#footer-powered-by", {
+          element(el) {
+            removeHiddenClass(el);
+          },
+        })
+        .on("#footer-directory-link", {
+          element(el) {
+            removeHiddenClass(el);
+            el.setAttribute("href", directoryHub.href);
+            el.setInnerContent(directoryHub.label);
           },
         })
         .on("title", {
@@ -529,9 +597,10 @@ export default {
         });
 
       const transformed = rewriter.transform(assetResponse);
-      const needsNoIndex = hostInfo.isPreviewHost || seo.status >= 400;
+      const needsNoIndex = hostInfo.isPreviewHost || seo.status >= 400 || seo.robots.startsWith("noindex");
       if (needsNoIndex) {
-        return withRobotsHeader(transformed, "noindex, nofollow", seo.status);
+        const robotsHeader = hostInfo.isPreviewHost || seo.status >= 400 ? "noindex, nofollow" : seo.robots;
+        return withRobotsHeader(transformed, robotsHeader, seo.status);
       }
       if (seo.status !== 200) {
         return new Response(transformed.body, {

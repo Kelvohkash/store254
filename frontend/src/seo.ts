@@ -8,6 +8,7 @@ export interface PlatformStoreSeo {
   businessType?: string;
   currency?: string;
   settings?: Record<string, unknown>;
+  itemCount?: number;
   updatedAt?: string | number | Date | null;
   createdAt?: string | number | Date | null;
 }
@@ -98,31 +99,103 @@ export interface HostClassification {
 }
 
 const RESERVED_SUBDOMAINS = new Set([
+  "account",
+  "accounts",
   "admin",
   "administrator",
   "api",
   "app",
+  "assets",
   "auth",
+  "bank",
   "billing",
   "cdn",
+  "cdn1",
+  "cdn2",
+  "checkout",
   "dashboard",
+  "directory",
   "docs",
   "ftp",
   "help",
+  "login",
+  "m-pesa",
   "mail",
+  "media",
+  "mpesa",
+  "ns1",
+  "ns2",
+  "oauth",
+  "official",
+  "pay",
+  "payment",
+  "payments",
   "portal",
+  "register",
   "root",
-  "smtp",
-  "ssl",
+  "safaricom",
+  "security",
+  "shop",
+  "signin",
+  "signup",
+  "sso",
   "static",
   "status",
+  "statuspage",
+  "store",
   "store254",
+  "stores",
   "support",
   "sysadmin",
   "system",
+  "trust",
+  "verify",
+  "wallet",
+  "webhook",
+  "webhooks",
   "webmail",
   "www",
 ]);
+
+export const DIRECTORY_PAGE_SIZE = 100;
+
+export const DIRECTORY_CATEGORIES: ReadonlyArray<{ slug: string; label: string; enumType: string }> = [
+  { slug: "retail", label: "Retail", enumType: "RETAIL" },
+  { slug: "electronics", label: "Electronics", enumType: "ELECTRONICS" },
+  { slug: "furniture", label: "Furniture", enumType: "FURNITURE" },
+  { slug: "services", label: "Services", enumType: "SERVICES" },
+  { slug: "general", label: "General", enumType: "GENERAL" },
+];
+
+export function filterIndexableStores(stores: PlatformStoreSeo[] = []): PlatformStoreSeo[] {
+  return stores.filter((store) => {
+    if (!store?.subdomain) return false;
+    if (String(store.id || "").startsWith("tenant-demo-")) return false;
+    if (typeof store.itemCount === "number" && store.itemCount <= 0) return false;
+    return true;
+  });
+}
+
+export function getDirectoryHubForBusinessType(businessType?: string | null): {
+  href: string;
+  label: string;
+  slug: string;
+} {
+  const normalized = String(businessType || "").trim().toUpperCase();
+  const match = DIRECTORY_CATEGORIES.find((cat) => cat.enumType === normalized);
+  if (match) {
+    return {
+      href: `https://${PRIMARY_DOMAIN}/directory/${match.slug}`,
+      label: `More ${match.label} Stores`,
+      slug: match.slug,
+    };
+  }
+  return {
+    href: `https://${PRIMARY_DOMAIN}/directory`,
+    label: "Store254 Directory",
+    slug: "",
+  };
+}
 
 const SUBDOMAIN_REGEX = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/;
 
@@ -350,7 +423,7 @@ function resolveStoreOriginForPlatform(store: Pick<PlatformStoreSeo, "subdomain"
 export function buildRobotsTxt(options: {
   isPreview: boolean;
   canonicalOrigin: string;
-  stores?: Pick<PlatformStoreSeo, "subdomain" | "customDomain">[];
+  stores?: PlatformStoreSeo[];
   includePlatformIndex?: boolean;
 }): string {
   if (options.isPreview) {
@@ -376,7 +449,7 @@ export function buildRobotsTxt(options: {
   if (options.includePlatformIndex) {
     lines.push(`Sitemap: ${options.canonicalOrigin}/sitemap-index.xml`);
     const seen = new Set<string>();
-    for (const store of options.stores || []) {
+    for (const store of filterIndexableStores(options.stores || [])) {
       const storeOrigin = resolveStoreOriginForPlatform(store);
       const sitemapUrl = `${storeOrigin}/sitemap.xml`;
       if (!seen.has(sitemapUrl)) {
@@ -391,28 +464,83 @@ export function buildRobotsTxt(options: {
 
 export function buildPlatformSitemapXml(stores: PlatformStoreSeo[] = []): string {
   const origin = `https://${PRIMARY_DOMAIN}`;
-  const latestTimestamp = stores
+  const indexableStores = filterIndexableStores(stores);
+  const latestTimestamp = indexableStores
     .map((s) => formatIsoDate(s.updatedAt || s.createdAt))
     .filter((d): d is string => Boolean(d))
     .sort()
     .pop();
 
+  const urls: string[] = [
+    [
+      "  <url>",
+      `    <loc>${escapeXml(origin)}/</loc>`,
+      latestTimestamp ? `    <lastmod>${escapeXml(latestTimestamp)}</lastmod>` : "",
+      "    <changefreq>daily</changefreq>",
+      "    <priority>1.0</priority>",
+      "  </url>",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    [
+      "  <url>",
+      `    <loc>${escapeXml(origin)}/about</loc>`,
+      "    <changefreq>monthly</changefreq>",
+      "    <priority>0.7</priority>",
+      "  </url>",
+    ].join("\n"),
+  ];
+
+  const totalDirPages = Math.max(1, Math.ceil(indexableStores.length / DIRECTORY_PAGE_SIZE));
+  for (let p = 1; p <= totalDirPages; p++) {
+    const loc = p === 1 ? `${origin}/directory` : `${origin}/directory?page=${p}`;
+    urls.push(
+      [
+        "  <url>",
+        `    <loc>${escapeXml(loc)}</loc>`,
+        latestTimestamp ? `    <lastmod>${escapeXml(latestTimestamp)}</lastmod>` : "",
+        "    <changefreq>daily</changefreq>",
+        `    <priority>${p === 1 ? "0.9" : "0.7"}</priority>`,
+        "  </url>",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    );
+  }
+
+  for (const cat of DIRECTORY_CATEGORIES) {
+    const catCount = indexableStores.filter(
+      (s) => String(s.businessType || "GENERAL").toUpperCase() === cat.enumType
+    ).length;
+    if (catCount === 0) continue;
+    const catPages = Math.max(1, Math.ceil(catCount / DIRECTORY_PAGE_SIZE));
+    for (let p = 1; p <= catPages; p++) {
+      const loc = p === 1 ? `${origin}/directory/${cat.slug}` : `${origin}/directory/${cat.slug}?page=${p}`;
+      urls.push(
+        [
+          "  <url>",
+          `    <loc>${escapeXml(loc)}</loc>`,
+          latestTimestamp ? `    <lastmod>${escapeXml(latestTimestamp)}</lastmod>` : "",
+          "    <changefreq>daily</changefreq>",
+          `    <priority>${p === 1 ? "0.8" : "0.6"}</priority>`,
+          "  </url>",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      );
+    }
+  }
+
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    "  <url>",
-    `    <loc>${escapeXml(origin)}/</loc>`,
-    latestTimestamp ? `    <lastmod>${escapeXml(latestTimestamp)}</lastmod>` : "",
-    "    <changefreq>daily</changefreq>",
-    "    <priority>1.0</priority>",
-    "  </url>",
+    ...urls,
     "</urlset>",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].join("\n");
 }
 
 export function buildPlatformSitemapIndexXml(stores: PlatformStoreSeo[] = []): string {
+  const indexableStores = filterIndexableStores(stores);
   const rootOrigin = `https://${PRIMARY_DOMAIN}`;
   const entries = [
     [
@@ -423,7 +551,7 @@ export function buildPlatformSitemapIndexXml(stores: PlatformStoreSeo[] = []): s
   ];
 
   const seenOrigins = new Set<string>();
-  for (const store of stores) {
+  for (const store of indexableStores) {
     if (!store?.subdomain) continue;
     const storeOrigin = resolveStoreOriginForPlatform(store);
     if (seenOrigins.has(storeOrigin)) continue;
@@ -451,6 +579,13 @@ export function buildPlatformSitemapIndexXml(stores: PlatformStoreSeo[] = []): s
 
 export function buildStorefrontSitemapXml(origin: string, payload: SeoStorefrontPayload): string {
   const { tenant, categories = [], items = [] } = payload;
+  if (items.length === 0) {
+    return [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">',
+      "</urlset>",
+    ].join("\n");
+  }
   const settings = parseSettings(tenant.settings);
   const storeImage = toAbsoluteUrl(settings.bannerUrl || settings.logoUrl, origin);
   const urls: string[] = [];
@@ -724,6 +859,46 @@ function buildItemSchemaNode(
   return productSchema;
 }
 
+function buildStoreDirectoryCardHtml(store: PlatformStoreSeo, origin: string): string {
+  const settings = parseSettings(store.settings);
+  const href = `${resolveStoreOriginForPlatform(store)}/`;
+  const desc = escapeHtml(
+    settings.description || settings.tagline || "Browse products & services and pay directly via M-Pesa."
+  );
+  const initial = escapeHtml((store.name || "S").trim().slice(0, 1).toUpperCase());
+  const badge = escapeHtml((store.businessType || "Store").replace(/_/g, " "));
+  const bannerUrl = toAbsoluteUrl(settings.bannerUrl, origin);
+  const logoUrl = toAbsoluteUrl(settings.logoUrl, origin);
+  const coverStyle = bannerUrl
+    ? `style="background-image: linear-gradient(180deg, rgba(16, 30, 22, 0.2), rgba(16, 30, 22, 0.72)), url('${escapeHtml(bannerUrl)}'); background-size: cover; background-position: center;"`
+    : "";
+  const avatar = logoUrl
+    ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(store.name)}" loading="lazy" decoding="async" class="w-full h-full object-cover rounded-full">`
+    : initial;
+
+  return `
+    <a href="${escapeHtml(href)}" class="platform-store-card bg-white rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer text-left group flex flex-col justify-between no-underline overflow-hidden">
+      <div>
+        <div class="platform-store-cover${bannerUrl ? " has-hero-photo" : ""}" ${coverStyle}>
+          <span class="platform-store-avatar">${avatar}</span>
+          <small>${badge}</small>
+        </div>
+        <div class="platform-store-details">
+          <div>
+            <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors truncate text-sm sm:text-base">${escapeHtml(store.name)}</h4>
+            <span class="text-xs text-slate-400 font-mono truncate block mt-0.5">${escapeHtml(store.subdomain)}.${PRIMARY_DOMAIN}</span>
+          </div>
+          <p class="text-xs sm:text-[13px] text-slate-600 line-clamp-2 leading-relaxed mt-1.5">${desc}</p>
+        </div>
+      </div>
+      <div class="platform-store-card-footer mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm font-bold text-emerald-600">
+        <span class="flex items-center gap-1.5 text-xs sm:text-sm">Visit Storefront</span>
+        <span class="platform-store-live-pill">Open</span>
+      </div>
+    </a>
+  `;
+}
+
 export function buildPlatformSeoData(
   stores: PlatformStoreSeo[],
   isPreview: boolean
@@ -735,6 +910,7 @@ export function buildPlatformSeoData(
   headTagsHtml: string;
   ssrStoresHtml: string;
 } {
+  const indexableStores = filterIndexableStores(stores);
   const origin = `https://${PRIMARY_DOMAIN}`;
   const title = "Store254 | Kenyan Online Stores & M-Pesa Storefronts";
   const description =
@@ -754,6 +930,20 @@ export function buildPlatformSeoData(
         name: "Store254",
         url: `${origin}/`,
         logo: ogImage,
+        email: "kelvin@store254.co.ke",
+        founder: {
+          "@type": "Person",
+          "@id": `${origin}/about#founder`,
+          name: "Kelvin Kamau",
+          jobTitle: "Software Developer, Owner & CEO",
+          email: "kelvin@store254.co.ke",
+          url: `${origin}/about`,
+          sameAs: ["https://github.com/Kelvohkash"],
+        },
+        parentOrganization: {
+          "@type": "Organization",
+          name: "Kayzen Labs Software Company Limited",
+        },
       },
       {
         "@type": "WebSite",
@@ -762,12 +952,12 @@ export function buildPlatformSeoData(
         url: `${origin}/`,
         description,
       },
-      ...(stores.length > 0
+      ...(indexableStores.length > 0
         ? [
             {
               "@type": "ItemList",
               name: "Active Storefronts on Store254",
-              itemListElement: stores.slice(0, 50).map((s, idx) => {
+              itemListElement: indexableStores.slice(0, 50).map((s, idx) => {
                 const settings = parseSettings(s.settings);
                 const storeUrl = `${resolveStoreOriginForPlatform(s)}/`;
                 return {
@@ -801,48 +991,37 @@ export function buildPlatformSeoData(
     `<script type="application/ld+json">${safeJsonLd(graph)}</script>`,
   ].join("");
 
-  const ssrStoresHtml = stores
+  const featuredCardsHtml = indexableStores
     .slice(0, 50)
-    .map((s) => {
-      const settings = parseSettings(s.settings);
-      const href = `${resolveStoreOriginForPlatform(s)}/`;
-      const desc = escapeHtml(
-        settings.description || settings.tagline || "Browse products & services and pay directly via M-Pesa."
-      );
-      const initial = escapeHtml((s.name || "S").trim().slice(0, 1).toUpperCase());
-      const badge = escapeHtml((s.businessType || "Store").replace(/_/g, " "));
-      const bannerUrl = toAbsoluteUrl(settings.bannerUrl, origin);
-      const logoUrl = toAbsoluteUrl(settings.logoUrl, origin);
-      const coverStyle = bannerUrl
-        ? `style="background-image: linear-gradient(180deg, rgba(16, 30, 22, 0.2), rgba(16, 30, 22, 0.72)), url('${escapeHtml(bannerUrl)}'); background-size: cover; background-position: center;"`
-        : "";
-      const avatar = logoUrl
-        ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(s.name)}" class="w-full h-full object-cover rounded-full">`
-        : initial;
-
-      return `
-        <a href="${escapeHtml(href)}" class="platform-store-card bg-white rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer text-left group flex flex-col justify-between no-underline overflow-hidden">
-          <div>
-            <div class="platform-store-cover${bannerUrl ? " has-hero-photo" : ""}" ${coverStyle}>
-              <span class="platform-store-avatar">${avatar}</span>
-              <small>${badge}</small>
-            </div>
-            <div class="platform-store-details">
-              <div>
-                <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors truncate text-sm sm:text-base">${escapeHtml(s.name)}</h4>
-                <span class="text-xs text-slate-400 font-mono truncate block mt-0.5">${escapeHtml(s.subdomain)}.${PRIMARY_DOMAIN}</span>
-              </div>
-              <p class="text-xs sm:text-[13px] text-slate-600 line-clamp-2 leading-relaxed mt-1.5">${desc}</p>
-            </div>
-          </div>
-          <div class="platform-store-card-footer mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm font-bold text-emerald-600">
-            <span class="flex items-center gap-1.5 text-xs sm:text-sm">Visit Storefront</span>
-            <span class="platform-store-live-pill">Open</span>
-          </div>
-        </a>
-      `;
-    })
+    .map((s) => buildStoreDirectoryCardHtml(s, origin))
     .join("");
+
+  const categoryHubLinks = DIRECTORY_CATEGORIES.map((cat) => {
+    const count = indexableStores.filter(
+      (s) => String(s.businessType || "GENERAL").toUpperCase() === cat.enumType
+    ).length;
+    if (count === 0) return "";
+    return `<a href="/directory/${cat.slug}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 transition-colors no-underline">${escapeHtml(cat.label)} (${count})</a>`;
+  })
+    .filter(Boolean)
+    .join("");
+
+  const directoryFooterHtml =
+    indexableStores.length > 0
+      ? `<nav aria-label="Store254 Marketplace Directory" class="col-span-full mt-4 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <a href="/directory" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors no-underline">All Verified Stores (${indexableStores.length})</a>
+            ${categoryHubLinks}
+          </div>
+          ${
+            indexableStores.length > 50
+              ? `<a href="/directory?page=2" class="text-xs font-semibold text-emerald-700 hover:underline no-underline">Next Page &rarr;</a>`
+              : ""
+          }
+        </nav>`
+      : "";
+
+  const ssrStoresHtml = `${featuredCardsHtml}${directoryFooterHtml}`;
 
   return {
     title,
@@ -852,6 +1031,301 @@ export function buildPlatformSeoData(
     headTagsHtml,
     ssrStoresHtml,
   };
+}
+
+export function buildPlatformDirectoryHtml(
+  stores: PlatformStoreSeo[],
+  options: { categorySlug?: string; page?: number; isPreview?: boolean } = {}
+): {
+  status: number;
+  html: string;
+  robots: string;
+} {
+  const indexableStores = filterIndexableStores(stores);
+  const rawSlug = String(options.categorySlug || "").toLowerCase().trim();
+  const matchedCategory = rawSlug ? DIRECTORY_CATEGORIES.find((c) => c.slug === rawSlug) || null : null;
+
+  if (rawSlug && !matchedCategory) {
+    return {
+      status: 404,
+      robots: "noindex, nofollow",
+      html: `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, nofollow"><title>Directory Category Not Found | Store254</title></head><body style="font-family:system-ui,sans-serif;padding:2rem;text-align:center;"><h1>Directory Category Not Found</h1><p><a href="https://${PRIMARY_DOMAIN}/directory">Browse All Store254 Stores</a></p></body></html>`,
+    };
+  }
+
+  const filtered = matchedCategory
+    ? indexableStores.filter((s) => String(s.businessType || "GENERAL").toUpperCase() === matchedCategory.enumType)
+    : indexableStores;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / DIRECTORY_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, Math.floor(Number(options.page) || 1)), totalPages);
+  const start = (currentPage - 1) * DIRECTORY_PAGE_SIZE;
+  const pageStores = filtered.slice(start, start + DIRECTORY_PAGE_SIZE);
+
+  const origin = `https://${PRIMARY_DOMAIN}`;
+  const basePath = matchedCategory ? `/directory/${matchedCategory.slug}` : "/directory";
+  const canonicalUrl = currentPage > 1 ? `${origin}${basePath}?page=${currentPage}` : `${origin}${basePath}`;
+  const prevUrl =
+    currentPage > 1
+      ? currentPage === 2
+        ? `${origin}${basePath}`
+        : `${origin}${basePath}?page=${currentPage - 1}`
+      : null;
+  const nextUrl = currentPage < totalPages ? `${origin}${basePath}?page=${currentPage + 1}` : null;
+
+  const robots = options.isPreview
+    ? "noindex, nofollow"
+    : "index, follow, max-image-preview:large, max-snippet:-1";
+
+  const categoryTitle = matchedCategory ? `${matchedCategory.label} Online Stores` : "Kenyan Online Stores Directory";
+  const pageSuffix = currentPage > 1 ? ` — Page ${currentPage}` : "";
+  const title = `${categoryTitle}${pageSuffix} | Store254`;
+  const description = truncateSeoText(
+    `Browse ${filtered.length} verified ${matchedCategory ? `${matchedCategory.label.toLowerCase()} ` : ""}Kenyan businesses selling on Store254 with M-Pesa checkout.`
+  );
+
+  const graph = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": `${canonicalUrl}#page`,
+        url: canonicalUrl,
+        name: title,
+        description,
+        isPartOf: { "@id": `${origin}/#website` },
+      },
+      {
+        "@type": "ItemList",
+        name: categoryTitle,
+        numberOfItems: pageStores.length,
+        itemListElement: pageStores.map((store, idx) => ({
+          "@type": "ListItem",
+          position: start + idx + 1,
+          url: `${resolveStoreOriginForPlatform(store)}/`,
+          name: store.name,
+        })),
+      },
+    ],
+  };
+
+  const tabsHtml = [
+    `<a href="/directory" style="padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none;${!matchedCategory ? "background:#059669;color:#fff;" : "background:#f1f5f9;color:#334155;"}">All Stores (${indexableStores.length})</a>`,
+    ...DIRECTORY_CATEGORIES.map((cat) => {
+      const count = indexableStores.filter(
+        (s) => String(s.businessType || "GENERAL").toUpperCase() === cat.enumType
+      ).length;
+      const isActive = matchedCategory?.slug === cat.slug;
+      return `<a href="/directory/${cat.slug}" style="padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;text-decoration:none;${isActive ? "background:#059669;color:#fff;" : "background:#f1f5f9;color:#334155;"}">${escapeHtml(cat.label)} (${count})</a>`;
+    }),
+  ].join("");
+
+  const cardsHtml =
+    pageStores.length > 0
+      ? pageStores
+          .map((s) => {
+            const settings = parseSettings(s.settings);
+            const href = `${resolveStoreOriginForPlatform(s)}/`;
+            const desc = escapeHtml(
+              truncateSeoText(settings.description || settings.tagline || "Verified Kenyan business on Store254", 120)
+            );
+            const catLabel = escapeHtml((s.businessType || "Store").replace(/_/g, " "));
+            return `<article style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+              <div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#059669;margin-bottom:4px;">${catLabel}</div>
+                <h2 style="margin:0;font-size:16px;font-weight:700;color:#0f172a;"><a href="${escapeHtml(href)}" style="color:inherit;text-decoration:none;">${escapeHtml(s.name)}</a></h2>
+                <div style="font-size:12px;color:#64748b;font-family:monospace;margin-top:2px;">${escapeHtml(s.subdomain)}.${PRIMARY_DOMAIN}</div>
+                <p style="margin:8px 0 0;font-size:13px;color:#475569;line-height:1.45;">${desc}</p>
+              </div>
+              <a href="${escapeHtml(href)}" style="font-size:13px;font-weight:700;color:#059669;text-decoration:none;">Visit Store &rarr;</a>
+            </article>`;
+          })
+          .join("")
+      : `<p style="color:#64748b;">No stores with published items listed in this category yet.</p>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
+  ${prevUrl ? `<link rel="prev" href="${escapeHtml(prevUrl)}">` : ""}
+  ${nextUrl ? `<link rel="next" href="${escapeHtml(nextUrl)}">` : ""}
+  <meta name="robots" content="${escapeHtml(robots)}">
+  <script type="application/ld+json">${safeJsonLd(graph)}</script>
+</head>
+<body style="margin:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,sans-serif;">
+  <header style="background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 20px;">
+    <div style="max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <a href="/" style="font-weight:800;font-size:18px;color:#059669;text-decoration:none;">Store254.co.ke</a>
+      <a href="/" style="font-size:13px;font-weight:600;color:#334155;text-decoration:none;">Launch Your Free Store &rarr;</a>
+    </div>
+  </header>
+  <main style="max-width:1180px;margin:0 auto;padding:28px 20px;">
+    <h1 style="margin:0 0 8px;font-size:28px;font-weight:800;">${escapeHtml(categoryTitle)}</h1>
+    <p style="margin:0 0 20px;color:#475569;font-size:15px;">${escapeHtml(description)}</p>
+    <nav aria-label="Directory categories" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;">${tabsHtml}</nav>
+    <section style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">${cardsHtml}</section>
+    <nav aria-label="Pagination" style="display:flex;align-items:center;justify-content:space-between;margin-top:28px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:14px;">
+      <span>Page ${currentPage} of ${totalPages} (${filtered.length} stores)</span>
+      <div style="display:flex;gap:16px;">
+        ${prevUrl ? `<a href="${escapeHtml(prevUrl)}" style="color:#059669;font-weight:700;text-decoration:none;">&larr; Previous</a>` : ""}
+        ${nextUrl ? `<a href="${escapeHtml(nextUrl)}" style="color:#059669;font-weight:700;text-decoration:none;">Next &rarr;</a>` : ""}
+      </div>
+    </nav>
+  </main>
+</body>
+</html>`;
+
+  return { status: 200, html, robots };
+}
+
+export function buildPlatformAboutHtml(isPreview = false): {
+  status: number;
+  html: string;
+  robots: string;
+} {
+  const origin = `https://${PRIMARY_DOMAIN}`;
+  const canonicalUrl = `${origin}/about`;
+  const robots = isPreview
+    ? "noindex, nofollow"
+    : "index, follow, max-image-preview:large, max-snippet:-1";
+  const title = "About Store254 — Founded by Kelvin Kamau | Kayzen Labs Software Company Limited";
+  const description =
+    "Learn about Store254, Kenya's storefront and M-Pesa e-commerce platform created by Kelvin Kamau (Software Developer, Owner & CEO) under Kayzen Labs Software Company Limited.";
+  const ogImage = `${origin}/assets/store254Logo.webp`;
+
+  const graph = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "AboutPage",
+        "@id": `${canonicalUrl}#webpage`,
+        url: canonicalUrl,
+        name: title,
+        description,
+        isPartOf: { "@id": `${origin}/#website` },
+        mainEntity: { "@id": `${origin}/#organization` },
+      },
+      {
+        "@type": "Organization",
+        "@id": `${origin}/#organization`,
+        name: "Store254",
+        url: `${origin}/`,
+        logo: ogImage,
+        email: "kelvin@store254.co.ke",
+        description:
+          "Store254 empowers Kenyan merchants and service providers to launch fast, search-indexed online storefronts with M-Pesa checkout.",
+        founder: { "@id": `${canonicalUrl}#founder` },
+        parentOrganization: { "@id": `${canonicalUrl}#company` },
+      },
+      {
+        "@type": "Organization",
+        "@id": `${canonicalUrl}#company`,
+        name: "Kayzen Labs Software Company Limited",
+        founder: { "@id": `${canonicalUrl}#founder` },
+      },
+      {
+        "@type": "Person",
+        "@id": `${canonicalUrl}#founder`,
+        name: "Kelvin Kamau",
+        jobTitle: "Software Developer, Owner & CEO",
+        description:
+          "Kelvin Kamau is a Kenyan software developer and the founder, owner, and CEO of Store254 and Kayzen Labs Software Company Limited.",
+        email: "kelvin@store254.co.ke",
+        url: canonicalUrl,
+        worksFor: { "@id": `${canonicalUrl}#company` },
+        owns: { "@id": `${origin}/#organization` },
+        sameAs: ["https://github.com/Kelvohkash"],
+      },
+    ],
+  };
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
+  <meta name="robots" content="${escapeHtml(robots)}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Store254">
+  <meta property="og:locale" content="en_KE">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+  <meta property="og:image" content="${escapeHtml(ogImage)}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
+  <script type="application/ld+json">${safeJsonLd(graph)}</script>
+</head>
+<body style="margin:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;">
+  <header style="background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 20px;">
+    <div style="max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <a href="/" style="font-weight:800;font-size:18px;color:#059669;text-decoration:none;">Store254.co.ke</a>
+      <div style="display:flex;gap:16px;font-size:13px;font-weight:600;">
+        <a href="/directory" style="color:#334155;text-decoration:none;">Store Directory</a>
+        <a href="/" style="color:#059669;text-decoration:none;">Launch Your Store &rarr;</a>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width:960px;margin:0 auto;padding:36px 20px 56px;">
+    <section style="background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:32px;margin-bottom:24px;">
+      <span style="display:inline-block;padding:4px 12px;border-radius:999px;background:#ecfdf5;color:#047857;font-size:12px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;">About Store254</span>
+      <h1 style="margin:12px 0 12px;font-size:32px;line-height:1.2;font-weight:800;color:#0f172a;">Empowering Kenyan Businesses to Sell Online</h1>
+      <p style="margin:0 0 14px;color:#475569;font-size:16px;">
+        <strong>Store254</strong> (<a href="https://store254.co.ke/" style="color:#059669;text-decoration:none;">store254.co.ke</a>) is a Kenyan e-commerce and digital storefront platform built to help local retailers, boutiques, electronics shops, furniture makers, and service providers launch professional online stores in minutes.
+      </p>
+      <p style="margin:0;color:#475569;font-size:15px;">
+        Every business on Store254 receives an independent branded web address (such as <code style="background:#f1f5f9;padding:2px 6px;border-radius:6px;font-size:13px;">yourbusiness.store254.co.ke</code>) or custom domain mapping, integrated M-Pesa checkout, automatic WebP image optimization, and full Google Search indexing for every storefront, category, product, and service.
+      </p>
+    </section>
+
+    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:24px;">
+      <article style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px;">
+        <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">Built for Local Commerce</h2>
+        <p style="margin:0;color:#475569;font-size:14px;">Designed around Kenyan shopping habits with fast mobile loading, WhatsApp-friendly sharing links, and seamless M-Pesa payments.</p>
+      </article>
+      <article style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px;">
+        <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">Search-Engine Ready</h2>
+        <p style="margin:0;color:#475569;font-size:14px;">Every active merchant store gets dedicated sitemaps, structured Product and Service schema, and clean URLs so customers find local businesses directly on Google.</p>
+      </article>
+      <article style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px;">
+        <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">Edge Speed &amp; Reliability</h2>
+        <p style="margin:0;color:#475569;font-size:14px;">Powered by global edge caching and automated media compression so storefronts open quickly even on mobile data connections.</p>
+      </article>
+    </section>
+
+    <section style="background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:30px;">
+      <h2 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#0f172a;">Founder &amp; Operating Company</h2>
+      <p style="margin:0 0 12px;color:#334155;font-size:15px;">
+        Store254 was created by <strong>Kelvin Kamau</strong>, a Kenyan <strong>Software Developer</strong> and the <strong>Owner &amp; CEO</strong> of the platform.
+      </p>
+      <p style="margin:0 0 18px;color:#475569;font-size:15px;">
+        The platform is developed and operated under <strong>Kayzen Labs Software Company Limited</strong>, focused on building reliable, scalable digital infrastructure for African businesses.
+      </p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;flex-wrap:wrap;gap:18px;font-size:14px;color:#334155;">
+        <div><strong>Founder &amp; CEO:</strong> Kelvin Kamau (Software Developer)</div>
+        <div><strong>Company:</strong> Kayzen Labs Software Company Limited</div>
+        <div><strong>Email:</strong> <a href="mailto:kelvin@store254.co.ke" style="color:#059669;font-weight:600;text-decoration:none;">kelvin@store254.co.ke</a></div>
+      </div>
+    </section>
+  </main>
+
+  <footer style="border-top:1px solid #e2e8f0;background:#fff;padding:18px 20px;text-align:center;font-size:13px;color:#64748b;">
+    &copy; 2026 Store254.co.ke &bull; Kayzen Labs Software Company Limited &bull; Nairobi, Kenya
+  </footer>
+</body>
+</html>`;
+
+  return { status: 200, html, robots };
 }
 
 function buildSsrCategoryLinksHtml(categories: SeoCategory[], activeSlug = ""): string {
@@ -986,7 +1460,9 @@ export function buildStorefrontSeoData(options: {
     toAbsoluteUrl(settings.bannerUrl || settings.logoUrl, origin) || `${origin}/assets/store254Logo.webp`;
   const robotsBase = isPreview
     ? "noindex, nofollow"
-    : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+    : items.length === 0
+      ? "noindex, follow"
+      : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 
   const categoryById = new Map<string, SeoCategory>(categories.map((c) => [c.id, c]));
   const storeNode = buildStoreSchemaNode(origin, tenant);
