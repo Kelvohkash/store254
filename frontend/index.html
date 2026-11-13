@@ -103,12 +103,18 @@
       </div>
 
       <nav class="platform-nav-links hidden lg:flex items-center gap-5" aria-label="Main navigation">
+        <a href="#platform-stores-section">Active stores</a>
+        <a href="#platform-demo-stores-section">Demo stores</a>
+        <a href="#platform-benefit-strip">Why Store254</a>
         <button type="button" class="platform-header-cta" onclick="toggleDrawer('onboard-modal', true)">Open your store <i data-lucide="arrow-up-right"></i></button>
       </nav>
 
-      <button id="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="platform-mobile-menu fashion-mobile-menu" aria-expanded="false" onclick="toggleStorefrontMenu()">
-        <i id="mobile-menu-icon" data-lucide="menu" class="w-5 h-5"></i>
-      </button>
+      <div class="platform-mobile-controls">
+        <button type="button" class="platform-mobile-cta" onclick="toggleDrawer('onboard-modal', true)">Open store <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i></button>
+        <button id="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="platform-mobile-menu fashion-mobile-menu" aria-expanded="false" onclick="toggleStorefrontMenu()">
+          <i id="mobile-menu-icon" data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
 
       <!-- Action Navigation Buttons -->
       <div id="header-actions" class="flex items-center gap-2 sm:gap-3">
@@ -155,7 +161,10 @@
     </nav>
 
     <nav id="platform-mobile-menu" class="platform-mobile-menu" aria-label="Mobile navigation" hidden>
-      <button type="button" onclick="togglePlatformMobileMenu(false); toggleDrawer('onboard-modal', true)">Open your store <i data-lucide="arrow-up-right" class="w-4 h-4"></i></button>
+      <a href="#platform-stores-section" onclick="togglePlatformMobileMenu(false)"><span>Active storefronts</span><i data-lucide="store" class="w-4 h-4"></i></a>
+      <a href="#platform-demo-stores-section" onclick="togglePlatformMobileMenu(false)"><span>Demo businesses</span><i data-lucide="sparkles" class="w-4 h-4"></i></a>
+      <a href="#platform-benefit-strip" onclick="togglePlatformMobileMenu(false)"><span>Why Store254</span><i data-lucide="shield-check" class="w-4 h-4"></i></a>
+      <button type="button" onclick="togglePlatformMobileMenu(false); toggleDrawer('onboard-modal', true)"><span>Open your store</span><i data-lucide="arrow-up-right" class="w-4 h-4"></i></button>
     </nav>
   </header>
 
@@ -232,10 +241,19 @@
         <h1><span class="hero-heading-ink">Every Hustle<br class="desktop-headline-break"><br class="mobile-headline-break">has a home<br class="desktop-headline-break"> here</span></h1>
         <p class="platform-summary">Claim your free store domain, showcase your products and start selling online with your own storefront website</p>
         <div class="platform-hero-actions">
-        <button onclick="toggleDrawer('onboard-modal', true)" class="platform-primary">
-          <span>Open your store</span>
-          <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
-        </button>
+          <button type="button" onclick="toggleDrawer('onboard-modal', true)" class="platform-primary">
+            <span>Open your store</span>
+            <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+          </button>
+          <a href="#platform-stores-section" class="platform-secondary">
+            <span>Browse storefronts</span>
+            <i data-lucide="arrow-down" class="w-4 h-4"></i>
+          </a>
+        </div>
+        <div class="platform-hero-proof" aria-label="Platform highlights">
+          <span><i data-lucide="globe"></i> Free .store254.co.ke domain</span>
+          <span><i data-lucide="smartphone"></i> Direct M-Pesa Till &amp; Paybill</span>
+          <span><i data-lucide="zap"></i> Live in 3 minutes</span>
         </div>
       </div>
       <div class="platform-showcase-art" aria-label="A preview of independent Kenyan storefronts">
@@ -250,20 +268,39 @@
     <!-- Platform Benefit Strip -->
     <section id="platform-benefit-strip" class="platform-benefit-strip" aria-label="Why Store254">
       <article>
-        <span class="benefit-number">01 / SUBDOMAIN & SSL</span>
+        <span class="benefit-number">01 / SUBDOMAIN &amp; SSL</span>
         <h2>Claim your Kenyan store subdomain</h2>
-        <p>Get a clean, branded address like yourbrand.store254.co.ke with automated SSL, lightning CDN, and zero hosting fees.</p>
+        <p>Get a clean, branded address like yourbrand.store254.co.ke with automated SSL, fast CDN, and zero hosting fees.</p>
       </article>
       <article>
         <span class="benefit-number">02 / M-PESA CHECKOUT</span>
         <h2>Direct M-Pesa STK push payments</h2>
-        <p>Customers checkout with their Safaricom number and pay instantly into your Till or Paybill with real-time confirmation.</p>
+        <p>Customers check out with their Safaricom number and pay directly into your Till or Paybill with instant confirmation.</p>
       </article>
       <article>
-        <span class="benefit-number">03 / 11 CURATED THEMES</span>
-        <h2>Automatic contrast-safe styles</h2>
-        <p>Pick any foreground and background color without fear. Our visibility engine guarantees crisp contrast every time.</p>
+        <span class="benefit-number">03 / BRAND &amp; MOBILE READY</span>
+        <h2>Brand colours &amp; mobile-first storefront</h2>
+        <p>Set your accent colour, upload a hero banner, and launch a clean, high-contrast catalog built for phone shoppers.</p>
       </article>
+    </section>
+
+    <!-- Platform Stores Section -->
+    <section id="platform-stores-section" class="platform-stores-section" aria-labelledby="platform-stores-title">
+      <div class="platform-stores-heading">
+        <div>
+          <p class="platform-eyebrow">DISCOVER KENYAN SELLERS</p>
+          <h2 id="platform-stores-title">Explore active storefronts</h2>
+        </div>
+        <p>Support independent entrepreneurs, makers, and boutiques across Nairobi, Mombasa, and beyond.</p>
+      </div>
+      <div id="platform-directory-toolbar" class="platform-directory-toolbar hidden">
+        <div class="platform-directory-search">
+          <i data-lucide="search" class="w-4 h-4"></i>
+          <input id="platform-store-search" type="search" placeholder="Search active stores..." oninput="filterPlatformStores()" aria-label="Search active storefronts" />
+        </div>
+        <div id="platform-type-filters" class="platform-type-filters" role="group" aria-label="Filter stores by business type"></div>
+      </div>
+      <div id="platform-stores-grid" class="platform-stores-grid" aria-live="polite"></div>
     </section>
 
     <!-- Demo Businesses Section -->
@@ -276,18 +313,6 @@
         <p>Explore sample stores across fashion, electronics, salons, services, and more.</p>
       </div>
       <div id="demo-stores-grid" class="platform-stores-grid" aria-live="polite"></div>
-    </section>
-
-    <!-- Platform Stores Section -->
-    <section id="platform-stores-section" class="platform-stores-section" aria-labelledby="platform-stores-title">
-      <div class="platform-stores-heading">
-        <div>
-          <p class="platform-eyebrow">DISCOVER KENYAN SELLERS</p>
-          <h2 id="platform-stores-title">Explore active storefronts</h2>
-        </div>
-        <p>Support independent entrepreneurs, makers, and boutiques across Nairobi, Mombasa, and beyond.</p>
-      </div>
-      <div id="platform-stores-grid" class="platform-stores-grid" aria-live="polite"></div>
     </section>
 
     <!-- Platform Seller Callout -->

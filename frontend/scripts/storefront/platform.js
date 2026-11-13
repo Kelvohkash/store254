@@ -98,15 +98,13 @@ function renderFeaturedStoreShowcase(stores) {
 
     const productRow = document.createElement("div");
     productRow.className = "showcase-product-row";
-    ["", "mini-rose", "mini-olive"].forEach((tone) => {
-      const swatch = document.createElement("span");
-      swatch.className = `showcase-mini-product ${tone}`.trim();
-      productRow.append(swatch);
-    });
+    const domainBadge = document.createElement("span");
+    domainBadge.className = "showcase-domain-pill";
+    domainBadge.textContent = validSlug ? `${store.subdomain}.store254.co.ke` : "store254.co.ke";
     const label = document.createElement("span");
     label.className = "showcase-product-label";
-    label.textContent = "Shop this store";
-    productRow.append(label);
+    label.textContent = "M-Pesa ready";
+    productRow.append(domainBadge, label);
     slide.append(image, details, productRow);
     carousel.append(slide);
 
@@ -197,11 +195,102 @@ function renderStoreCardMarkup(s, index) {
           <span>Visit Storefront</span>
           <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
         </span>
-        <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider">${escapeHtml(s.businessType || "Store")}</span>
+        <span class="platform-store-live-pill">Open</span>
       </div>
     </a>
   `;
 }
+
+let platformLiveStoresCache = [];
+let platformActiveTypeFilter = "";
+
+function formatBusinessTypeLabel(type) {
+  return String(type || "Store")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function renderPlatformDirectoryFilters(liveStores) {
+  const toolbar = document.getElementById("platform-directory-toolbar");
+  const filtersEl = document.getElementById("platform-type-filters");
+  if (!toolbar || !filtersEl) return;
+
+  if (!Array.isArray(liveStores) || liveStores.length < 2) {
+    toolbar.classList.add("hidden");
+    filtersEl.innerHTML = "";
+    return;
+  }
+
+  toolbar.classList.remove("hidden");
+  const types = Array.from(new Set(liveStores.map((s) => String(s.businessType || "GENERAL").toUpperCase())));
+  const buttons = [
+    `<button type="button" onclick="setPlatformTypeFilter('')" class="platform-type-chip ${platformActiveTypeFilter === "" ? "is-active" : ""}">All (${liveStores.length})</button>`,
+    ...types.map((t) => {
+      const count = liveStores.filter((s) => String(s.businessType || "GENERAL").toUpperCase() === t).length;
+      return `<button type="button" onclick="setPlatformTypeFilter(${inlineJs(t)})" class="platform-type-chip ${platformActiveTypeFilter === t ? "is-active" : ""}">${escapeHtml(formatBusinessTypeLabel(t))} (${count})</button>`;
+    }),
+  ];
+  filtersEl.innerHTML = buttons.join("");
+}
+
+function setPlatformTypeFilter(type) {
+  platformActiveTypeFilter = type || "";
+  renderPlatformDirectoryFilters(platformLiveStoresCache);
+  filterPlatformStores();
+}
+window.setPlatformTypeFilter = setPlatformTypeFilter;
+
+function filterPlatformStores() {
+  const liveContainer = document.getElementById("platform-stores-grid");
+  if (!liveContainer) return;
+
+  if (platformLiveStoresCache.length === 0) {
+    liveContainer.innerHTML = `
+      <div class="col-span-full bg-white rounded-2xl p-6 border border-slate-200 text-center shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2.5">
+          <i data-lucide="store" class="w-5 h-5"></i>
+        </div>
+        <h4 class="font-bold text-slate-900 text-sm">Your store could be here</h4>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
+          Create a dedicated storefront for your products and services.
+        </p>
+        <button onclick="toggleDrawer('onboard-modal', true)" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all inline-flex items-center gap-1.5">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+          <span>Onboard Your Store</span>
+        </button>
+      </div>
+    `;
+    renderIcons();
+    return;
+  }
+
+  const q = (document.getElementById("platform-store-search")?.value || "").toLowerCase().trim();
+  const filtered = platformLiveStoresCache.filter((s) => {
+    const typeMatch = !platformActiveTypeFilter || String(s.businessType || "GENERAL").toUpperCase() === platformActiveTypeFilter;
+    if (!typeMatch) return false;
+    if (!q) return true;
+    const haystack = `${s.name || ""} ${s.subdomain || ""} ${s.description || ""} ${s.businessType || ""}`.toLowerCase();
+    return haystack.includes(q);
+  });
+
+  if (filtered.length === 0) {
+    liveContainer.innerHTML = `
+      <div class="col-span-full bg-white rounded-2xl p-6 border border-slate-200 text-center shadow-sm">
+        <p class="font-bold text-slate-800 text-sm">No matching storefronts found</p>
+        <p class="text-xs text-slate-500 mt-1">Try another search term or clear your category filter.</p>
+        <button type="button" onclick="document.getElementById('platform-store-search').value=''; setPlatformTypeFilter('');" class="mt-3 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all">
+          Reset filters
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  liveContainer.innerHTML = filtered.map(renderStoreCardMarkup).join("");
+  renderIcons();
+}
+window.filterPlatformStores = filterPlatformStores;
 
 async function loadPlatformStores() {
   const liveContainer = document.getElementById("platform-stores-grid");
@@ -224,29 +313,10 @@ async function loadPlatformStores() {
     demoStores = DEMO_STORES_FALLBACK;
   }
 
+  platformLiveStoresCache = liveStores;
   renderFeaturedStoreShowcase(liveStores.length > 0 ? liveStores : demoStores);
-
-  if (liveContainer) {
-    if (liveStores.length === 0) {
-      liveContainer.innerHTML = `
-        <div class="col-span-full bg-white rounded-2xl p-6 border border-slate-200 text-center shadow-sm">
-          <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2.5">
-            <i data-lucide="store" class="w-5 h-5"></i>
-          </div>
-          <h4 class="font-bold text-slate-900 text-sm">Your store could be here</h4>
-          <p class="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
-            Create a dedicated storefront for your products and services.
-          </p>
-          <button onclick="toggleDrawer('onboard-modal', true)" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all inline-flex items-center gap-1.5">
-            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-            <span>Onboard Your Store</span>
-          </button>
-        </div>
-      `;
-    } else {
-      liveContainer.innerHTML = liveStores.map(renderStoreCardMarkup).join("");
-    }
-  }
+  renderPlatformDirectoryFilters(liveStores);
+  filterPlatformStores();
 
   if (demoContainer) {
     demoContainer.innerHTML = demoStores.map(renderStoreCardMarkup).join("");

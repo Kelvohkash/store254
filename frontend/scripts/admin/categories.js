@@ -160,6 +160,98 @@ async function handleSaveAttributeDefinition(event) {
 }
 
 let expandedAdminCategories = new Set();
+let categoriesViewMode = 'all';
+
+function setCategoriesViewMode(mode) {
+  categoriesViewMode = mode || 'all';
+  categoriesCurrentPage = 1;
+  ['all', 'categories', 'filters'].forEach((key) => {
+    const btn = document.getElementById(`cat-view-${key}`);
+    if (btn) btn.className = `text-xs ${categoriesViewMode === key ? 'btn-primary' : 'btn-secondary'}`;
+  });
+  renderCategoriesTable(flatCategories);
+}
+window.setCategoriesViewMode = setCategoriesViewMode;
+
+function formatAttributeTypeLabel(type) {
+  const labels = {
+    SELECT: 'Choice list',
+    MULTISELECT: 'Multi-select',
+    TEXT: 'Text',
+    NUMBER: 'Number',
+    BOOLEAN: 'Yes / No',
+    RANGE: 'Range',
+  };
+  return labels[type] || type || 'Text';
+}
+
+function updateCategoriesCountBadge(mainCatCount, filterCount) {
+  const badge = document.getElementById('categories-count-badge');
+  if (!badge) return;
+  if (categoriesViewMode === 'filters') {
+    badge.textContent = filterCount ? `${filterCount} filter${filterCount === 1 ? '' : 's'}` : '';
+  } else if (categoriesViewMode === 'categories') {
+    badge.textContent = mainCatCount ? `${mainCatCount} categor${mainCatCount === 1 ? 'y' : 'ies'}` : '';
+  } else {
+    const parts = [];
+    if (mainCatCount) parts.push(`${mainCatCount} cat${mainCatCount === 1 ? '' : 's'}`);
+    if (filterCount) parts.push(`${filterCount} filter${filterCount === 1 ? '' : 's'}`);
+    badge.textContent = parts.join(' · ');
+  }
+}
+
+function renderFilterRowHtml(f, { parentId = '', parentLabel = 'All categories', isSubfilter = false, isVisible = true, isFlatList = false } = {}) {
+  const borderClass = isFlatList
+    ? ''
+    : isSubfilter
+      ? 'pl-7 border-l-2 border-purple-400'
+      : f.categoryId
+        ? 'pl-4 border-l-2 border-purple-500'
+        : 'pl-4 border-l-2 border-emerald-500';
+  const iconTone = f.categoryId
+    ? 'bg-purple-50 text-purple-700 border-purple-200'
+    : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  const typeLabel = formatAttributeTypeLabel(f.type || 'TEXT');
+  const optionsText = Array.isArray(f.options) && f.options.length ? f.options.join(', ') : '';
+
+  return `
+    <tr class="admin-cat-row admin-cat-filter ${isSubfilter ? 'admin-cat-subfilter' : ''} ${isFlatList ? 'admin-cat-filter-flat' : ''} ${isVisible ? 'is-visible' : 'is-collapsed'}" data-parent-id="${escHtml(parentId)}">
+      <td data-label="Category" class="px-5 py-2.5 font-normal text-slate-800 text-sm">
+        <div class="admin-cat-filter-main flex items-center gap-2 ${borderClass}">
+          ${isSubfilter && !isFlatList ? '<span class="text-purple-500 font-bold shrink-0">↳</span>' : ''}
+          <span class="w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${iconTone}">
+            <i data-lucide="sliders-horizontal" class="w-3 h-3"></i>
+          </span>
+          <div class="admin-cat-filter-copy min-w-0">
+            <div class="admin-cat-filter-title-row flex items-center gap-1.5 flex-wrap">
+              <span class="font-bold text-slate-800 text-sm">${escHtml(f.name)}</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${f.isFilterable ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}">
+                ${f.isFilterable ? 'Filter' : 'Spec'}
+              </span>
+              <span class="admin-cat-type-chip text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">${escHtml(typeLabel)}</span>
+              ${f.unit ? `<span class="text-[11px] text-slate-500 font-medium">(${escHtml(f.unit)})</span>` : ''}
+            </div>
+            ${optionsText ? `<p class="admin-cat-filter-options text-[11px] text-slate-500 mt-0.5" title="${escHtml(optionsText)}">${escHtml(optionsText)}</p>` : ''}
+          </div>
+        </div>
+      </td>
+      <td data-label="Slug" class="px-5 py-2.5 text-xs text-slate-500 font-mono">${escHtml(typeLabel)}</td>
+      <td data-label="Parent" class="px-5 py-2.5 text-xs text-slate-500">${escHtml(parentLabel)}</td>
+      <td data-label="Actions" class="px-5 py-2.5 text-right" onclick="event.stopPropagation()">
+        <div class="admin-cat-actions-wrap inline-flex items-center justify-end gap-1.5">
+          <button type="button" onclick="editAttributeDefinition(${inlineJs(f.id)})" class="admin-cat-action-edit text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all">
+            <i data-lucide="pencil" class="w-3.5 h-3.5 md:hidden"></i>
+            <span>Edit</span>
+          </button>
+          <button type="button" onclick="deleteAttributeDefinition(${inlineJs(f.id)}, ${inlineJs(f.name)})" class="admin-cat-action-delete text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all" aria-label="Delete ${escHtml(f.name)}" title="Delete filter">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5 md:hidden"></i>
+            <span class="admin-action-label-desktop">Delete</span>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
 
 function toggleAdminCategory(catId) {
   if (expandedAdminCategories.has(catId)) {
@@ -173,11 +265,62 @@ function toggleAdminCategory(catId) {
 function renderCategoriesTable(cats) {
   const tbody = document.getElementById('categories-table-body');
   if (!tbody) return;
-  const mainCats = (cats || []).filter(c => !c.parentId);
-  const globalFilters = (attributeDefinitionsCache || []).filter(f => !f.categoryId);
+  const allCats = cats || [];
+  const mainCats = allCats.filter(c => !c.parentId);
+  const allFilters = attributeDefinitionsCache || [];
+  const globalFilters = allFilters.filter(f => !f.categoryId);
 
-  if (!mainCats.length && !globalFilters.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="px-5 py-10 text-center text-slate-400">No categories or filters configured yet.</td></tr>';
+  updateCategoriesCountBadge(mainCats.length, allFilters.length);
+
+  if (categoriesViewMode === 'filters') {
+    if (!allFilters.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="px-5 py-10 text-center text-slate-400">No product filters configured yet.</td></tr>';
+      renderPaginationControls({
+        containerId: 'categories-pagination',
+        currentPage: 1,
+        totalPages: 0,
+        totalItems: 0,
+        itemsPerPage: categoriesPerPage,
+        onPageChange: 'setCategoriesPage'
+      });
+      return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(allFilters.length / categoriesPerPage));
+    if (categoriesCurrentPage > totalPages) categoriesCurrentPage = totalPages;
+    if (categoriesCurrentPage < 1) categoriesCurrentPage = 1;
+
+    const startIdx = (categoriesCurrentPage - 1) * categoriesPerPage;
+    const pageFilters = allFilters.slice(startIdx, startIdx + categoriesPerPage);
+
+    tbody.innerHTML = pageFilters.map((f) => {
+      const cat = f.categoryId ? allCats.find(c => c.id === f.categoryId) : null;
+      return renderFilterRowHtml(f, {
+        parentId: f.categoryId || '__global__',
+        parentLabel: cat ? cat.name : 'All categories',
+        isSubfilter: Boolean(cat?.parentId),
+        isVisible: true,
+        isFlatList: true,
+      });
+    }).join('');
+
+    renderPaginationControls({
+      containerId: 'categories-pagination',
+      currentPage: categoriesCurrentPage,
+      totalPages,
+      totalItems: allFilters.length,
+      itemsPerPage: categoriesPerPage,
+      onPageChange: 'setCategoriesPage'
+    });
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    return;
+  }
+
+  const showFiltersInTree = categoriesViewMode !== 'categories';
+
+  if (!mainCats.length && (!showFiltersInTree || !globalFilters.length)) {
+    tbody.innerHTML = '<tr><td colspan="4" class="px-5 py-10 text-center text-slate-400">No categories configured yet.</td></tr>';
     renderPaginationControls({
       containerId: 'categories-pagination',
       currentPage: 1,
@@ -199,20 +342,23 @@ function renderCategoriesTable(cats) {
   let rowsHtml = '';
 
   // Render Global Filters section at top of Page 1
-  if (categoriesCurrentPage === 1 && (globalFilters.length > 0 || mainCats.length > 0)) {
+  if (showFiltersInTree && categoriesCurrentPage === 1 && (globalFilters.length > 0 || mainCats.length > 0)) {
     const isGlobalExpanded = expandedAdminCategories.has('__global__');
     rowsHtml += `
       <tr class="admin-cat-row admin-cat-main admin-cat-global hover:bg-slate-50 transition-colors cursor-pointer" onclick="toggleAdminCategory('__global__')">
         <td data-label="Category" class="px-5 py-3 font-bold text-slate-900 text-sm">
           <div class="flex items-center justify-between w-full gap-2">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 min-w-0">
               <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
                 <i data-lucide="globe" class="w-3.5 h-3.5"></i>
               </span>
-              <span class="font-bold text-slate-900 text-sm">Global Filters (All Categories)</span>
+              <div class="min-w-0">
+                <span class="font-bold text-slate-900 text-sm block truncate">Global Filters</span>
+                <span class="admin-cat-mobile-slug">Applies to all categories</span>
+              </div>
             </div>
             ${globalFilters.length > 0 ? `
-              <button type="button" onclick="event.stopPropagation(); toggleAdminCategory('__global__')" class="admin-cat-toggle-btn text-[11px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 ${isGlobalExpanded ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-700 border-slate-200'}">
+              <button type="button" onclick="event.stopPropagation(); toggleAdminCategory('__global__')" class="admin-cat-toggle-btn text-[11px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 shrink-0 ${isGlobalExpanded ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-700 border-slate-200'}">
                 <span>${globalFilters.length} filter${globalFilters.length === 1 ? '' : 's'}</span>
                 <i data-lucide="${isGlobalExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
               </button>
@@ -220,48 +366,32 @@ function renderCategoriesTable(cats) {
           </div>
         </td>
         <td data-label="Slug" class="px-5 py-3 text-xs text-slate-400 font-mono">global</td>
-        <td data-label="Parent" class="px-5 py-3 text-xs text-slate-500">Universal</td>
+        <td data-label="Parent" class="px-5 py-3 text-xs text-slate-500 admin-cat-parent-empty">Universal</td>
         <td data-label="Actions" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
-          <button type="button" onclick="openAddAttributeModal('')" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-all mr-1">+ Add Filter</button>
+          <div class="admin-cat-actions-wrap inline-flex items-center justify-end gap-1.5">
+            <button type="button" onclick="openAddAttributeModal('')" class="admin-cat-action-filter text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-all">+ Add Filter</button>
+          </div>
         </td>
       </tr>
     `;
 
     // Global filter items
-    rowsHtml += globalFilters.map(f => `
-      <tr class="admin-cat-row admin-cat-filter ${isGlobalExpanded ? 'is-visible' : 'is-collapsed'}" data-parent-id="__global__">
-        <td data-label="Category" class="px-5 py-2.5 font-normal text-slate-800 text-sm">
-          <div class="flex items-center gap-2 pl-4 border-l-2 border-emerald-500">
-            <span class="w-5 h-5 rounded-md bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200">
-              <i data-lucide="sliders-horizontal" class="w-3 h-3"></i>
-            </span>
-            <span class="font-bold text-slate-800 text-sm">${escHtml(f.name)}</span>
-            <span class="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">${escHtml(f.code)}</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${f.isFilterable ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}">
-              ${f.isFilterable ? 'Filter' : 'Spec'}
-            </span>
-            ${f.unit ? `<span class="text-[11px] text-slate-500 font-medium">(${escHtml(f.unit)})</span>` : ''}
-            ${f.options?.length ? `<span class="text-[11px] text-slate-400 truncate max-w-[200px]" title="${escHtml(f.options.join(', '))}">${escHtml(f.options.join(', '))}</span>` : ''}
-          </div>
-        </td>
-        <td data-label="Slug" class="px-5 py-2.5 text-xs text-slate-500 font-mono">${escHtml(f.type || 'TEXT')}</td>
-        <td data-label="Parent" class="px-5 py-2.5 text-xs text-slate-500">All categories</td>
-        <td data-label="Actions" class="px-5 py-2.5 text-right" onclick="event.stopPropagation()">
-          <button onclick="editAttributeDefinition(${inlineJs(f.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all mr-1">Edit</button>
-          <button onclick="deleteAttributeDefinition(${inlineJs(f.id)}, ${inlineJs(f.name)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">Delete</button>
-        </td>
-      </tr>
-    `).join('');
+    rowsHtml += globalFilters.map(f => renderFilterRowHtml(f, {
+      parentId: '__global__',
+      parentLabel: 'All categories',
+      isSubfilter: false,
+      isVisible: isGlobalExpanded,
+    })).join('');
   }
 
   // Render each Main Category and its tied filters & subcategories
   for (const c of pageMainCats) {
-    const children = (cats || []).filter(x => x.parentId === c.id);
-    const categoryFilters = (attributeDefinitionsCache || []).filter(f => f.categoryId === c.id);
+    const children = allCats.filter(x => x.parentId === c.id);
+    const categoryFilters = showFiltersInTree ? allFilters.filter(f => f.categoryId === c.id) : [];
     const isExpanded = expandedAdminCategories.has(c.id);
 
     const parts = [];
-    if (children.length) parts.push(`${children.length} subcategor${children.length === 1 ? 'y' : 'ies'}`);
+    if (children.length) parts.push(`${children.length} sub`);
     if (categoryFilters.length) parts.push(`${categoryFilters.length} filter${categoryFilters.length === 1 ? '' : 's'}`);
     const summaryText = parts.join(' · ');
 
@@ -269,9 +399,12 @@ function renderCategoriesTable(cats) {
       <tr class="admin-cat-row admin-cat-main hover:bg-slate-50 transition-colors cursor-pointer" onclick="toggleAdminCategory(${inlineJs(c.id)})">
         <td data-label="Category" class="px-5 py-3 font-bold text-slate-900 text-sm">
           <div class="flex items-center justify-between w-full gap-2">
-            <span class="font-bold text-slate-900 text-sm">${escHtml(c.name)}</span>
+            <div class="min-w-0">
+              <span class="font-bold text-slate-900 text-sm block truncate">${escHtml(c.name)}</span>
+              ${c.slug ? `<span class="admin-cat-mobile-slug">/${escHtml(c.slug)}</span>` : ''}
+            </div>
             ${parts.length > 0 ? `
-              <button type="button" onclick="event.stopPropagation(); toggleAdminCategory(${inlineJs(c.id)})" class="admin-cat-toggle-btn text-[11px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 ${isExpanded ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-700 border-slate-200'}">
+              <button type="button" onclick="event.stopPropagation(); toggleAdminCategory(${inlineJs(c.id)})" class="admin-cat-toggle-btn text-[11px] font-bold px-2 py-0.5 rounded-lg border flex items-center gap-1 shrink-0 ${isExpanded ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-700 border-slate-200'}">
                 <span>${summaryText}</span>
                 <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
               </button>
@@ -279,29 +412,39 @@ function renderCategoriesTable(cats) {
           </div>
         </td>
         <td data-label="Slug" class="px-5 py-3 text-xs text-slate-400 font-mono">${escHtml(c.slug || '')}</td>
-        <td data-label="Parent" class="px-5 py-3 text-xs text-slate-500">—</td>
+        <td data-label="Parent" class="px-5 py-3 text-xs text-slate-500 admin-cat-parent-empty">—</td>
         <td data-label="Actions" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
-          <button type="button" onclick="openAddAttributeModal(${inlineJs(c.id)})" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-all mr-1" title="Add Filter to ${escHtml(c.name)}">+ Filter</button>
-          <button onclick="openEditCategoryModal(${inlineJs(c.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all mr-1">Edit</button>
-          <button onclick="deleteCategory(${inlineJs(c.id)}, ${inlineJs(c.name)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">Delete</button>
+          <div class="admin-cat-actions-wrap inline-flex items-center justify-end gap-1.5">
+            <button type="button" onclick="openAddAttributeModal(${inlineJs(c.id)})" class="admin-cat-action-filter text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-all" title="Add Filter to ${escHtml(c.name)}">+ Filter</button>
+            <button type="button" onclick="openEditCategoryModal(${inlineJs(c.id)})" class="admin-cat-action-edit text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all">
+              <i data-lucide="pencil" class="w-3.5 h-3.5 md:hidden"></i>
+              <span>Edit</span>
+            </button>
+            <button type="button" onclick="deleteCategory(${inlineJs(c.id)}, ${inlineJs(c.name)})" class="admin-cat-action-delete text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all" aria-label="Delete ${escHtml(c.name)}" title="Delete category">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5 md:hidden"></i>
+              <span class="admin-action-label-desktop">Delete</span>
+            </button>
+          </div>
         </td>
       </tr>
     `;
 
     // 1. Render Subcategories under this main category
     for (const sub of children) {
-      const subFilters = (attributeDefinitionsCache || []).filter(f => f.categoryId === sub.id);
+      const subFilters = showFiltersInTree ? allFilters.filter(f => f.categoryId === sub.id) : [];
       rowsHtml += `
         <tr class="admin-cat-row admin-cat-sub hover:bg-slate-50 transition-colors ${isExpanded ? 'is-visible' : 'is-collapsed'}" data-parent-id="${escHtml(sub.parentId)}">
           <td data-label="Category" class="px-5 py-3 font-bold text-slate-900 text-sm">
             <div class="flex items-center justify-between w-full gap-2 pl-3 border-l-2 border-emerald-500">
-              <div class="flex items-center gap-2">
-                <span class="text-emerald-600 font-bold">↳</span>
-                <span class="font-bold text-slate-800 text-sm">${escHtml(sub.name)}</span>
-                <span class="text-[10px] text-slate-400 font-semibold">(${escHtml(sub.parentName || c.name)})</span>
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-emerald-600 font-bold shrink-0">↳</span>
+                <div class="min-w-0">
+                  <span class="font-bold text-slate-800 text-sm block truncate">${escHtml(sub.name)}</span>
+                  ${sub.slug ? `<span class="admin-cat-mobile-slug">/${escHtml(sub.slug)}</span>` : ''}
+                </div>
               </div>
               ${subFilters.length > 0 ? `
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
                   ${subFilters.length} filter${subFilters.length === 1 ? '' : 's'}
                 </span>
               ` : ''}
@@ -310,69 +453,40 @@ function renderCategoriesTable(cats) {
           <td data-label="Slug" class="px-5 py-3 text-xs text-slate-400 font-mono">${escHtml(sub.slug || '')}</td>
           <td data-label="Parent" class="px-5 py-3 text-xs text-slate-500">${escHtml(sub.parentName || c.name)}</td>
           <td data-label="Actions" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
-            <button type="button" onclick="openAddAttributeModal(${inlineJs(sub.id)})" class="text-xs font-bold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-1 rounded-lg transition-all mr-1" title="Add Filter to ${escHtml(sub.name)}">+ Filter</button>
-            <button onclick="openEditCategoryModal(${inlineJs(sub.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all mr-1">Edit</button>
-            <button onclick="deleteCategory(${inlineJs(sub.id)}, ${inlineJs(sub.name)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">Delete</button>
+            <div class="admin-cat-actions-wrap inline-flex items-center justify-end gap-1.5">
+              <button type="button" onclick="openAddAttributeModal(${inlineJs(sub.id)})" class="admin-cat-action-filter admin-cat-action-filter-sub text-xs font-bold text-purple-700 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-1 rounded-lg transition-all" title="Add Filter to ${escHtml(sub.name)}">+ Filter</button>
+              <button type="button" onclick="openEditCategoryModal(${inlineJs(sub.id)})" class="admin-cat-action-edit text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all">
+                <i data-lucide="pencil" class="w-3.5 h-3.5 md:hidden"></i>
+                <span>Edit</span>
+              </button>
+              <button type="button" onclick="deleteCategory(${inlineJs(sub.id)}, ${inlineJs(sub.name)})" class="admin-cat-action-delete text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all" aria-label="Delete ${escHtml(sub.name)}" title="Delete subcategory">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 md:hidden"></i>
+                <span class="admin-action-label-desktop">Delete</span>
+              </button>
+            </div>
           </td>
         </tr>
       `;
 
       // Render filters tied directly to this subcategory
       for (const sf of subFilters) {
-        rowsHtml += `
-          <tr class="admin-cat-row admin-cat-filter admin-cat-subfilter ${isExpanded ? 'is-visible' : 'is-collapsed'}" data-parent-id="${escHtml(sub.id)}">
-            <td data-label="Category" class="px-5 py-2.5 font-normal text-slate-800 text-sm">
-              <div class="flex items-center gap-2 pl-7 border-l-2 border-purple-400">
-                <span class="text-purple-500 font-bold">↳</span>
-                <span class="w-4 h-4 rounded bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200">
-                  <i data-lucide="sliders-horizontal" class="w-2.5 h-2.5"></i>
-                </span>
-                <span class="font-bold text-slate-800 text-sm">${escHtml(sf.name)}</span>
-                <span class="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">${escHtml(sf.code)}</span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${sf.isFilterable ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}">
-                  ${sf.isFilterable ? 'Filter' : 'Spec'}
-                </span>
-                ${sf.unit ? `<span class="text-[11px] text-slate-500 font-medium">(${escHtml(sf.unit)})</span>` : ''}
-                ${sf.options?.length ? `<span class="text-[11px] text-slate-400 truncate max-w-[180px]" title="${escHtml(sf.options.join(', '))}">${escHtml(sf.options.join(', '))}</span>` : ''}
-              </div>
-            </td>
-            <td data-label="Slug" class="px-5 py-2.5 text-xs text-slate-500 font-mono">${escHtml(sf.type || 'TEXT')}</td>
-            <td data-label="Parent" class="px-5 py-2.5 text-xs text-slate-500">${escHtml(sub.name)}</td>
-            <td data-label="Actions" class="px-5 py-2.5 text-right" onclick="event.stopPropagation()">
-              <button onclick="editAttributeDefinition(${inlineJs(sf.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all mr-1">Edit</button>
-              <button onclick="deleteAttributeDefinition(${inlineJs(sf.id)}, ${inlineJs(sf.name)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">Delete</button>
-            </td>
-          </tr>
-        `;
+        rowsHtml += renderFilterRowHtml(sf, {
+          parentId: sub.id,
+          parentLabel: sub.name,
+          isSubfilter: true,
+          isVisible: isExpanded,
+        });
       }
     }
 
     // 2. Render Filters tied directly to this main category
     for (const f of categoryFilters) {
-      rowsHtml += `
-        <tr class="admin-cat-row admin-cat-filter ${isExpanded ? 'is-visible' : 'is-collapsed'}" data-parent-id="${escHtml(c.id)}">
-          <td data-label="Category" class="px-5 py-2.5 font-normal text-slate-800 text-sm">
-            <div class="flex items-center gap-2 pl-4 border-l-2 border-purple-500">
-              <span class="w-5 h-5 rounded-md bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200">
-                <i data-lucide="sliders-horizontal" class="w-3 h-3"></i>
-              </span>
-              <span class="font-bold text-slate-800 text-sm">${escHtml(f.name)}</span>
-              <span class="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">${escHtml(f.code)}</span>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${f.isFilterable ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}">
-                ${f.isFilterable ? 'Filter' : 'Spec'}
-              </span>
-              ${f.unit ? `<span class="text-[11px] text-slate-500 font-medium">(${escHtml(f.unit)})</span>` : ''}
-              ${f.options?.length ? `<span class="text-[11px] text-slate-400 truncate max-w-[200px]" title="${escHtml(f.options.join(', '))}">${escHtml(f.options.join(', '))}</span>` : ''}
-            </div>
-          </td>
-          <td data-label="Slug" class="px-5 py-2.5 text-xs text-slate-500 font-mono">${escHtml(f.type || 'TEXT')}</td>
-          <td data-label="Parent" class="px-5 py-2.5 text-xs text-slate-500">${escHtml(c.name)}</td>
-          <td data-label="Actions" class="px-5 py-2.5 text-right" onclick="event.stopPropagation()">
-            <button onclick="editAttributeDefinition(${inlineJs(f.id)})" class="text-xs font-bold text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg transition-all mr-1">Edit</button>
-            <button onclick="deleteAttributeDefinition(${inlineJs(f.id)}, ${inlineJs(f.name)})" class="text-xs font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg transition-all">Delete</button>
-          </td>
-        </tr>
-      `;
+      rowsHtml += renderFilterRowHtml(f, {
+        parentId: c.id,
+        parentLabel: c.name,
+        isSubfilter: false,
+        isVisible: isExpanded,
+      });
     }
   }
 

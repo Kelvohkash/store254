@@ -260,7 +260,7 @@ html[data-storefront="true"] .site-footer { background: var(--store-white) !impo
 /* ---------- Marketplace home ---------- */
 .platform-stores-grid > a { transition: transform 260ms var(--ease-out), box-shadow 260ms ease, border-color 200ms ease; }
 .platform-primary { transition: transform 200ms var(--ease-out), box-shadow 200ms ease, background 200ms ease; }
-.platform-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -10px rgba(168, 66, 67, .45); }
+.platform-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -10px rgba(7, 131, 78, .32); }
 .platform-header-cta {
   padding: .55rem .9rem !important;
   border-radius: 999px !important;

@@ -300,9 +300,20 @@
 
       <!-- ══════════ PRODUCTS PAGE ══════════ -->
       <section id="page-products" class="hidden">
-        <div class="flex items-center justify-between mb-5">
-          <div class="flex gap-2">
-            <input id="product-search" type="search" placeholder="Search products..." class="input w-56" oninput="filterProducts()" />
+        <div class="admin-products-toolbar flex flex-col gap-3 mb-5">
+          <div class="flex items-center justify-between gap-3">
+            <div class="admin-search-wrap relative flex-1">
+              <i data-lucide="search" class="admin-search-icon w-4 h-4 text-slate-400"></i>
+              <input id="product-search" type="search" placeholder="Search products..." class="input w-full" oninput="filterProducts()" />
+            </div>
+            <span id="products-count-badge" class="admin-count-badge text-xs font-bold text-slate-500 shrink-0"></span>
+          </div>
+          <div id="product-filter-chips" class="admin-filter-chips flex gap-2 flex-wrap">
+            <button type="button" onclick="filterProductsByStatus('')" class="btn-primary text-xs" id="product-filter-ALL">All</button>
+            <button type="button" onclick="filterProductsByStatus('PUBLISHED')" class="btn-secondary text-xs" id="product-filter-PUBLISHED">Published</button>
+            <button type="button" onclick="filterProductsByStatus('DRAFT')" class="btn-secondary text-xs" id="product-filter-DRAFT">Draft</button>
+            <button type="button" onclick="filterProductsByStatus('LOW_STOCK')" class="btn-secondary text-xs" id="product-filter-LOW_STOCK">Low stock</button>
+            <button type="button" onclick="filterProductsByStatus('ARCHIVED')" class="btn-secondary text-xs" id="product-filter-ARCHIVED">Archived</button>
           </div>
         </div>
 
@@ -328,15 +339,25 @@
 
       <!-- ══════════ CATEGORIES PAGE ══════════ -->
       <section id="page-categories" class="hidden">
-        <div class="flex items-center justify-between mb-5">
-          <p class="text-sm text-slate-500">Organise your products into categories and category-specific filters</p>
-          <div class="flex gap-2">
-            <button type="button" onclick="openAddAttributeModal('')" class="btn-secondary">
-              <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> Add Product Filter
-            </button>
-            <button onclick="openAddCategoryModal()" class="btn-primary">
-              <i data-lucide="plus" class="w-4 h-4"></i> New Category
-            </button>
+        <div class="admin-categories-toolbar flex flex-col gap-3 mb-5">
+          <div class="flex items-center justify-between gap-3">
+            <p class="admin-categories-subtitle text-sm text-slate-500">Organise your products into categories and category-specific filters</p>
+            <div class="admin-categories-actions flex gap-2 shrink-0">
+              <button type="button" onclick="openAddAttributeModal('')" class="btn-secondary admin-categories-add-filter-btn">
+                <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> <span>Add Product Filter</span>
+              </button>
+              <button type="button" onclick="openAddCategoryModal()" class="btn-primary admin-categories-new-btn">
+                <i data-lucide="plus" class="w-4 h-4"></i> <span>New Category</span>
+              </button>
+            </div>
+          </div>
+          <div class="admin-categories-subbar flex items-center justify-between gap-2">
+            <div id="category-view-tabs" class="admin-filter-chips flex gap-2 flex-wrap">
+              <button type="button" onclick="setCategoriesViewMode('all')" class="btn-primary text-xs" id="cat-view-all">All</button>
+              <button type="button" onclick="setCategoriesViewMode('categories')" class="btn-secondary text-xs" id="cat-view-categories">Categories</button>
+              <button type="button" onclick="setCategoriesViewMode('filters')" class="btn-secondary text-xs" id="cat-view-filters">Product Filters</button>
+            </div>
+            <span id="categories-count-badge" class="admin-count-badge text-xs font-bold text-slate-500 shrink-0"></span>
           </div>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
