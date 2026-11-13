@@ -680,7 +680,7 @@ function getItemAvailabilityUrl(item: SeoItem): string {
 
 function buildStoreSchemaNode(origin: string, tenant: TenantSeo): Record<string, unknown> {
   const settings = parseSettings(tenant.settings);
-  const logo = toAbsoluteUrl(settings.logoUrl, origin) || `${origin}/assets/favicon.png`;
+  const logo = toAbsoluteUrl(settings.logoUrl, origin) || `${origin}/assets/store254Icon.webp`;
   const banner = toAbsoluteUrl(settings.bannerUrl, origin) || logo;
   const phone = settings.contactPhone || settings.phone || "";
   const email = settings.contactEmail || "";

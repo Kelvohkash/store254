@@ -6,7 +6,7 @@ const API_BASE_URL =
     ? "http://localhost:8787"
     : "";
 const DEFAULT_STORE_LOGO = "/assets/store254Logo.webp";
-const DEFAULT_STOREFRONT_LOGO = "/assets/favicon.png";
+const DEFAULT_STOREFRONT_LOGO = "/assets/store254Icon.webp";
 
 // Helper API Fetcher with legacy tenant hint (server resolves tenant from Host only)
 async function apiFetch(endpoint, options = {}) {
