@@ -87,11 +87,17 @@ function buildItemCardHtml(item) {
     })
     .join("");
 
+  const itemHref = typeof getStorefrontRouteUrl === "function"
+    ? getStorefrontRouteUrl({ itemSlug: item.slug || item.id })
+    : `/item/${encodeURIComponent(item.slug || item.id)}`;
+
   return `
     <article class="product-card${isService ? " product-card--service" : ""} flex flex-col group relative">
       <div class="product-card-media relative overflow-hidden flex items-center justify-center cursor-pointer" onclick="viewItemDetails(${inlineJs(item.id)})">
-        <img src="${escapeHtml(primaryImg)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" width="400" height="400" class="w-full h-full object-cover">
-        ${secImg ? `<img class="product-card-secondary w-full h-full object-cover" src="${escapeHtml(secImg)}" alt="" loading="lazy" decoding="async" width="400" height="400">` : ""}
+        <a href="${escapeHtml(itemHref)}" onclick="event.preventDefault(); event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" class="block w-full h-full no-underline" aria-label="${escapeHtml(item.title)}">
+          <img src="${escapeHtml(primaryImg)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" width="400" height="400" class="w-full h-full object-cover">
+          ${secImg ? `<img class="product-card-secondary w-full h-full object-cover" src="${escapeHtml(secImg)}" alt="" loading="lazy" decoding="async" width="400" height="400">` : ""}
+        </a>
         <div class="product-card-actions">
           <button type="button" data-wishlist-item="${escapeHtml(item.id)}" class="product-wishlist ${isWish ? "is-wishlisted" : ""}" onclick="event.stopPropagation(); toggleWishlist(${inlineJs(item.id)}, this)" aria-label="${isWish ? "Remove from" : "Add to"} wishlist" aria-pressed="${isWish}">
             <i data-lucide="heart" class="w-4 h-4"></i>
@@ -114,7 +120,7 @@ function buildItemCardHtml(item) {
             <span class="product-tag-pill truncate">${escapeHtml(brandOrCat)}</span>
             ${item.stockQuantity > 0 && item.stockQuantity <= 8 && !isService ? `<span class="product-stock-note">${item.stockQuantity} left</span>` : ""}
           </div>
-          <h3 class="product-card-title cursor-pointer" onclick="viewItemDetails(${inlineJs(item.id)})">${escapeHtml(item.title)}</h3>
+          <h3 class="product-card-title cursor-pointer"><a href="${escapeHtml(itemHref)}" onclick="event.preventDefault(); viewItemDetails(${inlineJs(item.id)})" class="no-underline text-inherit">${escapeHtml(item.title)}</a></h3>
           ${item.description ? `<p class="product-card-desc">${escapeHtml(item.description)}</p>` : ""}
           ${specChips ? `<div class="product-card-specs flex flex-wrap">${specChips}</div>` : ""}
         </div>

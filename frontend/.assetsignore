@@ -6,7 +6,7 @@
 !.env.example
 /_worker.js
 /_routes.json
-/src/worker.ts
+/src
 /wrangler.jsonc
 /package.json
 /package-lock.json

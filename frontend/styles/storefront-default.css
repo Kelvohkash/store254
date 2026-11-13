@@ -689,6 +689,8 @@ html[data-storefront="true"] .category-card {
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
   position: relative;
   overflow: hidden;
 }

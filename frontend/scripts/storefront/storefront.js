@@ -60,9 +60,18 @@ async function loadStoreProfile() {
   // Platform onboarding controls do not belong in a merchant storefront.
   document.querySelector(".platform-nav-links")?.remove();
   document.getElementById("platform-mobile-menu")?.remove();
+  if (state.initialSearchQuery) {
+    const pcSearch = document.getElementById("search-input");
+    const mobSearch = document.getElementById("mobile-search-input");
+    if (pcSearch) pcSearch.value = state.initialSearchQuery;
+    if (mobSearch) mobSearch.value = state.initialSearchQuery;
+    if (typeof syncSearchClearButtons === "function") syncSearchClearButtons();
+  }
   // Show Store Admin button on store subdomains, NEVER show Super Admin
   document.getElementById("store-admin-footer-btn")?.classList.remove("hidden");
-  if (typeof renderSkeletonCards === "function") renderSkeletonCards();
+  if (typeof renderSkeletonCards === "function" && !document.getElementById("items-grid")?.children.length) {
+    renderSkeletonCards();
+  }
   const [res] = await Promise.all([
     apiFetch("/api/store"),
     loadCategories(),
@@ -79,6 +88,21 @@ async function loadStoreProfile() {
     document.getElementById("storefront-view")?.classList.remove("hidden");
     syncStorefrontStickyOffset();
     updateWishlistButton();
+    if (state.initialItemSlug && typeof viewItemDetails === "function") {
+      const targetSlug = state.initialItemSlug;
+      state.initialItemSlug = "";
+      let matchedItem = (state.items || []).find((i) => i.slug === targetSlug);
+      if (!matchedItem) {
+        const singleRes = await apiFetch(`/api/items/${encodeURIComponent(targetSlug)}`);
+        if (singleRes.ok && singleRes.data?.success && singleRes.data.data) {
+          matchedItem = singleRes.data.data;
+          state.items = [matchedItem, ...(state.items || [])];
+        }
+      }
+      if (matchedItem) {
+        await viewItemDetails(matchedItem.id, { updateHistory: false });
+      }
+    }
   } else {
     const reason = res.data?.error?.message;
     const isSuspended = res.data?.error?.code === "TENANT_SUSPENDED";

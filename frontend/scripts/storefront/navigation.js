@@ -39,7 +39,7 @@ function toggleStorefrontMenu() {
 }
 
 // UI Drawer Toggles
-function toggleDrawer(id, show) {
+function toggleDrawer(id, show, options = {}) {
   const el = document.getElementById(id);
   if (!el) return;
 
@@ -54,6 +54,30 @@ function toggleDrawer(id, show) {
   } else {
     el.classList.add("hidden");
     if (id === "mpesa-pin-modal") stopPaymentStatusPolling();
+    if (id === "item-details-modal") {
+      state.currentItemId = null;
+      state.currentItemSlug = null;
+      document.getElementById("ssr-item-detail")?.remove();
+      if (state.activeTenant?.name) {
+        document.title = `${state.activeTenant.name} • Store254`;
+      }
+      if (
+        !options?.skipHistory &&
+        window.location.pathname.startsWith("/item/") &&
+        typeof getStorefrontRouteUrl === "function"
+      ) {
+        const backUrl = getStorefrontRouteUrl({ categorySlug: state.selectedCategory || "" });
+        const currentHistoryState =
+          window.history.state && typeof window.history.state === "object"
+            ? window.history.state
+            : {};
+        window.history.replaceState(
+          { ...currentHistoryState, __storefrontCategory: state.selectedCategory || "", __storefrontItem: "" },
+          "",
+          backUrl
+        );
+      }
+    }
   }
   renderIcons();
 }
