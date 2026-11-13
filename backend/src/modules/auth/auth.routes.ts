@@ -94,7 +94,7 @@ authRouter.post(
 
     if (tenant.status === "PENDING") {
       throw new AppError(
-        "This store is currently pending activation by the Store254 Super Admin team. You will receive an email confirmation once activated.",
+        "This store is currently pending activation by Our 254 team. You will receive an email confirmation once activated.",
         403,
         "STORE_PENDING_ACTIVATION"
       );
@@ -352,6 +352,7 @@ authRouter.post(
       otpCode: otp,
       expiresMinutes: 30,
       storeName: tenant.name,
+      apiKey: c.env?.RESEND_API_KEY,
     });
 
     return c.json({

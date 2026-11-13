@@ -308,13 +308,17 @@ html[data-storefront-suspended="true"] #storefront-view { display: grid !importa
 .maintenance-spark-one { top: .3rem; right: .25rem; }
 .maintenance-spark-two { bottom: .45rem; left: .15rem; font-size: .85rem; color: #188346; }
 .storefront-maintenance-eyebrow { margin: 0 0 .75rem; color: #168044; font-size: .72rem; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
-.storefront-maintenance h1 { max-width: 13ch; margin: 0 auto; color: #17251c; font-family: Manrope, sans-serif; font-size: clamp(1.8rem, 5vw, 2.65rem); font-weight: 800; line-height: 1.15; letter-spacing: -.045em; }
-.storefront-maintenance-copy { max-width: 29rem; margin: 1rem auto 0; color: #68796d; font-size: clamp(.95rem, 2vw, 1.05rem); line-height: 1.75; }
-.storefront-maintenance-status { display: inline-flex; align-items: center; gap: .55rem; margin-top: 1.4rem; padding: .55rem .85rem; border: 1px solid #e2eee4; border-radius: 999px; background: #f7fbf7; color: #496451; font-size: .78rem; font-weight: 700; }
-.storefront-maintenance-status span { width: .48rem; height: .48rem; border-radius: 50%; background: #20a35a; box-shadow: 0 0 0 4px #e4f4e9; }
-.storefront-maintenance-retry { display: flex; min-height: 3rem; align-items: center; justify-content: center; gap: .55rem; margin: 1.5rem auto 0; padding: .75rem 1.25rem; border: 0; border-radius: .9rem; background: #168044; color: #fff; font-size: .9rem; font-weight: 700; box-shadow: 0 8px 18px rgba(22,128,68,.2); transition: transform .18s ease, background .18s ease; }
+.storefront-maintenance h1 { max-width: 20ch; margin: 0 auto; color: #17251c; font-family: Manrope, sans-serif; font-size: clamp(1.65rem, 4.5vw, 2.35rem); font-weight: 800; line-height: 1.18; letter-spacing: -.04em; }
+.storefront-maintenance-copy { max-width: 30rem; margin: 1rem auto 0; color: #54665a; font-size: clamp(.92rem, 2vw, 1.02rem); line-height: 1.7; }
+.storefront-maintenance-status { display: inline-flex; align-items: center; gap: .55rem; margin-top: 1.4rem; padding: .55rem .9rem; border: 1px solid #fde68a; border-radius: 999px; background: #fffbeb; color: #92400e; font-size: .78rem; font-weight: 700; }
+.storefront-maintenance-status span { width: .48rem; height: .48rem; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 0 4px #fef3c7; }
+.storefront-maintenance-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .75rem; margin-top: 1.5rem; }
+.storefront-maintenance-retry { display: inline-flex; min-height: 2.9rem; align-items: center; justify-content: center; gap: .55rem; margin: 0; padding: .75rem 1.25rem; border: 0; border-radius: .9rem; background: #168044; color: #fff; font-size: .88rem; font-weight: 700; box-shadow: 0 8px 18px rgba(22,128,68,.2); transition: transform .18s ease, background .18s ease; cursor: pointer; }
 .storefront-maintenance-retry:hover { transform: translateY(-1px); background: #116c39; }
 .storefront-maintenance-retry svg { width: 1rem; height: 1rem; }
-.storefront-maintenance-signoff { margin: 1.65rem 0 0; color: #8a998e; font-size: .8rem; }
-.storefront-maintenance-signoff span { color: #df7d75; }
-@media (max-width: 480px) { .storefront-maintenance { border-radius: 1.5rem; } .storefront-maintenance-art { width: 7.2rem; height: 7.2rem; } }
+.storefront-maintenance-home { display: inline-flex; min-height: 2.9rem; align-items: center; justify-content: center; padding: .75rem 1.2rem; border: 1px solid #d5e4da; border-radius: .9rem; background: #fff; color: #17251c; font-size: .88rem; font-weight: 700; text-decoration: none; transition: all .18s ease; }
+.storefront-maintenance-home:hover { border-color: #168044; color: #168044; background: #f4faf6; }
+.storefront-maintenance-signoff { margin: 1.5rem 0 0; color: #6c7d72; font-size: .8rem; }
+.storefront-maintenance-signoff a { color: #168044; font-weight: 700; text-decoration: none; }
+.storefront-maintenance-signoff a:hover { text-decoration: underline; }
+@media (max-width: 480px) { .storefront-maintenance { border-radius: 1.5rem; } .storefront-maintenance-art { width: 7.2rem; height: 7.2rem; } .storefront-maintenance-actions > * { width: 100%; } }

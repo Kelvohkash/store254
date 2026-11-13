@@ -9,12 +9,15 @@
     rows: document.getElementById("business-rows"),
     empty: document.getElementById("empty-state"),
     search: document.getElementById("business-search"),
+    categoryFilter: document.getElementById("business-category-filter"),
   };
   let stores = [];
   let selectedStatus = "ALL";
+  let selectedCategory = "ALL";
+  let editingSubdomainStore = null;
 
   function renderStores() {
-    renderStoresTable(stores, selectedStatus, (button) => void handleStoreAction(button));
+    renderStoresTable(stores, { status: selectedStatus, category: selectedCategory }, (button) => void handleStoreAction(button));
   }
 
   async function loadStores() {
@@ -47,10 +50,16 @@
     document.getElementById("platform-billing-amount").value = settings.amount || "";
     document.getElementById("platform-billing-shortcode-type").value = settings.shortcodeType || "PAYBILL";
     const status = document.getElementById("daraja-status");
+    const topbarPill = document.getElementById("topbar-daraja-pill");
     const ready = settings.darajaConfigured;
     status.textContent = ready ? "Daraja credentials connected" : "Daraja credentials missing";
     status.classList.toggle("is-ready", ready);
     status.classList.toggle("is-missing", !ready);
+    if (topbarPill) {
+      topbarPill.textContent = ready ? "Daraja Ready" : "Daraja Missing";
+      topbarPill.classList.toggle("is-ready", ready);
+      topbarPill.classList.toggle("is-missing", !ready);
+    }
     document.getElementById("daraja-mode").textContent = settings.darajaMode === "SANDBOX" ? "Sandbox" : "Production";
     document.getElementById("daraja-secret-help").textContent = ready
       ? "Daraja credentials are stored securely as Cloudflare Worker secrets. Secret values are never shown here."
@@ -152,10 +161,117 @@
     setAdminNotice("The M-Pesa prompt is still pending. Refresh the business directory shortly to see the result.");
   }
 
+  function openSubdomainModal(store) {
+    const modal = document.getElementById("subdomain-modal");
+    const subtitle = document.getElementById("subdomain-modal-subtitle");
+    const input = document.getElementById("subdomain-input");
+    const preview = document.getElementById("subdomain-preview");
+    const errorEl = document.getElementById("subdomain-error");
+    if (!modal || !input) return;
+
+    editingSubdomainStore = store;
+    subtitle.textContent = `Changing URL for ${store.name} (currently ${store.subdomain}.store254.co.ke).`;
+    input.value = store.subdomain || "";
+    preview.textContent = `Preview: https://${store.subdomain || "—"}.store254.co.ke/`;
+    errorEl.hidden = true;
+    modal.hidden = false;
+    window.setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 20);
+  }
+
+  function closeSubdomainModal() {
+    const modal = document.getElementById("subdomain-modal");
+    if (modal) modal.hidden = true;
+    editingSubdomainStore = null;
+  }
+
+  async function saveSubdomainEdit(event) {
+    event.preventDefault();
+    if (!editingSubdomainStore) return;
+    const input = document.getElementById("subdomain-input");
+    const errorEl = document.getElementById("subdomain-error");
+    const saveBtn = document.getElementById("subdomain-save-btn");
+    const cleaned = (input.value || "").trim().toLowerCase();
+
+    if (!/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(cleaned)) {
+      errorEl.textContent = "Use 2-32 lowercase letters, numbers, or internal hyphens (cannot start or end with a hyphen).";
+      errorEl.hidden = false;
+      return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving…";
+    errorEl.hidden = true;
+
+    const result = await platformApiFetch(`/stores/${encodeURIComponent(editingSubdomainStore.id)}/subdomain`, {
+      method: "PATCH",
+      body: JSON.stringify({ subdomain: cleaned }),
+    });
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = "Save Subdomain";
+
+    if (!result.ok || !result.data.success) {
+      if (result.status === 401) {
+        window.location.replace("./super-admin-login.html");
+        return;
+      }
+      errorEl.textContent = result.data.error?.message || "Could not update subdomain.";
+      errorEl.hidden = false;
+      return;
+    }
+
+    const updatedName = editingSubdomainStore.name;
+    closeSubdomainModal();
+    setAdminNotice(result.data.message || `Subdomain for "${updatedName}" updated to ${cleaned}.store254.co.ke.`);
+    await loadDashboard();
+  }
+
+  async function handleDeleteStore(store, button) {
+    const confirmed = await confirmDialog({
+      title: `Delete ${store.name}?`,
+      message: `This permanently deletes "${store.name}" (${store.subdomain}.store254.co.ke), including all products, categories, orders, merchant accounts, and uploaded media. This cannot be undone.`,
+      isDanger: true,
+      confirmText: "Delete store permanently",
+      requireTypedValue: store.subdomain,
+      typedPromptLabel: `Type "${store.subdomain}" to permanently delete`,
+    });
+    if (!confirmed) return;
+
+    button.disabled = true;
+    const prevHtml = button.innerHTML;
+    button.textContent = "Deleting…";
+
+    const result = await platformApiFetch(`/stores/${encodeURIComponent(store.id)}`, { method: "DELETE" });
+    if (!result.ok || !result.data.success) {
+      button.disabled = false;
+      button.innerHTML = prevHtml;
+      if (result.status === 401) {
+        window.location.replace("./super-admin-login.html");
+        return;
+      }
+      setAdminNotice(result.data.error?.message || "Could not delete this business.", true);
+      return;
+    }
+
+    setAdminNotice(result.data.message || `Store "${store.name}" permanently deleted.`);
+    await loadDashboard();
+  }
+
   async function handleStoreAction(button) {
     const store = stores.find((entry) => entry.id === button.dataset.storeId);
     if (!store) return;
     const action = button.dataset.storeAction;
+    if (action === "edit-subdomain") {
+      openSubdomainModal(store);
+      return;
+    }
+    if (action === "delete") {
+      await handleDeleteStore(store, button);
+      return;
+    }
     if (action === "grant-trial") {
       const confirmed = await confirmDialog(
         `Give ${store.name} one free month?`,
@@ -241,6 +357,10 @@
   }
 
   ui.search.addEventListener("input", renderStores);
+  ui.categoryFilter?.addEventListener("change", () => {
+    selectedCategory = ui.categoryFilter.value || "ALL";
+    renderStores();
+  });
   document.querySelectorAll("[data-status-filter]").forEach((tab) => tab.addEventListener("click", () => {
     selectedStatus = tab.dataset.statusFilter;
     document.querySelectorAll("[data-status-filter]").forEach((other) => other.classList.toggle("is-selected", other === tab));
@@ -248,11 +368,27 @@
   }));
   document.getElementById("refresh-button").addEventListener("click", () => void loadDashboard().catch((error) => setAdminNotice(error.message, true)));
   document.getElementById("save-billing-settings").addEventListener("click", () => void saveBillingSettings());
-  document.getElementById("logout-button").addEventListener("click", async () => {
+  document.getElementById("subdomain-form")?.addEventListener("submit", (event) => void saveSubdomainEdit(event));
+  document.getElementById("subdomain-cancel-btn")?.addEventListener("click", closeSubdomainModal);
+  document.getElementById("subdomain-input")?.addEventListener("input", (event) => {
+    const raw = (event.target.value || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    const preview = document.getElementById("subdomain-preview");
+    const errorEl = document.getElementById("subdomain-error");
+    if (preview) preview.textContent = `Preview: https://${raw || "—"}.store254.co.ke/`;
+    if (errorEl) errorEl.hidden = true;
+  });
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !document.getElementById("subdomain-modal")?.hidden) {
+      closeSubdomainModal();
+    }
+  });
+  const performLogout = async () => {
     const button = document.getElementById("logout-button");
-    button.disabled = true;
+    if (button) button.disabled = true;
     await platformApiFetch("/logout", { method: "POST" });
     window.location.replace("./super-admin-login.html");
-  });
+  };
+  document.getElementById("logout-button").addEventListener("click", () => void performLogout());
+  document.getElementById("mobile-logout-button")?.addEventListener("click", () => void performLogout());
   void start();
 })();

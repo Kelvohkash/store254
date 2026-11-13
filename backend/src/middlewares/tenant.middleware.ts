@@ -162,9 +162,14 @@ export function tenantMiddleware(
 
     if (tenant.status === "SUSPENDED" && !suspendedPaymentPath) {
       throw new AppError(
-        "This store has been temporarily suspended. Please contact support.",
+        `The storefront "${tenant.name}" (${tenant.subdomain}.store254.co.ke) is temporarily paused. Store254 marketplace services remain online.`,
         403,
-        "TENANT_SUSPENDED"
+        "TENANT_SUSPENDED",
+        {
+          storeName: tenant.name,
+          subdomain: tenant.subdomain,
+          customDomain: tenant.customDomain || null,
+        }
       );
     }
 

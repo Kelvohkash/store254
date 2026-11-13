@@ -30,13 +30,20 @@ seoPlatformRouter.get("/seo-stores", async (c) => {
       businessType: tenants.businessType,
       currency: tenants.currency,
       settings: tenants.settings,
+      itemCount: sql<number>`(select count(*) from items where items.tenant_id = ${tenants.id} and items.status = 'PUBLISHED')`,
       updatedAt: tenants.updatedAt,
       createdAt: tenants.createdAt,
     })
     .from(tenants)
-    .where(and(eq(tenants.status, "ACTIVE"), notLike(tenants.id, "tenant-demo-%")))
+    .where(
+      and(
+        eq(tenants.status, "ACTIVE"),
+        notLike(tenants.id, "tenant-demo-%"),
+        sql`exists (select 1 from items where items.tenant_id = ${tenants.id} and items.status = 'PUBLISHED')`
+      )
+    )
     .orderBy(desc(tenants.updatedAt), desc(tenants.createdAt))
-    .limit(1000);
+    .limit(10000);
 
   c.header("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
   return c.json({

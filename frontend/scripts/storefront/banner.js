@@ -55,14 +55,30 @@ function renderFooterBrand(storeName) {
   const platformCopy = document.getElementById("footer-platform-copy");
   const storeNameElement = document.getElementById("footer-store-name");
   const poweredBy = document.getElementById("footer-powered-by");
+  const directoryLink = document.getElementById("footer-directory-link");
+  const aboutLink = document.getElementById("footer-about-link");
   const isStorefront = Boolean(storeName);
 
   if (platformCopy) platformCopy.classList.toggle("hidden", isStorefront);
+  if (aboutLink) aboutLink.classList.toggle("hidden", isStorefront);
   if (storeNameElement) {
     storeNameElement.textContent = storeName || "";
     storeNameElement.classList.toggle("hidden", !isStorefront);
   }
   poweredBy?.classList.toggle("hidden", !isStorefront);
+  if (directoryLink) {
+    directoryLink.classList.toggle("hidden", !isStorefront);
+    const bizType = String(state.activeTenant?.businessType || "").toLowerCase();
+    const validTypes = ["retail", "electronics", "furniture", "services", "general"];
+    if (isStorefront && validTypes.includes(bizType)) {
+      directoryLink.href = `https://store254.co.ke/directory/${bizType}`;
+      const label = bizType.charAt(0).toUpperCase() + bizType.slice(1);
+      directoryLink.textContent = `More ${label} Stores`;
+    } else if (isStorefront) {
+      directoryLink.href = "https://store254.co.ke/directory";
+      directoryLink.textContent = "Store254 Directory";
+    }
+  }
 }
 
 function renderArchetypeContent(settings) {

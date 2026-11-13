@@ -1,7 +1,7 @@
 import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, inArray, gt } from "drizzle-orm";
+import { eq, and, desc, inArray, gt, ne } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
@@ -11,6 +11,7 @@ import { orders } from "../../db/schema/orders";
 import { tenantPaymentConfigs } from "../../db/schema/payment-configs";
 import { AppError } from "../../security/error-handler";
 import { generateSecureToken, generateUUID, hashOtp, timingSafeEqual } from "../../security/crypto";
+import { sanitizeSubdomain } from "../../security/sanitize";
 import { EmailService } from "../../services/email.service";
 import { sign, verify } from "hono/jwt";
 import { rateLimiter } from "../../security/rate-limiter";
@@ -32,6 +33,9 @@ const platformBillingSettingsSchema = z.object({
 });
 const platformBillingPromptSchema = z.object({
   phoneNumber: z.string().trim().min(9).max(20).optional(),
+});
+const amendSubdomainSchema = z.object({
+  subdomain: z.string().trim().min(2).max(32),
 });
 
 async function matchesSecret(provided: string, expected: string): Promise<boolean> {
@@ -284,15 +288,29 @@ platformAdminRouter.get("/stores", async (c) => {
   }
 
   const owners = storeList.length
-    ? await db.select({ tenantId: users.tenantId, phone: users.phone })
+    ? await db
+        .select({
+          tenantId: users.tenantId,
+          phone: users.phone,
+          email: users.email,
+          fullName: users.fullName,
+        })
         .from(users)
         .where(and(inArray(users.tenantId, storeList.map((store) => store.id)), eq(users.role, "OWNER")))
     : [];
-  const ownerPhoneByTenant = new Map(owners.map((owner) => [owner.tenantId, owner.phone]));
+  const ownerByTenant = new Map(owners.map((owner) => [owner.tenantId, owner]));
 
   return c.json({
     success: true,
-    data: storeList.map((store) => ({ ...store, ownerPhone: ownerPhoneByTenant.get(store.id) || null })),
+    data: storeList.map((store) => {
+      const owner = ownerByTenant.get(store.id);
+      return {
+        ...store,
+        ownerPhone: owner?.phone || null,
+        ownerEmail: owner?.email || null,
+        ownerName: owner?.fullName || null,
+      };
+    }),
     pagination: {
       page,
       limit,
@@ -412,6 +430,7 @@ platformAdminRouter.patch("/stores/:id/activate", async (c) => {
       storeName: store.name,
       subdomain: store.subdomain,
       primaryDomain,
+      apiKey: c.env?.RESEND_API_KEY,
     });
   }
 
@@ -493,6 +512,7 @@ platformAdminRouter.patch("/stores/:id/reactivate", async (c) => {
       storeName: store.name,
       subdomain: store.subdomain,
       primaryDomain,
+      apiKey: c.env?.RESEND_API_KEY,
     });
   }
 
@@ -676,14 +696,83 @@ platformAdminRouter.get("/billing/payments/:id", async (c) => {
   return c.json({ success: true, data: payment });
 });
 
-// 5. Delete Store (Permanent Cascade)
+// 5. Amend Store Subdomain (Super Admin)
+platformAdminRouter.patch(
+  "/stores/:id/subdomain",
+  zValidator("json", amendSubdomainSchema),
+  async (c) => {
+    const storeId = c.req.param("id");
+    const { subdomain: rawSubdomain } = c.req.valid("json");
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+
+    const cleaned = sanitizeSubdomain(rawSubdomain);
+    if (!cleaned) {
+      throw new AppError(
+        "Subdomain is reserved or invalid. Use 2-32 lowercase letters, numbers, or internal hyphens.",
+        400,
+        "INVALID_SUBDOMAIN"
+      );
+    }
+
+    const db = createDb(c.env.DB);
+    const [store] = await db
+      .select({ id: tenants.id, name: tenants.name, subdomain: tenants.subdomain })
+      .from(tenants)
+      .where(eq(tenants.id, storeId))
+      .limit(1);
+
+    if (!store) {
+      throw new AppError("Store not found.", 404, "STORE_NOT_FOUND");
+    }
+
+    if (store.subdomain === cleaned) {
+      return c.json({
+        success: true,
+        message: `Subdomain is already "${cleaned}.store254.co.ke".`,
+        data: { id: store.id, name: store.name, subdomain: cleaned, previousSubdomain: store.subdomain },
+      });
+    }
+
+    const [conflict] = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(and(eq(tenants.subdomain, cleaned), ne(tenants.id, storeId)))
+      .limit(1);
+
+    if (conflict) {
+      throw new AppError(
+        `Subdomain "${cleaned}" is already claimed by another business.`,
+        409,
+        "SUBDOMAIN_TAKEN"
+      );
+    }
+
+    await db
+      .update(tenants)
+      .set({ subdomain: cleaned, updatedAt: new Date() })
+      .where(eq(tenants.id, storeId));
+
+    return c.json({
+      success: true,
+      message: `Subdomain for "${store.name}" updated to ${cleaned}.store254.co.ke.`,
+      data: {
+        id: store.id,
+        name: store.name,
+        subdomain: cleaned,
+        previousSubdomain: store.subdomain,
+      },
+    });
+  }
+);
+
+// 6. Delete Store (Permanent Cascade + R2 Media Purge)
 platformAdminRouter.delete("/stores/:id", async (c) => {
   const storeId = c.req.param("id");
   if (!c.env?.DB) throw new AppError("Database not ready", 500);
   const db = createDb(c.env.DB);
 
   const [store] = await db
-    .select({ id: tenants.id, name: tenants.name })
+    .select({ id: tenants.id, name: tenants.name, subdomain: tenants.subdomain })
     .from(tenants)
     .where(eq(tenants.id, storeId))
     .limit(1);
@@ -695,9 +784,26 @@ platformAdminRouter.delete("/stores/:id", async (c) => {
   // Deleting tenant cascades to all categories, items, orders, users, and payments
   await db.delete(tenants).where(eq(tenants.id, storeId));
 
+  // Best-effort purge of tenant's uploaded R2 media assets
+  if (c.env?.MEDIA_BUCKET) {
+    try {
+      let cursor: string | undefined;
+      do {
+        const listed = await c.env.MEDIA_BUCKET.list({ prefix: `${storeId}/`, cursor });
+        const keys = listed.objects.map((obj) => obj.key);
+        if (keys.length > 0) {
+          await c.env.MEDIA_BUCKET.delete(keys);
+        }
+        cursor = listed.truncated ? listed.cursor : undefined;
+      } while (cursor);
+    } catch {
+      // Do not fail store deletion response if R2 cleanup partially fails
+    }
+  }
+
   return c.json({
     success: true,
-    message: `Store "${store.name}" and all associated data permanently deleted.`,
+    message: `Store "${store.name}" (${store.subdomain}.store254.co.ke) and all associated data permanently deleted.`,
   });
 });
 

@@ -207,13 +207,14 @@ platformRouter.post(
       storeName: body.storeName,
       subdomain: sanitizedSub,
       primaryDomain,
+      apiKey: c.env?.RESEND_API_KEY,
     });
 
     return c.json(
       {
         success: true,
         message:
-          "Business store registered successfully! Your account is currently under review by the Store254 Super Admin team. You will receive an email confirmation once activated.",
+          "Business store registered successfully! Your account is currently under review by Our 254 team. You will receive an email confirmation once activated.",
         data: {
           store: {
             id: tenantId,
@@ -309,6 +310,7 @@ platformRouter.post(
       otpCode: otp,
       expiresMinutes: 30,
       storeName: "Store254 Platform",
+      apiKey: c.env?.RESEND_API_KEY,
     });
 
     return c.json({

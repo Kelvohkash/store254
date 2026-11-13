@@ -513,6 +513,7 @@ ordersRouter.patch(
       trackingNumber: mergedFulfillment.trackingNumber,
       trackingUrl: mergedFulfillment.trackingUrl,
       notes: mergedFulfillment.notes,
+      apiKey: c.env?.RESEND_API_KEY,
     });
 
     return c.json({

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildPlatformAboutHtml,
+  buildPlatformDirectoryHtml,
   buildPlatformSeoData,
   buildPlatformSitemapIndexXml,
   buildPlatformSitemapXml,
@@ -8,9 +10,12 @@ import {
   buildStorefrontSeoData,
   buildStorefrontSitemapXml,
   classifyHost,
+  filterIndexableStores,
+  getDirectoryHubForBusinessType,
   parseStorefrontRoute,
   resolveTenantCanonicalOrigin,
   safeJsonLd,
+  sanitizeSlug,
 } from "../src/seo.ts";
 
 const sampleStores = [
@@ -233,4 +238,91 @@ test("product and service pages emit rich Product/Service schema, breadcrumbs, a
   assert.equal(missingSeo.robots, "noindex, nofollow");
 
   assert.equal(safeJsonLd({ a: "</script>" }), '{"a":"\\u003c/script\\u003e"}');
+});
+
+test("thin or empty storefronts auto-noindex and are excluded from directory and sitemaps", () => {
+  const emptyStoreSeo = buildStorefrontSeoData({
+    origin: "https://newemptyshop.store254.co.ke",
+    route: { kind: "home" },
+    payload: {
+      ...samplePayload,
+      tenant: { ...samplePayload.tenant, name: "New Empty Shop", subdomain: "newemptyshop" },
+      items: [],
+    },
+    isPreview: false,
+  });
+  assert.equal(emptyStoreSeo.robots, "noindex, follow");
+  assert.match(emptyStoreSeo.headTagsHtml, /content="noindex, follow"/);
+
+  const emptySitemap = buildStorefrontSitemapXml("https://newemptyshop.store254.co.ke", {
+    ...samplePayload,
+    items: [],
+  });
+  assert.doesNotMatch(emptySitemap, /<url>/);
+
+  const mixedStores = [
+    ...sampleStores,
+    { id: "tenant-empty", name: "Empty Signup", subdomain: "emptyshop", businessType: "RETAIL", itemCount: 0 },
+    { id: "tenant-demo-retail", name: "Demo Store", subdomain: "demo", businessType: "RETAIL", itemCount: 10 },
+  ];
+  const indexable = filterIndexableStores(mixedStores);
+  assert.equal(indexable.length, 1);
+  assert.equal(indexable[0].subdomain, "alicebabycare");
+});
+
+test("directory hubs paginate active stores, emit prev/next canonicals, and connect store category hubs", () => {
+  const manyStores = Array.from({ length: 105 }, (_, i) => ({
+    id: `tenant-${i}`,
+    name: `Kenya Shop ${i + 1}`,
+    subdomain: `kenyashop-${i + 1}`,
+    businessType: i % 2 === 0 ? "RETAIL" : "ELECTRONICS",
+    itemCount: 3,
+    settings: { tagline: "Quality items" },
+  }));
+
+  const page2 = buildPlatformDirectoryHtml(manyStores, { page: 2, isPreview: false });
+  assert.equal(page2.status, 200);
+  assert.match(page2.html, /<link rel="canonical" href="https:\/\/store254\.co\.ke\/directory\?page=2">/);
+  assert.match(page2.html, /<link rel="prev" href="https:\/\/store254\.co\.ke\/directory">/);
+  assert.match(page2.html, /https:\/\/kenyashop-105\.store254\.co\.ke\//);
+
+  const retailHub = buildPlatformDirectoryHtml(manyStores, { categorySlug: "retail", page: 1 });
+  assert.equal(retailHub.status, 200);
+  assert.match(retailHub.html, /Retail Online Stores/);
+
+  const badHub = buildPlatformDirectoryHtml(manyStores, { categorySlug: "unknown-cat" });
+  assert.equal(badHub.status, 404);
+  assert.equal(badHub.robots, "noindex, nofollow");
+
+  assert.deepEqual(getDirectoryHubForBusinessType("ELECTRONICS"), {
+    href: "https://store254.co.ke/directory/electronics",
+    label: "More Electronics Stores",
+    slug: "electronics",
+  });
+});
+
+test("sanitizeSlug blocks fintech and auth phishing subdomains", () => {
+  for (const blocked of ["mpesa", "safaricom", "pay", "checkout", "login", "verify", "admin"]) {
+    assert.equal(sanitizeSlug(blocked), "", `expected ${blocked} to be rejected`);
+  }
+  assert.equal(sanitizeSlug("alice-baby-shop"), "alice-baby-shop");
+});
+
+test("about page and platform schema identify Kelvin Kamau, Kayzen Labs Software Company Limited, and kelvin@store254.co.ke", () => {
+  const about = buildPlatformAboutHtml(false);
+  assert.equal(about.status, 200);
+  assert.match(about.robots, /^index, follow/);
+  assert.match(about.html, /<link rel="canonical" href="https:\/\/store254\.co\.ke\/about">/);
+  assert.match(about.html, /"@type":"AboutPage"/);
+  assert.match(about.html, /"@type":"Person"/);
+  assert.match(about.html, /Kelvin Kamau/);
+  assert.match(about.html, /Kayzen Labs Software Company Limited/);
+  assert.match(about.html, /kelvin@store254\.co\.ke/);
+
+  const rootSitemap = buildPlatformSitemapXml(sampleStores);
+  assert.match(rootSitemap, /<loc>https:\/\/store254\.co\.ke\/about<\/loc>/);
+
+  const platformSeo = buildPlatformSeoData(sampleStores, false);
+  assert.match(platformSeo.headTagsHtml, /Kelvin Kamau/);
+  assert.match(platformSeo.headTagsHtml, /Kayzen Labs Software Company Limited/);
 });
