@@ -208,46 +208,21 @@ function buildResetFiltersPillHtml() {
   `;
 }
 
+function findCategoryParentName(category) {
+  if (!category || !category.parentId || !Array.isArray(state.categories)) return "";
+  const parent = state.categories.find((c) => c.id === category.parentId);
+  return parent?.name || "";
+}
+
 function getCategoryIcon(category) {
-  if (category.icon) return category.icon;
-
-  const text = `${category.name || ""} ${category.slug || ""}`.toLowerCase();
-
-  // Fashion & Apparel
-  if (/shoe|footwear|sneaker|heel|boot|loafer/.test(text)) return "footprints";
-  if (/cloth|shirt|trouser|pant|dress|skirt|jacket|hoodie|suit|men|women|fashion|wear|outfit|activewear/.test(text)) return "shirt";
-  if (/bag|backpack|purse|wallet|handbag/.test(text)) return "briefcase";
-  if (/watch|accessory|jewelry|ring|necklace|glasses/.test(text)) return "watch";
-
-  // Tech & Electronics
-  if (/phone|smartphone|tablet|mobile|iphone|android/.test(text)) return "smartphone";
-  if (/laptop|computer|macbook|pc|desktop/.test(text)) return "laptop";
-  if (/audio|sound|headphone|earphone|speaker|pod/.test(text)) return "headphones";
-  if (/tv|screen|monitor|display/.test(text)) return "tv";
-  if (/camera|lens|video|photo/.test(text)) return "camera";
-  if (/power|charger|cable|battery|adapter/.test(text)) return "zap";
-  if (/smart home|iot|gadget/.test(text)) return "cpu";
-
-  // Beauty, Salon & Grooming
-  if (/hair|salon|braid|wig|weave|styling|cut/.test(text)) return "sparkles";
-  if (/barber|fade|shave|beard|grooming/.test(text)) return "scissors";
-  if (/massage|spa|wellness|therapy|relax|body/.test(text)) return "heart-pulse";
-  if (/nail|manicure|pedicure|skin|facial|cosmetic/.test(text)) return "flower-2";
-
-  // Real Estate & Property
-  if (/apartment|house|home|vacant|rental|flat|villa|studio|letting/.test(text)) return "home";
-  if (/land|plot|acre|commercial|property|estate/.test(text)) return "map-pin";
-
-  // Services & Professional
-  if (/code|software|cloud|web|engineer|design|dev|portfolio/.test(text)) return "code";
-  if (/drive|driving|license|motorcycle|vehicle|car|lesson|academy/.test(text)) return "gauge";
-  if (/wedding|event|celebration/.test(text)) return "calendar";
-
-  // Home & Living
-  if (/furniture|decor|bed|sofa|table|chair/.test(text)) return "armchair";
-  if (/food|drink|grocery|snack|restaurant|dining/.test(text)) return "utensils";
-
-  return "folder";
+  if (typeof window !== "undefined" && window.Store254CategoryClassifier) {
+    return window.Store254CategoryClassifier.resolveIcon(category, {
+      parentName: findCategoryParentName(category),
+      businessType: state.tenant?.businessType,
+      storeName: state.tenant?.name,
+    });
+  }
+  return category?.icon || "tag";
 }
 
 function renderCategoryNavigation(animateLevelChange = false) {
