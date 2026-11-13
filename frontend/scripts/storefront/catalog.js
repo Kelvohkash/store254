@@ -66,7 +66,8 @@ function getFilteredItems(items) {
   });
 }
 
-function buildItemCardHtml(item) {
+function buildItemCardHtml(item, cardIndex = 99) {
+  const isPriorityCard = cardIndex < 4;
   const isService = item.itemType === "SERVICE";
   const hasDisc = item.compareAtPrice && Number(item.compareAtPrice) > Number(item.basePrice);
   const primaryImg = item.images?.[0] || (isService
@@ -95,7 +96,7 @@ function buildItemCardHtml(item) {
     <article class="product-card${isService ? " product-card--service" : ""} flex flex-col group relative">
       <div class="product-card-media relative overflow-hidden flex items-center justify-center cursor-pointer" onclick="viewItemDetails(${inlineJs(item.id)})">
         <a href="${escapeHtml(itemHref)}" onclick="event.preventDefault(); event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" class="block w-full h-full no-underline" aria-label="${escapeHtml(item.title)}">
-          <img src="${escapeHtml(primaryImg)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" width="400" height="400" class="w-full h-full object-cover">
+          <img src="${escapeHtml(primaryImg)}" alt="${escapeHtml(item.title)}" ${isPriorityCard ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async" width="400" height="400" class="w-full h-full object-cover">
           ${secImg ? `<img class="product-card-secondary w-full h-full object-cover" src="${escapeHtml(secImg)}" alt="" loading="lazy" decoding="async" width="400" height="400">` : ""}
         </a>
         <div class="product-card-actions">
@@ -280,12 +281,13 @@ function syncSortControls(val) {
 function renderCatalogBatch() {
   const container = document.getElementById("items-grid");
   if (!container || currentRenderedCount >= currentFilteredList.length) return;
-  const batch = currentFilteredList.slice(currentRenderedCount, currentRenderedCount + CATALOG_PAGE_SIZE);
+  const batchStart = currentRenderedCount;
+  const batch = currentFilteredList.slice(batchStart, batchStart + CATALOG_PAGE_SIZE);
   currentRenderedCount += batch.length;
   document.getElementById("catalog-sentinel")?.remove();
 
   const temp = document.createElement("div");
-  temp.innerHTML = batch.map(buildItemCardHtml).join("");
+  temp.innerHTML = batch.map((item, idx) => buildItemCardHtml(item, batchStart + idx)).join("");
   const fragment = document.createDocumentFragment();
   const added = [];
   while (temp.firstChild) { added.push(temp.firstChild); fragment.appendChild(temp.firstChild); }

@@ -4,15 +4,30 @@
 async function uploadStoreBrandingImage(targetInputId, fileInput) {
   const file = fileInput?.files?.[0];
   if (!file) return;
-  showToast("Uploading image...");
+  const presetKind = String(targetInputId || "").toLowerCase().includes("logo") ? "logo" : "banner";
+  const optimizer = window.StoreMediaOptimizer;
+
+  showToast("Optimizing & uploading image...");
+  let uploadFile = file;
+  let resultMeta = null;
+  if (optimizer?.optimizeImageFileForUpload) {
+    resultMeta = await optimizer.optimizeImageFileForUpload(file, presetKind);
+    uploadFile = resultMeta.file || file;
+  }
+
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", uploadFile);
   const r = await apiFetch("/store/settings/media", { method: "POST", body: formData });
   fileInput.value = "";
   if (r.ok && r.data?.data?.url) {
     const input = document.getElementById(targetInputId);
     if (input) input.value = r.data.data.url;
-    showToast("Image uploaded! Click Save & Apply to publish.");
+    if (resultMeta?.wasOptimized && optimizer?.formatImageBytes && resultMeta.optimizedBytes < resultMeta.originalBytes) {
+      const saved = `${optimizer.formatImageBytes(resultMeta.originalBytes)} → ${optimizer.formatImageBytes(resultMeta.optimizedBytes)}`;
+      showToast(`Image optimized (${saved}) & uploaded! Click Save & Apply to publish.`);
+    } else {
+      showToast("Image uploaded! Click Save & Apply to publish.");
+    }
   } else {
     showToast(apiErrorMessage(r, "Failed to upload image."), false);
   }

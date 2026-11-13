@@ -8,8 +8,18 @@ function setItemModalImage(index) {
   if (!image || images.length === 0) return;
 
   state.currentItemImageIndex = (index + images.length) % images.length;
+  image.decoding = "async";
+  image.fetchPriority = "high";
   image.src = images[state.currentItemImageIndex];
   image.alt = `${document.getElementById("item-modal-title").textContent} photo ${state.currentItemImageIndex + 1}`;
+  if (images.length > 1) {
+    const nextUrl = images[(state.currentItemImageIndex + 1) % images.length];
+    if (nextUrl) {
+      const preload = new Image();
+      preload.decoding = "async";
+      preload.src = nextUrl;
+    }
+  }
   count.textContent = `${state.currentItemImageIndex + 1} / ${images.length}`;
   image.onload = () => {
     const stage = document.getElementById("item-modal-gallery-stage");
@@ -58,6 +68,7 @@ function renderItemImageGallery(images, title) {
       thumbnailImage.src = src;
       thumbnailImage.alt = "";
       thumbnailImage.loading = "lazy";
+      thumbnailImage.decoding = "async";
       thumbnail.appendChild(thumbnailImage);
       thumbnail.addEventListener("click", () => setItemModalImage(index));
       thumbnailContainer.appendChild(thumbnail);
