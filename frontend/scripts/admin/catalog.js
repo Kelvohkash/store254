@@ -91,6 +91,37 @@ async function loadProductAttributeFields(categoryId, initialAttributes = null) 
 let productsCurrentPage = 1;
 const productsPerPage = 10;
 let currentFilteredProducts = [];
+let activeProductStatusFilter = '';
+
+function formatProductStatus(status) {
+  const labels = {
+    PUBLISHED: 'Published',
+    DRAFT: 'Draft',
+    ARCHIVED: 'Archived',
+  };
+  return labels[status] || status || 'Draft';
+}
+
+function formatMobileStockLabel(product) {
+  if (!product.trackInventory) return 'Unlimited stock';
+  const qty = Number(product.stockQuantity || 0);
+  if (qty <= 0) return 'Out of stock';
+  if (qty < 5) return `${qty} left`;
+  return `${qty} in stock`;
+}
+
+function updateProductCountBadge(filteredCount) {
+  const badge = document.getElementById('products-count-badge');
+  if (!badge) return;
+  const total = allProducts.length;
+  if (!total) {
+    badge.textContent = '';
+    return;
+  }
+  badge.textContent = filteredCount === total
+    ? `${total} item${total === 1 ? '' : 's'}`
+    : `${filteredCount} of ${total}`;
+}
 
 async function loadProducts() {
   const r = await apiFetch('/items?limit=200&includeAll=true');
@@ -105,15 +136,34 @@ async function loadProducts() {
   }
 }
 
+function filterProductsByStatus(status) {
+  activeProductStatusFilter = status || '';
+  ['', 'PUBLISHED', 'DRAFT', 'LOW_STOCK', 'ARCHIVED'].forEach((key) => {
+    const btn = document.getElementById(`product-filter-${key || 'ALL'}`);
+    if (btn) btn.className = `text-xs ${activeProductStatusFilter === key ? 'btn-primary' : 'btn-secondary'}`;
+  });
+  filterProducts();
+}
+window.filterProductsByStatus = filterProductsByStatus;
+
 function filterProducts() {
   const q = (document.getElementById('product-search')?.value || '').toLowerCase().trim();
   productsCurrentPage = 1;
-  currentFilteredProducts = q ? allProducts.filter(p => p.title.toLowerCase().includes(q)) : allProducts;
+  currentFilteredProducts = allProducts.filter((p) => {
+    const matchesSearch = !q || (p.title || '').toLowerCase().includes(q) || (p.categoryName || '').toLowerCase().includes(q);
+    if (!matchesSearch) return false;
+    if (!activeProductStatusFilter) return true;
+    if (activeProductStatusFilter === 'LOW_STOCK') {
+      return Boolean(p.trackInventory) && Number(p.stockQuantity || 0) < 5;
+    }
+    return p.status === activeProductStatusFilter;
+  });
   renderProductsTable(currentFilteredProducts);
 }
 
 function renderProductsTable(products) {
   currentFilteredProducts = products || [];
+  updateProductCountBadge(currentFilteredProducts.length);
   const tbody = document.getElementById('products-table-body');
   if (!tbody) return;
   if (products.length === 0) {
@@ -136,33 +186,63 @@ function renderProductsTable(products) {
   const startIdx = (productsCurrentPage - 1) * productsPerPage;
   const pageProducts = products.slice(startIdx, startIdx + productsPerPage);
 
-  tbody.innerHTML = pageProducts.map(p => `
-    <tr class="hover:bg-slate-50 transition-colors">
+  tbody.innerHTML = pageProducts.map(p => {
+    const stockTone = !p.trackInventory
+      ? 'is-ok'
+      : p.stockQuantity <= 0
+        ? 'is-out'
+        : p.stockQuantity < 5
+          ? 'is-low'
+          : 'is-ok';
+    const desktopStockClass = p.stockQuantity <= 0 ? 'text-red-600' : p.stockQuantity < 5 ? 'text-amber-600' : 'text-slate-700';
+    const statusClass = p.status === 'PUBLISHED'
+      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      : p.status === 'DRAFT'
+        ? 'bg-slate-50 text-slate-600 border-slate-200'
+        : 'bg-red-50 text-red-600 border-red-200';
+    return `
+    <tr class="admin-product-row hover:bg-slate-50 transition-colors cursor-pointer" onclick="openEditProductModal(${inlineJs(p.id)})">
       <td data-label="Product" class="px-5 py-3">
-        <div class="flex items-center gap-3">
-          ${p.images?.[0] ? `<img src="${escHtml(p.images[0])}" class="w-9 h-9 rounded-lg object-cover border border-slate-200" onerror="this.style.display='none'">` : `<div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center"><i data-lucide="image" class="w-4 h-4 text-slate-400"></i></div>`}
-          <div>
-            <p class="font-normal text-slate-900 text-sm">${escHtml(p.title)}</p>
+        <div class="admin-product-identity flex items-center gap-3">
+          ${p.images?.[0]
+            ? `<img src="${escHtml(p.images[0])}" class="admin-product-thumb w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')"><div class="admin-product-thumb-fallback hidden w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"><i data-lucide="image" class="w-4 h-4 text-slate-400"></i></div>`
+            : `<div class="admin-product-thumb-fallback w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"><i data-lucide="image" class="w-4 h-4 text-slate-400"></i></div>`}
+          <div class="min-w-0">
+            <p class="admin-product-title font-normal text-slate-900 text-sm">${escHtml(p.title)}</p>
           </div>
         </div>
       </td>
-      <td data-label="Category" class="px-5 py-3 text-xs text-slate-500">${escHtml(p.categoryName || '—')}</td>
+      <td data-label="Category" class="px-5 py-3 text-xs text-slate-500 ${p.categoryName ? '' : 'admin-product-cat-empty'}">
+        <span class="admin-product-cat-pill">${escHtml(p.categoryName || '—')}</span>
+      </td>
       <td data-label="Price" class="px-5 py-3">
-        <p class="font-normal text-slate-900 text-sm">${fmt(p.basePrice)}</p>
-        ${p.compareAtPrice ? `<p class="text-xs text-slate-400 line-through">${fmt(p.compareAtPrice)}</p>` : ''}
+        <div class="admin-product-price-wrap">
+          <p class="font-normal text-slate-900 text-sm">${fmt(p.basePrice)}</p>
+          ${p.compareAtPrice ? `<p class="text-xs text-slate-400 line-through">${fmt(p.compareAtPrice)}</p>` : ''}
+        </div>
       </td>
       <td data-label="Stock" class="px-5 py-3">
-        <span class="text-sm font-normal ${p.stockQuantity <= 0 ? 'text-red-600' : p.stockQuantity < 5 ? 'text-amber-600' : 'text-slate-700'}">${p.trackInventory ? p.stockQuantity : '∞'}</span>
+        <span class="admin-stock-desktop text-sm font-normal ${desktopStockClass}">${p.trackInventory ? p.stockQuantity : '∞'}</span>
+        <span class="admin-stock-mobile ${stockTone}">${escHtml(formatMobileStockLabel(p))}</span>
       </td>
       <td data-label="Status" class="px-5 py-3">
-        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full border ${p.status === 'PUBLISHED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : p.status === 'DRAFT' ? 'bg-slate-50 text-slate-500 border-slate-200' : 'bg-red-50 text-red-600 border-red-200'}">${escHtml(p.status)}</span>
+        <span class="admin-product-status-pill text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusClass}">${escHtml(formatProductStatus(p.status))}</span>
       </td>
-      <td data-label="Actions" class="px-5 py-3 text-right">
-        <button onclick="openEditProductModal(${inlineJs(p.id)})" class="text-xs font-normal text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-all mr-1">Edit</button>
-        <button onclick="deleteProduct(${inlineJs(p.id)}, ${inlineJs(p.title)})" class="text-xs font-normal text-slate-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-all">Delete</button>
+      <td data-label="Actions" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
+        <div class="admin-product-actions-wrap inline-flex items-center justify-end gap-1.5">
+          <button type="button" onclick="openEditProductModal(${inlineJs(p.id)})" class="admin-product-action-edit text-xs font-normal text-slate-500 hover:text-emerald-600 px-2 py-1 rounded-lg hover:bg-emerald-50 transition-all">
+            <i data-lucide="pencil" class="w-3.5 h-3.5 md:hidden"></i>
+            <span>Edit</span>
+          </button>
+          <button type="button" onclick="deleteProduct(${inlineJs(p.id)}, ${inlineJs(p.title)})" class="admin-product-action-delete text-xs font-normal text-slate-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-all" aria-label="Delete ${escHtml(p.title)}" title="Delete product">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5 md:hidden"></i>
+            <span class="admin-action-label-desktop">Delete</span>
+          </button>
+        </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   renderPaginationControls({
     containerId: 'products-pagination',

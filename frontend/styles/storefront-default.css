@@ -425,13 +425,17 @@ html[data-storefront="true"] #storefront-main-category-bar {
   margin: 0 0 1.25rem 0 !important;
 }
 
-/* URL-Like Breadcrumb Bar */
+/* Breadcrumb Bar */
 html[data-storefront="true"] .drilldown-header {
   width: 100%;
-  min-height: 1.85rem;
-  margin-top: 0.3rem;
+  min-height: 1.65rem;
+  margin-top: 0.35rem;
   padding: 0 0.35rem;
   justify-content: flex-start;
+}
+
+html[data-storefront="true"] .drilldown-header.hidden {
+  display: none !important;
 }
 
 html[data-storefront="true"] .drilldown-breadcrumb-viewport {
@@ -453,14 +457,63 @@ html[data-storefront="true"] .drilldown-url-bar {
   min-width: 100%;
   flex-wrap: nowrap;
   justify-content: flex-start;
+  align-items: center;
   white-space: nowrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.72rem;
+  font-family: inherit;
+  font-size: 0.76rem;
   color: var(--store-muted);
 }
 
 html[data-storefront="true"] .drilldown-url-bar > * {
   flex: 0 0 auto;
+}
+
+/* Subcategory Pills Bar */
+html[data-storefront="true"] .subcategory-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+html[data-storefront="true"] .subcategory-pills-bar::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-storefront="true"] .category-subpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.34rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  border: 1px solid var(--store-line);
+  background: var(--store-white);
+  color: var(--store-ink);
+  transition: all 140ms ease;
+  cursor: pointer;
+}
+
+html[data-storefront="true"] .category-subpill-inactive:hover {
+  border-color: var(--store-primary);
+  color: var(--store-primary);
+}
+
+html[data-storefront="true"] .category-subpill-active {
+  background: var(--store-primary-soft);
+  border-color: var(--store-primary);
+  color: var(--store-primary);
+  font-weight: 800;
+}
+
+html[data-storefront="true"] .category-subpill-count {
+  font-size: 0.65rem;
+  font-weight: 700;
+  opacity: 0.72;
 }
 
 html[data-storefront="true"] .category-scroll-hint {
@@ -623,13 +676,13 @@ html[data-storefront="true"] .category-cards-grid.hidden {
 
 html[data-storefront="true"] .category-card {
   min-width: 0;
-  aspect-ratio: 1 / 1;
+  min-height: 5.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 0.75rem 0.6rem;
+  padding: 0.85rem 0.65rem;
   border: 1px solid var(--store-line);
   border-radius: 1rem;
   background: var(--store-white);
