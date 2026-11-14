@@ -93,18 +93,33 @@
     const open = typeof force === "boolean" ? force : panel.classList.contains("hidden");
     panel.classList.toggle("hidden", !open);
     if (open) {
+      window.backToMarketplaceCountyStep();
       await ensureBuyerCountiesLoaded();
       renderBuyerCountyChips("");
       document.getElementById("marketplace-county-filter")?.focus();
     }
   };
 
+  window.backToMarketplaceCountyStep = function backToMarketplaceCountyStep() {
+    const countyStep = document.getElementById("marketplace-county-step");
+    const townWrap = document.getElementById("marketplace-town-search-wrap");
+    const countyInput = document.getElementById("marketplace-county-filter");
+    if (townWrap) townWrap.classList.add("hidden");
+    if (countyStep) countyStep.classList.remove("hidden");
+    if (countyInput) {
+      countyInput.value = "";
+      renderBuyerCountyChips("");
+      countyInput.focus();
+    }
+  };
+
   function renderBuyerCountyChips(filterText) {
     const listEl = document.getElementById("marketplace-county-list");
     if (!listEl) return;
-    const q = String(filterText || "").trim().toLowerCase();
+    const norm = (s) => String(s || "").toLowerCase().replace(/['’-]/g, "").trim();
+    const q = norm(filterText);
     const matches = q
-      ? buyerCountyList.filter((c) => c.name.toLowerCase().includes(q))
+      ? buyerCountyList.filter((c) => norm(c.name).includes(q) || c.name.toLowerCase().includes(String(filterText || "").trim().toLowerCase()))
       : buyerCountyList.slice(0, 12);
 
     if (matches.length === 0) {
@@ -127,8 +142,10 @@
   window.selectMarketplaceCounty = function selectMarketplaceCounty(countyId) {
     activeCountyFilter = buyerCountyList.find((c) => c.id === countyId) || null;
     renderBuyerCountyChips(document.getElementById("marketplace-county-filter")?.value || "");
+    const countyStep = document.getElementById("marketplace-county-step");
     const townWrap = document.getElementById("marketplace-town-search-wrap");
     const townHint = document.getElementById("marketplace-town-county-label");
+    if (countyStep) countyStep.classList.add("hidden");
     if (townWrap) townWrap.classList.remove("hidden");
     if (townHint && activeCountyFilter) {
       townHint.textContent = activeCountyFilter.name;
