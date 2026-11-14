@@ -18,6 +18,7 @@ import {
 import { AppError } from "../../security/error-handler";
 import { rateLimiter } from "../../security/rate-limiter";
 import { SECURITY_LIMITS } from "../../config/constants";
+import { businessTypeSchema } from "../../config/business-types";
 import { EmailService } from "../../services/email.service";
 import { locationsRouter } from "./locations.routes";
 import { searchRouter } from "./search.routes";
@@ -36,9 +37,7 @@ const registerStoreSchema = z
   .object({
     storeName: z.string().min(2, "Store name must be at least 2 characters").max(60),
     subdomain: z.string().min(2).max(32),
-    businessType: z
-      .enum(["RETAIL", "ELECTRONICS", "FURNITURE", "SERVICES", "GENERAL"])
-      .default("GENERAL"),
+    businessType: businessTypeSchema.default("GENERAL"),
     currency: z.string().length(3).default("KES"),
     ownerEmail: z.string().email("Valid email address required"),
     ownerPassword: z

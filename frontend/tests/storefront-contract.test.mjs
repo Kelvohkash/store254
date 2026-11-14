@@ -88,3 +88,16 @@ test("platform homepage exposes progressive ripple product search with location 
   assert.match(searchJs, /\/api\/platform\/search\/products/);
   assert.match(searchJs, /\/api\/platform\/search\/suggest/);
 });
+
+test("store onboarding supports expanded Kenyan and international business types", async () => {
+  const [html, superAdmin, seo] = await Promise.all([
+    read("../index.html"),
+    read("../super-admin.html"),
+    read("../src/seo.ts"),
+  ]);
+  for (const type of ["FASHION", "BEAUTY", "FOOD_BEVERAGE", "PHARMACY_HEALTH", "AGRICULTURE", "AUTOMOTIVE", "REAL_ESTATE", "BUILDING_HARDWARE", "WHOLESALE_B2B", "LOGISTICS_DELIVERY"]) {
+    assert.match(html, new RegExp(`value="${type}"`));
+    assert.match(superAdmin, new RegExp(`value="${type}"`));
+    assert.match(seo, new RegExp(`enumType:\\s*"${type}"`));
+  }
+});

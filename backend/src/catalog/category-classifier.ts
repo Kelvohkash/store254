@@ -567,13 +567,34 @@ function scoreField(
   return score;
 }
 
+const BUSINESS_TYPE_FALLBACKS: Record<string, { icon: string; fallbackIcon: string; domain: string }> = {
+  SERVICE: { icon: "briefcase", fallbackIcon: "calendar", domain: "Professional Services" },
+  SERVICES: { icon: "briefcase", fallbackIcon: "calendar", domain: "Professional Services" },
+  REAL_ESTATE: { icon: "building-2", fallbackIcon: "home", domain: "Real Estate & Property" },
+  DIGITAL: { icon: "code", fallbackIcon: "globe", domain: "Digital & Tech" },
+  DIGITAL_TECH: { icon: "code", fallbackIcon: "globe", domain: "Digital Products & Tech" },
+  ELECTRONICS: { icon: "smartphone", fallbackIcon: "cpu", domain: "Electronics & Appliances" },
+  FASHION: { icon: "shirt", fallbackIcon: "shopping-bag", domain: "Fashion, Clothing & Footwear" },
+  BEAUTY: { icon: "sparkles", fallbackIcon: "scissors", domain: "Beauty, Salon & Wellness" },
+  FURNITURE: { icon: "sofa", fallbackIcon: "lamp", domain: "Furniture & Home Decor" },
+  HOSPITALITY: { icon: "utensils", fallbackIcon: "coffee", domain: "Food & Hospitality" },
+  FOOD: { icon: "utensils", fallbackIcon: "coffee", domain: "Food & Hospitality" },
+  FOOD_BEVERAGE: { icon: "utensils", fallbackIcon: "coffee", domain: "Food, Dining & Groceries" },
+  PHARMACY_HEALTH: { icon: "heart-pulse", fallbackIcon: "pill", domain: "Pharmacy, Health & Clinic" },
+  AUTOMOTIVE: { icon: "car", fallbackIcon: "wrench", domain: "Auto Spares & Motors" },
+  AGRICULTURE: { icon: "sprout", fallbackIcon: "wheat", domain: "Agrovets & Farming" },
+  BUILDING_HARDWARE: { icon: "hammer", fallbackIcon: "wrench", domain: "Building Materials & Hardware" },
+  EDUCATION: { icon: "graduation-cap", fallbackIcon: "book-open", domain: "Books & Education" },
+  EVENTS_HOSPITALITY: { icon: "camera", fallbackIcon: "calendar", domain: "Events, Media & Hospitality" },
+  SPORTS_FITNESS: { icon: "dumbbell", fallbackIcon: "trophy", domain: "Sports & Fitness" },
+  KIDS_BABY: { icon: "baby", fallbackIcon: "gift", domain: "Baby, Kids & Toys" },
+  WHOLESALE_B2B: { icon: "boxes", fallbackIcon: "truck", domain: "Wholesale & Suppliers" },
+  LOGISTICS_DELIVERY: { icon: "truck", fallbackIcon: "map-pin", domain: "Courier & Logistics" },
+};
+
 function businessTypeFallback(businessType?: string | null): { icon: string; fallbackIcon: string; domain: string } {
   const bt = String(businessType || "").toUpperCase();
-  if (bt === "SERVICE") return { icon: "briefcase", fallbackIcon: "calendar", domain: "Professional Services" };
-  if (bt === "REAL_ESTATE") return { icon: "building-2", fallbackIcon: "home", domain: "Real Estate & Property" };
-  if (bt === "DIGITAL") return { icon: "code", fallbackIcon: "globe", domain: "Digital & Tech" };
-  if (bt === "HOSPITALITY" || bt === "FOOD") return { icon: "utensils", fallbackIcon: "coffee", domain: "Food & Hospitality" };
-  return { icon: "package", fallbackIcon: "tag", domain: "General Retail" };
+  return BUSINESS_TYPE_FALLBACKS[bt] || { icon: "package", fallbackIcon: "tag", domain: "General Retail" };
 }
 
 export function classifyCategoryIcon(input: CategoryClassificationInput): CategoryClassificationResult {

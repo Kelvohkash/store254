@@ -10,6 +10,7 @@ import { orders } from "../../db/schema/orders";
 import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
 import { AppError } from "../../security/error-handler";
 import { generateUUID } from "../../security/crypto";
+import { businessTypeSchema } from "../../config/business-types";
 import { detectImageMimeFromBytes } from "../../lib/media-validation";
 
 export const tenantSettingsRouter = new Hono<AppEnv>();
@@ -47,9 +48,7 @@ export const updateStoreProfileSchema = z.object({
   subdomain: z.never().optional(),
   name: z.string().min(2).max(100).optional(),
   currency: z.string().length(3).optional(),
-  businessType: z
-    .enum(["RETAIL", "ELECTRONICS", "FURNITURE", "SERVICES", "GENERAL"])
-    .optional(),
+  businessType: businessTypeSchema.optional(),
   settings: z
     .object({
       logoUrl: optionalMediaPath,
