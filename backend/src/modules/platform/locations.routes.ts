@@ -8,6 +8,7 @@ import {
   kenyaCounties,
   kenyaConstituencies,
   kenyaLocations,
+  kenyaLocationNeighbors,
 } from "../../db/schema";
 import {
   autocompleteGooglePlacesKenya,
@@ -297,14 +298,31 @@ locationsRouter.post(
  */
 locationsRouter.get("/stats", async (c) => {
   const db = createDb(c.env.DB);
-  const [[counties], [constituencies], [locations]] = await Promise.all([
-    db.select({ count: sql<number>`count(*)` }).from(kenyaCounties),
-    db.select({ count: sql<number>`count(*)` }).from(kenyaConstituencies),
-    db.select({ count: sql<number>`count(*)` }).from(kenyaLocations),
-  ]);
+  const [[counties], [constituencies], [locations], [neighbors], kindRows] =
+    await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(kenyaCounties),
+      db.select({ count: sql<number>`count(*)` }).from(kenyaConstituencies),
+      db.select({ count: sql<number>`count(*)` }).from(kenyaLocations),
+      db.select({ count: sql<number>`count(*)` }).from(kenyaLocationNeighbors),
+      db
+        .select({
+          kind: kenyaLocations.kind,
+          count: sql<number>`count(*)`,
+        })
+        .from(kenyaLocations)
+        .groupBy(kenyaLocations.kind),
+    ]);
+
+  const byKind: Record<string, number> = {};
+  for (const row of kindRows) {
+    byKind[row.kind] = Number(row.count ?? 0);
+  }
+
   return c.json({
     counties: Number(counties?.count ?? 0),
     constituencies: Number(constituencies?.count ?? 0),
     locations: Number(locations?.count ?? 0),
+    neighbors: Number(neighbors?.count ?? 0),
+    byKind,
   });
 });
