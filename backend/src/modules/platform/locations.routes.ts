@@ -79,8 +79,10 @@ locationsRouter.get("/nearest", async (c) => {
   let source: "gps" | "network" = "gps";
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    const cfLat = cf?.latitude !== undefined ? Number(cf.latitude) : NaN;
-    const cfLng = cf?.longitude !== undefined ? Number(cf.longitude) : NaN;
+    const rawCfLat = cf?.latitude ?? c.req.header("x-cf-latitude");
+    const rawCfLng = cf?.longitude ?? c.req.header("x-cf-longitude");
+    const cfLat = rawCfLat !== undefined && rawCfLat !== "" ? Number(rawCfLat) : NaN;
+    const cfLng = rawCfLng !== undefined && rawCfLng !== "" ? Number(rawCfLng) : NaN;
     if (Number.isFinite(cfLat) && Number.isFinite(cfLng)) {
       lat = cfLat;
       lng = cfLng;

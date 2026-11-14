@@ -252,38 +252,64 @@
     const labelEl = document.getElementById("marketplace-location-pill-label");
     if (labelEl) labelEl.textContent = "Detecting location...";
 
-    const finishWithFallback = async (reasonMsg) => {
-      const netRes = await resolveAndSaveNearestCoords(NaN, NaN, "network");
-      if (netRes.ok) {
-        if (typeof onResult === "function") onResult(netRes);
-        return;
+    let settled = false;
+    let guardTimer = null;
+    const emitResult = (payload) => {
+      if (settled) return;
+      settled = true;
+      if (guardTimer) clearTimeout(guardTimer);
+      if (!payload?.ok) {
+        syncLocationPillUI();
       }
-      syncLocationPillUI();
-      if (typeof showToast === "function") showToast(reasonMsg, true);
-      if (typeof onResult === "function") onResult({ ok: false, message: reasonMsg });
+      if (typeof onResult === "function") onResult(payload);
     };
 
-    if (!navigator.geolocation) {
-      await finishWithFallback("Browser location is unavailable. Please select your County below.");
-      return;
-    }
+    const finishWithFallback = async (reasonMsg) => {
+      try {
+        const netRes = await resolveAndSaveNearestCoords(NaN, NaN, "network");
+        if (netRes.ok) {
+          emitResult(netRes);
+          return;
+        }
+      } catch {}
+      syncLocationPillUI();
+      if (typeof showToast === "function") showToast(reasonMsg, true);
+      emitResult({ ok: false, message: reasonMsg });
+    };
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = Number(pos.coords.latitude.toFixed(5));
-        const lng = Number(pos.coords.longitude.toFixed(5));
-        const resolved = await resolveAndSaveNearestCoords(lat, lng, "gps");
-        if (typeof onResult === "function") onResult(resolved);
-      },
-      async (err) => {
-        const msg =
-          err && err.code === 1
-            ? "Location permission was denied. We fell back to searching manually or pick your County below."
-            : "Could not detect precise GPS signal. Please select your County below.";
-        await finishWithFallback(msg);
-      },
-      { enableHighAccuracy: false, timeout: 9000, maximumAge: 180000 }
-    );
+    try {
+      if (!navigator.geolocation) {
+        await finishWithFallback("Browser location is unavailable. Please select your County below.");
+        return;
+      }
+
+      guardTimer = setTimeout(() => {
+        finishWithFallback("Location detection timed out. Please select your County below.");
+      }, 4500);
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          if (settled) return;
+          clearTimeout(guardTimer);
+          const lat = Number(pos.coords.latitude.toFixed(5));
+          const lng = Number(pos.coords.longitude.toFixed(5));
+          const resolved = await resolveAndSaveNearestCoords(lat, lng, "gps");
+          emitResult(resolved?.ok ? resolved : { ok: false, message: "Could not match GPS coordinates. Please select your County below." });
+        },
+        async (err) => {
+          if (settled) return;
+          clearTimeout(guardTimer);
+          const msg =
+            err && err.code === 1
+              ? "Location permission was denied. Please select your County below."
+              : "Could not detect precise GPS signal. Please select your County below.";
+          await finishWithFallback(msg);
+        },
+        { enableHighAccuracy: false, timeout: 4000, maximumAge: 180000 }
+      );
+    } catch {
+      await finishWithFallback("Could not detect location automatically. Please select your County below.");
+    }
   };
 
   window.onMarketplaceQueryInput = function onMarketplaceQueryInput(val) {
