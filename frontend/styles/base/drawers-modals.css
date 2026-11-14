@@ -96,11 +96,11 @@
   #mobile-bottom-nav button:last-child { color: var(--store-green) !important; }
   html[data-storefront="true"] #mobile-wishlist-toggle:not(.hidden):not([hidden]) { display: flex !important; }
   #mobile-wishlist-toggle[aria-pressed="true"] { color: var(--store-primary) !important; }
-  .site-header-inner { min-height: 3.4rem; gap: 0.45rem; }
-  #header-brand { flex: 1 1 auto; gap: 0.55rem; min-width: 0; overflow: hidden; }
-  html:not([data-storefront="true"]) .header-logo-frame { width: 9rem !important; height: 2.45rem !important; padding: 0 !important; }
+  .site-header-inner { min-height: 3.4rem; gap: 0.35rem; padding-left: 0.65rem; padding-right: 0.65rem; }
+  #header-brand { flex: 0 1 auto; gap: 0.45rem; min-width: 0; overflow: visible; }
+  html:not([data-storefront="true"]) .header-logo-frame { width: clamp(6.4rem, 34vw, 8.6rem) !important; height: 2.3rem !important; padding: 0 !important; }
   html[data-storefront="true"] .header-logo-frame { width: 2.5rem !important; height: 2.5rem !important; padding: 0.18rem !important; }
-  #header-platform-logo { flex: 0 0 auto; }
+  #header-platform-logo { flex: 0 0 auto; width: 100% !important; height: 100% !important; object-fit: contain !important; object-position: left center !important; }
   #header-store-identity { flex: 1 1 auto; min-width: 0; max-width: none; overflow: hidden; }
   .header-store-name { font-size: 0.94rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .header-powered-by { font-size: 0.62rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
