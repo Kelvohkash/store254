@@ -15,6 +15,7 @@
   let selectedStatus = "ALL";
   let selectedCategory = "ALL";
   let editingSubdomainStore = null;
+  let editingPriceStore = null;
 
   function renderStores() {
     renderStoresTable(stores, { status: selectedStatus, category: selectedCategory }, (button) => void handleStoreAction(button));
@@ -68,10 +69,11 @@
 
   async function saveBillingSettings() {
     const button = document.getElementById("save-billing-settings");
-    const amount = Number(document.getElementById("platform-billing-amount").value);
+    const rawAmount = document.getElementById("platform-billing-amount").value.trim();
+    const amount = rawAmount === "" ? 0 : Number(rawAmount);
     const shortcodeType = document.getElementById("platform-billing-shortcode-type").value;
-    if (!Number.isInteger(amount) || amount <= 0) {
-      setAdminNotice("Enter a valid monthly subscription amount.", true);
+    if (!Number.isInteger(amount) || amount < 0) {
+      setAdminNotice("Enter a valid default monthly fee (or leave blank to set prices per store).", true);
       return;
     }
     button.disabled = true;
@@ -103,64 +105,90 @@
     if (window.lucide?.createIcons) window.lucide.createIcons();
   }
 
-  const pause = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  function openPriceModal(store) {
+    const modal = document.getElementById("price-modal");
+    const subtitle = document.getElementById("price-modal-subtitle");
+    const input = document.getElementById("store-price-input");
+    const hint = document.getElementById("price-hint");
+    const errorEl = document.getElementById("price-error");
+    const clearBtn = document.getElementById("price-clear-btn");
+    if (!modal || !input) return;
 
-  async function handleBillingPrompt(store, button) {
-    const settings = window.platformBillingUiState || {};
-    if (!settings.darajaConfigured) {
-      setAdminNotice("Daraja credentials are missing. Add them to the backend Worker secrets in Cloudflare first.", true);
-      return;
+    editingPriceStore = store;
+    const defaultAmount = Number(window.platformBillingUiState?.amount) || 0;
+    subtitle.textContent = `Set the monthly subscription price for ${store.name}.`;
+    input.value = store.subscriptionAmount > 0 ? String(store.subscriptionAmount) : "";
+    hint.textContent = defaultAmount > 0
+      ? `Platform default is KES ${defaultAmount.toLocaleString("en-KE")}/mo. Setting a custom price overrides it for this store.`
+      : "No platform default is set. Enter the monthly KES amount this store should pay.";
+    if (clearBtn) {
+      clearBtn.hidden = !(store.subscriptionAmount > 0 && defaultAmount > 0);
     }
-    if (!settings.amount) {
-      setAdminNotice("Save a monthly subscription amount first.", true);
-      return;
-    }
-    let phoneNumber = store.ownerPhone || "";
-    if (!phoneNumber) {
-      phoneNumber = window.prompt("Enter the store owner’s Kenyan M-Pesa number:", "") || "";
-      if (!phoneNumber.trim()) return;
-    }
-    const confirmed = await confirmDialog(
-      `Send payment prompt to ${store.name}?`,
-      `Daraja will send a KES ${Number(settings.amount).toLocaleString("en-KE")} M-Pesa prompt to ${phoneNumber}. A successful payment covers one month and reactivates a suspended store.`,
-      false
-    );
-    if (!confirmed) return;
+    errorEl.hidden = true;
+    modal.hidden = false;
+    window.setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 20);
+  }
 
-    const prevHtml = button.innerHTML;
-    button.disabled = true;
-    button.textContent = "Sending…";
-    const result = await platformApiFetch(`/stores/${encodeURIComponent(store.id)}/billing/payment-prompt`, {
-      method: "POST",
-      body: JSON.stringify({ phoneNumber }),
+  function closePriceModal() {
+    const modal = document.getElementById("price-modal");
+    if (modal) modal.hidden = true;
+    editingPriceStore = null;
+  }
+
+  async function persistStorePrice(amount) {
+    if (!editingPriceStore) return;
+    const errorEl = document.getElementById("price-error");
+    const saveBtn = document.getElementById("price-save-btn");
+    const clearBtn = document.getElementById("price-clear-btn");
+
+    saveBtn.disabled = true;
+    if (clearBtn) clearBtn.disabled = true;
+    saveBtn.textContent = "Saving…";
+    errorEl.hidden = true;
+
+    const result = await platformApiFetch(`/stores/${encodeURIComponent(editingPriceStore.id)}/billing/price`, {
+      method: "PATCH",
+      body: JSON.stringify({ amount }),
     });
-    button.disabled = false;
-    button.innerHTML = prevHtml;
-    if (window.lucide?.createIcons) window.lucide.createIcons();
+
+    saveBtn.disabled = false;
+    if (clearBtn) clearBtn.disabled = false;
+    saveBtn.textContent = "Save Price";
+
     if (!result.ok || !result.data.success) {
-      if (result.status === 401) window.location.replace("./super-admin-login.html");
-      setAdminNotice(result.data.error?.message || "Could not send the M-Pesa prompt.", true);
+      if (result.status === 401) {
+        window.location.replace("./super-admin-login.html");
+        return;
+      }
+      errorEl.textContent = result.data.error?.message || "Could not update store price.";
+      errorEl.hidden = false;
       return;
     }
 
-    const { paymentId } = result.data.data;
-    setAdminNotice(result.data.message || "M-Pesa prompt sent. Waiting for payment confirmation…");
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      await pause(3000);
-      const statusResult = await platformApiFetch(`/billing/payments/${encodeURIComponent(paymentId)}`);
-      if (!statusResult.ok) break;
-      const payment = statusResult.data.data;
-      if (payment.status === "COMPLETED") {
-        setAdminNotice(`Payment received${payment.receipt ? ` · M-Pesa receipt ${payment.receipt}` : ""}. The billing period has been extended.`);
-        await loadDashboard();
-        return;
-      }
-      if (payment.status === "FAILED") {
-        setAdminNotice(payment.resultDesc || "The M-Pesa payment was not completed.", true);
-        return;
-      }
+    const storeName = editingPriceStore.name;
+    closePriceModal();
+    setAdminNotice(
+      result.data.message || (amount ? `Monthly price for "${storeName}" updated.` : `Custom price cleared for "${storeName}".`)
+    );
+    await loadDashboard();
+  }
+
+  async function saveStorePrice(event) {
+    event.preventDefault();
+    if (!editingPriceStore) return;
+    const input = document.getElementById("store-price-input");
+    const errorEl = document.getElementById("price-error");
+    const raw = (input?.value || "").trim();
+    const amount = Number(raw);
+    if (!raw || !Number.isInteger(amount) || amount < 1 || amount > 10_000_000) {
+      errorEl.textContent = "Enter a whole number between 1 and 10,000,000 KES.";
+      errorEl.hidden = false;
+      return;
     }
-    setAdminNotice("The M-Pesa prompt is still pending. Refresh the business directory shortly to see the result.");
+    await persistStorePrice(amount);
   }
 
   function openSubdomainModal(store) {
@@ -266,6 +294,10 @@
     const store = stores.find((entry) => entry.id === button.dataset.storeId);
     if (!store) return;
     const action = button.dataset.storeAction;
+    if (action === "edit-price") {
+      openPriceModal(store);
+      return;
+    }
     if (action === "edit-subdomain") {
       openSubdomainModal(store);
       return;
@@ -298,10 +330,6 @@
       }
       setAdminNotice(result.data.message || "One free month has been added.");
       await loadDashboard();
-      return;
-    }
-    if (action === "payment-prompt") {
-      await handleBillingPrompt(store, button);
       return;
     }
     const isApproval = action === "activate";
@@ -391,6 +419,7 @@
     link.addEventListener("click", () => setActiveNav(link.dataset.navSection));
   });
   if ("IntersectionObserver" in window && navLinks.length > 0) {
+    const scrollRoot = document.querySelector(".admin-content");
     const sections = navLinks
       .map((link) => document.getElementById(link.dataset.navSection))
       .filter(Boolean);
@@ -399,7 +428,7 @@
         .filter((entry) => entry.isIntersecting)
         .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
       if (visible) setActiveNav(visible.target.id);
-    }, { rootMargin: "-20% 0px -60% 0px", threshold: 0 });
+    }, { root: scrollRoot || null, rootMargin: "-20% 0px -60% 0px", threshold: 0 });
     sections.forEach((section) => observer.observe(section));
   }
   document.getElementById("subdomain-input")?.addEventListener("input", (event) => {
@@ -409,9 +438,22 @@
     if (preview) preview.textContent = `Preview: https://${raw || "—"}.store254.co.ke/`;
     if (errorEl) errorEl.hidden = true;
   });
+  document.getElementById("price-form")?.addEventListener("submit", (event) => void saveStorePrice(event));
+  document.getElementById("price-cancel-btn")?.addEventListener("click", closePriceModal);
+  document.getElementById("price-clear-btn")?.addEventListener("click", () => void persistStorePrice(null));
+  document.getElementById("price-modal")?.addEventListener("click", (event) => {
+    if (event.target.id === "price-modal") closePriceModal();
+  });
+  document.getElementById("store-price-input")?.addEventListener("input", () => {
+    const errorEl = document.getElementById("price-error");
+    if (errorEl) errorEl.hidden = true;
+  });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !document.getElementById("subdomain-modal")?.hidden) {
       closeSubdomainModal();
+    }
+    if (event.key === "Escape" && !document.getElementById("price-modal")?.hidden) {
+      closePriceModal();
     }
   });
   const performLogout = async () => {

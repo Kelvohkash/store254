@@ -48,6 +48,9 @@ function openRowActionMenu(trigger, store, onAction) {
   const status = ["ACTIVE", "PENDING", "SUSPENDED"].includes(store.status) ? store.status : "UNKNOWN";
 
   const items = [];
+  items.push(
+    `<button type="button" class="action-menu-item" role="menuitem" data-store-action="edit-price" data-store-id="${escapeHtml(store.id)}"><i data-lucide="tag"></i><span>Set monthly price</span></button>`
+  );
   if (status === "ACTIVE") {
     items.push(
       `<button type="button" class="action-menu-item" role="menuitem" data-store-action="grant-trial" data-store-id="${escapeHtml(store.id)}"><i data-lucide="gift"></i><span>Grant 1 free month</span></button>`
@@ -116,6 +119,7 @@ function bindRowMenuGlobalListeners() {
 
   window.addEventListener("resize", closeRowActionMenu);
   window.addEventListener("scroll", closeRowActionMenu, { passive: true });
+  document.querySelector(".admin-content")?.addEventListener("scroll", closeRowActionMenu, { passive: true });
 }
 
 function storeRowMarkup(store) {
@@ -144,11 +148,15 @@ function storeRowMarkup(store) {
         ? `<button class="row-action is-approve" type="button" data-store-action="reactivate" data-store-id="${escapeHtml(store.id)}"><i data-lucide="rotate-ccw"></i><span>Reactivate</span></button>`
         : '<span class="text-muted" aria-label="No available action">—</span>';
 
-  const canPrompt = ["ACTIVE", "SUSPENDED"].includes(status);
-  const billingReady = window.platformBillingUiState?.darajaConfigured && window.platformBillingUiState?.amount > 0;
-  const billingAction = canPrompt
-    ? `<button class="row-action is-billing" type="button" data-store-action="payment-prompt" data-store-id="${escapeHtml(store.id)}" ${billingReady ? "" : "disabled title=\"Configure billing and Daraja first\""}><i data-lucide="smartphone"></i><span>M-Pesa</span></button>`
-    : "";
+  const customPrice = Number(store.subscriptionAmount) || 0;
+  const defaultPrice = Number(window.platformBillingUiState?.amount) || 0;
+  const priceChip = customPrice > 0
+    ? `<button type="button" class="store-price-chip is-custom" data-store-action="edit-price" data-store-id="${escapeHtml(store.id)}" title="Custom monthly price — click to edit"><i data-lucide="tag"></i><span>${escapeHtml(money(customPrice))}/mo</span></button>`
+    : defaultPrice > 0
+      ? `<button type="button" class="store-price-chip" data-store-action="edit-price" data-store-id="${escapeHtml(store.id)}" title="Using default fee — click to set custom price"><i data-lucide="tag"></i><span>Default ${escapeHtml(money(defaultPrice))}/mo</span></button>`
+      : `<button type="button" class="store-price-chip is-unset" data-store-action="edit-price" data-store-id="${escapeHtml(store.id)}" title="No price set — click to set monthly price"><i data-lucide="tag"></i><span>Set price</span></button>`;
+
+  const priceAction = `<button class="row-action is-billing" type="button" data-store-action="edit-price" data-store-id="${escapeHtml(store.id)}" title="Set custom monthly price"><i data-lucide="tag"></i><span>Price</span></button>`;
 
   const moreBtn = `<button class="row-action is-more" type="button" data-store-menu-trigger="${escapeHtml(store.id)}" aria-haspopup="menu" aria-expanded="false" aria-label="More actions for ${escapeHtml(name)}" title="More actions"><i data-lucide="more-horizontal"></i></button>`;
 
@@ -178,13 +186,14 @@ function storeRowMarkup(store) {
     <td>
       <div class="status-cell-wrap">
         <span class="status-badge status-${status.toLowerCase()}"><i class="status-dot"></i>${escapeHtml(statusLabel)}</span>
+        ${priceChip}
         <small class="billing-due-label ${isBillingDue ? "is-due" : ""}">${escapeHtml(billingLabel)}</small>
       </div>
     </td>
     <td class="actions-cell">
       <div class="actions-group">
         ${primaryAction}
-        ${billingAction}
+        ${priceAction}
         ${moreBtn}
       </div>
     </td>

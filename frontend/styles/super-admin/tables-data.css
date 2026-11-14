@@ -167,21 +167,21 @@ thead {
   background: #f9fbfa;
 }
 th {
-  height: 2.65rem;
-  padding: 0 .9rem;
+  height: 2.6rem;
+  padding: 0 .68rem;
   border-bottom: 1px solid #e9f0ec;
   color: var(--text-subtle);
-  font-size: .64rem;
+  font-size: .63rem;
   font-weight: 800;
   letter-spacing: .07em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 td {
-  padding: .82rem .9rem;
+  padding: .78rem .68rem;
   border-bottom: 1px solid #f1f5f3;
   color: var(--text-muted);
-  font-size: .76rem;
+  font-size: .75rem;
   vertical-align: middle;
 }
 tbody tr { transition: background-color .12s ease; }
@@ -192,9 +192,9 @@ tbody tr:last-child td { border-bottom: 0; }
 .business-cell {
   display: flex;
   align-items: center;
-  gap: .75rem;
-  min-width: 12.5rem;
-  max-width: 17.5rem;
+  gap: .68rem;
+  min-width: 11.5rem;
+  max-width: 15.5rem;
 }
 .business-cell-text {
   min-width: 0;
@@ -244,9 +244,9 @@ tbody tr:last-child td { border-bottom: 0; }
 .store-url-pill {
   display: inline-flex;
   align-items: center;
-  gap: .28rem;
-  max-width: 16.5rem;
-  padding: .28rem .45rem .28rem .58rem;
+  gap: .25rem;
+  max-width: 14.2rem;
+  padding: .26rem .4rem .26rem .52rem;
   border-radius: .55rem;
   background: #f8faf9;
   border: 1px solid #e2ece6;

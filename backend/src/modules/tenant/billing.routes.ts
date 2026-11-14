@@ -27,8 +27,11 @@ tenantBillingRouter.get("/subscription", async (c) => {
   const tenant = c.get("tenant")!;
   const db = createDb(c.env.DB);
   const [[store], [owner], [settings], [latestPayment]] = await Promise.all([
-    db.select({ status: tenants.status, subscriptionDueAt: tenants.subscriptionDueAt })
-      .from(tenants).where(eq(tenants.id, tenant.id)).limit(1),
+    db.select({
+      status: tenants.status,
+      subscriptionAmount: tenants.subscriptionAmount,
+      subscriptionDueAt: tenants.subscriptionDueAt,
+    }).from(tenants).where(eq(tenants.id, tenant.id)).limit(1),
     db.select({ phone: users.phone }).from(users)
       .where(and(eq(users.tenantId, tenant.id), eq(users.role, "OWNER"))).limit(1),
     db.select().from(platformBillingSettings)
@@ -50,6 +53,10 @@ tenantBillingRouter.get("/subscription", async (c) => {
     c.env.MPESA_PASSKEY && c.env.MPESA_SHORTCODE
   );
 
+  const effectiveAmount = store?.subscriptionAmount && store.subscriptionAmount > 0
+    ? store.subscriptionAmount
+    : (settings?.amount && settings.amount > 0 ? settings.amount : null);
+
   return c.json({
     success: true,
     data: {
@@ -57,7 +64,7 @@ tenantBillingRouter.get("/subscription", async (c) => {
       storeStatus: store?.status || tenant.status,
       subscriptionDueAt: store?.subscriptionDueAt || null,
       ownerPhone: owner?.phone || null,
-      amount: settings?.amount || null,
+      amount: effectiveAmount,
       intervalMonths: settings?.intervalMonths || 1,
       darajaConfigured,
       latestPayment: latestPayment || null,
@@ -83,9 +90,16 @@ tenantBillingRouter.post(
       throw new AppError("Enter a valid Kenyan M-Pesa number for the store owner.", 400, "OWNER_PHONE_REQUIRED");
     }
 
-    const [billingSettings] = await db.select().from(platformBillingSettings)
-      .where(eq(platformBillingSettings.id, "platform")).limit(1);
-    if (!billingSettings || billingSettings.amount < 1) {
+    const [[storeRow], [billingSettings]] = await Promise.all([
+      db.select({ subscriptionAmount: tenants.subscriptionAmount })
+        .from(tenants).where(eq(tenants.id, tenant.id)).limit(1),
+      db.select().from(platformBillingSettings)
+        .where(eq(platformBillingSettings.id, "platform")).limit(1),
+    ]);
+    const effectiveAmount = storeRow?.subscriptionAmount && storeRow.subscriptionAmount > 0
+      ? storeRow.subscriptionAmount
+      : (billingSettings?.amount || 0);
+    if (effectiveAmount < 1) {
       throw new AppError("Subscription billing is not configured yet. Contact Store254 support.", 409, "PLATFORM_BILLING_NOT_CONFIGURED");
     }
 
@@ -105,18 +119,19 @@ tenantBillingRouter.post(
       consumerSecret: requireSecret(c.env.MPESA_CONSUMER_SECRET, "MPESA_CONSUMER_SECRET"),
       passkey: requireSecret(c.env.MPESA_PASSKEY, "MPESA_PASSKEY"),
       shortcode: requireSecret(c.env.MPESA_SHORTCODE, "MPESA_SHORTCODE"),
-      shortcodeType: billingSettings.shortcodeType,
+      shortcodeType: billingSettings?.shortcodeType || "PAYBILL",
       isSandbox: c.env.MPESA_IS_SANDBOX === "true",
     };
 
     const paymentId = generateUUID();
     const callbackToken = generateSecureToken();
     const now = new Date();
+    const intervalMonths = billingSettings?.intervalMonths || 1;
     await db.insert(platformBillingPayments).values({
       id: paymentId,
       tenantId: tenant.id,
-      amount: billingSettings.amount,
-      intervalMonths: billingSettings.intervalMonths,
+      amount: effectiveAmount,
+      intervalMonths,
       phoneNumber,
       status: "INITIATED",
       callbackTokenHash: await hashOtp(callbackToken),
@@ -129,7 +144,7 @@ tenantBillingRouter.post(
       const callbackUrl = `https://api.${primaryDomain}/api/payments/mpesa/platform-callback?token=${encodeURIComponent(callbackToken)}`;
       const stk = await initiateMpesaStkPush({
         phoneNumber,
-        amount: billingSettings.amount,
+        amount: effectiveAmount,
         orderNumber: `SUB${paymentId.replace(/-/g, "").slice(0, 7)}`,
         storeName: "Store254 subscription",
         callbackUrl,
@@ -153,7 +168,7 @@ tenantBillingRouter.post(
     return c.json({
       success: true,
       message: `M-Pesa payment prompt sent to ${phoneNumber}.`,
-      data: { paymentId, amount: billingSettings.amount, phoneNumber },
+      data: { paymentId, amount: effectiveAmount, phoneNumber },
     }, 202);
   }
 );
