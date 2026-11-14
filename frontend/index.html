@@ -324,6 +324,107 @@
       </div>
     </section>
 
+    <!-- Hyperlocal-to-National Ripple Product Search -->
+    <section id="platform-ripple-search-section" class="platform-ripple-search-band" aria-labelledby="ripple-search-title">
+      <div class="ripple-search-header">
+        <div>
+          <p class="platform-eyebrow">SMART RIPPLE DISCOVERY</p>
+          <h2 id="ripple-search-title">Search products &amp; services across Kenya</h2>
+          <p class="ripple-search-sub">Starts at your local shopping centre, checks 8 closest neighbours, then ripples automatically outward to bigger regional towns &amp; national hubs until stock is found.</p>
+        </div>
+        <div id="marketplace-location-selector-wrap" class="relative shrink-0">
+          <div class="flex items-center gap-1.5">
+            <button id="marketplace-location-trigger" type="button" onclick="toggleMarketplaceLocationPanel()" class="marketplace-location-pill">
+              <i data-lucide="map-pin" class="w-4 h-4 text-emerald-700 shrink-0"></i>
+              <span id="marketplace-location-pill-label" class="truncate max-w-[14rem]">All Kenya (Set your town)</span>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+            </button>
+            <button id="marketplace-location-clear" type="button" onclick="clearMarketplaceBuyerLocation()" title="Clear selected location" aria-label="Clear selected location" class="hidden w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 flex items-center justify-center">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div id="marketplace-location-panel" class="hidden absolute right-0 top-full mt-2 w-[min(92vw,23rem)] bg-white border border-slate-200 rounded-2xl shadow-2xl p-3.5 z-40">
+            <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+              <span class="text-xs font-extrabold text-slate-800">Where are you shopping from?</span>
+              <button type="button" onclick="useBrowserGpsLocation()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                <i data-lucide="crosshair" class="w-3 h-3"></i>
+                <span>Use GPS</span>
+              </button>
+            </div>
+            <div class="mt-2.5 space-y-2">
+              <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">1. Select County</label>
+              <input id="marketplace-county-filter" type="search" oninput="onMarketplaceCountyInput(this.value)" placeholder="Filter county (e.g. Murang'a, Nairobi)..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
+              <div id="marketplace-county-list" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto py-0.5"></div>
+            </div>
+            <div id="marketplace-town-search-wrap" class="hidden mt-3 pt-2.5 border-t border-slate-100 space-y-2">
+              <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">2. Search Town / Centre in <span id="marketplace-town-county-label">County</span></label>
+              <input id="marketplace-town-search" type="search" oninput="onMarketplaceTownInput(this.value)" placeholder="Type town or shopping centre..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
+              <div id="marketplace-town-results" class="max-h-44 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/40"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form onsubmit="event.preventDefault(); runMarketplaceProductSearch();" class="ripple-search-form">
+        <div id="marketplace-search-input-wrap" class="ripple-search-input-box">
+          <i data-lucide="search" class="ripple-search-icon"></i>
+          <input id="marketplace-product-query" type="search" autocomplete="off" oninput="onMarketplaceQueryInput(this.value)" placeholder="Search iPhones, TVs, sneakers, bedsitters, salons, laptops... (typo tolerant)" aria-label="Search products and services across Kenya" />
+          <button id="marketplace-query-clear" type="button" onclick="clearMarketplaceQuery()" aria-label="Clear search query" class="hidden p-1.5 text-slate-400 hover:text-slate-700">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+          <div id="marketplace-suggest-dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-30"></div>
+        </div>
+        <button type="submit" class="ripple-search-submit">
+          <span>Search Ripple</span>
+          <i data-lucide="radar" class="w-4 h-4"></i>
+        </button>
+      </form>
+
+      <div class="ripple-quick-prompts" aria-label="Popular marketplace searches">
+        <span class="text-[11px] font-bold text-slate-500">Try:</span>
+        <button type="button" onclick="runMarketplaceProductSearch('Samsung TV')">Samsung TV</button>
+        <button type="button" onclick="runMarketplaceProductSearch('sneakers')">Sneakers</button>
+        <button type="button" onclick="runMarketplaceProductSearch('bedsitter')">Bedsitter</button>
+        <button type="button" onclick="runMarketplaceProductSearch('salon')">Hair Salon</button>
+        <button type="button" onclick="runMarketplaceProductSearch('barber')">Kinyozi / Barber</button>
+        <button type="button" onclick="runMarketplaceProductSearch('laptop')">Laptop</button>
+      </div>
+
+      <div id="marketplace-search-results-wrap" class="hidden mt-5 pt-4 border-t border-emerald-100/80 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2.5">
+          <div class="space-y-1">
+            <p id="marketplace-ripple-headline" class="text-xs sm:text-sm font-bold text-slate-800" aria-live="polite"></p>
+            <p id="marketplace-did-you-mean" class="hidden text-xs text-slate-600"></p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1" role="group" aria-label="Filter results by item type">
+              <button type="button" data-marketplace-type-btn="" onclick="setMarketplaceTypeFilter('')" class="marketplace-filter-tab is-active">All</button>
+              <button type="button" data-marketplace-type-btn="PHYSICAL" onclick="setMarketplaceTypeFilter('PHYSICAL')" class="marketplace-filter-tab">Products</button>
+              <button type="button" data-marketplace-type-btn="SERVICE" onclick="setMarketplaceTypeFilter('SERVICE')" class="marketplace-filter-tab">Services</button>
+            </div>
+            <button id="marketplace-instock-toggle" type="button" onclick="toggleMarketplaceInStock()" aria-pressed="false" class="marketplace-filter-chip">In stock only</button>
+            <select aria-label="Sort search results" onchange="onMarketplaceSortChange(this.value)" class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 outline-none focus:border-emerald-500">
+              <option value="smart">Smart Ripple + Match</option>
+              <option value="nearest">Closest Distance</option>
+              <option value="relevance">Best Relevance</option>
+              <option value="price_asc">Lowest Price</option>
+              <option value="price_desc">Highest Price</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="marketplace-ripple-trail" class="hidden ripple-trail-bar" aria-label="Ripple search ring progression"></div>
+
+        <div id="marketplace-search-results" class="marketplace-results-grid" aria-live="polite"></div>
+
+        <div class="flex justify-center pt-1">
+          <button id="marketplace-expand-nationwide-btn" type="button" onclick="expandMarketplaceSearchNationwide()" class="hidden px-4 py-2 rounded-xl border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-bold transition-colors">
+            Explore matches across all 47 Counties
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- Platform Stores Section -->
     <section id="platform-stores-section" class="platform-stores-section" aria-labelledby="platform-stores-title">
       <div class="platform-stores-heading">
@@ -1177,6 +1278,7 @@
   <script src="/scripts/storefront/orders.js"></script>
   <script src="/scripts/storefront/storefront.js"></script>
   <script src="/scripts/storefront/platform.js"></script>
+  <script src="/scripts/storefront/marketplace-search.js"></script>
   <script src="/scripts/storefront/onboarding.js"></script>
 
 </body>
