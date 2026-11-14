@@ -128,12 +128,12 @@ html:not([data-storefront="true"]) .site-footer { padding-bottom:2rem !important
 .marketplace-location-pill:hover { border-color:#07834e; box-shadow:0 3px 10px rgba(7,131,78,.1); }
 .marketplace-county-pill { padding:.28rem .65rem; border:1px solid #d8e6dc; border-radius:999px; background:#fff; color:#334155; font-size:.72rem; font-weight:600; cursor:pointer; }
 .marketplace-county-pill.is-selected { border-color:#07834e; background:#07834e; color:#fff; }
-.ripple-search-form { display:flex; align-items:stretch; gap:.65rem; }
-.ripple-search-input-box { position:relative; flex:1; min-width:0; display:flex; align-items:center; border:1.5px solid #cde4d4; border-radius:.95rem; background:#fff; padding:0 .65rem 0 2.55rem; transition:border-color .15s ease,box-shadow .15s ease; }
+.ripple-search-form { display:flex; flex-direction:row; align-items:stretch; gap:.45rem; }
+.ripple-search-input-box { position:relative; flex:1; min-width:0; display:flex; align-items:center; border:1.5px solid #cde4d4; border-radius:.9rem; background:#fff; padding:0 .55rem 0 2.35rem; transition:border-color .15s ease,box-shadow .15s ease; }
 .ripple-search-input-box:focus-within { border-color:#07834e; box-shadow:0 0 0 3px rgba(7,131,78,.12); }
-.ripple-search-icon { position:absolute; left:.9rem; width:1.05rem; height:1.05rem; color:#64748b; pointer-events:none; }
-.ripple-search-input-box input { width:100%; min-height:2.95rem; border:0; background:transparent; color:#172820; font-size:.9rem; font-weight:500; outline:none; }
-.ripple-search-submit { display:inline-flex; align-items:center; justify-content:center; gap:.45rem; min-height:2.95rem; padding:.65rem 1.35rem; border:0; border-radius:.95rem; background:#07834e; color:#fff; font-size:.86rem; font-weight:800; cursor:pointer; white-space:nowrap; transition:background-color .15s ease,transform .15s ease; }
+.ripple-search-icon { position:absolute; left:.8rem; width:1rem; height:1rem; color:#64748b; pointer-events:none; }
+.ripple-search-input-box input { width:100%; min-height:2.75rem; border:0; background:transparent; color:#172820; font-size:.9rem; font-weight:500; outline:none; }
+.ripple-search-submit { display:inline-flex; align-items:center; justify-content:center; gap:.35rem; flex-shrink:0; min-width:2.75rem; min-height:2.75rem; padding:0 .85rem; border:0; border-radius:.9rem; background:#07834e; color:#fff; font-size:.82rem; font-weight:800; cursor:pointer; white-space:nowrap; transition:background-color .15s ease,transform .15s ease; }
 .ripple-search-submit:hover { background:#066d42; }
 .ripple-quick-prompts { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; margin-top:.75rem; }
 .ripple-quick-prompts button { padding:.25rem .7rem; border:1px solid #dce9df; border-radius:999px; background:#fff; color:#3b5245; font-size:.73rem; font-weight:600; cursor:pointer; transition:all .15s ease; }
@@ -167,7 +167,7 @@ html:not([data-storefront="true"]) .site-footer { padding-bottom:2rem !important
 .marketplace-product-price-row del { color:#94a3b8; font-size:.74rem; }
 .marketplace-product-store-row { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-top:.55rem; padding-top:.5rem; border-top:1px solid #f1f5f9; color:#55665c; font-size:.73rem; }
 @media(max-width:1023px) { .marketplace-results-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-@media(max-width:767px) { .ripple-search-header { flex-direction:column; align-items:stretch; } .ripple-search-form { flex-direction:column; } .marketplace-results-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; } }
+@media(max-width:767px) { .ripple-search-header { flex-direction:column; align-items:stretch; } .ripple-search-submit { width:2.75rem; padding:0; } .marketplace-results-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; } }
 @media(max-width:640px) { .platform-ripple-search-band { width:calc(100% - 2rem); margin-bottom:2.4rem; padding:1rem; border-radius:1rem; } .marketplace-product-body { padding:.65rem; } }
 .platform-section-heading,.platform-stores-heading { display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1.15rem; }
 .platform-section-heading .platform-eyebrow,.platform-stores-heading .platform-eyebrow { margin:0 0 .4rem; color:#07834e; font-size:.72rem; }
