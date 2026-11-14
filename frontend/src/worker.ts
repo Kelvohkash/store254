@@ -382,12 +382,16 @@ export default {
       return withRobotsHeader(adminRes, "noindex, nofollow");
     }
 
-    // Serve base index.html for home or storefront SPA deep paths (/category/:slug, /item/:slug)
+    const isPlatformStoresPage = !isTenantContext && (url.pathname === "/stores" || url.pathname === "/stores/");
+
+    // Serve base index.html for home, /stores, or storefront SPA deep paths (/category/:slug, /item/:slug)
     const shouldServeStorefrontShell =
-      route.kind === "home" || (isTenantContext && (route.kind === "category" || route.kind === "item"));
+      route.kind === "home" ||
+      isPlatformStoresPage ||
+      (isTenantContext && (route.kind === "category" || route.kind === "item"));
 
     const assetRequest =
-      shouldServeStorefrontShell && route.kind !== "home"
+      shouldServeStorefrontShell && (route.kind !== "home" || isPlatformStoresPage)
         ? new Request(new URL("/", url.origin), { method: request.method, headers: request.headers })
         : request;
 
@@ -403,8 +407,8 @@ export default {
       return hostInfo.isPreviewHost ? withRobotsHeader(assetResponse, "noindex, nofollow") : assetResponse;
     }
 
-    // 1. Platform Marketplace Home SSR & SEO (store254.co.ke)
-    if (!isTenantContext && route.kind === "home") {
+    // 1. Platform Marketplace Home & Stores Directory SSR & SEO (store254.co.ke, store254.co.ke/stores)
+    if (!isTenantContext && (route.kind === "home" || isPlatformStoresPage)) {
       try {
         const { data: stores } = await fetchCachedSeoJson<PlatformStoreSeo[]>(
           env.API,
@@ -416,15 +420,19 @@ export default {
           120
         );
         const seo = buildPlatformSeoData(stores || [], hostInfo.isPreviewHost);
-        const transformed = new HTMLRewriter()
+        const pageTitle = isPlatformStoresPage ? "Active Kenyan Storefronts | Store254" : seo.title;
+        const pageDescription = isPlatformStoresPage
+          ? "Browse verified independent Kenyan online stores and demo storefronts across counties and towns on Store254."
+          : seo.description;
+        let rewriter = new HTMLRewriter()
           .on("title", {
             element(el) {
-              el.setInnerContent(seo.title);
+              el.setInnerContent(pageTitle);
             },
           })
           .on('meta[name="description"]', {
             element(el) {
-              el.setAttribute("content", seo.description);
+              el.setAttribute("content", pageDescription);
             },
           })
           .on("head", {
@@ -438,8 +446,15 @@ export default {
                 el.setInnerContent(seo.ssrStoresHtml, { html: true });
               }
             },
-          })
-          .transform(assetResponse);
+          });
+        if (isPlatformStoresPage) {
+          rewriter = rewriter.on("html", {
+            element(el) {
+              el.setAttribute("data-platform-view", "stores");
+            },
+          });
+        }
+        const transformed = rewriter.transform(assetResponse);
 
         return hostInfo.isPreviewHost ? withRobotsHeader(transformed, "noindex, nofollow") : transformed;
       } catch {

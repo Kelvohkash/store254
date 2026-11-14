@@ -555,7 +555,7 @@
   window.addEventListener("DOMContentLoaded", () => {
     selectedBuyerLocation = loadSavedBuyerLocation();
     syncLocationPillUI();
-    if (document.documentElement.dataset.storefront !== "true") {
+    if (document.documentElement.dataset.storefront !== "true" && document.documentElement.dataset.platformView !== "stores") {
       window.runMarketplaceProductSearch();
     }
   });

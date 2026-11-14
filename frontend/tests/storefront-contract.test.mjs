@@ -126,3 +126,16 @@ test("buyer-first platform homepage supports Google invite, location selector, a
   assert.match(cartJs, /\/api\/platform\/marketplace\/checkout/);
   assert.match(cartJs, /\/api\/platform\/marketplace\/my-orders/);
 });
+
+test("platform stores directory lives on dedicated /stores route accessible from desktop and mobile menus", async () => {
+  const [html, worker] = await Promise.all([
+    read("../index.html"),
+    read("../src/worker.ts"),
+  ]);
+  assert.match(html, /data-platform-view/);
+  assert.match(html, /<a href="\/stores">Stores<\/a>/);
+  assert.match(html, /<a href="\/stores"[^>]*><span>Active storefronts<\/span>/);
+  assert.match(html, /<a href="\/stores#platform-demo-stores-section"/);
+  assert.match(worker, /url\.pathname === "\/stores"/);
+  assert.match(worker, /data-platform-view/);
+});
