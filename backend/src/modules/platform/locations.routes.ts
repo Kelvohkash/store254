@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { and, asc, desc, eq, like, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import {
@@ -14,6 +14,7 @@ import {
   autocompleteGooglePlacesKenya,
   getCountyAndConstituency,
   getNearestNeighborsForLocation,
+  haversineKm,
   LocationResolutionError,
   resolveOrCreateStoreLocation,
 } from "./locations.service";
@@ -62,6 +63,113 @@ locationsRouter.get("/counties", async (c) => {
     .orderBy(asc(kenyaCounties.name));
 
   return c.json({ counties });
+});
+
+/**
+ * GET /api/platform/locations/nearest?lat=...&lng=...
+ * Resolves GPS coordinates (or Cloudflare edge coordinates as fallback) to the closest Kenyan centre.
+ */
+locationsRouter.get("/nearest", async (c) => {
+  const rawLat = c.req.query("lat");
+  const rawLng = c.req.query("lng");
+  const cf = (c.req.raw as Request & { cf?: { latitude?: string | number; longitude?: string | number; city?: string } }).cf;
+
+  let lat = rawLat !== undefined && rawLat !== "" ? Number(rawLat) : NaN;
+  let lng = rawLng !== undefined && rawLng !== "" ? Number(rawLng) : NaN;
+  let source: "gps" | "network" = "gps";
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    const cfLat = cf?.latitude !== undefined ? Number(cf.latitude) : NaN;
+    const cfLng = cf?.longitude !== undefined ? Number(cf.longitude) : NaN;
+    if (Number.isFinite(cfLat) && Number.isFinite(cfLng)) {
+      lat = cfLat;
+      lng = cfLng;
+      source = "network";
+    }
+  }
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return c.json(
+      { error: "Location coordinates are unavailable. Please select your County below." },
+      400
+    );
+  }
+
+  const db = createDb(c.env.DB);
+  const countiesList = await db
+    .select({
+      id: kenyaCounties.id,
+      name: kenyaCounties.name,
+      centroidLat: kenyaCounties.centroidLat,
+      centroidLng: kenyaCounties.centroidLng,
+    })
+    .from(kenyaCounties);
+
+  const closestCountyIds = countiesList
+    .map((county) => ({
+      id: county.id,
+      dist: haversineKm(lat, lng, county.centroidLat, county.centroidLng),
+    }))
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, 2)
+    .map((entry) => entry.id);
+
+  if (closestCountyIds.length === 0) {
+    return c.json({ error: "No Kenyan location data found." }, 404);
+  }
+
+  const candidates = await db
+    .select({
+      id: kenyaLocations.id,
+      name: kenyaLocations.name,
+      kind: kenyaLocations.kind,
+      countyId: kenyaLocations.countyId,
+      countyName: kenyaCounties.name,
+      constituencyId: kenyaLocations.constituencyId,
+      constituencyName: kenyaConstituencies.name,
+      latitude: kenyaLocations.latitude,
+      longitude: kenyaLocations.longitude,
+      population: kenyaLocations.population,
+    })
+    .from(kenyaLocations)
+    .innerJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
+    .innerJoin(kenyaConstituencies, eq(kenyaLocations.constituencyId, kenyaConstituencies.id))
+    .where(inArray(kenyaLocations.countyId, closestCountyIds))
+    .orderBy(
+      sql`((${kenyaLocations.latitude} - ${lat}) * (${kenyaLocations.latitude} - ${lat}) + (${kenyaLocations.longitude} - ${lng}) * (${kenyaLocations.longitude} - ${lng})) ASC`,
+      desc(kenyaLocations.population)
+    )
+    .limit(12);
+
+  if (candidates.length === 0) {
+    return c.json({ error: "No nearby Kenyan centre matched your coordinates." }, 404);
+  }
+
+  let best = candidates[0];
+  let bestDist = haversineKm(lat, lng, best.latitude, best.longitude);
+  for (let i = 1; i < candidates.length; i += 1) {
+    const d = haversineKm(lat, lng, candidates[i].latitude, candidates[i].longitude);
+    if (d < bestDist) {
+      best = candidates[i];
+      bestDist = d;
+    }
+  }
+
+  return c.json({
+    source,
+    location: {
+      id: best.id,
+      name: best.name,
+      kind: best.kind,
+      countyId: best.countyId,
+      countyName: best.countyName,
+      constituencyId: best.constituencyId,
+      constituencyName: best.constituencyName,
+      latitude: best.latitude,
+      longitude: best.longitude,
+      distanceKm: Math.round(bestDist * 10) / 10,
+    },
+  });
 });
 
 /**

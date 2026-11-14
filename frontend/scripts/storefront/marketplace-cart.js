@@ -244,26 +244,44 @@
   };
 
   async function ensureWelcomeCountiesLoaded() {
+    const listEl = document.getElementById("welcome-county-list");
     if (welcomeCounties.length > 0) {
-      renderWelcomeCountyChips("");
+      renderWelcomeCountyChips(document.getElementById("welcome-county-filter")?.value || "");
       return;
+    }
+    if (listEl) {
+      listEl.innerHTML = `<span class="text-xs text-slate-400 px-1 py-1">Loading Kenyan counties…</span>`;
     }
     try {
       const res = await fetch("/api/platform/locations/counties");
       const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        welcomeCounties = json.data;
-        renderWelcomeCountyChips("");
+      const loaded = Array.isArray(json?.counties)
+        ? json.counties
+        : Array.isArray(json?.data?.counties)
+        ? json.data.counties
+        : Array.isArray(json?.data)
+        ? json.data
+        : [];
+      if (res.ok && loaded.length > 0) {
+        welcomeCounties = loaded;
+        renderWelcomeCountyChips(document.getElementById("welcome-county-filter")?.value || "");
+      } else if (listEl) {
+        listEl.innerHTML = `<span class="text-xs text-rose-600 px-1 py-1">Could not load counties. Please refresh and try again.</span>`;
       }
-    } catch {}
+    } catch {
+      if (listEl) {
+        listEl.innerHTML = `<span class="text-xs text-rose-600 px-1 py-1">Network error loading counties.</span>`;
+      }
+    }
   }
 
   function renderWelcomeCountyChips(filterText) {
     const listEl = document.getElementById("welcome-county-list");
     if (!listEl) return;
-    const q = (filterText || "").trim().toLowerCase();
+    const norm = (s) => String(s || "").toLowerCase().replace(/['’-]/g, "").trim();
+    const q = norm(filterText);
     const matches = welcomeCounties
-      .filter((c) => !q || c.name.toLowerCase().includes(q))
+      .filter((c) => !q || norm(c.name).includes(q) || c.name.toLowerCase().includes((filterText || "").trim().toLowerCase()))
       .slice(0, q ? 16 : 12);
 
     if (matches.length === 0) {
@@ -321,9 +339,15 @@
       const params = new URLSearchParams({ countyId, q: (q || "").trim(), limit: "25" });
       const res = await fetch(`/api/platform/locations/towns?${params.toString()}`);
       const json = await res.json();
-      const rows = Array.isArray(json.data) ? json.data : [];
+      const rows = Array.isArray(json?.locations)
+        ? json.locations
+        : Array.isArray(json?.data?.locations)
+        ? json.data.locations
+        : Array.isArray(json?.data)
+        ? json.data
+        : [];
       if (rows.length === 0) {
-        resEl.innerHTML = `<div class="p-3 text-xs text-slate-500">No centre matched "${escapeHtml(q)}". Try fewer letters or tap "Use County Only" below.</div>`;
+        resEl.innerHTML = `<div class="p-3 text-xs text-slate-500">No centre matched "${escapeHtml(q)}". Try fewer letters or tap "Use whole county".</div>`;
         return;
       }
       resEl.innerHTML = rows
@@ -337,12 +361,13 @@
               locationName: loc.name,
             })
           );
+          const kindLabel = (loc.kind || loc.locationType || "centre").replace(/_/g, " ");
           return `<button type="button" onclick="chooseWelcomeLocation(JSON.parse(this.dataset.loc))" data-loc="${payload}" class="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50 border-b border-slate-100 last:border-b-0 flex items-center justify-between gap-2 transition-colors">
             <div class="min-w-0">
               <div class="text-xs font-extrabold text-slate-900 truncate">${escapeHtml(loc.name)}</div>
               <div class="text-[11px] text-emerald-700 truncate">${escapeHtml(loc.constituencyName ? `${loc.constituencyName} Constituency · ${loc.countyName || ""}` : loc.countyName || "")}</div>
             </div>
-            <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 capitalize">${escapeHtml((loc.locationType || "centre").replace(/_/g, " "))}</span>
+            <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 capitalize">${escapeHtml(kindLabel)}</span>
           </button>`;
         })
         .join("");
@@ -376,10 +401,48 @@
   };
 
   window.useWelcomeGpsLocation = function useWelcomeGpsLocation() {
+    const btn = document.getElementById("welcome-auto-detect-btn");
+    const statusEl = document.getElementById("welcome-gps-status");
+    const setStatus = (text, tone) => {
+      if (!statusEl) return;
+      statusEl.textContent = text;
+      statusEl.className =
+        "text-[11px] font-semibold px-3 py-2 rounded-xl border " +
+        (tone === "error"
+          ? "bg-rose-50 border-rose-200 text-rose-700"
+          : "bg-emerald-50 border-emerald-200 text-emerald-800");
+    };
+
+    if (btn) {
+      btn.disabled = true;
+      btn.querySelector("span").textContent = "Detecting location…";
+    }
+    setStatus("Checking your GPS / network location…", "info");
+
     if (typeof window.useBrowserGpsLocation === "function") {
-      window.useBrowserGpsLocation(() => {
-        window.closeBuyerWelcomeModal(true);
-        syncMarketplaceHeaderState();
+      window.useBrowserGpsLocation((result) => {
+        if (btn) {
+          btn.disabled = false;
+          btn.querySelector("span").textContent = "Click to auto detect location";
+        }
+        if (result && result.ok && result.location) {
+          window.closeBuyerWelcomeModal(true);
+          syncMarketplaceHeaderState();
+          const detectedName = [result.location.locationName, result.location.countyName]
+            .filter(Boolean)
+            .join(", ");
+          const suffix =
+            result.source === "network"
+              ? " (detected via network — you can refine anytime)"
+              : "";
+          showToast(`Location set to ${detectedName}${suffix}`, "success");
+        } else {
+          setStatus(
+            result?.message ||
+              "Could not auto-detect your town. Please choose your County below.",
+            "error"
+          );
+        }
       });
     }
   };

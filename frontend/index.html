@@ -305,7 +305,7 @@
               <span class="text-xs font-extrabold text-slate-800">Where are you shopping from?</span>
               <button type="button" onclick="useBrowserGpsLocation()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold">
                 <i data-lucide="crosshair" class="w-3 h-3"></i>
-                <span>Use GPS</span>
+                <span>Click to auto detect location</span>
               </button>
             </div>
             <div class="mt-2.5 space-y-2">
@@ -1384,10 +1384,11 @@
           <p id="welcome-step2-greeting" class="text-xs text-slate-600 leading-relaxed">Pick your County and town/shopping centre. Everything shown on Store254 loads locally from there first — expanding like a ripple if nearby shops lack stock.</p>
         </div>
 
-        <button type="button" onclick="useWelcomeGpsLocation()" class="w-full py-2.5 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-extrabold flex items-center justify-center gap-2">
+        <button id="welcome-auto-detect-btn" type="button" onclick="useWelcomeGpsLocation()" class="w-full py-2.5 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-extrabold flex items-center justify-center gap-2 transition-colors">
           <i data-lucide="crosshair" class="w-4 h-4"></i>
-          <span>Auto-detect my nearest Kenyan town (GPS)</span>
+          <span>Click to auto detect location</span>
         </button>
+        <p id="welcome-gps-status" class="hidden text-[11px] font-semibold px-3 py-2 rounded-xl border"></p>
 
         <div class="space-y-2">
           <label for="welcome-county-filter" class="block text-[11px] font-extrabold uppercase tracking-wide text-slate-600">1. Choose County</label>

@@ -189,31 +189,83 @@
     window.runMarketplaceProductSearch();
   };
 
-  window.useBrowserGpsLocation = function useBrowserGpsLocation(onSuccess) {
-    if (!navigator.geolocation) {
-      if (typeof showToast === "function") showToast("Geolocation is not supported in this browser.", true);
-      return;
-    }
-    const labelEl = document.getElementById("marketplace-location-pill-label");
-    if (labelEl) labelEl.textContent = "Locating GPS...";
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        saveBuyerLocation({
-          lat: Number(pos.coords.latitude.toFixed(5)),
-          lng: Number(pos.coords.longitude.toFixed(5)),
-          locationName: "My GPS Area",
-          countyName: "",
-        });
+  async function resolveAndSaveNearestCoords(lat, lng, fallbackSource) {
+    const query =
+      Number.isFinite(lat) && Number.isFinite(lng)
+        ? `?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
+        : "";
+    try {
+      const res = await apiFetch(`/api/platform/locations/nearest${query}`);
+      const loc = res?.data?.location;
+      if (res.ok && loc && loc.id) {
+        const saved = {
+          locationId: loc.id,
+          locationName: loc.name,
+          countyId: loc.countyId,
+          countyName: loc.countyName || "",
+          constituencyName: loc.constituencyName || "",
+          lat: Number.isFinite(lat) ? lat : loc.latitude,
+          lng: Number.isFinite(lng) ? lng : loc.longitude,
+        };
+        saveBuyerLocation(saved);
         window.toggleMarketplaceLocationPanel(false);
         expandFullSearch = false;
         window.runMarketplaceProductSearch();
-        if (typeof onSuccess === "function") onSuccess();
+        return { ok: true, source: res.data.source || fallbackSource, location: saved };
+      }
+    } catch {}
+
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      const approx = {
+        lat,
+        lng,
+        locationName: "My GPS Area",
+        countyName: "",
+      };
+      saveBuyerLocation(approx);
+      window.toggleMarketplaceLocationPanel(false);
+      expandFullSearch = false;
+      window.runMarketplaceProductSearch();
+      return { ok: true, source: "gps", location: approx };
+    }
+    return { ok: false };
+  }
+
+  window.useBrowserGpsLocation = async function useBrowserGpsLocation(onResult) {
+    const labelEl = document.getElementById("marketplace-location-pill-label");
+    if (labelEl) labelEl.textContent = "Detecting location...";
+
+    const finishWithFallback = async (reasonMsg) => {
+      const netRes = await resolveAndSaveNearestCoords(NaN, NaN, "network");
+      if (netRes.ok) {
+        if (typeof onResult === "function") onResult(netRes);
+        return;
+      }
+      syncLocationPillUI();
+      if (typeof showToast === "function") showToast(reasonMsg, true);
+      if (typeof onResult === "function") onResult({ ok: false, message: reasonMsg });
+    };
+
+    if (!navigator.geolocation) {
+      await finishWithFallback("Browser location is unavailable. Please select your County below.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(5));
+        const lng = Number(pos.coords.longitude.toFixed(5));
+        const resolved = await resolveAndSaveNearestCoords(lat, lng, "gps");
+        if (typeof onResult === "function") onResult(resolved);
       },
-      () => {
-        syncLocationPillUI();
-        if (typeof showToast === "function") showToast("Unable to access GPS. Please pick your town manually.", true);
+      async (err) => {
+        const msg =
+          err && err.code === 1
+            ? "Location permission was denied. We fell back to searching manually or pick your County below."
+            : "Could not detect precise GPS signal. Please select your County below.";
+        await finishWithFallback(msg);
       },
-      { enableHighAccuracy: false, timeout: 7000 }
+      { enableHighAccuracy: false, timeout: 9000, maximumAge: 180000 }
     );
   };
 
