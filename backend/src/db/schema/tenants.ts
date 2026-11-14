@@ -19,6 +19,10 @@ export const tenants = sqliteTable(
       .default({}),
     subscriptionAmount: integer("subscription_amount"),
     subscriptionDueAt: integer("subscription_due_at", { mode: "timestamp" }),
+    countyId: text("county_id"),
+    constituencyId: text("constituency_id"),
+    locationId: text("location_id"),
+    locationLabel: text("location_label"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -30,6 +34,11 @@ export const tenants = sqliteTable(
     subdomainIdx: index("tenants_subdomain_idx").on(table.subdomain),
     customDomainIdx: index("tenants_custom_domain_idx").on(table.customDomain),
     statusIdx: index("tenants_status_idx").on(table.status),
+    locationIdx: index("tenants_location_idx").on(
+      table.countyId,
+      table.constituencyId,
+      table.locationId
+    ),
   })
 );
 

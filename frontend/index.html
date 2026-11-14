@@ -852,7 +852,7 @@
 
   <!-- ONBOARD BUSINESS MODAL -->
   <div id="onboard-modal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
           <i data-lucide="store" class="w-5 h-5 text-emerald-600"></i>
@@ -890,6 +890,76 @@
             <option value="FURNITURE">Furniture & Home Decor</option>
             <option value="SERVICES">Services & Consultations</option>
           </select>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-bold text-slate-800 flex items-center gap-1.5">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-600"></i>
+              <span>Business Location (Required)</span>
+            </span>
+            <span id="onboard-maps-badge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+              47 Counties · 290 Constituencies
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label for="onboard-county" class="block font-semibold text-slate-700 mb-1">County</label>
+              <select id="onboard-county" required onfocus="ensureOnboardLocationsLoaded()" onchange="handleOnboardCountyChange(this.value)" class="w-full p-2.5 rounded-xl border border-slate-300 bg-white">
+                <option value="">Select County...</option>
+              </select>
+            </div>
+            <div>
+              <label for="onboard-constituency" class="block font-semibold text-slate-700 mb-1">Constituency</label>
+              <select id="onboard-constituency" required disabled onchange="handleOnboardConstituencyChange(this.value)" class="w-full p-2.5 rounded-xl border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-400">
+                <option value="">Select County first...</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label for="onboard-location-search" class="block font-semibold text-slate-700">Town / Estate / Shopping Centre</label>
+            <input
+              type="text"
+              id="onboard-location-search"
+              disabled
+              oninput="handleOnboardLocationSearch(this.value)"
+              placeholder="Search town, market or shopping centre..."
+              class="w-full p-2.5 rounded-xl border border-slate-300 bg-white disabled:bg-slate-100"
+              autocomplete="off"
+            >
+            <select id="onboard-location" disabled onchange="handleOnboardLocationChange(this.value)" class="w-full p-2.5 rounded-xl border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-400">
+              <option value="">Select Constituency first...</option>
+            </select>
+          </div>
+
+          <div id="onboard-google-results" class="hidden rounded-xl border border-emerald-200 bg-white divide-y divide-slate-100 max-h-40 overflow-y-auto shadow-sm"></div>
+
+          <div id="onboard-custom-location-wrap" class="hidden">
+            <label for="onboard-custom-location" class="block font-semibold text-slate-700 mb-1">Enter Shopping Centre / Market Name</label>
+            <input
+              type="text"
+              id="onboard-custom-location"
+              minlength="2"
+              maxlength="80"
+              placeholder="e.g. KwaChief Shopping Centre"
+              class="w-full p-2.5 rounded-xl border border-emerald-300 bg-white"
+            >
+          </div>
+
+          <div id="onboard-selected-google-banner" class="hidden flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900">
+            <span id="onboard-selected-google-text" class="font-semibold text-[11px] truncate"></span>
+            <button type="button" onclick="clearSelectedGooglePlace()" class="text-[11px] font-bold text-emerald-700 hover:underline shrink-0">Change</button>
+          </div>
+
+          <div id="onboard-nearby-preview" class="hidden rounded-xl bg-white border border-slate-200 p-2.5 space-y-1.5">
+            <p class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+              <i data-lucide="network" class="w-3.5 h-3.5 text-emerald-600"></i>
+              <span>Smart Connected Nearby Centres</span>
+            </p>
+            <div id="onboard-nearby-chips" class="flex flex-wrap gap-1.5"></div>
+          </div>
         </div>
 
         <div>

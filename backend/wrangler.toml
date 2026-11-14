@@ -33,6 +33,7 @@ MPESA_IS_SANDBOX = "false"
 #   npx wrangler secret put MPESA_PASSKEY
 #   npx wrangler secret put MPESA_SHORTCODE
 #   npx wrangler secret put GOOGLE_CLIENT_SECRET
+#   npx wrangler secret put GOOGLE_MAPS_API_KEY
 #   npx wrangler secret put PAYMENT_CONFIG_ENCRYPTION_KEY
 
 # Cloudflare Rate Limiting API bindings provide shared per-colo counters across

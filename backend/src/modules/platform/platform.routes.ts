@@ -19,25 +19,46 @@ import { AppError } from "../../security/error-handler";
 import { rateLimiter } from "../../security/rate-limiter";
 import { SECURITY_LIMITS } from "../../config/constants";
 import { EmailService } from "../../services/email.service";
+import { locationsRouter } from "./locations.routes";
+import {
+  LocationResolutionError,
+  resolveOrCreateStoreLocation,
+} from "./locations.service";
 
 export const platformRouter = new Hono<AppEnv>();
 
+platformRouter.route("/locations", locationsRouter);
+
 // Register Store Input Schema
-const registerStoreSchema = z.object({
-  storeName: z.string().min(2, "Store name must be at least 2 characters").max(60),
-  subdomain: z.string().min(2).max(32),
-  businessType: z
-    .enum(["RETAIL", "ELECTRONICS", "FURNITURE", "SERVICES", "GENERAL"])
-    .default("GENERAL"),
-  currency: z.string().length(3).default("KES"),
-  ownerEmail: z.string().email("Valid email address required"),
-  ownerPassword: z
-    .string()
-    .min(SECURITY_LIMITS.MIN_PASSWORD_LENGTH, "Password must be at least 8 characters")
-    .max(SECURITY_LIMITS.MAX_PASSWORD_LENGTH),
-  ownerFullName: z.string().min(2).max(80),
-  ownerPhone: z.string().optional(),
-});
+const registerStoreSchema = z
+  .object({
+    storeName: z.string().min(2, "Store name must be at least 2 characters").max(60),
+    subdomain: z.string().min(2).max(32),
+    businessType: z
+      .enum(["RETAIL", "ELECTRONICS", "FURNITURE", "SERVICES", "GENERAL"])
+      .default("GENERAL"),
+    currency: z.string().length(3).default("KES"),
+    ownerEmail: z.string().email("Valid email address required"),
+    ownerPassword: z
+      .string()
+      .min(SECURITY_LIMITS.MIN_PASSWORD_LENGTH, "Password must be at least 8 characters")
+      .max(SECURITY_LIMITS.MAX_PASSWORD_LENGTH),
+    ownerFullName: z.string().min(2).max(80),
+    ownerPhone: z.string().optional(),
+    countyId: z.string().min(1, "Please select your County"),
+    constituencyId: z.string().min(1, "Please select your Constituency"),
+    locationId: z.string().optional(),
+    googlePlaceId: z.string().optional(),
+    customLocationName: z.string().trim().min(2).max(80).optional(),
+  })
+  .refine(
+    (v) => Boolean(v.locationId || v.googlePlaceId || v.customLocationName),
+    {
+      message:
+        "Please select a town or shopping centre (or enter a custom shopping centre name)",
+      path: ["locationId"],
+    }
+  );
 
 // Forgot Password Schemas
 const forgotPasswordSchema = z.object({
@@ -112,6 +133,10 @@ platformRouter.get("/stores", async (c) => {
       subdomain: tenants.subdomain,
       businessType: tenants.businessType,
       currency: tenants.currency,
+      countyId: tenants.countyId,
+      constituencyId: tenants.constituencyId,
+      locationId: tenants.locationId,
+      locationLabel: tenants.locationLabel,
       settings: tenants.settings,
       createdAt: tenants.createdAt,
       ownerName: users.fullName,
@@ -166,6 +191,22 @@ platformRouter.post(
       );
     }
 
+    let resolvedLocation;
+    try {
+      resolvedLocation = await resolveOrCreateStoreLocation(db, c.env, {
+        countyId: body.countyId,
+        constituencyId: body.constituencyId,
+        locationId: body.locationId,
+        googlePlaceId: body.googlePlaceId,
+        customLocationName: body.customLocationName,
+      });
+    } catch (err) {
+      if (err instanceof LocationResolutionError) {
+        throw new AppError(err.message, err.status, "INVALID_LOCATION");
+      }
+      throw err;
+    }
+
     const tenantId = generateUUID();
     const userId = generateUUID();
     const hashedPassword = await hashPassword(body.ownerPassword);
@@ -178,11 +219,25 @@ platformRouter.post(
       businessType: body.businessType,
       currency: body.currency.toUpperCase(),
       status: "PENDING", // PENDING by default until Super Admin activates
+      countyId: resolvedLocation.county.id,
+      constituencyId: resolvedLocation.constituency.id,
+      locationId: resolvedLocation.location.id,
+      locationLabel: resolvedLocation.locationLabel,
       settings: {
         theme: "default",
         primaryColor: "#9a3412",
         contactEmail: body.ownerEmail,
         contactPhone: body.ownerPhone || null,
+        location: {
+          countyId: resolvedLocation.county.id,
+          countyName: resolvedLocation.county.name,
+          constituencyId: resolvedLocation.constituency.id,
+          constituencyName: resolvedLocation.constituency.name,
+          locationId: resolvedLocation.location.id,
+          locationName: resolvedLocation.location.name,
+          locationLabel: resolvedLocation.locationLabel,
+          googlePlaceId: resolvedLocation.location.googlePlaceId || null,
+        },
       },
     });
 
@@ -223,6 +278,10 @@ platformRouter.post(
             storeUrl,
             status: "PENDING",
             currency: body.currency.toUpperCase(),
+            countyId: resolvedLocation.county.id,
+            constituencyId: resolvedLocation.constituency.id,
+            locationId: resolvedLocation.location.id,
+            locationLabel: resolvedLocation.locationLabel,
           },
           owner: {
             id: userId,
