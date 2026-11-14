@@ -7,3 +7,4 @@ PLATFORM_ADMIN_JWT_SECRET=replace-with-a-long-random-secret
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=https://store254.co.ke/auth/google/callback
+GOOGLE_MAPS_API_KEY=your-google-maps-platform-api-key-or-demo-key

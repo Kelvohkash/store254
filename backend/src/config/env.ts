@@ -30,6 +30,9 @@ export interface Env {
   GOOGLE_CLIENT_SECRET?: string;
   GOOGLE_REDIRECT_URI?: string;
 
+  // Google Maps Platform (Places API New) server-side key
+  GOOGLE_MAPS_API_KEY?: string;
+
   // Safaricom M-Pesa Platform Credentials (Optional fallback)
   MPESA_CONSUMER_KEY?: string;
   MPESA_CONSUMER_SECRET?: string;

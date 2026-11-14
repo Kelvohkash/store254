@@ -202,4 +202,73 @@ describe("Store254 End-to-End Workflow & Security Tests", () => {
     expect(combined).not.toContain("987654");
     expect(combined).not.toContain('<script>alert("xss")</script>');
   });
+
+  it("should require County, Constituency, and Town/Shopping Centre on store registration", async () => {
+    const res = await app.request(
+      "https://store254.co.ke/api/platform/register-store",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://store254.co.ke",
+        },
+        body: JSON.stringify({
+          storeName: "Test Shop",
+          subdomain: "testshopke99",
+          businessType: "GENERAL",
+          ownerEmail: "owner@testshopke.co.ke",
+          ownerPassword: "StrongPassword123!",
+          ownerFullName: "Jane Wanjiku",
+        }),
+      },
+      mockEnv as any
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("should report Google Maps configuration status and fail closed when API key is missing", async () => {
+    const statusWithoutKey = await app.request(
+      "https://store254.co.ke/api/platform/locations/google-status",
+      {},
+      mockEnv as any
+    );
+    expect(statusWithoutKey.status).toBe(200);
+    const bodyWithoutKey = await statusWithoutKey.json();
+    expect(bodyWithoutKey.googleMapsConfigured).toBe(false);
+
+    const statusWithKey = await app.request(
+      "https://store254.co.ke/api/platform/locations/google-status",
+      {},
+      { ...mockEnv, GOOGLE_MAPS_API_KEY: "test-key" } as any
+    );
+    expect(statusWithKey.status).toBe(200);
+    const bodyWithKey = await statusWithKey.json();
+    expect(bodyWithKey.googleMapsConfigured).toBe(true);
+
+    const autoRes = await app.request(
+      "https://store254.co.ke/api/platform/locations/google-autocomplete",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: "Sarit Centre" }),
+      },
+      mockEnv as any
+    );
+    expect(autoRes.status).toBe(503);
+  });
+
+  it("should compute accurate Haversine distances and include GMP Solution ID", async () => {
+    const { haversineKm, slugifyLocation, GOOGLE_MAPS_SOLUTION_ID } = await import(
+      "../src/modules/platform/locations.service"
+    );
+
+    expect(GOOGLE_MAPS_SOLUTION_ID).toBe("gmp_git_agentskills_v1");
+    expect(slugifyLocation("Murang'a South Centre")).toBe("muranga-south-centre");
+
+    // Westlands (-1.2647, 36.8019) to Nairobi CBD (-1.2833, 36.8167) ~ 2.6 km
+    const dist = haversineKm(-1.2647, 36.8019, -1.2833, 36.8167);
+    expect(dist).toBeGreaterThan(2.0);
+    expect(dist).toBeLessThan(3.5);
+  });
 });
