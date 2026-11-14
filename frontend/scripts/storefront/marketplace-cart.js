@@ -201,7 +201,22 @@
     if (typeof window.renderIcons === "function") window.renderIcons();
   };
 
+  function resetWelcomeGpsUi() {
+    const btn = document.getElementById("welcome-auto-detect-btn");
+    const statusEl = document.getElementById("welcome-gps-status");
+    if (btn) {
+      btn.disabled = false;
+      const span = btn.querySelector("span");
+      if (span) span.textContent = "Click to auto detect location";
+    }
+    if (statusEl) {
+      statusEl.textContent = "";
+      statusEl.className = "hidden text-[11px] font-semibold px-3 py-2 rounded-xl border";
+    }
+  }
+
   window.closeBuyerWelcomeModal = function closeBuyerWelcomeModal(markDismissed = false) {
+    resetWelcomeGpsUi();
     const modal = document.getElementById("buyer-welcome-modal");
     if (modal) {
       modal.classList.add("hidden");
@@ -239,6 +254,7 @@
     if (backBtn) backBtn.classList.toggle("hidden", Boolean(platformUser));
 
     if (step === 2) {
+      resetWelcomeGpsUi();
       window.backToWelcomeCountyStep();
       await ensureWelcomeCountiesLoaded();
     }
@@ -433,36 +449,39 @@
 
     if (btn) {
       btn.disabled = true;
-      btn.querySelector("span").textContent = "Detecting location…";
+      const span = btn.querySelector("span");
+      if (span) span.textContent = "Detecting location…";
     }
     setStatus("Checking your GPS / network location…", "info");
 
-    if (typeof window.useBrowserGpsLocation === "function") {
-      window.useBrowserGpsLocation((result) => {
-        if (btn) {
-          btn.disabled = false;
-          btn.querySelector("span").textContent = "Click to auto detect location";
-        }
-        if (result && result.ok && result.location) {
-          window.closeBuyerWelcomeModal(true);
-          syncMarketplaceHeaderState();
-          const detectedName = [result.location.locationName, result.location.countyName]
-            .filter(Boolean)
-            .join(", ");
-          const suffix =
-            result.source === "network"
-              ? " (detected via network — you can refine anytime)"
-              : "";
-          showToast(`Location set to ${detectedName}${suffix}`, "success");
-        } else {
-          setStatus(
-            result?.message ||
-              "Could not auto-detect your town. Please choose your County below.",
-            "error"
-          );
-        }
-      });
+    if (typeof window.useBrowserGpsLocation !== "function") {
+      resetWelcomeGpsUi();
+      setStatus("Auto-detect is unavailable right now. Please choose your County below.", "error");
+      return;
     }
+
+    window.useBrowserGpsLocation((result) => {
+      if (result && result.ok && result.location) {
+        resetWelcomeGpsUi();
+        window.closeBuyerWelcomeModal(true);
+        syncMarketplaceHeaderState();
+        const detectedName = [result.location.locationName, result.location.countyName]
+          .filter(Boolean)
+          .join(", ");
+        const suffix =
+          result.source === "network"
+            ? " (detected via network — you can refine anytime)"
+            : "";
+        showToast(`Location set to ${detectedName}${suffix}`, "success");
+      } else {
+        resetWelcomeGpsUi();
+        setStatus(
+          result?.message ||
+            "Could not auto-detect your town. Please choose your County below.",
+          "error"
+        );
+      }
+    });
   };
 
   // --- Universal Cart Actions ---

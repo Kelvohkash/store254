@@ -157,6 +157,19 @@ export default {
       const apiUrl = new URL(`${url.pathname}${url.search}`, "https://api.internal");
       const headers = new Headers(request.headers);
       headers.set("X-Forwarded-Host", url.host);
+      headers.delete("X-CF-Latitude");
+      headers.delete("X-CF-Longitude");
+      headers.delete("X-CF-City");
+      headers.delete("X-CF-Country");
+      const cfMeta = (request as Request & {
+        cf?: { latitude?: string | number; longitude?: string | number; city?: string; country?: string };
+      }).cf;
+      if (cfMeta?.latitude !== undefined && cfMeta?.longitude !== undefined) {
+        headers.set("X-CF-Latitude", String(cfMeta.latitude));
+        headers.set("X-CF-Longitude", String(cfMeta.longitude));
+      }
+      if (cfMeta?.city) headers.set("X-CF-City", String(cfMeta.city));
+      if (cfMeta?.country) headers.set("X-CF-Country", String(cfMeta.country));
 
       const apiResponse = await env.API.fetch(
         new Request(apiUrl, {
