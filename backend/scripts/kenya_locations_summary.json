@@ -1,168 +1,141 @@
 {
   "counties": 47,
   "constituencies": 290,
-  "raw_geonames_filtered": 7354,
-  "unmatched_outside_kenya_tolerance": 3,
-  "synthesized_constituency_centres": 0,
-  "locations_total": 7230,
-  "locations_by_kind": {
-    "TRADING_CENTRE": 6319,
-    "TOWN": 231,
-    "ESTATE": 279,
-    "SHOPPING_CENTRE": 401
+  "raw_sources": {
+    "geonames_filtered": 16082,
+    "osm_places": 10488,
+    "osm_commercial_centres": 2576,
+    "iebc_wards": 1437
   },
-  "neighbor_edges_total": 57840,
-  "sql_seed_files": [
-    "01_counties_constituencies_01.sql",
-    "02_locations_01.sql",
-    "02_locations_02.sql",
-    "02_locations_03.sql",
-    "02_locations_04.sql",
-    "03_neighbors_01.sql",
-    "03_neighbors_02.sql",
-    "03_neighbors_03.sql",
-    "03_neighbors_04.sql",
-    "03_neighbors_05.sql",
-    "03_neighbors_06.sql"
-  ],
+  "unmatched_outside_kenya_tolerance": 73,
+  "locations_total": 25708,
+  "locations_by_kind": {
+    "TRADING_CENTRE": 20007,
+    "SHOPPING_CENTRE": 2978,
+    "TOWN": 1864,
+    "ESTATE": 859
+  },
+  "locations_by_origin": {
+    "geonames": 13702,
+    "osm": 10584,
+    "iebc_ward": 1422
+  },
+  "neighbor_edges_total": 205664,
+  "sql_seed_files_count": 34,
   "samples": {
     "Westlands": {
-      "id": "loc-06862",
-      "county_id": "county-047",
-      "constituency_id": "const-274",
-      "kind": "ESTATE",
+      "id": "loc-osm-9566096123",
+      "county_id": "county-032",
+      "constituency_id": "const-173",
+      "kind": "TRADING_CENTRE",
+      "origin": "osm",
       "neighbors": [
         [
-          "Riverside Park",
-          0.49
+          "Sobea Inner",
+          1.67
         ],
         [
-          "Chiromo",
-          0.81
+          "Sobea Highway",
+          1.75
         ],
         [
-          "Upper Parklands Estate",
-          1.5
+          "Kiptenden",
+          1.81
         ],
         [
-          "High Ridge",
-          1.72
+          "Ngecha",
+          1.94
         ],
         [
-          "Nairobi",
-          2.07
+          "Bethesda",
+          2.1
+        ]
+      ]
+    },
+    "Gikomba Market": {
+      "id": "loc-osm-7005142185",
+      "county_id": "county-047",
+      "constituency_id": "const-288",
+      "kind": "SHOPPING_CENTRE",
+      "origin": "osm",
+      "neighbors": [
+        [
+          "Gorofani",
+          0.14
+        ],
+        [
+          "Pumwani Ward",
+          0.18
+        ],
+        [
+          "NACICO PLAZA",
+          0.32
+        ],
+        [
+          "Kamukunji",
+          0.32
+        ],
+        [
+          "Wood market",
+          0.39
         ]
       ]
     },
     "Juja": {
-      "id": "loc-03457",
+      "id": "loc-osm-6346928877",
       "county_id": "county-022",
       "constituency_id": "const-113",
       "kind": "TOWN",
+      "origin": "osm",
       "neighbors": [
         [
           "Kalimoni",
-          1.7
+          1.8
+        ],
+        [
+          "Juja City Mall",
+          1.97
+        ],
+        [
+          "Kenyatta Road Trade Centre",
+          2.88
+        ],
+        [
+          "Kenyatta Road-Thika Road Junction Market",
+          2.96
         ],
         [
           "Ndarugu",
-          3.27
-        ],
-        [
-          "Benvar Farm",
-          3.29
-        ],
-        [
-          "Kasarani",
-          7.14
-        ],
-        [
-          "Ruiru",
-          7.69
+          2.98
         ]
       ]
     },
     "Rongai": {
-      "id": "loc-04624",
+      "id": "loc-osm-44917832",
       "county_id": "county-032",
       "constituency_id": "const-173",
       "kind": "TOWN",
+      "origin": "osm",
       "neighbors": [
         [
-          "Morris",
-          8.61
+          "Kwa D.O",
+          0.6
         ],
         [
-          "Kampi Ya Moto",
-          10.11
+          "Nafaka",
+          1.01
         ],
         [
-          "Kandutura",
-          10.16
+          "Public Works",
+          1.48
         ],
         [
-          "Ngesedai",
-          10.88
-        ],
-        [
-          "Machege",
-          11.43
-        ]
-      ]
-    },
-    "Kikuyu": {
-      "id": "loc-03621",
-      "county_id": "county-022",
-      "constituency_id": "const-120",
-      "kind": "TOWN",
-      "neighbors": [
-        [
-          "Rungiri",
-          1.43
-        ],
-        [
-          "Gatiabai",
-          1.59
-        ],
-        [
-          "Ngure",
-          2.31
-        ],
-        [
-          "Gitaru",
-          2.69
-        ],
-        [
-          "Nderi",
-          2.89
-        ]
-      ]
-    },
-    "Nyali": {
-      "id": "loc-00025",
-      "county_id": "county-001",
-      "constituency_id": "const-004",
-      "kind": "ESTATE",
-      "neighbors": [
-        [
-          "Kongowea",
+          "Visoi Ward",
           1.49
         ],
         [
-          "Kengeleni",
-          2.18
-        ],
-        [
-          "Kisauni",
-          2.43
-        ],
-        [
-          "Tayari",
-          2.83
-        ],
-        [
-          "Frere Town",
-          3.08
+          "Jamii Estate",
+          1.72
         ]
       ]
     }

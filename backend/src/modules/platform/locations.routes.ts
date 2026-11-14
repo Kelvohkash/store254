@@ -100,10 +100,10 @@ locationsRouter.get("/towns", async (c) => {
   const countyId = c.req.query("countyId")?.trim();
   const constituencyId = c.req.query("constituencyId")?.trim();
   const q = c.req.query("q")?.trim();
-  const rawLimit = Number(c.req.query("limit") || 250);
+  const rawLimit = Number(c.req.query("limit") || 500);
   const limit = Number.isFinite(rawLimit)
-    ? Math.min(Math.max(Math.trunc(rawLimit), 1), 500)
-    : 250;
+    ? Math.min(Math.max(Math.trunc(rawLimit), 1), 1000)
+    : 500;
 
   const db = createDb(c.env.DB);
   const conditions = [];
