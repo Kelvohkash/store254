@@ -5,6 +5,10 @@ import {
   parseInternationalQuery,
   stemToken,
 } from "../src/modules/platform/search.service";
+import {
+  PLATFORM_ROOT_RETURN_SLUG,
+  parseTenantReturnTo,
+} from "../src/modules/auth/google-gateway.routes";
 
 describe("International Ripple Search Query Engine", () => {
   it("normalizes multi-term queries, removes stop words, and builds prefix/synonym FTS5 expressions", () => {
@@ -46,5 +50,19 @@ describe("International Ripple Search Query Engine", () => {
     expect(RIPPLE_RING_DEFINITIONS[1].name).toContain("8 Nearest");
     expect(RIPPLE_RING_DEFINITIONS[4].name).toContain("National Hubs");
     expect(RIPPLE_RING_DEFINITIONS[5].maxDistanceKm).toBeNull();
+  });
+
+  it("allows Google SSO return URLs on both platform root and active tenant subdomains", () => {
+    const rootRes = parseTenantReturnTo("https://store254.co.ke/", "store254.co.ke");
+    expect(rootRes?.tenantSlug).toBe(PLATFORM_ROOT_RETURN_SLUG);
+
+    const wwwRes = parseTenantReturnTo("https://www.store254.co.ke/?tab=shop", "store254.co.ke");
+    expect(wwwRes?.tenantSlug).toBe(PLATFORM_ROOT_RETURN_SLUG);
+
+    const shopRes = parseTenantReturnTo("https://kilimani.store254.co.ke/", "store254.co.ke");
+    expect(shopRes?.tenantSlug).toBe("kilimani");
+
+    expect(parseTenantReturnTo("https://evil.com/", "store254.co.ke")).toBeNull();
+    expect(parseTenantReturnTo("http://store254.co.ke/", "store254.co.ke")).toBeNull();
   });
 });

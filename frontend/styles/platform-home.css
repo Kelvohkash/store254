@@ -23,15 +23,18 @@ html:not([data-storefront="true"]) .wishlist-action {
 .platform-mobile-controls { display:flex; align-items:center; gap:.45rem; flex-shrink:0; }
 .platform-mobile-cta { display:none; align-items:center; justify-content:center; padding:.45rem .8rem; border:0; border-radius:999px; background:#07834e; color:#fff; font-size:.74rem; font-weight:800; line-height:1.1; white-space:nowrap; box-shadow:0 3px 10px rgba(7,131,78,.2); }
 .platform-mobile-cta:hover { background:#066d42; }
-html[data-storefront="true"] .platform-mobile-cta { display:none !important; }
+html[data-storefront="true"] .platform-mobile-cta,
+html[data-storefront="true"] .platform-mobile-buyer-cart { display:none !important; }
 #mobile-menu-toggle { display:none; align-items:center; justify-content:center; width:2.5rem; height:2.5rem; border:1px solid #dce9df; border-radius:.7rem; background:#fff; color:#26392d; }
 .platform-mobile-menu { display:none; }
 #platform-hero.platform-home { width:100%; max-width:none; margin:0; padding:0 0 2.5rem; }
-#platform-hero .platform-intro { width:100%; margin:0; padding:clamp(1.75rem,4vw,3.25rem) max(clamp(1rem,3vw,2rem),calc((100% - 76rem)/2)); border-right:0 !important; border-left:0 !important; border-radius:0; }
+#platform-hero .platform-intro { width:100%; margin:0 0 2rem; padding:clamp(1.75rem,4vw,3.25rem) max(clamp(1rem,3vw,2rem),calc((100% - 76rem)/2)); border-right:0 !important; border-left:0 !important; border-radius:0; }
 #header-brand { min-width:10rem; }
 #header-platform-logo { object-fit:contain; }
 #desktop-search { max-width:25rem; }
-.platform-nav-links { gap:1.5rem !important; white-space:nowrap; }
+.platform-nav-links { gap:.65rem !important; white-space:nowrap; }
+#buyer-hero-bar { width:min(100% - clamp(2rem,6vw,4rem),76rem); margin:1.25rem auto 1.15rem; }
+@media(max-width:640px) { #buyer-hero-bar { width:calc(100% - 2rem); margin:.9rem auto .9rem; } }
 .platform-nav-links a,.platform-nav-links button { color:#4a5b50; font-size:.82rem; font-weight:600; transition:color .15s ease; }
 .platform-nav-links a:hover,.platform-nav-links button:hover { color:#07834e; }
 .platform-nav-links .platform-header-cta { display:inline-flex; align-items:center; gap:.35rem; padding:.6rem 1.05rem; border:0; border-radius:999px; color:#fff !important; background:#07834e; box-shadow:0 4px 12px rgba(8,131,78,.2); font-size:.76rem; font-weight:800; }
@@ -144,7 +147,7 @@ html:not([data-storefront="true"]) .site-footer { padding-bottom:2rem !important
 .ripple-step-pill.has-matches em { background:#07834e; color:#fff; }
 .marketplace-results-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.9rem; }
 .marketplace-result-skeleton { padding:.75rem; border:1px solid #e2e8f0; border-radius:1rem; background:#fff; }
-.marketplace-product-card { display:flex; flex-direction:column; border:1px solid #e2ece5; border-radius:1rem; background:#fff; overflow:hidden; transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease; }
+.marketplace-product-card { display:flex; flex-direction:column; cursor:pointer; border:1px solid #e2ece5; border-radius:1rem; background:#fff; overflow:hidden; transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease; }
 .marketplace-product-card:hover { transform:translateY(-2px); border-color:#86efac; box-shadow:0 10px 24px rgba(29,76,48,.08); }
 .marketplace-product-media { position:relative; aspect-ratio:4/3; background:#f1f5f9; overflow:hidden; }
 .marketplace-product-media img { width:100%; height:100%; object-fit:cover; display:block; }

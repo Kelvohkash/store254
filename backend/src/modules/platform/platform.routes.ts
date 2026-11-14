@@ -23,6 +23,14 @@ import { EmailService } from "../../services/email.service";
 import { locationsRouter } from "./locations.routes";
 import { searchRouter } from "./search.routes";
 import {
+  marketplaceRouter,
+  readPlatformGoogleUser,
+  assertAllowedPlatformOrigin,
+} from "./marketplace.routes";
+import {
+  clearCustomerSessionCookie,
+} from "../../security/session-cookie";
+import {
   LocationResolutionError,
   resolveOrCreateStoreLocation,
 } from "./locations.service";
@@ -31,6 +39,49 @@ export const platformRouter = new Hono<AppEnv>();
 
 platformRouter.route("/locations", locationsRouter);
 platformRouter.route("/search", searchRouter);
+platformRouter.route("/marketplace", marketplaceRouter);
+
+platformRouter.get("/google-config", (c) => {
+  const clientId = c.env?.GOOGLE_CLIENT_ID?.trim() || "";
+  const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
+  return c.json({
+    success: true,
+    data: {
+      enabled: Boolean(clientId),
+      loginPath: `https://${primaryDomain}/auth/google/login`,
+    },
+  });
+});
+
+platformRouter.get("/me", async (c) => {
+  const googleUser = await readPlatformGoogleUser(c);
+  if (!googleUser) {
+    return c.json({
+      success: true,
+      data: { authenticated: false, user: null },
+    });
+  }
+  return c.json({
+    success: true,
+    data: {
+      authenticated: true,
+      user: {
+        sub: googleUser.sub,
+        email: googleUser.email,
+        fullName: googleUser.name,
+        avatarUrl: googleUser.picture || null,
+        role: "CUSTOMER",
+      },
+    },
+  });
+});
+
+platformRouter.post("/logout", (c) => {
+  assertAllowedPlatformOrigin(c);
+  const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
+  c.header("Set-Cookie", clearCustomerSessionCookie(primaryDomain), { append: true });
+  return c.json({ success: true, message: "Signed out of Store254." });
+});
 
 // Register Store Input Schema
 const registerStoreSchema = z
