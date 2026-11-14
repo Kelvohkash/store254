@@ -338,80 +338,160 @@ export async function fetchGooglePlaceDetails(apiKey: string, placeId: string) {
   };
 }
 
+export async function findClosestConstituencyInCounty(
+  db: AppDb,
+  countyId: string,
+  latitude: number,
+  longitude: number
+): Promise<KenyaConstituency | null> {
+  const rows = await db
+    .select()
+    .from(kenyaConstituencies)
+    .where(eq(kenyaConstituencies.countyId, countyId));
+
+  if (rows.length === 0) return null;
+
+  let best = rows[0];
+  let bestDist = haversineKm(latitude, longitude, best.centroidLat, best.centroidLng);
+  for (let i = 1; i < rows.length; i += 1) {
+    const candidate = rows[i];
+    const dist = haversineKm(latitude, longitude, candidate.centroidLat, candidate.centroidLng);
+    if (dist < bestDist) {
+      best = candidate;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
 export async function resolveOrCreateStoreLocation(
   db: AppDb,
   env: Env,
   input: {
     countyId: string;
-    constituencyId: string;
+    constituencyId?: string;
     locationId?: string;
     googlePlaceId?: string;
     customLocationName?: string;
   }
 ): Promise<ResolvedStoreLocation> {
-  const pair = await getCountyAndConstituency(db, input.countyId, input.constituencyId);
-  if (!pair) {
-    throw new LocationResolutionError(
-      "Selected county and constituency combination is invalid",
-      400
-    );
+  const [county] = await db
+    .select()
+    .from(kenyaCounties)
+    .where(eq(kenyaCounties.id, input.countyId))
+    .limit(1);
+
+  if (!county) {
+    throw new LocationResolutionError("Selected county is invalid", 400);
   }
 
-  const { county, constituency } = pair;
+  let explicitConstituency: KenyaConstituency | null = null;
+  if (input.constituencyId) {
+    const [matchedConst] = await db
+      .select()
+      .from(kenyaConstituencies)
+      .where(
+        and(
+          eq(kenyaConstituencies.id, input.constituencyId),
+          eq(kenyaConstituencies.countyId, county.id)
+        )
+      )
+      .limit(1);
 
-  // 1. Existing pre-seeded or previously resolved location
+    if (!matchedConst) {
+      throw new LocationResolutionError(
+        "Selected constituency does not belong to the chosen county",
+        400
+      );
+    }
+    explicitConstituency = matchedConst;
+  }
+
+  // 1. Existing pre-seeded or previously resolved location (auto-resolves linked constituency)
   if (input.locationId) {
+    const conditions = [
+      eq(kenyaLocations.id, input.locationId),
+      eq(kenyaLocations.countyId, county.id),
+    ];
+    if (explicitConstituency) {
+      conditions.push(eq(kenyaLocations.constituencyId, explicitConstituency.id));
+    }
+
     const [existing] = await db
       .select()
       .from(kenyaLocations)
-      .where(
-        and(
-          eq(kenyaLocations.id, input.locationId),
-          eq(kenyaLocations.constituencyId, constituency.id)
-        )
-      )
+      .where(and(...conditions))
       .limit(1);
 
     if (!existing) {
       throw new LocationResolutionError(
-        "Selected town or shopping centre does not belong to the chosen constituency",
+        "Selected town or shopping centre does not belong to the chosen county",
         400
       );
     }
 
+    const linkedConst =
+      explicitConstituency ||
+      (
+        await db
+          .select()
+          .from(kenyaConstituencies)
+          .where(eq(kenyaConstituencies.id, existing.constituencyId))
+          .limit(1)
+      )[0];
+
+    if (!linkedConst) {
+      throw new LocationResolutionError("Linked constituency not found for location", 404);
+    }
+
     return {
       county,
-      constituency,
+      constituency: linkedConst,
       location: existing,
-      locationLabel: formatLocationLabel(existing.name, constituency.name, county.name),
+      locationLabel: formatLocationLabel(existing.name, linkedConst.name, county.name),
     };
   }
 
-  // 2. Live Google Maps Place selection
+  // 2. Live Google Maps Place selection (auto-links nearest constituency in county when omitted)
   if (input.googlePlaceId) {
     const cleanPlaceId = input.googlePlaceId.replace(/^places\//, "").trim();
+    const placeConditions = [
+      eq(kenyaLocations.googlePlaceId, cleanPlaceId),
+      eq(kenyaLocations.countyId, county.id),
+    ];
+    if (explicitConstituency) {
+      placeConditions.push(eq(kenyaLocations.constituencyId, explicitConstituency.id));
+    }
+
     const [cachedByPlace] = await db
       .select()
       .from(kenyaLocations)
-      .where(
-        and(
-          eq(kenyaLocations.googlePlaceId, cleanPlaceId),
-          eq(kenyaLocations.constituencyId, constituency.id)
-        )
-      )
+      .where(and(...placeConditions))
       .limit(1);
 
     if (cachedByPlace) {
-      return {
-        county,
-        constituency,
-        location: cachedByPlace,
-        locationLabel: formatLocationLabel(
-          cachedByPlace.name,
-          constituency.name,
-          county.name
-        ),
-      };
+      const linkedConst =
+        explicitConstituency ||
+        (
+          await db
+            .select()
+            .from(kenyaConstituencies)
+            .where(eq(kenyaConstituencies.id, cachedByPlace.constituencyId))
+            .limit(1)
+        )[0];
+
+      if (linkedConst) {
+        return {
+          county,
+          constituency: linkedConst,
+          location: cachedByPlace,
+          locationLabel: formatLocationLabel(
+            cachedByPlace.name,
+            linkedConst.name,
+            county.name
+          ),
+        };
+      }
     }
 
     const apiKey = env.GOOGLE_MAPS_API_KEY?.trim();
@@ -423,16 +503,29 @@ export async function resolveOrCreateStoreLocation(
     }
 
     const details = await fetchGooglePlaceDetails(apiKey, cleanPlaceId);
+    const linkedConst =
+      explicitConstituency ||
+      (await findClosestConstituencyInCounty(
+        db,
+        county.id,
+        details.latitude,
+        details.longitude
+      ));
+
+    if (!linkedConst) {
+      throw new LocationResolutionError("No constituencies found for selected county", 404);
+    }
+
     const id = `loc-gm-${generateUUID().slice(0, 12)}`;
     const slugBase = slugifyLocation(details.name) || "centre";
-    const slug = `${slugBase}--${constituency.id.replace("const-", "")}-${id.slice(-4)}`;
+    const slug = `${slugBase}--${linkedConst.id.replace("const-", "")}-${id.slice(-4)}`;
 
     const [created] = await db
       .insert(kenyaLocations)
       .values({
         id,
         countyId: county.id,
-        constituencyId: constituency.id,
+        constituencyId: linkedConst.id,
         name: details.name,
         slug,
         kind: "SHOPPING_CENTRE",
@@ -448,54 +541,84 @@ export async function resolveOrCreateStoreLocation(
 
     return {
       county,
-      constituency,
+      constituency: linkedConst,
       location: created,
-      locationLabel: formatLocationLabel(created.name, constituency.name, county.name),
+      locationLabel: formatLocationLabel(created.name, linkedConst.name, county.name),
     };
   }
 
-  // 3. Merchant-entered shopping centre inside selected constituency
+  // 3. Merchant-entered shopping centre inside selected county (uses optional constituency or county match)
   const customName = input.customLocationName?.trim();
   if (customName && customName.length >= 2) {
+    const nameConditions = [
+      eq(kenyaLocations.countyId, county.id),
+      sql`lower(${kenyaLocations.name}) = ${customName.toLowerCase()}`,
+    ];
+    if (explicitConstituency) {
+      nameConditions.push(eq(kenyaLocations.constituencyId, explicitConstituency.id));
+    }
+
     const [existingByName] = await db
       .select()
       .from(kenyaLocations)
-      .where(
-        and(
-          eq(kenyaLocations.constituencyId, constituency.id),
-          sql`lower(${kenyaLocations.name}) = ${customName.toLowerCase()}`
-        )
-      )
+      .where(and(...nameConditions))
       .limit(1);
 
     if (existingByName) {
-      return {
-        county,
-        constituency,
-        location: existingByName,
-        locationLabel: formatLocationLabel(
-          existingByName.name,
-          constituency.name,
-          county.name
-        ),
-      };
+      const linkedConst =
+        explicitConstituency ||
+        (
+          await db
+            .select()
+            .from(kenyaConstituencies)
+            .where(eq(kenyaConstituencies.id, existingByName.constituencyId))
+            .limit(1)
+        )[0];
+
+      if (linkedConst) {
+        return {
+          county,
+          constituency: linkedConst,
+          location: existingByName,
+          locationLabel: formatLocationLabel(
+            existingByName.name,
+            linkedConst.name,
+            county.name
+          ),
+        };
+      }
+    }
+
+    const linkedConst =
+      explicitConstituency ||
+      (
+        await db
+          .select()
+          .from(kenyaConstituencies)
+          .where(eq(kenyaConstituencies.countyId, county.id))
+          .orderBy(asc(kenyaConstituencies.code))
+          .limit(1)
+      )[0];
+
+    if (!linkedConst) {
+      throw new LocationResolutionError("No constituencies found for selected county", 404);
     }
 
     const id = `loc-mc-${generateUUID().slice(0, 12)}`;
     const slugBase = slugifyLocation(customName) || "centre";
-    const slug = `${slugBase}--${constituency.id.replace("const-", "")}-${id.slice(-4)}`;
+    const slug = `${slugBase}--${linkedConst.id.replace("const-", "")}-${id.slice(-4)}`;
 
     const [created] = await db
       .insert(kenyaLocations)
       .values({
         id,
         countyId: county.id,
-        constituencyId: constituency.id,
+        constituencyId: linkedConst.id,
         name: customName,
         slug,
         kind: "SHOPPING_CENTRE",
-        latitude: constituency.centroidLat,
-        longitude: constituency.centroidLng,
+        latitude: linkedConst.centroidLat,
+        longitude: linkedConst.centroidLng,
         source: "MERCHANT",
         googlePlaceId: null,
         population: 0,
@@ -506,14 +629,14 @@ export async function resolveOrCreateStoreLocation(
 
     return {
       county,
-      constituency,
+      constituency: linkedConst,
       location: created,
-      locationLabel: formatLocationLabel(created.name, constituency.name, county.name),
+      locationLabel: formatLocationLabel(created.name, linkedConst.name, county.name),
     };
   }
 
   throw new LocationResolutionError(
-    "Please select a town or shopping centre (or enter your shopping centre name) within your constituency",
+    "Please search and select a town or shopping centre (or enter your shopping centre name)",
     400
   );
 }
