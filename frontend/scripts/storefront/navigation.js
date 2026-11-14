@@ -2,6 +2,7 @@
 
 function togglePlatformMobileMenu(show) {
   const menu = document.getElementById("platform-mobile-menu");
+  const backdrop = document.getElementById("platform-mobile-backdrop");
   const toggle = document.getElementById("mobile-menu-toggle");
   const icon = document.getElementById("mobile-menu-icon");
   if (!menu) return;
@@ -9,14 +10,24 @@ function togglePlatformMobileMenu(show) {
   const nextState = typeof show === "boolean" ? show : menu.hidden;
   menu.hidden = !nextState;
   menu.classList.toggle("is-open", nextState);
+  if (backdrop) {
+    backdrop.hidden = !nextState;
+  }
   toggle?.setAttribute("aria-expanded", String(nextState));
   toggle?.setAttribute("aria-label", nextState ? "Close navigation menu" : "Open navigation menu");
   if (icon) {
     icon.setAttribute("data-lucide", nextState ? "x" : "menu");
   }
   document.body.classList.toggle("overflow-hidden", nextState);
+  document.body.classList.toggle("platform-mobile-menu-open", nextState);
   renderIcons();
 }
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && document.body.classList.contains("platform-mobile-menu-open")) {
+    togglePlatformMobileMenu(false);
+  }
+});
 
 function toggleStorefrontMenu() {
   if (!state?.activeTenantSlug) {
