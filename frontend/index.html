@@ -938,58 +938,79 @@
               <span>Business Location (Required)</span>
             </span>
             <span id="onboard-maps-badge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
-              47 Counties · 290 Constituencies
+              47 Counties · 25,708+ Centres
             </span>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div>
-              <label for="onboard-county" class="block font-semibold text-slate-700 mb-1">County</label>
-              <select id="onboard-county" required onfocus="ensureOnboardLocationsLoaded()" onchange="handleOnboardCountyChange(this.value)" class="w-full p-2.5 rounded-xl border border-slate-300 bg-white">
-                <option value="">Select County...</option>
-              </select>
+          <div class="relative space-y-1.5">
+            <label for="onboard-county-search" class="block font-semibold text-slate-700">1. County</label>
+            <input type="hidden" id="onboard-county">
+            <div id="onboard-county-input-wrap" class="relative">
+              <input
+                type="text"
+                id="onboard-county-search"
+                onfocus="ensureOnboardLocationsLoaded().then(() => showCountySearchResults(this.value))"
+                oninput="showCountySearchResults(this.value)"
+                placeholder="Type your county (e.g. Nairobi, Kiambu, Mombasa)..."
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white"
+                autocomplete="off"
+              >
+              <div id="onboard-county-results" class="hidden absolute left-0 right-0 mt-1 z-20 rounded-xl border border-slate-200 bg-white divide-y divide-slate-100 max-h-44 overflow-y-auto shadow-lg"></div>
+            </div>
+            <div id="onboard-selected-county-banner" class="hidden flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white border border-emerald-300 text-slate-900">
+              <span id="onboard-selected-county-text" class="font-bold text-xs text-emerald-800 truncate"></span>
+              <button type="button" onclick="clearSelectedCounty()" class="text-[11px] font-bold text-emerald-700 hover:underline shrink-0">Change</button>
+            </div>
+          </div>
+
+          <div class="relative space-y-1.5">
+            <label for="onboard-location-search" class="block font-semibold text-slate-700">2. Town / Estate / Shopping Centre</label>
+            <div id="onboard-location-input-wrap" class="relative">
+              <input
+                type="text"
+                id="onboard-location-search"
+                disabled
+                onfocus="handleOnboardLocationSearch(this.value)"
+                oninput="handleOnboardLocationSearch(this.value)"
+                placeholder="Select county first, then type town or shopping centre..."
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-400"
+                autocomplete="off"
+              >
+              <div id="onboard-location-results" class="hidden rounded-xl border border-emerald-200 bg-white divide-y divide-slate-100 max-h-56 overflow-y-auto shadow-lg mt-1"></div>
+            </div>
+            <p class="text-[11px] text-slate-500">Type the first letters of your town, ward, estate, market, or shopping centre — its constituency will be linked automatically.</p>
+          </div>
+
+          <div id="onboard-selected-location-card" class="hidden flex items-start justify-between gap-2 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950">
+            <div class="min-w-0">
+              <p id="onboard-selected-location-name" class="font-bold text-xs truncate"></p>
+              <p id="onboard-selected-location-meta" class="text-[11px] text-emerald-700 font-semibold truncate"></p>
+            </div>
+            <button type="button" onclick="clearSelectedLocation()" class="text-[11px] font-bold text-emerald-700 hover:underline shrink-0 mt-0.5">Change</button>
+          </div>
+
+          <div id="onboard-custom-location-wrap" class="hidden space-y-2 rounded-xl border border-emerald-200 bg-white p-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-bold text-slate-800 text-[11px]">Add unlisted shopping centre</span>
+              <button type="button" onclick="cancelCustomLocation()" class="text-[11px] font-semibold text-slate-500 hover:text-slate-800">Back to search</button>
             </div>
             <div>
-              <label for="onboard-constituency" class="block font-semibold text-slate-700 mb-1">Constituency</label>
-              <select id="onboard-constituency" required disabled onchange="handleOnboardConstituencyChange(this.value)" class="w-full p-2.5 rounded-xl border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-400">
-                <option value="">Select County first...</option>
+              <label for="onboard-custom-location" class="block font-semibold text-slate-700 mb-1">Shopping Centre / Market Name</label>
+              <input
+                type="text"
+                id="onboard-custom-location"
+                minlength="2"
+                maxlength="80"
+                placeholder="e.g. KwaChief Shopping Centre"
+                class="w-full p-2.5 rounded-xl border border-emerald-300 bg-white"
+              >
+            </div>
+            <div>
+              <label for="onboard-custom-constituency" class="block font-semibold text-slate-700 mb-1">Constituency (Optional if unknown)</label>
+              <select id="onboard-custom-constituency" class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700">
+                <option value="">Auto-assign within county (optional)...</option>
               </select>
             </div>
-          </div>
-
-          <div class="space-y-2">
-            <label for="onboard-location-search" class="block font-semibold text-slate-700">Town / Estate / Shopping Centre</label>
-            <input
-              type="text"
-              id="onboard-location-search"
-              disabled
-              oninput="handleOnboardLocationSearch(this.value)"
-              placeholder="Search town, market or shopping centre..."
-              class="w-full p-2.5 rounded-xl border border-slate-300 bg-white disabled:bg-slate-100"
-              autocomplete="off"
-            >
-            <select id="onboard-location" disabled onchange="handleOnboardLocationChange(this.value)" class="w-full p-2.5 rounded-xl border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-400">
-              <option value="">Select Constituency first...</option>
-            </select>
-          </div>
-
-          <div id="onboard-google-results" class="hidden rounded-xl border border-emerald-200 bg-white divide-y divide-slate-100 max-h-40 overflow-y-auto shadow-sm"></div>
-
-          <div id="onboard-custom-location-wrap" class="hidden">
-            <label for="onboard-custom-location" class="block font-semibold text-slate-700 mb-1">Enter Shopping Centre / Market Name</label>
-            <input
-              type="text"
-              id="onboard-custom-location"
-              minlength="2"
-              maxlength="80"
-              placeholder="e.g. KwaChief Shopping Centre"
-              class="w-full p-2.5 rounded-xl border border-emerald-300 bg-white"
-            >
-          </div>
-
-          <div id="onboard-selected-google-banner" class="hidden flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900">
-            <span id="onboard-selected-google-text" class="font-semibold text-[11px] truncate"></span>
-            <button type="button" onclick="clearSelectedGooglePlace()" class="text-[11px] font-bold text-emerald-700 hover:underline shrink-0">Change</button>
           </div>
 
           <div id="onboard-nearby-preview" class="hidden rounded-xl bg-white border border-slate-200 p-2.5 space-y-1.5">

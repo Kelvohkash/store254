@@ -30,7 +30,7 @@ const googleAutocompleteSchema = z.object({
 const resolveLocationSchema = z
   .object({
     countyId: z.string().min(1, "County is required"),
-    constituencyId: z.string().min(1, "Constituency is required"),
+    constituencyId: z.string().optional(),
     locationId: z.string().optional(),
     googlePlaceId: z.string().optional(),
     customLocationName: z.string().trim().min(2).max(80).optional(),
@@ -100,25 +100,28 @@ locationsRouter.get("/constituencies", async (c) => {
 locationsRouter.get("/towns", async (c) => {
   const countyId = c.req.query("countyId")?.trim();
   const constituencyId = c.req.query("constituencyId")?.trim();
-  const q = c.req.query("q")?.trim();
-  const rawLimit = Number(c.req.query("limit") || 500);
+  const qRaw = c.req.query("q")?.trim() || "";
+  const qClean = qRaw.replace(/[%_]/g, "");
+  const rawLimit = Number(c.req.query("limit") || 40);
   const limit = Number.isFinite(rawLimit)
     ? Math.min(Math.max(Math.trunc(rawLimit), 1), 1000)
-    : 500;
+    : 40;
 
   const db = createDb(c.env.DB);
   const conditions = [];
   if (countyId) conditions.push(eq(kenyaLocations.countyId, countyId));
   if (constituencyId) conditions.push(eq(kenyaLocations.constituencyId, constituencyId));
-  if (q && q.length >= 1) {
-    conditions.push(like(kenyaLocations.name, `%${q}%`));
+  if (qClean.length >= 1) {
+    conditions.push(like(kenyaLocations.name, `%${qClean}%`));
   }
 
   const base = db
     .select({
       id: kenyaLocations.id,
       countyId: kenyaLocations.countyId,
+      countyName: kenyaCounties.name,
       constituencyId: kenyaLocations.constituencyId,
+      constituencyName: kenyaConstituencies.name,
       name: kenyaLocations.name,
       slug: kenyaLocations.slug,
       kind: kenyaLocations.kind,
@@ -127,12 +130,24 @@ locationsRouter.get("/towns", async (c) => {
       source: kenyaLocations.source,
       population: kenyaLocations.population,
     })
-    .from(kenyaLocations);
+    .from(kenyaLocations)
+    .innerJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
+    .innerJoin(
+      kenyaConstituencies,
+      eq(kenyaLocations.constituencyId, kenyaConstituencies.id)
+    );
 
   const filtered = conditions.length > 0 ? base.where(and(...conditions)) : base;
-  const locations = await filtered
-    .orderBy(desc(kenyaLocations.population), asc(kenyaLocations.name))
-    .limit(limit);
+  const orderClauses = [];
+  if (qClean.length >= 1) {
+    const prefix = `${qClean.toLowerCase()}%`;
+    orderClauses.push(
+      sql`CASE WHEN lower(${kenyaLocations.name}) LIKE ${prefix} THEN 0 ELSE 1 END`
+    );
+  }
+  orderClauses.push(desc(kenyaLocations.population), asc(kenyaLocations.name));
+
+  const locations = await filtered.orderBy(...orderClauses).limit(limit);
 
   return c.json({ locations });
 });

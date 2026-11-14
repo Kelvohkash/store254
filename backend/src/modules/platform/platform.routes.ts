@@ -46,7 +46,7 @@ const registerStoreSchema = z
     ownerFullName: z.string().min(2).max(80),
     ownerPhone: z.string().optional(),
     countyId: z.string().min(1, "Please select your County"),
-    constituencyId: z.string().min(1, "Please select your Constituency"),
+    constituencyId: z.string().optional(),
     locationId: z.string().optional(),
     googlePlaceId: z.string().optional(),
     customLocationName: z.string().trim().min(2).max(80).optional(),

@@ -47,20 +47,19 @@ test("marketplace landing remains mobile-safe without a theme gallery", async ()
   assert.match(home, /@media\s*\(max-width:\s*640px\)/);
 });
 
-test("store onboarding requires County, Constituency, and Town/Shopping Centre selection", async () => {
+test("store onboarding uses live County and Town/Shopping Centre search with linked constituency", async () => {
   const [html, onboardingJs] = await Promise.all([
     read("../index.html"),
     read("../scripts/storefront/onboarding.js"),
   ]);
-  assert.match(html, /id="onboard-county"[^>]*required/);
-  assert.match(html, /id="onboard-constituency"[^>]*required/);
-  assert.match(html, /id="onboard-location"/);
+  assert.match(html, /id="onboard-county-search"/);
+  assert.match(html, /id="onboard-location-search"/);
+  assert.match(html, /id="onboard-selected-location-card"/);
   assert.match(html, /id="onboard-nearby-preview"/);
   assert.match(onboardingJs, /\/api\/platform\/locations\/counties/);
-  assert.match(onboardingJs, /\/api\/platform\/locations\/constituencies/);
-  assert.match(onboardingJs, /\/api\/platform\/locations\/towns/);
+  assert.match(onboardingJs, /\/api\/platform\/locations\/towns\?countyId=/);
   assert.match(onboardingJs, /\/api\/platform\/locations\/google-autocomplete/);
-  assert.match(onboardingJs, /countyId,\s*\n?\s*constituencyId/);
+  assert.match(onboardingJs, /constituencyName/);
 });
 
 test("platform homepage renders Kenya coverage & smart network metrics", async () => {
