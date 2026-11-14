@@ -158,9 +158,24 @@ function renderStoreCardMarkup(s, index) {
   const logoUrl = safeShowcaseImageUrl(settings?.logoUrl || s.logoUrl);
   const coverMap = {
     ELECTRONICS: "tech",
+    DIGITAL_TECH: "tech",
+    AUTOMOTIVE: "tech",
     SERVICES: "studio",
+    BEAUTY: "studio",
+    EVENTS_HOSPITALITY: "studio",
+    EDUCATION: "studio",
     FURNITURE: "home",
+    REAL_ESTATE: "home",
+    BUILDING_HARDWARE: "home",
     RETAIL: "market",
+    FOOD_BEVERAGE: "market",
+    AGRICULTURE: "market",
+    WHOLESALE_B2B: "market",
+    FASHION: "maker",
+    KIDS_BABY: "maker",
+    PHARMACY_HEALTH: "maker",
+    SPORTS_FITNESS: "maker",
+    LOGISTICS_DELIVERY: "tech",
     GENERAL: "maker",
   };
   const coverType = coverMap[s.businessType] || "maker";

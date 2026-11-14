@@ -161,9 +161,24 @@ export const DIRECTORY_PAGE_SIZE = 100;
 
 export const DIRECTORY_CATEGORIES: ReadonlyArray<{ slug: string; label: string; enumType: string }> = [
   { slug: "retail", label: "Retail", enumType: "RETAIL" },
+  { slug: "fashion", label: "Fashion & Footwear", enumType: "FASHION" },
   { slug: "electronics", label: "Electronics", enumType: "ELECTRONICS" },
-  { slug: "furniture", label: "Furniture", enumType: "FURNITURE" },
+  { slug: "beauty", label: "Beauty & Salons", enumType: "BEAUTY" },
+  { slug: "food-beverage", label: "Food & Groceries", enumType: "FOOD_BEVERAGE" },
+  { slug: "furniture", label: "Furniture & Decor", enumType: "FURNITURE" },
+  { slug: "hardware", label: "Hardware & Building", enumType: "BUILDING_HARDWARE" },
+  { slug: "pharmacy", label: "Pharmacy & Health", enumType: "PHARMACY_HEALTH" },
+  { slug: "agriculture", label: "Agrovets & Farming", enumType: "AGRICULTURE" },
+  { slug: "automotive", label: "Auto Spares & Motors", enumType: "AUTOMOTIVE" },
+  { slug: "real-estate", label: "Real Estate & Rentals", enumType: "REAL_ESTATE" },
   { slug: "services", label: "Services", enumType: "SERVICES" },
+  { slug: "digital-tech", label: "Digital & Tech", enumType: "DIGITAL_TECH" },
+  { slug: "events-hospitality", label: "Events & Hospitality", enumType: "EVENTS_HOSPITALITY" },
+  { slug: "education", label: "Books & Education", enumType: "EDUCATION" },
+  { slug: "kids-baby", label: "Baby & Kids", enumType: "KIDS_BABY" },
+  { slug: "sports-fitness", label: "Sports & Fitness", enumType: "SPORTS_FITNESS" },
+  { slug: "wholesale", label: "Wholesale & B2B", enumType: "WHOLESALE_B2B" },
+  { slug: "logistics", label: "Logistics & Courier", enumType: "LOGISTICS_DELIVERY" },
   { slug: "general", label: "General", enumType: "GENERAL" },
 ];
 
@@ -651,19 +666,27 @@ export function buildStorefrontSitemapXml(origin: string, payload: SeoStorefront
   ].join("\n");
 }
 
+const SCHEMA_STORE_TYPES: Record<string, string> = {
+  ELECTRONICS: "ElectronicsStore",
+  DIGITAL_TECH: "ComputerStore",
+  FURNITURE: "FurnitureStore",
+  BUILDING_HARDWARE: "HardwareStore",
+  FASHION: "ClothingStore",
+  BEAUTY: "HealthAndBeautyBusiness",
+  FOOD_BEVERAGE: "Restaurant",
+  PHARMACY_HEALTH: "Pharmacy",
+  AUTOMOTIVE: "AutoPartsStore",
+  REAL_ESTATE: "RealEstateAgent",
+  EDUCATION: "BookStore",
+  SPORTS_FITNESS: "SportingGoodsStore",
+  WHOLESALE_B2B: "WholesaleStore",
+  SERVICES: "ProfessionalService",
+  LOGISTICS_DELIVERY: "MovingCompany",
+  RETAIL: "Store",
+};
+
 function getSchemaStoreType(businessType: string | undefined): string {
-  switch (String(businessType || "").toUpperCase()) {
-    case "ELECTRONICS":
-      return "ElectronicsStore";
-    case "FURNITURE":
-      return "FurnitureStore";
-    case "SERVICES":
-      return "ProfessionalService";
-    case "RETAIL":
-      return "Store";
-    default:
-      return "OnlineStore";
-  }
+  return SCHEMA_STORE_TYPES[String(businessType || "").toUpperCase()] || "OnlineStore";
 }
 
 function getItemAvailabilityUrl(item: SeoItem): string {
