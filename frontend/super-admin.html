@@ -24,10 +24,12 @@
         <img src="./assets/store254Logo.webp" alt="Store254">
       </a>
       <div class="sidebar-label">WORKSPACE</div>
-      <a class="sidebar-link is-current" href="#overview"><span class="nav-icon"><i data-lucide="layout-dashboard"></i></span> Overview</a>
-      <a class="sidebar-link" href="#businesses"><span class="nav-icon"><i data-lucide="store"></i></span> Businesses <span id="sidebar-store-count" class="sidebar-count">—</span></a>
-      <a class="sidebar-link" href="#billing-settings"><span class="nav-icon"><i data-lucide="smartphone"></i></span> Billing &amp; Daraja</a>
-      <a class="sidebar-link" href="./" target="_blank" rel="noopener"><span class="nav-icon"><i data-lucide="external-link"></i></span> Marketplace</a>
+      <nav class="sidebar-nav" aria-label="Workspace navigation">
+        <a class="sidebar-link is-current" href="#overview" data-nav-section="overview"><span class="nav-icon"><i data-lucide="layout-dashboard"></i></span> Overview</a>
+        <a class="sidebar-link" href="#businesses" data-nav-section="businesses"><span class="nav-icon"><i data-lucide="store"></i></span> Businesses <span id="sidebar-store-count" class="sidebar-count">—</span></a>
+        <a class="sidebar-link" href="#billing-settings" data-nav-section="billing-settings"><span class="nav-icon"><i data-lucide="smartphone"></i></span> Billing &amp; Daraja</a>
+        <a class="sidebar-link" href="./" target="_blank" rel="noopener"><span class="nav-icon"><i data-lucide="external-link"></i></span> Marketplace</a>
+      </nav>
       
       <div class="sidebar-bottom">
         <div class="session-card">
@@ -149,7 +151,7 @@
             <div>
               <p class="eyebrow">THE STORE DIRECTORY</p>
               <h2>Registered Businesses</h2>
-              <p class="section-subtitle">Approve stores, edit `.store254.co.ke` subdomains, send M-Pesa prompts, or permanently remove stores.</p>
+              <p class="section-subtitle">Approve stores, edit <code>.store254.co.ke</code> subdomains, send M-Pesa prompts, or permanently remove stores.</p>
             </div>
             <span id="result-count" class="result-count">Loading businesses…</span>
           </div>
@@ -157,7 +159,7 @@
           <div class="toolbar">
             <label class="search-box">
               <i data-lucide="search" class="search-icon"></i>
-              <input id="business-search" type="search" placeholder="Search store, subdomain, owner name, email, or phone..." autocomplete="off">
+              <input id="business-search" type="search" placeholder="Search store, subdomain, owner, or phone…" autocomplete="off">
               <span class="search-shortcut">⌘K</span>
             </label>
             <div class="toolbar-filters">
@@ -282,6 +284,7 @@
       </div>
     </div>
 
+    <div id="row-action-menu" class="row-action-menu" role="menu" hidden></div>
     <div id="admin-toast" class="admin-toast" role="status" aria-live="polite" hidden></div>
   </main>
   <script src="./scripts/admin/super-admin-api.js" defer></script>
