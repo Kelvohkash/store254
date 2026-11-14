@@ -226,7 +226,7 @@ async function handleOnboardConstituencyChange(constituencyId) {
   const res = await apiFetch(
     `/api/platform/locations/towns?countyId=${encodeURIComponent(
       countyId
-    )}&constituencyId=${encodeURIComponent(constituencyId)}&limit=300`
+    )}&constituencyId=${encodeURIComponent(constituencyId)}&limit=800`
   );
 
   if (res.ok && Array.isArray(res.data?.locations)) {

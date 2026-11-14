@@ -1,4 +1,4 @@
-import { and, asc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, between, eq, ne, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../../db/schema";
 import {
@@ -137,14 +137,33 @@ export async function linkNeighborsForNewLocation(
   db: AppDb,
   location: KenyaLocation
 ): Promise<void> {
-  const candidates = await db
+  // First query within ~45 km bounding box to avoid scanning all 20,000+ rows;
+  // fall back to full table only in sparse frontier areas with < TOP_NEIGHBORS_LIMIT hits.
+  let candidates = await db
     .select({
       id: kenyaLocations.id,
       latitude: kenyaLocations.latitude,
       longitude: kenyaLocations.longitude,
     })
     .from(kenyaLocations)
-    .where(ne(kenyaLocations.id, location.id));
+    .where(
+      and(
+        ne(kenyaLocations.id, location.id),
+        between(kenyaLocations.latitude, location.latitude - 0.45, location.latitude + 0.45),
+        between(kenyaLocations.longitude, location.longitude - 0.45, location.longitude + 0.45)
+      )
+    );
+
+  if (candidates.length < TOP_NEIGHBORS_LIMIT) {
+    candidates = await db
+      .select({
+        id: kenyaLocations.id,
+        latitude: kenyaLocations.latitude,
+        longitude: kenyaLocations.longitude,
+      })
+      .from(kenyaLocations)
+      .where(ne(kenyaLocations.id, location.id));
+  }
 
   if (candidates.length === 0) return;
 
