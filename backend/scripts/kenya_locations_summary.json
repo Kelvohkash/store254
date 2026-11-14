@@ -8,20 +8,20 @@
     "iebc_wards": 1437
   },
   "unmatched_outside_kenya_tolerance": 73,
-  "locations_total": 25708,
+  "locations_total": 22794,
   "locations_by_kind": {
-    "TRADING_CENTRE": 20007,
-    "SHOPPING_CENTRE": 2978,
-    "TOWN": 1864,
-    "ESTATE": 859
+    "TRADING_CENTRE": 17469,
+    "SHOPPING_CENTRE": 2862,
+    "ESTATE": 843,
+    "TOWN": 1620
   },
   "locations_by_origin": {
-    "geonames": 13702,
-    "osm": 10584,
-    "iebc_ward": 1422
+    "geonames": 11683,
+    "osm": 9920,
+    "iebc_ward": 1191
   },
-  "neighbor_edges_total": 205664,
-  "sql_seed_files_count": 34,
+  "neighbor_edges_total": 182352,
+  "sql_seed_files_count": 31,
   "samples": {
     "Westlands": {
       "id": "loc-osm-9566096123",
@@ -64,10 +64,6 @@
           0.14
         ],
         [
-          "Pumwani Ward",
-          0.18
-        ],
-        [
           "NACICO PLAZA",
           0.32
         ],
@@ -78,6 +74,10 @@
         [
           "Wood market",
           0.39
+        ],
+        [
+          "Mumias",
+          0.4
         ]
       ]
     },
@@ -88,10 +88,6 @@
       "kind": "TOWN",
       "origin": "osm",
       "neighbors": [
-        [
-          "Kalimoni",
-          1.8
-        ],
         [
           "Juja City Mall",
           1.97
@@ -107,6 +103,10 @@
         [
           "Ndarugu",
           2.98
+        ],
+        [
+          "Benvar Farm",
+          3.49
         ]
       ]
     },
