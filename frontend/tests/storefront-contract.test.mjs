@@ -101,3 +101,28 @@ test("store onboarding supports expanded Kenyan and international business types
     assert.match(seo, new RegExp(`enumType:\\s*"${type}"`));
   }
 });
+
+test("buyer-first platform homepage supports Google invite, location selector, and zero-hop checkout", async () => {
+  const [html, cartJs] = await Promise.all([
+    read("../index.html"),
+    read("../scripts/storefront/marketplace-cart.js"),
+  ]);
+  for (const id of [
+    "buyer-hero-bar",
+    "buyer-welcome-modal",
+    "marketplace-item-modal",
+    "marketplace-cart-drawer",
+    "marketplace-checkout-modal",
+    "marketplace-orders-modal",
+  ]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(html, /scripts\/storefront\/marketplace-cart\.js/);
+  assert.ok(
+    html.indexOf('id="platform-ripple-search-section"') < html.indexOf('class="platform-intro"'),
+    "Expected buyer ripple discovery to appear before seller hero intro"
+  );
+  assert.match(cartJs, /\/api\/platform\/me/);
+  assert.match(cartJs, /\/api\/platform\/marketplace\/checkout/);
+  assert.match(cartJs, /\/api\/platform\/marketplace\/my-orders/);
+});

@@ -60,22 +60,33 @@ function getRedirectUri(c: Context<AppEnv>): string {
   return expected;
 }
 
+export const PLATFORM_ROOT_RETURN_SLUG = "__platform__";
+
 export function parseTenantReturnTo(value: string | undefined, primaryDomain: string): { url: URL; tenantSlug: string } | null {
   if (!value || value.length > 1800) return null;
   try {
     const url = new URL(value);
-    const suffix = `.${primaryDomain.toLowerCase()}`;
+    const normalizedDomain = primaryDomain.toLowerCase();
+    const hostname = url.hostname.toLowerCase();
     if (
       url.protocol !== "https:" ||
       url.username ||
       url.password ||
-      url.port ||
-      !url.hostname.endsWith(suffix)
+      url.port
     ) {
       return null;
     }
 
-    const tenantSlug = sanitizeSubdomain(url.hostname.slice(0, -suffix.length));
+    if (hostname === normalizedDomain || hostname === `www.${normalizedDomain}`) {
+      return { url, tenantSlug: PLATFORM_ROOT_RETURN_SLUG };
+    }
+
+    const suffix = `.${normalizedDomain}`;
+    if (!hostname.endsWith(suffix)) {
+      return null;
+    }
+
+    const tenantSlug = sanitizeSubdomain(hostname.slice(0, -suffix.length));
     if (!tenantSlug) return null;
 
     return { url, tenantSlug };
@@ -168,18 +179,23 @@ googleGatewayRouter.get(
     const primaryDomain = getPrimaryDomain(c);
     const returnTarget = parseTenantReturnTo(c.req.query("return_to"), primaryDomain);
     if (!returnTarget) {
-      throw new AppError("Sign in must be started from a Store254 storefront.", 400, "INVALID_OAUTH_RETURN_URL");
+      throw new AppError("Sign in must be started from Store254.", 400, "INVALID_OAUTH_RETURN_URL");
     }
-    if (!c.env?.DB) throw new AppError("Database not ready.", 500, "DB_NOT_INITIALIZED");
 
-    const db = createDb(c.env.DB);
-    const [tenant] = await db
-      .select({ subdomain: tenants.subdomain, status: tenants.status })
-      .from(tenants)
-      .where(eq(tenants.subdomain, returnTarget.tenantSlug))
-      .limit(1);
-    if (!tenant || tenant.status !== "ACTIVE") {
-      throw new AppError("This storefront is not available for customer sign-in.", 403, "STORE_NOT_ACTIVE");
+    let resolvedTenantSlug = returnTarget.tenantSlug;
+    if (returnTarget.tenantSlug !== PLATFORM_ROOT_RETURN_SLUG) {
+      if (!c.env?.DB) throw new AppError("Database not ready.", 500, "DB_NOT_INITIALIZED");
+
+      const db = createDb(c.env.DB);
+      const [tenant] = await db
+        .select({ subdomain: tenants.subdomain, status: tenants.status })
+        .from(tenants)
+        .where(eq(tenants.subdomain, returnTarget.tenantSlug))
+        .limit(1);
+      if (!tenant || tenant.status !== "ACTIVE") {
+        throw new AppError("This storefront is not available for customer sign-in.", 403, "STORE_NOT_ACTIVE");
+      }
+      resolvedTenantSlug = tenant.subdomain;
     }
 
     const jwtSecret = requireSecret(c.env?.JWT_SECRET, "JWT_SECRET");
@@ -194,7 +210,7 @@ googleGatewayRouter.get(
       state,
       nonce,
       codeVerifier,
-      tenantSlug: tenant.subdomain,
+      tenantSlug: resolvedTenantSlug,
       returnTo,
       expiresAt: Date.now() + OAUTH_FLOW_TTL_SECONDS * 1000,
     };
@@ -266,18 +282,20 @@ googleGatewayRouter.get(
     }
 
     const googleUser = await verifyGoogleIdToken(tokenData.id_token, clientId, flow.nonce);
-    if (!c.env?.DB) throw new AppError("Database not ready.", 500, "DB_NOT_INITIALIZED");
-    const db = createDb(c.env.DB);
-    const [tenant] = await db
-      .select({ id: tenants.id, status: tenants.status })
-      .from(tenants)
-      .where(eq(tenants.subdomain, flow.tenantSlug))
-      .limit(1);
-    if (!tenant || tenant.status !== "ACTIVE") {
-      throw new AppError("This storefront is no longer available for customer sign-in.", 403, "STORE_NOT_ACTIVE");
-    }
+    if (flow.tenantSlug !== PLATFORM_ROOT_RETURN_SLUG) {
+      if (!c.env?.DB) throw new AppError("Database not ready.", 500, "DB_NOT_INITIALIZED");
+      const db = createDb(c.env.DB);
+      const [tenant] = await db
+        .select({ id: tenants.id, status: tenants.status })
+        .from(tenants)
+        .where(eq(tenants.subdomain, flow.tenantSlug))
+        .limit(1);
+      if (!tenant || tenant.status !== "ACTIVE") {
+        throw new AppError("This storefront is no longer available for customer sign-in.", 403, "STORE_NOT_ACTIVE");
+      }
 
-    await resolveGoogleCustomerForTenant(db, tenant, googleUser);
+      await resolveGoogleCustomerForTenant(db, tenant, googleUser);
+    }
     const ssoToken = await createCustomerSsoToken(googleUser, jwtSecret, CUSTOMER_SESSION_TTL_SECONDS);
 
     c.header(

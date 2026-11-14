@@ -35,22 +35,33 @@
     syncLocationPillUI();
   }
 
+  window.getStore254BuyerLocation = function getStore254BuyerLocation() {
+    return selectedBuyerLocation;
+  };
+
   function syncLocationPillUI() {
     const labelEl = document.getElementById("marketplace-location-pill-label");
     const clearBtn = document.getElementById("marketplace-location-clear");
-    if (!labelEl) return;
-    if (!selectedBuyerLocation) {
-      labelEl.textContent = "All Kenya (Set your town)";
-      if (clearBtn) clearBtn.classList.add("hidden");
-      return;
+    if (labelEl) {
+      if (!selectedBuyerLocation) {
+        labelEl.textContent = "All Kenya (Set your town)";
+        if (clearBtn) clearBtn.classList.add("hidden");
+      } else {
+        if (selectedBuyerLocation.locationName) {
+          const parts = [selectedBuyerLocation.locationName, selectedBuyerLocation.countyName].filter(Boolean);
+          labelEl.textContent = `Near: ${parts.join(", ")}`;
+        } else if (typeof selectedBuyerLocation.lat === "number") {
+          labelEl.textContent = "Near: My GPS Location";
+        }
+        if (clearBtn) clearBtn.classList.remove("hidden");
+      }
     }
-    if (selectedBuyerLocation.locationName) {
-      const parts = [selectedBuyerLocation.locationName, selectedBuyerLocation.countyName].filter(Boolean);
-      labelEl.textContent = `Near: ${parts.join(", ")}`;
-    } else if (typeof selectedBuyerLocation.lat === "number") {
-      labelEl.textContent = "Near: My GPS Location";
+    if (typeof window.syncMarketplaceHeaderState === "function") {
+      window.syncMarketplaceHeaderState();
     }
-    if (clearBtn) clearBtn.classList.remove("hidden");
+    if (typeof window.filterPlatformStores === "function") {
+      window.filterPlatformStores();
+    }
   }
 
   function formatItemDirectUrl(storeSubdomain, itemSlug) {
@@ -159,11 +170,11 @@
   };
 
   window.selectMarketplaceBuyerLocation = function selectMarketplaceBuyerLocation(loc) {
-    if (!loc || !loc.id) return;
+    if (!loc || (!loc.id && !loc.locationId && !loc.countyId)) return;
     saveBuyerLocation({
-      locationId: loc.id,
-      locationName: loc.name,
-      countyId: loc.countyId,
+      locationId: loc.locationId || loc.id || null,
+      locationName: loc.locationName || loc.name || "",
+      countyId: loc.countyId || "",
       countyName: loc.countyName || activeCountyFilter?.name || "",
       constituencyName: loc.constituencyName || "",
     });
@@ -178,7 +189,7 @@
     window.runMarketplaceProductSearch();
   };
 
-  window.useBrowserGpsLocation = function useBrowserGpsLocation() {
+  window.useBrowserGpsLocation = function useBrowserGpsLocation(onSuccess) {
     if (!navigator.geolocation) {
       if (typeof showToast === "function") showToast("Geolocation is not supported in this browser.", true);
       return;
@@ -196,6 +207,7 @@
         window.toggleMarketplaceLocationPanel(false);
         expandFullSearch = false;
         window.runMarketplaceProductSearch();
+        if (typeof onSuccess === "function") onSuccess();
       },
       () => {
         syncLocationPillUI();
@@ -426,12 +438,26 @@
               ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=500&auto=format&fit=crop&q=80"
               : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500&auto=format&fit=crop&q=80";
           const imgUrl = Array.isArray(item.images) && item.images[0] ? item.images[0] : fallbackImg;
-          const itemUrl = formatItemDirectUrl(item.store.subdomain, item.slug);
           const hasDisc = item.compareAtPrice && item.compareAtPrice > item.basePrice;
           const ringClass =
             item.geo.rippleRing <= 1 ? "ring-local" : item.geo.rippleRing <= 3 ? "ring-regional" : "ring-national";
+          const quickCartPayload = escapeHtml(
+            JSON.stringify({
+              itemId: item.id,
+              storeId: item.store.id,
+              storeName: item.store.name,
+              storeSubdomain: item.store.subdomain,
+              storeLocationLabel: item.store.locationLabel || "",
+              title: item.title,
+              unitPrice: item.startingPrice ?? item.basePrice,
+              currency: item.currency || "KES",
+              image: imgUrl,
+              quantity: 1,
+              itemType: item.itemType,
+            })
+          );
           return `
-            <a href="${escapeHtml(itemUrl)}" class="marketplace-product-card no-underline">
+            <article class="marketplace-product-card" role="button" tabindex="0" onclick="openMarketplaceQuickView('${escapeHtml(item.id)}', '${escapeHtml(item.geo.rippleLabel)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceQuickView('${escapeHtml(item.id)}', '${escapeHtml(item.geo.rippleLabel)}');}">
               <div class="marketplace-product-media">
                 <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.src='${fallbackImg}'" />
                 <span class="marketplace-ring-badge ${ringClass}">${escapeHtml(item.geo.rippleLabel)}</span>
@@ -447,8 +473,16 @@
                   <span class="truncate">${escapeHtml(item.store.name)}</span>
                   <span class="shrink-0 font-semibold ${item.inStock ? "text-emerald-700" : "text-amber-700"}">${item.inStock ? "Available" : "Out of stock"}</span>
                 </div>
+                <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <span class="text-[11px] font-bold text-slate-500">Quick View</span>
+                  ${
+                    item.inStock
+                      ? `<button type="button" data-item="${quickCartPayload}" onclick="event.stopPropagation(); quickAddMarketplaceItem(JSON.parse(this.dataset.item))" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-700 text-emerald-800 hover:text-white text-[11px] font-extrabold border border-emerald-200 transition-colors">+ Cart</button>`
+                      : ""
+                  }
+                </div>
               </div>
-            </a>`;
+            </article>`;
         })
         .join("");
 
@@ -477,5 +511,8 @@
   window.addEventListener("DOMContentLoaded", () => {
     selectedBuyerLocation = loadSavedBuyerLocation();
     syncLocationPillUI();
+    if (document.documentElement.dataset.storefront !== "true") {
+      window.runMarketplaceProductSearch();
+    }
   });
 })();

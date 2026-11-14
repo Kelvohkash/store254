@@ -281,13 +281,24 @@ function filterPlatformStores() {
   }
 
   const q = (document.getElementById("platform-store-search")?.value || "").toLowerCase().trim();
-  const filtered = platformLiveStoresCache.filter((s) => {
-    const typeMatch = !platformActiveTypeFilter || String(s.businessType || "GENERAL").toUpperCase() === platformActiveTypeFilter;
-    if (!typeMatch) return false;
-    if (!q) return true;
-    const haystack = `${s.name || ""} ${s.subdomain || ""} ${s.description || ""} ${s.businessType || ""}`.toLowerCase();
-    return haystack.includes(q);
-  });
+  const buyerLoc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
+  const filtered = platformLiveStoresCache
+    .filter((s) => {
+      const typeMatch = !platformActiveTypeFilter || String(s.businessType || "GENERAL").toUpperCase() === platformActiveTypeFilter;
+      if (!typeMatch) return false;
+      if (!q) return true;
+      const haystack = `${s.name || ""} ${s.subdomain || ""} ${s.description || ""} ${s.businessType || ""} ${s.locationLabel || ""}`.toLowerCase();
+      return haystack.includes(q);
+    })
+    .sort((a, b) => {
+      if (!buyerLoc) return 0;
+      const score = (store) => {
+        if (buyerLoc.locationId && store.locationId === buyerLoc.locationId) return 0;
+        if (buyerLoc.countyId && store.countyId === buyerLoc.countyId) return 1;
+        return 2;
+      };
+      return score(a) - score(b);
+    });
 
   if (filtered.length === 0) {
     liveContainer.innerHTML = `
