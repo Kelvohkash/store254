@@ -116,6 +116,50 @@ a.daraja-status:hover {
 }
 .billing-due-label.is-due { color: #b91c1c; }
 
+.status-badge-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex-wrap: nowrap;
+}
+.store-price-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .28rem;
+  padding: .2rem .5rem;
+  border: 1px solid #dbe4df;
+  border-radius: 999px;
+  background: #f8faf9;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: .64rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .14s ease, border-color .14s ease, color .14s ease;
+}
+.store-price-chip:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+.store-price-chip.is-custom {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.store-price-chip.is-unset {
+  border-style: dashed;
+  border-color: #cbd5d1;
+  color: var(--text-subtle);
+}
+.store-price-chip svg {
+  width: .7rem;
+  height: .7rem;
+  flex-shrink: 0;
+}
+
 /* Enhanced Toolbar & Filters */
 .toolbar-filters {
   display: flex;
@@ -220,6 +264,15 @@ a.daraja-status:hover {
   padding: .65rem .8rem;
   font: 600 .82rem ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--text-main);
+}
+.subdomain-prefix {
+  display: grid;
+  place-items: center;
+  padding: 0 .75rem;
+  background: #f4f7f5;
+  border-right: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font: 700 .75rem ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .subdomain-suffix {
   display: grid;

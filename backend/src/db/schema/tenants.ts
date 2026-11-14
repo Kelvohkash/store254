@@ -17,6 +17,7 @@ export const tenants = sqliteTable(
     settings: text("settings", { mode: "json" })
       .$type<Record<string, unknown>>()
       .default({}),
+    subscriptionAmount: integer("subscription_amount"),
     subscriptionDueAt: integer("subscription_due_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()

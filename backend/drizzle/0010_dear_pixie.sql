@@ -1,0 +1,1 @@
+ALTER TABLE `tenants` ADD `subscription_amount` integer;

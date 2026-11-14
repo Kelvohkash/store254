@@ -151,7 +151,7 @@
             <div>
               <p class="eyebrow">THE STORE DIRECTORY</p>
               <h2>Registered Businesses</h2>
-              <p class="section-subtitle">Approve stores, edit <code>.store254.co.ke</code> subdomains, send M-Pesa prompts, or permanently remove stores.</p>
+              <p class="section-subtitle">Approve stores, edit <code>.store254.co.ke</code> subdomains, set custom monthly pricing, or permanently remove stores.</p>
             </div>
             <span id="result-count" class="result-count">Loading businesses…</span>
           </div>
@@ -210,13 +210,13 @@
             <div>
               <p class="eyebrow">MERCHANT SUBSCRIPTIONS</p>
               <h2>Billing &amp; Daraja</h2>
-              <p class="section-subtitle">Configure monthly subscription pricing and M-Pesa Daraja prompt settings.</p>
+              <p class="section-subtitle">Configure an optional default monthly fee and M-Pesa Daraja shortcode settings for merchant payments.</p>
             </div>
             <span id="daraja-status" class="daraja-status" role="status">Checking Daraja…</span>
           </div>
           <div class="platform-billing-card">
             <div class="platform-billing-fields">
-              <label><span>Subscription fee (KES)</span><input id="platform-billing-amount" type="number" min="1" step="1" inputmode="numeric" placeholder="Enter amount"></label>
+              <label><span>Default monthly fee (KES, optional)</span><input id="platform-billing-amount" type="number" min="0" step="1" inputmode="numeric" placeholder="Optional fallback (e.g. 1500)"></label>
               <label><span>Billing period</span><input type="text" value="Monthly" readonly aria-readonly="true"></label>
               <label><span>Daraja shortcode type</span><select id="platform-billing-shortcode-type"><option value="PAYBILL">Paybill</option><option value="BUY_GOODS">Buy Goods / Till</option></select></label>
             </div>
@@ -279,6 +279,36 @@
           <div class="modal-actions">
             <button type="button" id="subdomain-cancel-btn" class="modal-btn secondary">Cancel</button>
             <button type="submit" id="subdomain-save-btn" class="modal-btn primary">Save Subdomain</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Set Custom Store Price Modal Dialog -->
+    <div id="price-modal" class="modal-backdrop" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="price-modal-title">
+        <div class="modal-header">
+          <div class="modal-icon" style="background:#eff6ff;color:#1d4ed8;">💳</div>
+          <div>
+            <h3 id="price-modal-title">Set Monthly Price</h3>
+            <p id="price-modal-subtitle">Set a custom monthly subscription fee for this store.</p>
+          </div>
+        </div>
+        <form id="price-form" novalidate>
+          <div class="modal-field">
+            <label for="store-price-input">Monthly subscription fee</label>
+            <div class="subdomain-input-group">
+              <span class="subdomain-prefix">KES</span>
+              <input id="store-price-input" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 2500">
+              <span class="subdomain-suffix">/ month</span>
+            </div>
+            <p id="price-hint" class="modal-field-hint">Enter the monthly KES price for this store.</p>
+            <p id="price-error" class="modal-field-error" hidden></p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" id="price-clear-btn" class="modal-btn secondary" hidden>Use Default</button>
+            <button type="button" id="price-cancel-btn" class="modal-btn secondary">Cancel</button>
+            <button type="submit" id="price-save-btn" class="modal-btn primary">Save Price</button>
           </div>
         </form>
       </div>

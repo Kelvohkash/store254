@@ -71,6 +71,13 @@
       "when": 1794474000000,
       "tag": "0009_monthly_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794636755889,
+      "tag": "0010_dear_pixie",
+      "breakpoints": true
     }
   ]
 }
