@@ -190,9 +190,25 @@ def slugify(text: str) -> str:
 
 
 def dedup_key_name(name: str) -> str:
-    cleaned = re.sub(r"\b(sub[- ]?location|location|ward|estate|shopping\s*cent(?:re|er)|market)\b", "", name, flags=re.I)
+    cleaned = re.sub(
+        r"\b(sub[- ]?location|location|ward|town|estate|trading\s*cent(?:re|er)|trade\s*cent(?:re|er)|shopping\s*cent(?:re|er)|shopping\s*mall|cent(?:re|er)|market|soko|stage|junction|village)\b",
+        "",
+        name,
+        flags=re.I,
+    )
     s = slugify(cleaned)
     return s or slugify(name)
+
+
+def name_cleanliness_bonus(name: str) -> int:
+    lower = name.lower()
+    if re.search(r"\b(sub[- ]?location|location)\b", lower):
+        return -30
+    if re.search(r"\bward\b", lower):
+        return -20
+    if re.search(r"\b(shopping\s*cent(?:re|er)|trading\s*cent(?:re|er)|trade\s*cent(?:re|er)|cent(?:re|er))\b", lower):
+        return -10
+    return 0
 
 
 def normalize_county_name(raw: str) -> str:
@@ -598,22 +614,31 @@ def main() -> None:
         pl["constituency_id"] = matched_const["id"]
         assigned.append(pl)
 
-    # Deduplicate same normalized base name within 1.5 km inside the same constituency
-    assigned.sort(key=lambda x: (-x["priority"], -x["population"], len(x["name"]), x["name"]))
+    # Deduplicate same normalized base name within 8 km across the entire County
+    # (prevents Sub-Location / Centre / Market / border-straddling constituency duplicates)
+    assigned.sort(
+        key=lambda x: (
+            -(x["priority"] + name_cleanliness_bonus(x["name"])),
+            -x["population"],
+            len(x["name"]),
+            x["name"],
+        )
+    )
     deduped: list[dict] = []
-    by_const_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    by_county_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
 
     for pl in assigned:
         if not pl["norm_slug"] or not pl["dedup_key"]:
             continue
-        key = (pl["constituency_id"], pl["dedup_key"])
-        existing = by_const_key[key]
-        if any(haversine_km(pl["lat"], pl["lng"], e["lat"], e["lng"]) < 1.5 for e in existing):
+        key = (pl["county_id"], pl["dedup_key"])
+        existing = by_county_key[key]
+        if any(e["constituency_id"] == pl["constituency_id"] for e in existing):
             continue
-        # Also prevent exact duplicate full slug inside same constituency at any distance < 5 km
-        if any(pl["norm_slug"] == e["norm_slug"] and haversine_km(pl["lat"], pl["lng"], e["lat"], e["lng"]) < 5.0 for e in existing):
+        if any(haversine_km(pl["lat"], pl["lng"], e["lat"], e["lng"]) < 12.0 for e in existing):
             continue
-        by_const_key[key].append(pl)
+        if any(pl["norm_slug"] == e["norm_slug"] and haversine_km(pl["lat"], pl["lng"], e["lat"], e["lng"]) < 15.0 for e in existing):
+            continue
+        by_county_key[key].append(pl)
         deduped.append(pl)
 
     # Assign unique IDs & unique slugs cleanly
