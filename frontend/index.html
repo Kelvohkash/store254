@@ -315,15 +315,18 @@
                 <span>Click to auto detect location</span>
               </button>
             </div>
-            <div class="mt-2.5 space-y-2">
+            <div id="marketplace-county-step" class="mt-2.5 space-y-2">
               <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">1. Select County</label>
               <input id="marketplace-county-filter" type="search" oninput="onMarketplaceCountyInput(this.value)" placeholder="Filter county (e.g. Murang'a, Nairobi)..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
-              <div id="marketplace-county-list" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto py-0.5"></div>
+              <div id="marketplace-county-list" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto py-0.5"></div>
             </div>
-            <div id="marketplace-town-search-wrap" class="hidden mt-3 pt-2.5 border-t border-slate-100 space-y-2">
-              <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">2. Search Town / Centre in <span id="marketplace-town-county-label">County</span></label>
+            <div id="marketplace-town-search-wrap" class="hidden mt-2.5 space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">2. Town in <span id="marketplace-town-county-label" class="text-emerald-800">County</span></label>
+                <button type="button" onclick="backToMarketplaceCountyStep()" class="text-[11px] font-bold text-emerald-700 hover:underline shrink-0">← Change county</button>
+              </div>
               <input id="marketplace-town-search" type="search" oninput="onMarketplaceTownInput(this.value)" placeholder="Type town or shopping centre..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
-              <div id="marketplace-town-results" class="max-h-44 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/40"></div>
+              <div id="marketplace-town-results" class="max-h-48 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/40"></div>
             </div>
           </div>
         </div>
@@ -1382,19 +1385,20 @@
         </button>
         <p id="welcome-gps-status" class="hidden text-[11px] font-semibold px-3 py-2 rounded-xl border"></p>
 
-        <div class="space-y-2">
+        <div id="welcome-county-step" class="space-y-2">
           <label for="welcome-county-filter" class="block text-[11px] font-extrabold uppercase tracking-wide text-slate-600">1. Choose County</label>
           <input id="welcome-county-filter" type="search" oninput="onWelcomeCountyInput(this.value)" placeholder="Type county (e.g. Nairobi, Kiambu, Murang'a, Kisumu)..." class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
-          <div id="welcome-county-list" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto py-0.5"></div>
+          <div id="welcome-county-list" class="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto py-0.5"></div>
         </div>
 
-        <div id="welcome-town-search-wrap" class="hidden space-y-2 pt-2 border-t border-slate-100">
+        <div id="welcome-town-search-wrap" class="hidden space-y-2.5 pt-1">
           <div class="flex items-center justify-between gap-2">
-            <label for="welcome-town-search" class="block text-[11px] font-extrabold uppercase tracking-wide text-slate-600">2. Pick Town / Shopping Centre in <span id="welcome-town-county-label">County</span></label>
-            <button type="button" onclick="chooseWelcomeCountyOnly()" class="text-[11px] font-bold text-emerald-700 hover:underline">Use whole county</button>
+            <button type="button" onclick="backToWelcomeCountyStep()" class="inline-flex items-center gap-1 text-xs font-extrabold text-emerald-700 hover:underline">← Change county</button>
+            <button type="button" onclick="chooseWelcomeCountyOnly()" class="text-[11px] font-bold text-slate-600 hover:text-emerald-800 hover:underline">Use whole county</button>
           </div>
+          <label for="welcome-town-search" class="block text-[11px] font-extrabold uppercase tracking-wide text-slate-600">2. Pick Town / Shopping Centre in <span id="welcome-town-county-label" class="text-emerald-800">County</span></label>
           <input id="welcome-town-search" type="search" oninput="onWelcomeTownInput(this.value)" placeholder="Type first letters (e.g. Kenol, Westlands, Ruaka)..." class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
-          <div id="welcome-town-results" class="max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/40"></div>
+          <div id="welcome-town-results" class="max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/40"></div>
         </div>
 
         <div class="text-right pt-1">

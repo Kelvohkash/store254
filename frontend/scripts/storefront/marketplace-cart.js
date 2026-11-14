@@ -239,7 +239,21 @@
     if (backBtn) backBtn.classList.toggle("hidden", Boolean(platformUser));
 
     if (step === 2) {
+      window.backToWelcomeCountyStep();
       await ensureWelcomeCountiesLoaded();
+    }
+  };
+
+  window.backToWelcomeCountyStep = function backToWelcomeCountyStep() {
+    const countyStep = document.getElementById("welcome-county-step");
+    const townWrap = document.getElementById("welcome-town-search-wrap");
+    const countyInput = document.getElementById("welcome-county-filter");
+    if (townWrap) townWrap.classList.add("hidden");
+    if (countyStep) countyStep.classList.remove("hidden");
+    if (countyInput) {
+      countyInput.value = "";
+      renderWelcomeCountyChips("");
+      countyInput.focus();
     }
   };
 
@@ -311,9 +325,11 @@
     welcomeSelectedCounty = county;
     renderWelcomeCountyChips(document.getElementById("welcome-county-filter")?.value || "");
 
+    const countyStep = document.getElementById("welcome-county-step");
     const wrap = document.getElementById("welcome-town-search-wrap");
     const lbl = document.getElementById("welcome-town-county-label");
     const input = document.getElementById("welcome-town-search");
+    if (countyStep) countyStep.classList.add("hidden");
     if (wrap) wrap.classList.remove("hidden");
     if (lbl) lbl.textContent = county.name;
     if (input) {
