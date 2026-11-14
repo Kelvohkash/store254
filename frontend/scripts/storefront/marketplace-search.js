@@ -434,7 +434,13 @@
         });
       }
 
-      if (statusEl) statusEl.textContent = summary.headline || `Showing ${payload.returnedCount || 0} products.`;
+      if (statusEl) {
+        const count = Number(payload.returnedCount || 0);
+        const locPart = selectedBuyerLocation?.locationName
+          ? ` near ${selectedBuyerLocation.locationName}`
+          : "";
+        statusEl.textContent = count > 0 ? `${count} item${count === 1 ? "" : "s"}${locPart}` : "";
+      }
 
       // Did-you-mean banner
       const didYouMeanEl = document.getElementById("marketplace-did-you-mean");
@@ -448,26 +454,13 @@
         }
       }
 
-      // Ripple step trail
+      // Keep ripple progression silent in the background
       if (trailEl) {
-        const rings = Array.isArray(summary.rings) ? summary.rings : [];
-        if (summary.origin && rings.length > 0) {
-          trailEl.innerHTML = rings
-            .map((r) => {
-              const cls = r.newMatches > 0 ? "has-matches" : r.inspected ? "is-inspected" : "is-unneeded";
-              return `<span class="ripple-step-pill ${cls}" title="${escapeHtml(r.scopeLabel)}">
-                <strong>R${r.ring} · ${escapeHtml(r.name)}</strong>
-                <em>${r.newMatches}</em>
-              </span>`;
-            })
-            .join("");
-          trailEl.classList.remove("hidden");
-        } else {
-          trailEl.classList.add("hidden");
-        }
+        trailEl.innerHTML = "";
+        trailEl.classList.add("hidden");
       }
 
-      // Expand nationwide button if ripple stopped early and wider matches exist
+      // Expand nationwide button if wider matches exist
       const expandBtn = document.getElementById("marketplace-expand-nationwide-btn");
       if (expandBtn) {
         expandBtn.classList.toggle("hidden", !payload.hasMoreNationalMatches);
@@ -477,8 +470,8 @@
       if (itemsList.length === 0) {
         gridEl.innerHTML = `
           <div class="col-span-full bg-white rounded-2xl p-8 border border-slate-200 text-center">
-            <p class="font-bold text-slate-900 text-sm">No matching products or services found</p>
-            <p class="text-xs text-slate-500 mt-1">Try fewer words, check spelling, or clear your type/stock filters.</p>
+            <p class="font-bold text-slate-900 text-sm">No matching products found</p>
+            <p class="text-xs text-slate-500 mt-1">Try another search or change your selected town.</p>
           </div>`;
         return;
       }
@@ -491,8 +484,7 @@
               : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500&auto=format&fit=crop&q=80";
           const imgUrl = Array.isArray(item.images) && item.images[0] ? item.images[0] : fallbackImg;
           const hasDisc = item.compareAtPrice && item.compareAtPrice > item.basePrice;
-          const ringClass =
-            item.geo.rippleRing <= 1 ? "ring-local" : item.geo.rippleRing <= 3 ? "ring-regional" : "ring-national";
+          const locBadge = item.store.locationLabel ? escapeHtml(item.store.locationLabel) : "";
           const quickCartPayload = escapeHtml(
             JSON.stringify({
               itemId: item.id,
@@ -509,10 +501,10 @@
             })
           );
           return `
-            <article class="marketplace-product-card" role="button" tabindex="0" onclick="openMarketplaceQuickView('${escapeHtml(item.id)}', '${escapeHtml(item.geo.rippleLabel)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceQuickView('${escapeHtml(item.id)}', '${escapeHtml(item.geo.rippleLabel)}');}">
+            <article class="marketplace-product-card" role="button" tabindex="0" onclick="openMarketplaceQuickView('${escapeHtml(item.id)}', '')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceQuickView('${escapeHtml(item.id)}', '');}">
               <div class="marketplace-product-media">
                 <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.src='${fallbackImg}'" />
-                <span class="marketplace-ring-badge ${ringClass}">${escapeHtml(item.geo.rippleLabel)}</span>
+                ${locBadge ? `<span class="marketplace-ring-badge ring-local">${locBadge}</span>` : ""}
               </div>
               <div class="marketplace-product-body">
                 <span class="marketplace-product-cat">${escapeHtml(item.categoryName || item.itemType)}</span>
