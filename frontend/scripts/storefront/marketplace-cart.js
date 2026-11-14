@@ -268,13 +268,22 @@
     if (countyStep) countyStep.classList.remove("hidden");
     if (countyInput) {
       countyInput.value = "";
-      renderWelcomeCountyChips("");
+      if (welcomeCounties.length > 0) {
+        renderWelcomeCountyChips("");
+      }
       countyInput.focus();
     }
   };
 
+  window.retryWelcomeCounties = function retryWelcomeCounties() {
+    ensureWelcomeCountiesLoaded();
+  };
+
   async function ensureWelcomeCountiesLoaded() {
     const listEl = document.getElementById("welcome-county-list");
+    if (welcomeCounties.length === 0 && Array.isArray(window.__store254CountiesCache) && window.__store254CountiesCache.length > 0) {
+      welcomeCounties = window.__store254CountiesCache;
+    }
     if (welcomeCounties.length > 0) {
       renderWelcomeCountyChips(document.getElementById("welcome-county-filter")?.value || "");
       return;
@@ -282,32 +291,37 @@
     if (listEl) {
       listEl.innerHTML = `<span class="text-xs text-slate-400 px-1 py-1">Loading Kenyan counties…</span>`;
     }
-    try {
-      const res = await fetch("/api/platform/locations/counties");
-      const json = await res.json();
-      const loaded = Array.isArray(json?.counties)
-        ? json.counties
-        : Array.isArray(json?.data?.counties)
-        ? json.data.counties
-        : Array.isArray(json?.data)
-        ? json.data
-        : [];
-      if (res.ok && loaded.length > 0) {
-        welcomeCounties = loaded;
-        renderWelcomeCountyChips(document.getElementById("welcome-county-filter")?.value || "");
-      } else if (listEl) {
-        listEl.innerHTML = `<span class="text-xs text-rose-600 px-1 py-1">Could not load counties. Please refresh and try again.</span>`;
-      }
-    } catch {
-      if (listEl) {
-        listEl.innerHTML = `<span class="text-xs text-rose-600 px-1 py-1">Network error loading counties.</span>`;
-      }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch("/api/platform/locations/counties");
+        const json = await res.json();
+        const loaded = Array.isArray(json?.counties)
+          ? json.counties
+          : Array.isArray(json?.data?.counties)
+          ? json.data.counties
+          : Array.isArray(json?.data)
+          ? json.data
+          : [];
+        if (res.ok && loaded.length > 0) {
+          welcomeCounties = loaded;
+          window.__store254CountiesCache = loaded;
+          renderWelcomeCountyChips(document.getElementById("welcome-county-filter")?.value || "");
+          return;
+        }
+      } catch {}
+    }
+    if (listEl) {
+      listEl.innerHTML = `<button type="button" onclick="retryWelcomeCounties()" class="text-xs font-semibold text-emerald-700 underline px-1 py-1">Could not load counties — tap to retry</button>`;
     }
   }
 
   function renderWelcomeCountyChips(filterText) {
     const listEl = document.getElementById("welcome-county-list");
     if (!listEl) return;
+    if (welcomeCounties.length === 0) {
+      ensureWelcomeCountiesLoaded();
+      return;
+    }
     const norm = (s) => String(s || "").toLowerCase().replace(/['’-]/g, "").trim();
     const q = norm(filterText);
     const matches = welcomeCounties

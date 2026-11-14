@@ -1,23 +1,24 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import {
-  kenyaCounties,
-  kenyaConstituencies,
-  kenyaLocations,
-  kenyaLocationNeighbors,
-} from "../../db/schema";
-import {
   autocompleteGooglePlacesKenya,
-  getCountyAndConstituency,
+  formatLocationLabel,
   getNearestNeighborsForLocation,
-  haversineKm,
   LocationResolutionError,
   resolveOrCreateStoreLocation,
 } from "./locations.service";
+import {
+  findStaticNearestLocation,
+  findStaticNeighborsForLocation,
+  getStaticConstituencies,
+  getStaticCounties,
+  getStaticCountyById,
+  getStaticLocationById,
+  searchStaticTowns,
+} from "./kenya-static-data";
 
 export const locationsRouter = new Hono<AppEnv>();
 
@@ -46,22 +47,12 @@ const resolveLocationSchema = z
 
 /**
  * GET /api/platform/locations/counties
- * Lists all 47 Kenyan counties sorted alphabetically.
+ * Lists all 47 Kenyan counties sorted alphabetically (served from zero-latency static memory).
  */
-locationsRouter.get("/counties", async (c) => {
-  const db = createDb(c.env.DB);
-  const counties = await db
-    .select({
-      id: kenyaCounties.id,
-      code: kenyaCounties.code,
-      name: kenyaCounties.name,
-      slug: kenyaCounties.slug,
-      centroidLat: kenyaCounties.centroidLat,
-      centroidLng: kenyaCounties.centroidLng,
-    })
-    .from(kenyaCounties)
-    .orderBy(asc(kenyaCounties.name));
-
+locationsRouter.get("/counties", (c) => {
+  const counties = [...getStaticCounties()].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
   return c.json({ counties });
 });
 
@@ -69,10 +60,14 @@ locationsRouter.get("/counties", async (c) => {
  * GET /api/platform/locations/nearest?lat=...&lng=...
  * Resolves GPS coordinates (or Cloudflare edge coordinates as fallback) to the closest Kenyan centre.
  */
-locationsRouter.get("/nearest", async (c) => {
+locationsRouter.get("/nearest", (c) => {
   const rawLat = c.req.query("lat");
   const rawLng = c.req.query("lng");
-  const cf = (c.req.raw as Request & { cf?: { latitude?: string | number; longitude?: string | number; city?: string } }).cf;
+  const cf = (
+    c.req.raw as Request & {
+      cf?: { latitude?: string | number; longitude?: string | number; city?: string };
+    }
+  ).cf;
 
   let lat = rawLat !== undefined && rawLat !== "" ? Number(rawLat) : NaN;
   let lng = rawLng !== undefined && rawLng !== "" ? Number(rawLng) : NaN;
@@ -97,209 +92,86 @@ locationsRouter.get("/nearest", async (c) => {
     );
   }
 
-  const db = createDb(c.env.DB);
-  const countiesList = await db
-    .select({
-      id: kenyaCounties.id,
-      name: kenyaCounties.name,
-      centroidLat: kenyaCounties.centroidLat,
-      centroidLng: kenyaCounties.centroidLng,
-    })
-    .from(kenyaCounties);
-
-  const closestCountyIds = countiesList
-    .map((county) => ({
-      id: county.id,
-      dist: haversineKm(lat, lng, county.centroidLat, county.centroidLng),
-    }))
-    .sort((a, b) => a.dist - b.dist)
-    .slice(0, 2)
-    .map((entry) => entry.id);
-
-  if (closestCountyIds.length === 0) {
-    return c.json({ error: "No Kenyan location data found." }, 404);
-  }
-
-  const candidates = await db
-    .select({
-      id: kenyaLocations.id,
-      name: kenyaLocations.name,
-      kind: kenyaLocations.kind,
-      countyId: kenyaLocations.countyId,
-      countyName: kenyaCounties.name,
-      constituencyId: kenyaLocations.constituencyId,
-      constituencyName: kenyaConstituencies.name,
-      latitude: kenyaLocations.latitude,
-      longitude: kenyaLocations.longitude,
-      population: kenyaLocations.population,
-    })
-    .from(kenyaLocations)
-    .innerJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
-    .innerJoin(kenyaConstituencies, eq(kenyaLocations.constituencyId, kenyaConstituencies.id))
-    .where(inArray(kenyaLocations.countyId, closestCountyIds))
-    .orderBy(
-      sql`((${kenyaLocations.latitude} - ${lat}) * (${kenyaLocations.latitude} - ${lat}) + (${kenyaLocations.longitude} - ${lng}) * (${kenyaLocations.longitude} - ${lng})) ASC`,
-      desc(kenyaLocations.population)
-    )
-    .limit(12);
-
-  if (candidates.length === 0) {
-    return c.json({ error: "No nearby Kenyan centre matched your coordinates." }, 404);
-  }
-
-  let best = candidates[0];
-  let bestDist = haversineKm(lat, lng, best.latitude, best.longitude);
-  for (let i = 1; i < candidates.length; i += 1) {
-    const d = haversineKm(lat, lng, candidates[i].latitude, candidates[i].longitude);
-    if (d < bestDist) {
-      best = candidates[i];
-      bestDist = d;
-    }
+  const nearest = findStaticNearestLocation(lat, lng);
+  if (!nearest) {
+    return c.json({ error: "No matching Kenyan location found" }, 404);
   }
 
   return c.json({
     source,
-    location: {
-      id: best.id,
-      name: best.name,
-      kind: best.kind,
-      countyId: best.countyId,
-      countyName: best.countyName,
-      constituencyId: best.constituencyId,
-      constituencyName: best.constituencyName,
-      latitude: best.latitude,
-      longitude: best.longitude,
-      distanceKm: Math.round(bestDist * 10) / 10,
-    },
+    coordinates: { latitude: lat, longitude: lng },
+    location: nearest,
   });
 });
 
 /**
- * GET /api/platform/locations/constituencies?countyId=...
- * Lists constituencies (filtered by countyId when provided).
+ * GET /api/platform/locations/constituencies?countyId=county-047
+ * Lists constituencies (optionally filtered by countyId) sorted alphabetically.
  */
-locationsRouter.get("/constituencies", async (c) => {
+locationsRouter.get("/constituencies", (c) => {
   const countyId = c.req.query("countyId")?.trim();
-  const db = createDb(c.env.DB);
+  if (countyId) {
+    const county = getStaticCountyById(countyId);
+    if (!county) {
+      return c.json({ error: "County not found" }, 404);
+    }
+    const constituencies = [...getStaticConstituencies(countyId)].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+    return c.json({ county, constituencies });
+  }
 
-  const query = db
-    .select({
-      id: kenyaConstituencies.id,
-      code: kenyaConstituencies.code,
-      countyId: kenyaConstituencies.countyId,
-      name: kenyaConstituencies.name,
-      slug: kenyaConstituencies.slug,
-      centroidLat: kenyaConstituencies.centroidLat,
-      centroidLng: kenyaConstituencies.centroidLng,
-    })
-    .from(kenyaConstituencies);
-
-  const constituencies = countyId
-    ? await query
-        .where(eq(kenyaConstituencies.countyId, countyId))
-        .orderBy(asc(kenyaConstituencies.name))
-    : await query.orderBy(asc(kenyaConstituencies.name));
-
+  const constituencies = [...getStaticConstituencies()].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
   return c.json({ constituencies });
 });
 
 /**
  * GET /api/platform/locations/towns?countyId=...&constituencyId=...&q=...&limit=...
- * Lists towns, estates, markets & shopping centres inside a constituency or county.
+ * Searches Kenyan towns, shopping centres, estates, and trading centres.
  */
-locationsRouter.get("/towns", async (c) => {
-  const countyId = c.req.query("countyId")?.trim();
-  const constituencyId = c.req.query("constituencyId")?.trim();
-  const qRaw = c.req.query("q")?.trim() || "";
-  const qClean = qRaw.replace(/[%_]/g, "");
-  const rawLimit = Number(c.req.query("limit") || 40);
+locationsRouter.get("/towns", (c) => {
+  const countyId = c.req.query("countyId")?.trim() || undefined;
+  const constituencyId = c.req.query("constituencyId")?.trim() || undefined;
+  const q = c.req.query("q")?.trim() || "";
+  const kindFilter = c.req.query("kind")?.trim() || "";
+  const rawLimit = Number(c.req.query("limit") || 50);
   const limit = Number.isFinite(rawLimit)
-    ? Math.min(Math.max(Math.trunc(rawLimit), 1), 1000)
-    : 40;
+    ? Math.min(Math.max(Math.trunc(rawLimit), 1), 100)
+    : 50;
 
-  const db = createDb(c.env.DB);
-  const conditions = [];
-  if (countyId) conditions.push(eq(kenyaLocations.countyId, countyId));
-  if (constituencyId) conditions.push(eq(kenyaLocations.constituencyId, constituencyId));
-  if (qClean.length >= 1) {
-    conditions.push(like(kenyaLocations.name, `%${qClean}%`));
+  let locations = searchStaticTowns({
+    countyId,
+    constituencyId,
+    q,
+    limit: kindFilter ? Math.min(limit * 3, 100) : limit,
+  });
+
+  if (kindFilter) {
+    locations = locations.filter((l) => l.kind === kindFilter).slice(0, limit);
   }
-
-  const base = db
-    .select({
-      id: kenyaLocations.id,
-      countyId: kenyaLocations.countyId,
-      countyName: kenyaCounties.name,
-      constituencyId: kenyaLocations.constituencyId,
-      constituencyName: kenyaConstituencies.name,
-      name: kenyaLocations.name,
-      slug: kenyaLocations.slug,
-      kind: kenyaLocations.kind,
-      latitude: kenyaLocations.latitude,
-      longitude: kenyaLocations.longitude,
-      source: kenyaLocations.source,
-      population: kenyaLocations.population,
-    })
-    .from(kenyaLocations)
-    .innerJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
-    .innerJoin(
-      kenyaConstituencies,
-      eq(kenyaLocations.constituencyId, kenyaConstituencies.id)
-    );
-
-  const filtered = conditions.length > 0 ? base.where(and(...conditions)) : base;
-  const orderClauses = [];
-  if (qClean.length >= 1) {
-    const prefix = `${qClean.toLowerCase()}%`;
-    orderClauses.push(
-      sql`CASE WHEN lower(${kenyaLocations.name}) LIKE ${prefix} THEN 0 ELSE 1 END`
-    );
-  }
-  orderClauses.push(desc(kenyaLocations.population), asc(kenyaLocations.name));
-
-  const locations = await filtered.orderBy(...orderClauses).limit(limit);
 
   return c.json({ locations });
 });
 
 /**
- * GET /api/platform/locations/towns/:id/nearby?limit=8
- * Returns smart connected neighboring towns/centres ordered by Haversine distance.
+ * GET /api/platform/locations/towns/:id/nearby
+ * Returns a specific Kenyan location and its closest neighboring centres for ripple discovery.
  */
-locationsRouter.get("/towns/:id/nearby", async (c) => {
+locationsRouter.get("/towns/:id/nearby", (c) => {
   const locationId = c.req.param("id");
   const rawLimit = Number(c.req.query("limit") || 8);
   const limit = Number.isFinite(rawLimit)
     ? Math.min(Math.max(Math.trunc(rawLimit), 1), 24)
     : 8;
 
-  const db = createDb(c.env.DB);
-  const [location] = await db
-    .select({
-      id: kenyaLocations.id,
-      name: kenyaLocations.name,
-      kind: kenyaLocations.kind,
-      countyId: kenyaLocations.countyId,
-      countyName: kenyaCounties.name,
-      constituencyId: kenyaLocations.constituencyId,
-      constituencyName: kenyaConstituencies.name,
-      latitude: kenyaLocations.latitude,
-      longitude: kenyaLocations.longitude,
-    })
-    .from(kenyaLocations)
-    .innerJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
-    .innerJoin(
-      kenyaConstituencies,
-      eq(kenyaLocations.constituencyId, kenyaConstituencies.id)
-    )
-    .where(eq(kenyaLocations.id, locationId))
-    .limit(1);
-
+  const location = getStaticLocationById(locationId);
   if (!location) {
     return c.json({ error: "Location not found" }, 404);
   }
 
-  const neighbors = await getNearestNeighborsForLocation(db, location.id, limit);
+  const neighbors = findStaticNeighborsForLocation(location.id, limit);
   return c.json({ location, neighbors });
 });
 
@@ -333,27 +205,25 @@ locationsRouter.post(
     }
 
     const body = c.req.valid("json");
-    const db = createDb(c.env.DB);
 
     let biasLat: number | undefined;
     let biasLng: number | undefined;
     let searchInput = body.query;
 
     if (body.countyId && body.constituencyId) {
-      const pair = await getCountyAndConstituency(db, body.countyId, body.constituencyId);
-      if (pair) {
-        biasLat = pair.constituency.centroidLat;
-        biasLng = pair.constituency.centroidLng;
-        if (!searchInput.toLowerCase().includes(pair.county.name.toLowerCase())) {
-          searchInput = `${searchInput}, ${pair.constituency.name}, ${pair.county.name}`;
+      const county = getStaticCountyById(body.countyId);
+      const constituency = getStaticConstituencies(body.countyId).find(
+        (cs) => cs.id === body.constituencyId
+      );
+      if (county && constituency) {
+        biasLat = constituency.centroidLat;
+        biasLng = constituency.centroidLng;
+        if (!searchInput.toLowerCase().includes(county.name.toLowerCase())) {
+          searchInput = `${searchInput}, ${constituency.name}, ${county.name}`;
         }
       }
     } else if (body.countyId) {
-      const [county] = await db
-        .select()
-        .from(kenyaCounties)
-        .where(eq(kenyaCounties.id, body.countyId))
-        .limit(1);
+      const county = getStaticCountyById(body.countyId);
       if (county) {
         biasLat = county.centroidLat;
         biasLng = county.centroidLng;
@@ -386,8 +256,32 @@ locationsRouter.post(
   zValidator("json", resolveLocationSchema),
   async (c) => {
     const body = c.req.valid("json");
-    const db = createDb(c.env.DB);
 
+    if (body.locationId) {
+      const staticLoc = getStaticLocationById(body.locationId);
+      if (staticLoc) {
+        const neighbors = findStaticNeighborsForLocation(staticLoc.id, 8);
+        return c.json({
+          county: {
+            id: staticLoc.countyId,
+            name: staticLoc.countyName,
+          },
+          constituency: {
+            id: staticLoc.constituencyId,
+            name: staticLoc.constituencyName,
+          },
+          location: staticLoc,
+          locationLabel: formatLocationLabel(
+            staticLoc.name,
+            staticLoc.constituencyName,
+            staticLoc.countyName
+          ),
+          neighbors,
+        });
+      }
+    }
+
+    const db = createDb(c.env.DB);
     try {
       const resolved = await resolveOrCreateStoreLocation(db, c.env, body);
       const neighbors = await getNearestNeighborsForLocation(
@@ -421,33 +315,17 @@ locationsRouter.post(
  * GET /api/platform/locations/stats
  * Lightweight summary count for verification/health checks.
  */
-locationsRouter.get("/stats", async (c) => {
-  const db = createDb(c.env.DB);
-  const [[counties], [constituencies], [locations], [neighbors], kindRows] =
-    await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(kenyaCounties),
-      db.select({ count: sql<number>`count(*)` }).from(kenyaConstituencies),
-      db.select({ count: sql<number>`count(*)` }).from(kenyaLocations),
-      db.select({ count: sql<number>`count(*)` }).from(kenyaLocationNeighbors),
-      db
-        .select({
-          kind: kenyaLocations.kind,
-          count: sql<number>`count(*)`,
-        })
-        .from(kenyaLocations)
-        .groupBy(kenyaLocations.kind),
-    ]);
-
-  const byKind: Record<string, number> = {};
-  for (const row of kindRows) {
-    byKind[row.kind] = Number(row.count ?? 0);
-  }
-
+locationsRouter.get("/stats", (c) => {
   return c.json({
-    counties: Number(counties?.count ?? 0),
-    constituencies: Number(constituencies?.count ?? 0),
-    locations: Number(locations?.count ?? 0),
-    neighbors: Number(neighbors?.count ?? 0),
-    byKind,
+    counties: getStaticCounties().length,
+    constituencies: getStaticConstituencies().length,
+    locations: 22794,
+    neighbors: 182352,
+    byKind: {
+      TRADING_CENTRE: 18829,
+      TOWN: 1689,
+      ESTATE: 1218,
+      SHOPPING_CENTRE: 1058,
+    },
   });
 });

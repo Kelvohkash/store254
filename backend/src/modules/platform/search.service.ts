@@ -12,6 +12,12 @@ import {
   tenants,
 } from "../../db/schema";
 import { haversineKm } from "./locations.service";
+import {
+  findStaticNearestLocation,
+  findStaticNeighborsForLocation,
+  getStaticLocationById,
+  searchStaticTowns,
+} from "./kenya-static-data";
 
 type AppDb = DrizzleD1Database<typeof schema>;
 
@@ -421,162 +427,211 @@ async function resolveOriginContext(
   db: AppDb,
   params: RippleSearchParams
 ): Promise<OriginRippleContext> {
-  let targetLocationId = params.locationId?.trim() || "";
+  const emptyCtx: OriginRippleContext = {
+    origin: null,
+    ring1Ids: new Set(),
+    ring1Dist: new Map(),
+    ring2Ids: new Set(),
+    ring2Dist: new Map(),
+  };
 
-  // If browser GPS coordinates provided without locationId, snap to closest centre in Kenya
-  if (!targetLocationId && typeof params.lat === "number" && typeof params.lng === "number") {
-    const nearby = await db
+  try {
+    let targetLocationId = params.locationId?.trim() || "";
+
+    // Fast path: resolve standard Kenyan locations from zero-latency static memory (0 D1 reads)
+    let staticOrigin = targetLocationId ? getStaticLocationById(targetLocationId) : undefined;
+    if (!staticOrigin && !targetLocationId && typeof params.lat === "number" && typeof params.lng === "number") {
+      const snapped = findStaticNearestLocation(params.lat, params.lng);
+      if (snapped && snapped.distanceKm <= 65) {
+        staticOrigin = snapped;
+        targetLocationId = snapped.id;
+      }
+    }
+    if (!staticOrigin && !targetLocationId && params.countyId?.trim()) {
+      const topStatic = searchStaticTowns({ countyId: params.countyId.trim(), limit: 1 })[0];
+      if (topStatic) {
+        staticOrigin = topStatic;
+        targetLocationId = topStatic.id;
+      }
+    }
+
+    if (staticOrigin) {
+      const directNeighbors = findStaticNeighborsForLocation(staticOrigin.id, 24);
+      const ring1Slice = directNeighbors.slice(0, 8);
+      const ring1Ids = new Set<string>(ring1Slice.map((n) => n.id));
+      const ring1Dist = new Map<string, number>(ring1Slice.map((n) => [n.id, n.distanceKm]));
+      const ring2Ids = new Set<string>();
+      const ring2Dist = new Map<string, number>();
+      for (const n of directNeighbors.slice(8)) {
+        if (n.distanceKm <= 35 || n.constituencyId === staticOrigin.constituencyId) {
+          ring2Ids.add(n.id);
+          ring2Dist.set(n.id, n.distanceKm);
+        }
+      }
+      return {
+        origin: {
+          id: staticOrigin.id,
+          name: staticOrigin.name,
+          kind: staticOrigin.kind,
+          countyId: staticOrigin.countyId,
+          countyName: staticOrigin.countyName,
+          constituencyId: staticOrigin.constituencyId,
+          constituencyName: staticOrigin.constituencyName,
+          latitude: staticOrigin.latitude,
+          longitude: staticOrigin.longitude,
+        },
+        ring1Ids,
+        ring1Dist,
+        ring2Ids,
+        ring2Dist,
+      };
+    }
+
+    // If browser GPS coordinates provided without locationId, snap to closest centre in Kenya
+    if (!targetLocationId && typeof params.lat === "number" && typeof params.lng === "number") {
+      const nearby = await db
+        .select({
+          id: kenyaLocations.id,
+          latitude: kenyaLocations.latitude,
+          longitude: kenyaLocations.longitude,
+        })
+        .from(kenyaLocations)
+        .where(
+          and(
+            between(kenyaLocations.latitude, params.lat - 0.5, params.lat + 0.5),
+            between(kenyaLocations.longitude, params.lng - 0.5, params.lng + 0.5)
+          )
+        )
+        .limit(120);
+
+      let bestId = "";
+      let bestKm = Infinity;
+      for (const row of nearby) {
+        const km = haversineKm(params.lat, params.lng, row.latitude, row.longitude);
+        if (km < bestKm) {
+          bestKm = km;
+          bestId = row.id;
+        }
+      }
+      targetLocationId = bestId;
+    }
+
+    // If only countyId provided, pick the County HQ / largest town in that county
+    if (!targetLocationId && params.countyId?.trim()) {
+      const [topInCounty] = await db
+        .select({ id: kenyaLocations.id })
+        .from(kenyaLocations)
+        .where(eq(kenyaLocations.countyId, params.countyId.trim()))
+        .orderBy(
+          sql`CASE ${kenyaLocations.kind} WHEN 'TOWN' THEN 0 WHEN 'SHOPPING_CENTRE' THEN 1 ELSE 2 END`,
+          desc(kenyaLocations.population),
+          asc(kenyaLocations.name)
+        )
+        .limit(1);
+      if (topInCounty) targetLocationId = topInCounty.id;
+    }
+
+    if (!targetLocationId) {
+      return emptyCtx;
+    }
+
+    const [origin] = await db
       .select({
         id: kenyaLocations.id,
+        name: kenyaLocations.name,
+        kind: kenyaLocations.kind,
+        countyId: kenyaLocations.countyId,
+        countyName: kenyaCounties.name,
+        constituencyId: kenyaLocations.constituencyId,
+        constituencyName: kenyaConstituencies.name,
         latitude: kenyaLocations.latitude,
         longitude: kenyaLocations.longitude,
       })
       .from(kenyaLocations)
-      .where(
-        and(
-          between(kenyaLocations.latitude, params.lat - 0.5, params.lat + 0.5),
-          between(kenyaLocations.longitude, params.lng - 0.5, params.lng + 0.5)
-        )
-      )
-      .limit(120);
+      .innerJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
+      .innerJoin(kenyaConstituencies, eq(kenyaLocations.constituencyId, kenyaConstituencies.id))
+      .where(eq(kenyaLocations.id, targetLocationId))
+      .limit(1);
 
-    let bestId = "";
-    let bestKm = Infinity;
-    for (const row of nearby) {
-      const km = haversineKm(params.lat, params.lng, row.latitude, row.longitude);
-      if (km < bestKm) {
-        bestKm = km;
-        bestId = row.id;
+    if (!origin) {
+      return emptyCtx;
+    }
+
+    // Ring 1: 8 direct neighbors from kenya_location_neighbors
+    const directNeighbors = await db
+      .select({
+        neighborLocationId: kenyaLocationNeighbors.neighborLocationId,
+        distanceKm: kenyaLocationNeighbors.distanceKm,
+      })
+      .from(kenyaLocationNeighbors)
+      .where(eq(kenyaLocationNeighbors.locationId, origin.id))
+      .orderBy(asc(kenyaLocationNeighbors.rank))
+      .limit(8);
+
+    const ring1Ids = new Set<string>(directNeighbors.map((n) => n.neighborLocationId));
+    const ring1Dist = new Map<string, number>(
+      directNeighbors.map((n) => [n.neighborLocationId, n.distanceKm])
+    );
+
+    // Ring 2: 2nd-hop neighbors + constituency hubs + locations <= 35 km
+    const ring2Ids = new Set<string>();
+    const ring2Dist = new Map<string, number>();
+
+    const ring1Array = Array.from(ring1Ids);
+    const [secondHopRows, nearbyHubRows] = await Promise.all([
+      ring1Array.length > 0
+        ? db
+            .select({
+              id: kenyaLocationNeighbors.neighborLocationId,
+              lat: kenyaLocations.latitude,
+              lng: kenyaLocations.longitude,
+            })
+            .from(kenyaLocationNeighbors)
+            .innerJoin(kenyaLocations, eq(kenyaLocationNeighbors.neighborLocationId, kenyaLocations.id))
+            .where(
+              and(
+                inArray(kenyaLocationNeighbors.locationId, ring1Array),
+                lte(kenyaLocationNeighbors.rank, 6)
+              )
+            )
+            .limit(64)
+        : Promise.resolve([]),
+      db
+        .select({
+          id: kenyaLocations.id,
+          lat: kenyaLocations.latitude,
+          lng: kenyaLocations.longitude,
+          kind: kenyaLocations.kind,
+          constituencyId: kenyaLocations.constituencyId,
+        })
+        .from(kenyaLocations)
+        .where(
+          and(
+            between(kenyaLocations.latitude, origin.latitude - 0.34, origin.latitude + 0.34),
+            between(kenyaLocations.longitude, origin.longitude - 0.34, origin.longitude + 0.34)
+          )
+        )
+        .limit(450),
+    ]);
+
+    for (const row of [...secondHopRows, ...nearbyHubRows]) {
+      if (row.id === origin.id || ring1Ids.has(row.id)) continue;
+      const km = haversineKm(origin.latitude, origin.longitude, row.lat, row.lng);
+      const sameConstituencyHub =
+        "constituencyId" in row &&
+        "kind" in row &&
+        row.constituencyId === origin.constituencyId &&
+        (row.kind === "TOWN" || row.kind === "SHOPPING_CENTRE");
+      if (km <= 35 || sameConstituencyHub) {
+        ring2Ids.add(row.id);
+        ring2Dist.set(row.id, Number(km.toFixed(1)));
       }
     }
-    targetLocationId = bestId;
+
+    return { origin, ring1Ids, ring1Dist, ring2Ids, ring2Dist };
+  } catch {
+    return emptyCtx;
   }
-
-  // If only countyId provided, pick the County HQ / largest town in that county
-  if (!targetLocationId && params.countyId?.trim()) {
-    const [topInCounty] = await db
-      .select({ id: kenyaLocations.id })
-      .from(kenyaLocations)
-      .where(eq(kenyaLocations.countyId, params.countyId.trim()))
-      .orderBy(
-        sql`CASE ${kenyaLocations.kind} WHEN 'TOWN' THEN 0 WHEN 'SHOPPING_CENTRE' THEN 1 ELSE 2 END`,
-        desc(kenyaLocations.population),
-        asc(kenyaLocations.name)
-      )
-      .limit(1);
-    if (topInCounty) targetLocationId = topInCounty.id;
-  }
-
-  if (!targetLocationId) {
-    return {
-      origin: null,
-      ring1Ids: new Set(),
-      ring1Dist: new Map(),
-      ring2Ids: new Set(),
-      ring2Dist: new Map(),
-    };
-  }
-
-  const [origin] = await db
-    .select({
-      id: kenyaLocations.id,
-      name: kenyaLocations.name,
-      kind: kenyaLocations.kind,
-      countyId: kenyaLocations.countyId,
-      countyName: kenyaCounties.name,
-      constituencyId: kenyaLocations.constituencyId,
-      constituencyName: kenyaConstituencies.name,
-      latitude: kenyaLocations.latitude,
-      longitude: kenyaLocations.longitude,
-    })
-    .from(kenyaLocations)
-    .innerJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
-    .innerJoin(kenyaConstituencies, eq(kenyaLocations.constituencyId, kenyaConstituencies.id))
-    .where(eq(kenyaLocations.id, targetLocationId))
-    .limit(1);
-
-  if (!origin) {
-    return {
-      origin: null,
-      ring1Ids: new Set(),
-      ring1Dist: new Map(),
-      ring2Ids: new Set(),
-      ring2Dist: new Map(),
-    };
-  }
-
-  // Ring 1: 8 direct neighbors from kenya_location_neighbors
-  const directNeighbors = await db
-    .select({
-      neighborLocationId: kenyaLocationNeighbors.neighborLocationId,
-      distanceKm: kenyaLocationNeighbors.distanceKm,
-    })
-    .from(kenyaLocationNeighbors)
-    .where(eq(kenyaLocationNeighbors.locationId, origin.id))
-    .orderBy(asc(kenyaLocationNeighbors.rank))
-    .limit(8);
-
-  const ring1Ids = new Set<string>(directNeighbors.map((n) => n.neighborLocationId));
-  const ring1Dist = new Map<string, number>(
-    directNeighbors.map((n) => [n.neighborLocationId, n.distanceKm])
-  );
-
-  // Ring 2: 2nd-hop neighbors + constituency hubs + locations <= 35 km
-  const ring2Ids = new Set<string>();
-  const ring2Dist = new Map<string, number>();
-
-  const ring1Array = Array.from(ring1Ids);
-  const [secondHopRows, nearbyHubRows] = await Promise.all([
-    ring1Array.length > 0
-      ? db
-          .select({
-            id: kenyaLocationNeighbors.neighborLocationId,
-            lat: kenyaLocations.latitude,
-            lng: kenyaLocations.longitude,
-          })
-          .from(kenyaLocationNeighbors)
-          .innerJoin(kenyaLocations, eq(kenyaLocationNeighbors.neighborLocationId, kenyaLocations.id))
-          .where(
-            and(
-              inArray(kenyaLocationNeighbors.locationId, ring1Array),
-              lte(kenyaLocationNeighbors.rank, 6)
-            )
-          )
-          .limit(64)
-      : Promise.resolve([]),
-    db
-      .select({
-        id: kenyaLocations.id,
-        lat: kenyaLocations.latitude,
-        lng: kenyaLocations.longitude,
-        kind: kenyaLocations.kind,
-        constituencyId: kenyaLocations.constituencyId,
-      })
-      .from(kenyaLocations)
-      .where(
-        and(
-          between(kenyaLocations.latitude, origin.latitude - 0.34, origin.latitude + 0.34),
-          between(kenyaLocations.longitude, origin.longitude - 0.34, origin.longitude + 0.34)
-        )
-      )
-      .limit(450),
-  ]);
-
-  for (const row of [...secondHopRows, ...nearbyHubRows]) {
-    if (row.id === origin.id || ring1Ids.has(row.id)) continue;
-    const km = haversineKm(origin.latitude, origin.longitude, row.lat, row.lng);
-    const sameConstituencyHub =
-      "constituencyId" in row &&
-      "kind" in row &&
-      row.constituencyId === origin.constituencyId &&
-      (row.kind === "TOWN" || row.kind === "SHOPPING_CENTRE");
-    if (km <= 35 || sameConstituencyHub) {
-      ring2Ids.add(row.id);
-      ring2Dist.set(row.id, Number(km.toFixed(1)));
-    }
-  }
-
-  return { origin, ring1Ids, ring1Dist, ring2Ids, ring2Dist };
 }
 
 function classifyLocationIntoRing(
@@ -742,59 +797,108 @@ async function fetchPublishedCatalogPool(
   filters: RippleSearchParams,
   limitRows: number
 ): Promise<RawItemCandidate[]> {
-  return db
-    .select({
-      id: items.id,
-      tenantId: items.tenantId,
-      title: items.title,
-      slug: items.slug,
-      description: items.description,
-      itemType: items.itemType,
-      basePrice: items.basePrice,
-      compareAtPrice: items.compareAtPrice,
-      sku: items.sku,
-      trackInventory: items.trackInventory,
-      stockQuantity: items.stockQuantity,
-      images: items.images,
-      attributes: items.attributes,
-      createdAt: items.createdAt,
-      categoryName: categories.name,
-      storeName: tenants.name,
-      storeSubdomain: tenants.subdomain,
-      storeCurrency: tenants.currency,
-      storeBusinessType: tenants.businessType,
-      storeCountyId: tenants.countyId,
-      storeCountyName: kenyaCounties.name,
-      storeConstituencyName: kenyaConstituencies.name,
-      storeLocationId: tenants.locationId,
-      storeLocationName: kenyaLocations.name,
-      storeLocationLabel: tenants.locationLabel,
-      storeLocationKind: kenyaLocations.kind,
-      storeLat: kenyaLocations.latitude,
-      storeLng: kenyaLocations.longitude,
-      storePopulation: kenyaLocations.population,
-    })
-    .from(items)
-    .innerJoin(tenants, eq(tenants.id, items.tenantId))
-    .leftJoin(categories, eq(categories.id, items.categoryId))
-    .leftJoin(kenyaLocations, eq(kenyaLocations.id, tenants.locationId))
-    .leftJoin(kenyaCounties, eq(kenyaCounties.id, tenants.countyId))
-    .leftJoin(kenyaConstituencies, eq(kenyaConstituencies.id, tenants.constituencyId))
-    .where(
-      and(
-        eq(items.status, "PUBLISHED"),
-        eq(tenants.status, "ACTIVE"),
-        notLike(tenants.id, "tenant-demo-%"),
-        filters.itemType ? eq(items.itemType, filters.itemType) : undefined,
-        typeof filters.minPrice === "number" ? gte(items.basePrice, filters.minPrice) : undefined,
-        typeof filters.maxPrice === "number" ? lte(items.basePrice, filters.maxPrice) : undefined,
-        filters.inStockOnly
-          ? sql`(${items.itemType} = 'SERVICE' OR ${items.trackInventory} = 0 OR ${items.stockQuantity} > 0)`
-          : undefined
-      )
-    )
-    .orderBy(desc(items.createdAt))
-    .limit(limitRows);
+  const baseWhere = and(
+    eq(items.status, "PUBLISHED"),
+    eq(tenants.status, "ACTIVE"),
+    notLike(tenants.id, "tenant-demo-%"),
+    filters.itemType ? eq(items.itemType, filters.itemType) : undefined,
+    typeof filters.minPrice === "number" ? gte(items.basePrice, filters.minPrice) : undefined,
+    typeof filters.maxPrice === "number" ? lte(items.basePrice, filters.maxPrice) : undefined,
+    filters.inStockOnly
+      ? sql`(${items.itemType} = 'SERVICE' OR ${items.trackInventory} = 0 OR ${items.stockQuantity} > 0)`
+      : undefined
+  );
+
+  try {
+    return await db
+      .select({
+        id: items.id,
+        tenantId: items.tenantId,
+        title: items.title,
+        slug: items.slug,
+        description: items.description,
+        itemType: items.itemType,
+        basePrice: items.basePrice,
+        compareAtPrice: items.compareAtPrice,
+        sku: items.sku,
+        trackInventory: items.trackInventory,
+        stockQuantity: items.stockQuantity,
+        images: items.images,
+        attributes: items.attributes,
+        createdAt: items.createdAt,
+        categoryName: categories.name,
+        storeName: tenants.name,
+        storeSubdomain: tenants.subdomain,
+        storeCurrency: tenants.currency,
+        storeBusinessType: tenants.businessType,
+        storeCountyId: tenants.countyId,
+        storeCountyName: kenyaCounties.name,
+        storeConstituencyName: kenyaConstituencies.name,
+        storeLocationId: tenants.locationId,
+        storeLocationName: kenyaLocations.name,
+        storeLocationLabel: tenants.locationLabel,
+        storeLocationKind: kenyaLocations.kind,
+        storeLat: kenyaLocations.latitude,
+        storeLng: kenyaLocations.longitude,
+        storePopulation: kenyaLocations.population,
+      })
+      .from(items)
+      .innerJoin(tenants, eq(tenants.id, items.tenantId))
+      .leftJoin(categories, eq(categories.id, items.categoryId))
+      .leftJoin(kenyaLocations, eq(kenyaLocations.id, tenants.locationId))
+      .leftJoin(kenyaCounties, eq(kenyaCounties.id, tenants.countyId))
+      .leftJoin(kenyaConstituencies, eq(kenyaConstituencies.id, tenants.constituencyId))
+      .where(baseWhere)
+      .orderBy(desc(items.createdAt))
+      .limit(limitRows);
+  } catch {
+    try {
+      const fallbackRows = await db
+        .select({
+          id: items.id,
+          tenantId: items.tenantId,
+          title: items.title,
+          slug: items.slug,
+          description: items.description,
+          itemType: items.itemType,
+          basePrice: items.basePrice,
+          compareAtPrice: items.compareAtPrice,
+          sku: items.sku,
+          trackInventory: items.trackInventory,
+          stockQuantity: items.stockQuantity,
+          images: items.images,
+          attributes: items.attributes,
+          createdAt: items.createdAt,
+          categoryName: categories.name,
+          storeName: tenants.name,
+          storeSubdomain: tenants.subdomain,
+          storeCurrency: tenants.currency,
+          storeBusinessType: tenants.businessType,
+        })
+        .from(items)
+        .innerJoin(tenants, eq(tenants.id, items.tenantId))
+        .leftJoin(categories, eq(categories.id, items.categoryId))
+        .where(baseWhere)
+        .orderBy(desc(items.createdAt))
+        .limit(limitRows);
+
+      return fallbackRows.map((r) => ({
+        ...r,
+        storeCountyId: null,
+        storeCountyName: null,
+        storeConstituencyName: null,
+        storeLocationId: null,
+        storeLocationName: null,
+        storeLocationLabel: null,
+        storeLocationKind: null,
+        storeLat: null,
+        storeLng: null,
+        storePopulation: null,
+      }));
+    } catch {
+      return [];
+    }
+  }
 }
 
 export async function searchMarketplaceWithRipple(
@@ -1229,43 +1333,70 @@ export async function suggestMarketplaceTerms(db: AppDb, rawQuery: string, limit
   }
 
   if (titleRows.length === 0) {
-    const likePattern = `%${clean.toLowerCase()}%`;
-    titleRows = await db
-      .select({
-        title: items.title,
-        categoryName: categories.name,
-        itemType: items.itemType,
-      })
-      .from(items)
-      .innerJoin(tenants, eq(tenants.id, items.tenantId))
-      .leftJoin(categories, eq(categories.id, items.categoryId))
-      .where(
-        and(
-          eq(items.status, "PUBLISHED"),
-          eq(tenants.status, "ACTIVE"),
-          notLike(tenants.id, "tenant-demo-%"),
-          sql`lower(${items.title}) LIKE ${likePattern}`
+    try {
+      const likePattern = `%${clean.toLowerCase()}%`;
+      titleRows = await db
+        .select({
+          title: items.title,
+          categoryName: categories.name,
+          itemType: items.itemType,
+        })
+        .from(items)
+        .innerJoin(tenants, eq(tenants.id, items.tenantId))
+        .leftJoin(categories, eq(categories.id, items.categoryId))
+        .where(
+          and(
+            eq(items.status, "PUBLISHED"),
+            eq(tenants.status, "ACTIVE"),
+            notLike(tenants.id, "tenant-demo-%"),
+            sql`lower(${items.title}) LIKE ${likePattern}`
+          )
         )
-      )
-      .limit(safeLimit);
+        .limit(safeLimit);
+    } catch {
+      titleRows = [];
+    }
   }
 
   const likeStore = `%${clean.toLowerCase()}%`;
-  const matchingStores = await db
-    .select({
-      name: tenants.name,
-      subdomain: tenants.subdomain,
-      locationLabel: tenants.locationLabel,
-    })
-    .from(tenants)
-    .where(
-      and(
-        eq(tenants.status, "ACTIVE"),
-        notLike(tenants.id, "tenant-demo-%"),
-        sql`lower(${tenants.name}) LIKE ${likeStore}`
+  let matchingStores: Array<{ name: string; subdomain: string; locationLabel: string | null }> = [];
+  try {
+    matchingStores = await db
+      .select({
+        name: tenants.name,
+        subdomain: tenants.subdomain,
+        locationLabel: tenants.locationLabel,
+      })
+      .from(tenants)
+      .where(
+        and(
+          eq(tenants.status, "ACTIVE"),
+          notLike(tenants.id, "tenant-demo-%"),
+          sql`lower(${tenants.name}) LIKE ${likeStore}`
+        )
       )
-    )
-    .limit(4);
+      .limit(4);
+  } catch {
+    try {
+      const basicStores = await db
+        .select({
+          name: tenants.name,
+          subdomain: tenants.subdomain,
+        })
+        .from(tenants)
+        .where(
+          and(
+            eq(tenants.status, "ACTIVE"),
+            notLike(tenants.id, "tenant-demo-%"),
+            sql`lower(${tenants.name}) LIKE ${likeStore}`
+          )
+        )
+        .limit(4);
+      matchingStores = basicStores.map((s) => ({ ...s, locationLabel: null }));
+    } catch {
+      matchingStores = [];
+    }
+  }
 
   const uniqueTitles = Array.from(new Set(titleRows.map((r) => r.title))).slice(0, safeLimit);
 

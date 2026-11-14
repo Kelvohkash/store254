@@ -178,26 +178,31 @@ platformRouter.get("/stores", async (c) => {
   }
 
   const db = createDb(c.env.DB);
-  const activeStores = await db
-    .select({
-      id: tenants.id,
-      name: tenants.name,
-      subdomain: tenants.subdomain,
-      businessType: tenants.businessType,
-      currency: tenants.currency,
-      countyId: tenants.countyId,
-      constituencyId: tenants.constituencyId,
-      locationId: tenants.locationId,
-      locationLabel: tenants.locationLabel,
-      settings: tenants.settings,
-      createdAt: tenants.createdAt,
-      ownerName: users.fullName,
-    })
-    .from(tenants)
-    .leftJoin(users, and(eq(users.tenantId, tenants.id), eq(users.role, "OWNER")))
-    .where(eq(tenants.status, "ACTIVE"))
-    .orderBy(desc(tenants.createdAt))
-    .limit(50);
+  let activeStores: Array<Record<string, unknown>> = [];
+  try {
+    activeStores = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        subdomain: tenants.subdomain,
+        businessType: tenants.businessType,
+        currency: tenants.currency,
+        countyId: tenants.countyId,
+        constituencyId: tenants.constituencyId,
+        locationId: tenants.locationId,
+        locationLabel: tenants.locationLabel,
+        settings: tenants.settings,
+        createdAt: tenants.createdAt,
+        ownerName: users.fullName,
+      })
+      .from(tenants)
+      .leftJoin(users, and(eq(users.tenantId, tenants.id), eq(users.role, "OWNER")))
+      .where(eq(tenants.status, "ACTIVE"))
+      .orderBy(desc(tenants.createdAt))
+      .limit(50);
+  } catch {
+    activeStores = [];
+  }
 
   return c.json({
     success: true,

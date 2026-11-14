@@ -80,12 +80,25 @@
 
   async function ensureBuyerCountiesLoaded() {
     if (buyerCountyList.length > 0) return buyerCountyList;
-    const res = await apiFetch("/api/platform/locations/counties");
-    if (res.ok && Array.isArray(res.data?.counties)) {
+    if (Array.isArray(window.__store254CountiesCache) && window.__store254CountiesCache.length > 0) {
+      buyerCountyList = window.__store254CountiesCache;
+      return buyerCountyList;
+    }
+    let res = await apiFetch("/api/platform/locations/counties");
+    if (!res.ok || !Array.isArray(res.data?.counties)) {
+      res = await apiFetch("/api/platform/locations/counties");
+    }
+    if (res.ok && Array.isArray(res.data?.counties) && res.data.counties.length > 0) {
       buyerCountyList = res.data.counties;
+      window.__store254CountiesCache = buyerCountyList;
     }
     return buyerCountyList;
   }
+
+  window.retryLoadMarketplaceCounties = async function retryLoadMarketplaceCounties() {
+    await ensureBuyerCountiesLoaded();
+    renderBuyerCountyChips(document.getElementById("marketplace-county-filter")?.value || "");
+  };
 
   window.toggleMarketplaceLocationPanel = async function toggleMarketplaceLocationPanel(force) {
     const panel = document.getElementById("marketplace-location-panel");
@@ -95,7 +108,7 @@
     if (open) {
       window.backToMarketplaceCountyStep();
       await ensureBuyerCountiesLoaded();
-      renderBuyerCountyChips("");
+      renderBuyerCountyChips(document.getElementById("marketplace-county-filter")?.value || "");
       document.getElementById("marketplace-county-filter")?.focus();
     }
   };
@@ -108,7 +121,9 @@
     if (countyStep) countyStep.classList.remove("hidden");
     if (countyInput) {
       countyInput.value = "";
-      renderBuyerCountyChips("");
+      if (buyerCountyList.length > 0) {
+        renderBuyerCountyChips("");
+      }
       countyInput.focus();
     }
   };
@@ -116,6 +131,10 @@
   function renderBuyerCountyChips(filterText) {
     const listEl = document.getElementById("marketplace-county-list");
     if (!listEl) return;
+    if (buyerCountyList.length === 0) {
+      listEl.innerHTML = `<button type="button" onclick="retryLoadMarketplaceCounties()" class="text-xs font-semibold text-emerald-700 underline px-2 py-1">Could not load counties — tap to retry</button>`;
+      return;
+    }
     const norm = (s) => String(s || "").toLowerCase().replace(/['’-]/g, "").trim();
     const q = norm(filterText);
     const matches = q
@@ -135,7 +154,10 @@
       .join("");
   }
 
-  window.onMarketplaceCountyInput = function onMarketplaceCountyInput(val) {
+  window.onMarketplaceCountyInput = async function onMarketplaceCountyInput(val) {
+    if (buyerCountyList.length === 0) {
+      await ensureBuyerCountiesLoaded();
+    }
     renderBuyerCountyChips(val);
   };
 
@@ -403,6 +425,93 @@
     window.runMarketplaceProductSearch();
   };
 
+  window.shareStoreOnboardingInvite = async function shareStoreOnboardingInvite() {
+    const shareUrl = window.location.origin || "https://store254.co.ke";
+    const locName = selectedBuyerLocation?.locationName;
+    const shareText = locName
+      ? `Help us bring more shops in ${locName} online on Store254! Open your free online storefront in 3 minutes:`
+      : "Help us onboard more local shops in your shopping centre on Store254! Open a free online storefront in 3 minutes:";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Store254 — Onboard Local Stores",
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+      if (typeof showToast === "function") {
+        showToast("Invite message copied! Share it with shops in your local shopping centre.");
+      }
+    } catch {
+      if (typeof toggleDrawer === "function") {
+        toggleDrawer("onboard-modal", true);
+      }
+    }
+  };
+
+  function renderOnboardingEmptyProductsState(query, buyerLoc) {
+    const locName = buyerLoc?.locationName
+      ? [buyerLoc.locationName, buyerLoc.countyName].filter(Boolean).join(", ")
+      : "";
+    const heading = query
+      ? `No products found for "${escapeHtml(query)}"${locName ? ` in ${escapeHtml(locName)}` : ""} yet`
+      : locName
+        ? `Onboarding stores in ${escapeHtml(locName)}`
+        : "We are in the process of onboarding stores across Kenya";
+
+    return `
+      <div class="col-span-full marketplace-onboarding-empty-card">
+        <div class="onboarding-empty-icon-wrap" aria-hidden="true">
+          <span class="onboarding-empty-icon-main">
+            <i data-lucide="store" class="w-5 h-5"></i>
+          </span>
+          <span class="onboarding-empty-icon-sub">
+            <i data-lucide="map-pin" class="w-3 h-3"></i>
+          </span>
+        </div>
+        <span class="onboarding-empty-badge">
+          <span class="onboarding-empty-badge-dot" aria-hidden="true"></span>
+          <span>Store Onboarding in Progress</span>
+        </span>
+        <h3 class="onboarding-empty-title">${heading}</h3>
+        <p class="onboarding-empty-copy">
+          We are in the process of onboarding stores — please be patient and help us onboard more in your local shopping centre.
+        </p>
+        <p class="onboarding-empty-subcopy">
+          Own a business or know a great shop, market stall, or service provider near you? Invite them or launch a store in under 3 minutes.
+        </p>
+        <div class="onboarding-empty-actions">
+          <button type="button" onclick="toggleDrawer('onboard-modal', true)" class="onboarding-empty-btn-primary">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Onboard a Store in Your Shopping Centre</span>
+          </button>
+          <button type="button" onclick="shareStoreOnboardingInvite()" class="onboarding-empty-btn-secondary">
+            <i data-lucide="share-2" class="w-4 h-4"></i>
+            <span>Invite a Local Shop</span>
+          </button>
+          ${
+            query
+              ? `<button type="button" onclick="clearMarketplaceQuery()" class="onboarding-empty-btn-ghost">
+                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                  <span>Clear search</span>
+                </button>`
+              : `<a href="/stores#platform-demo-stores-section" class="onboarding-empty-btn-ghost no-underline">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                  <span>Explore Demo Stores</span>
+                </a>`
+          }
+        </div>
+      </div>`;
+  }
+
   window.expandMarketplaceSearchNationwide = function expandMarketplaceSearchNationwide() {
     expandFullSearch = true;
     window.runMarketplaceProductSearch();
@@ -460,8 +569,12 @@
       });
 
       if (!res.ok || !res.data?.success) {
-        if (statusEl) statusEl.textContent = "Could not complete product search right now.";
-        gridEl.innerHTML = "";
+        if (statusEl) {
+          const locPart = selectedBuyerLocation?.locationName ? ` near ${selectedBuyerLocation.locationName}` : " across Kenya";
+          statusEl.textContent = `Onboarding local stores${locPart}`;
+        }
+        gridEl.innerHTML = renderOnboardingEmptyProductsState(q, selectedBuyerLocation);
+        if (typeof renderIcons === "function") renderIcons();
         return;
       }
 
@@ -482,7 +595,10 @@
         const locPart = selectedBuyerLocation?.locationName
           ? ` near ${selectedBuyerLocation.locationName}`
           : "";
-        statusEl.textContent = count > 0 ? `${count} item${count === 1 ? "" : "s"}${locPart}` : "";
+        statusEl.textContent =
+          count > 0
+            ? `${count} item${count === 1 ? "" : "s"}${locPart}`
+            : `Onboarding local stores${locPart || " across Kenya"}`;
       }
 
       // Did-you-mean banner
@@ -511,11 +627,8 @@
 
       const itemsList = Array.isArray(payload.results) ? payload.results : [];
       if (itemsList.length === 0) {
-        gridEl.innerHTML = `
-          <div class="col-span-full bg-white rounded-2xl p-8 border border-slate-200 text-center">
-            <p class="font-bold text-slate-900 text-sm">No matching products found</p>
-            <p class="text-xs text-slate-500 mt-1">Try another search or change your selected town.</p>
-          </div>`;
+        gridEl.innerHTML = renderOnboardingEmptyProductsState(q, selectedBuyerLocation);
+        if (typeof renderIcons === "function") renderIcons();
         return;
       }
 
@@ -576,8 +689,12 @@
       if (typeof renderIcons === "function") renderIcons();
     } catch (err) {
       if (err && err.name === "AbortError") return;
-      if (statusEl) statusEl.textContent = "Search failed temporarily. Please try again.";
-      gridEl.innerHTML = "";
+      if (statusEl) {
+        const locPart = selectedBuyerLocation?.locationName ? ` near ${selectedBuyerLocation.locationName}` : " across Kenya";
+        statusEl.textContent = `Onboarding local stores${locPart}`;
+      }
+      gridEl.innerHTML = renderOnboardingEmptyProductsState(q, selectedBuyerLocation);
+      if (typeof renderIcons === "function") renderIcons();
     }
   };
 
