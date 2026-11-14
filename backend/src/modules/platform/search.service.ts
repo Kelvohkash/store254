@@ -1,4 +1,4 @@
-import { and, asc, between, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, between, desc, eq, gte, inArray, lte, notLike, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../../db/schema";
 import {
@@ -722,6 +722,7 @@ async function fetchCandidatesByFts(
         sql`items_fts MATCH ${ftsExpression}`,
         eq(items.status, "PUBLISHED"),
         eq(tenants.status, "ACTIVE"),
+        notLike(tenants.id, "tenant-demo-%"),
         filters.itemType ? eq(items.itemType, filters.itemType) : undefined,
         typeof filters.minPrice === "number" ? gte(items.basePrice, filters.minPrice) : undefined,
         typeof filters.maxPrice === "number" ? lte(items.basePrice, filters.maxPrice) : undefined,
@@ -783,6 +784,7 @@ async function fetchPublishedCatalogPool(
       and(
         eq(items.status, "PUBLISHED"),
         eq(tenants.status, "ACTIVE"),
+        notLike(tenants.id, "tenant-demo-%"),
         filters.itemType ? eq(items.itemType, filters.itemType) : undefined,
         typeof filters.minPrice === "number" ? gte(items.basePrice, filters.minPrice) : undefined,
         typeof filters.maxPrice === "number" ? lte(items.basePrice, filters.maxPrice) : undefined,
@@ -1215,7 +1217,8 @@ export async function suggestMarketplaceTerms(db: AppDb, rawQuery: string, limit
           and(
             sql`items_fts MATCH ${parsed.broadFtsQuery}`,
             eq(items.status, "PUBLISHED"),
-            eq(tenants.status, "ACTIVE")
+            eq(tenants.status, "ACTIVE"),
+            notLike(tenants.id, "tenant-demo-%")
           )
         )
         .orderBy(sql`bm25(items_fts) ASC`)
@@ -1240,6 +1243,7 @@ export async function suggestMarketplaceTerms(db: AppDb, rawQuery: string, limit
         and(
           eq(items.status, "PUBLISHED"),
           eq(tenants.status, "ACTIVE"),
+          notLike(tenants.id, "tenant-demo-%"),
           sql`lower(${items.title}) LIKE ${likePattern}`
         )
       )
@@ -1254,7 +1258,13 @@ export async function suggestMarketplaceTerms(db: AppDb, rawQuery: string, limit
       locationLabel: tenants.locationLabel,
     })
     .from(tenants)
-    .where(and(eq(tenants.status, "ACTIVE"), sql`lower(${tenants.name}) LIKE ${likeStore}`))
+    .where(
+      and(
+        eq(tenants.status, "ACTIVE"),
+        notLike(tenants.id, "tenant-demo-%"),
+        sql`lower(${tenants.name}) LIKE ${likeStore}`
+      )
+    )
     .limit(4);
 
   const uniqueTitles = Array.from(new Set(titleRows.map((r) => r.title))).slice(0, safeLimit);

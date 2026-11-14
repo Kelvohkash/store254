@@ -1,7 +1,7 @@
 import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, notLike, sql } from "drizzle-orm";
 import type { AppEnv, UserContext } from "../../types/context";
 import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
@@ -124,7 +124,8 @@ marketplaceRouter.get(
         and(
           eq(items.id, itemId),
           eq(items.status, "PUBLISHED"),
-          eq(tenants.status, "ACTIVE")
+          eq(tenants.status, "ACTIVE"),
+          notLike(tenants.id, "tenant-demo-%")
         )
       )
       .limit(1);
@@ -271,7 +272,13 @@ marketplaceRouter.post(
         status: tenants.status,
       })
       .from(tenants)
-      .where(and(eq(tenants.id, body.storeId), eq(tenants.status, "ACTIVE")))
+      .where(
+        and(
+          eq(tenants.id, body.storeId),
+          eq(tenants.status, "ACTIVE"),
+          notLike(tenants.id, "tenant-demo-%")
+        )
+      )
       .limit(1);
 
     if (!tenant) {

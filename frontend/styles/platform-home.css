@@ -115,7 +115,7 @@ html:not([data-storefront="true"]) .site-footer { padding-bottom:2rem !important
 .platform-metrics-pills strong { color:#172820; font-weight:800; }
 @media(max-width:900px) { .platform-metrics-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .platform-metrics-header { flex-direction:column; align-items:flex-start; } }
 @media(max-width:640px) { .platform-metrics-band { width:calc(100% - 2rem); margin-bottom:2.4rem; padding:1rem; border-radius:1rem; } .platform-metrics-grid { gap:.6rem; } .platform-metric-card { padding:.8rem .85rem; } .platform-metric-value { font-size:1.4rem; } .platform-metrics-pills span { font-size:.7rem; padding:.26rem .6rem; } }
-.platform-ripple-search-band { width:min(100% - clamp(2rem,6vw,4rem),76rem); margin:0 auto 3.25rem; padding:clamp(1.35rem,3vw,2rem); border:1px solid #d5e8da; border-radius:1.25rem; background:linear-gradient(155deg,#f8fcfa 0%,#ffffff 55%,#f2faf4 100%); box-shadow:0 12px 32px rgba(29,76,48,.055); }
+.platform-ripple-search-band { width:min(100% - clamp(2rem,6vw,4rem),76rem); margin:1.25rem auto 2.5rem; padding:0; border:0; background:transparent; box-shadow:none; }
 .ripple-search-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem 1.5rem; margin-bottom:1.1rem; }
 .ripple-search-header .platform-eyebrow { margin:0 0 .35rem; color:#07834e; font-size:.72rem; }
 .ripple-search-header h2 { margin:0; color:#172820; font:800 clamp(1.35rem,2.4vw,1.85rem)/1.14 "Manrope","DM Sans",sans-serif; letter-spacing:-.025em; }

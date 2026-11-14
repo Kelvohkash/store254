@@ -108,7 +108,6 @@ test("buyer-first platform homepage supports Google invite, location selector, a
     read("../scripts/storefront/marketplace-cart.js"),
   ]);
   for (const id of [
-    "buyer-hero-bar",
     "buyer-welcome-modal",
     "marketplace-item-modal",
     "marketplace-cart-drawer",
@@ -117,6 +116,7 @@ test("buyer-first platform homepage supports Google invite, location selector, a
   ]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
+  assert.match(html, /placeholder="Search for anything\.\.\."/);
   assert.match(html, /scripts\/storefront\/marketplace-cart\.js/);
   assert.ok(
     html.indexOf('id="platform-ripple-search-section"') < html.indexOf('class="platform-intro"'),
