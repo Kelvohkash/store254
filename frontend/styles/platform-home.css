@@ -96,6 +96,22 @@ html:not([data-storefront="true"]) .site-footer { padding-bottom:2rem !important
 .platform-benefit-strip article:nth-child(2) .benefit-number { color:#c0574e; }
 .platform-benefit-strip h2 { margin:.65rem 0 .45rem; color:#1f3327; font-family:"Manrope","DM Sans",sans-serif; font-size:1.02rem; font-weight:800; }
 .platform-benefit-strip p { max-width:34ch; margin:0; color:#55665c; font-size:.84rem; line-height:1.6; }
+.platform-metrics-band { width:min(100% - clamp(2rem,6vw,4rem),76rem); margin:0 auto 3.25rem; padding:clamp(1.35rem,3vw,2rem); border:1px solid #d5e8da; border-radius:1.25rem; background:linear-gradient(135deg,#ffffff 0%,#f2faf4 100%); box-shadow:0 10px 28px rgba(29,76,48,.05); }
+.platform-metrics-header { display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1.15rem; }
+.platform-metrics-header .platform-eyebrow { margin:0 0 .35rem; color:#07834e; font-size:.72rem; }
+.platform-metrics-header h2 { margin:0; color:#172820; font:800 clamp(1.35rem,2.4vw,1.85rem)/1.14 "Manrope","DM Sans",sans-serif; letter-spacing:-.025em; }
+.platform-metrics-subtitle { max-width:26rem; margin:0; color:#55665c; font-size:.84rem; line-height:1.5; }
+.platform-metrics-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.9rem; }
+.platform-metric-card { display:flex; flex-direction:column; gap:.25rem; padding:1rem 1.1rem; border:1px solid #e1eee4; border-radius:.95rem; background:#fff; }
+.platform-metric-card-accent { border-color:#bde0c8; background:linear-gradient(145deg,#eff9f2,#ffffff); }
+.platform-metric-label { color:#55665c; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+.platform-metric-value { color:#07834e; font:800 clamp(1.55rem,2.5vw,2.05rem)/1.1 "Manrope","DM Sans",sans-serif; letter-spacing:-.03em; }
+.platform-metric-meta { color:#5e6f65; font-size:.75rem; line-height:1.4; }
+.platform-metrics-pills { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:1rem; padding-top:.9rem; border-top:1px solid #e3efe6; }
+.platform-metrics-pills span { display:inline-flex; align-items:center; gap:.35rem; padding:.32rem .75rem; border:1px solid #dbeadf; border-radius:999px; background:#fff; color:#45584c; font-size:.74rem; font-weight:600; }
+.platform-metrics-pills strong { color:#172820; font-weight:800; }
+@media(max-width:900px) { .platform-metrics-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .platform-metrics-header { flex-direction:column; align-items:flex-start; } }
+@media(max-width:640px) { .platform-metrics-band { width:calc(100% - 2rem); margin-bottom:2.4rem; padding:1rem; border-radius:1rem; } .platform-metrics-grid { gap:.6rem; } .platform-metric-card { padding:.8rem .85rem; } .platform-metric-value { font-size:1.4rem; } .platform-metrics-pills span { font-size:.7rem; padding:.26rem .6rem; } }
 .platform-section-heading,.platform-stores-heading { display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1.15rem; }
 .platform-section-heading .platform-eyebrow,.platform-stores-heading .platform-eyebrow { margin:0 0 .4rem; color:#07834e; font-size:.72rem; }
 .platform-section-heading h2,.platform-stores-heading h2 { margin:0; color:#172820 !important; font:800 clamp(1.55rem,2.8vw,2.15rem)/1.12 "Manrope","DM Sans",sans-serif; letter-spacing:-.025em; }

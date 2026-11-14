@@ -62,3 +62,16 @@ test("store onboarding requires County, Constituency, and Town/Shopping Centre s
   assert.match(onboardingJs, /\/api\/platform\/locations\/google-autocomplete/);
   assert.match(onboardingJs, /countyId,\s*\n?\s*constituencyId/);
 });
+
+test("platform homepage renders Kenya coverage & smart network metrics", async () => {
+  const [html, homeCss, platformJs] = await Promise.all([
+    read("../index.html"),
+    read("../styles/platform-home.css"),
+    read("../scripts/storefront/platform.js"),
+  ]);
+  assert.match(html, /id="platform-kenya-metrics"/);
+  assert.match(html, /id="metric-kenya-locations"/);
+  assert.match(html, /id="metric-kenya-neighbors"/);
+  assert.match(homeCss, /\.platform-metrics-band/);
+  assert.match(platformJs, /\/api\/platform\/locations\/stats/);
+});

@@ -292,6 +292,33 @@ function filterPlatformStores() {
 }
 window.filterPlatformStores = filterPlatformStores;
 
+async function loadPlatformLocationMetrics() {
+  if (!document.getElementById("platform-kenya-metrics")) return;
+  try {
+    const res = await apiFetch("/api/platform/locations/stats");
+    if (!res.ok || !res.data) return;
+    const fmt = (n) => Number(n || 0).toLocaleString("en-KE");
+    const mapText = [
+      ["metric-kenya-counties", res.data.counties],
+      ["metric-kenya-constituencies", res.data.constituencies],
+      ["metric-kenya-locations", res.data.locations],
+      ["metric-kenya-neighbors", res.data.neighbors],
+      ["metric-kind-trading", res.data.byKind?.TRADING_CENTRE],
+      ["metric-kind-shopping", res.data.byKind?.SHOPPING_CENTRE],
+      ["metric-kind-towns", res.data.byKind?.TOWN],
+      ["metric-kind-estates", res.data.byKind?.ESTATE],
+    ];
+    for (const [id, val] of mapText) {
+      const el = document.getElementById(id);
+      if (el && typeof val === "number" && val > 0) {
+        el.textContent = fmt(val);
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to refresh Kenya location metrics:", err);
+  }
+}
+
 async function loadPlatformStores() {
   const liveContainer = document.getElementById("platform-stores-grid");
   const demoContainer = document.getElementById("demo-stores-grid");
@@ -330,6 +357,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (typeof setThemePalette === "function") setThemePalette("trust-forest");
   renderIcons();
   updateCartBadge();
+  loadPlatformLocationMetrics();
   loadStoreProfile().then(() => {
     const url = new URL(window.location.href);
     const loginResult = url.searchParams.get("_customer_login");
