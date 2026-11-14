@@ -3,63 +3,79 @@
    ══════════════════════════════════════════════════════════ */
 
 /* Businesses Section */
-.business-section { margin-top: 3rem; }
+.business-section { margin-top: 2.5rem; }
 .section-heading {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.35rem;
+  margin-bottom: 1.15rem;
 }
 .section-heading h2 {
   margin: 0;
   color: var(--text-main);
   font-family: var(--heading-font);
-  font-size: 1.45rem;
-  font-weight: 850;
+  font-size: 1.38rem;
+  font-weight: 800;
   letter-spacing: -.03em;
 }
 .section-subtitle {
-  margin: .35rem 0 0;
+  margin: .3rem 0 0;
   color: var(--text-muted);
-  font-size: .78rem;
+  font-size: .8rem;
+  line-height: 1.45;
+}
+.section-subtitle code {
+  padding: .1rem .38rem;
+  border-radius: .35rem;
+  background: #e9f1ec;
+  color: #065f46;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .74rem;
+  font-weight: 650;
 }
 .result-count {
-  padding: .4rem .75rem;
+  padding: .38rem .75rem;
   border: 1px solid var(--border-light);
   border-radius: 999px;
   background: #fff;
   color: var(--text-muted);
-  font-size: .68rem;
-  font-weight: 750;
+  font-size: .72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Toolbar */
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: .95rem;
+  gap: .75rem;
+  margin-bottom: .9rem;
 }
 .search-box {
   position: relative;
   display: flex;
-  width: min(100%, 25rem);
-  height: 2.75rem;
+  flex: 1 1 18rem;
+  min-width: 14rem;
+  max-width: 28rem;
+  height: 2.65rem;
   align-items: center;
   gap: .55rem;
-  padding: 0 .85rem;
+  padding: 0 .8rem;
   border: 1px solid var(--border-light);
-  border-radius: .8rem;
+  border-radius: .78rem;
   background: #fff;
-  transition: all .16s ease;
+  box-shadow: 0 1px 2px rgba(16, 40, 28, 0.03);
+  transition: border-color .16s ease, box-shadow .16s ease;
 }
 .search-box:focus-within {
   border-color: var(--brand-green);
   box-shadow: 0 0 0 3px rgba(7, 131, 78, 0.12);
 }
-.search-icon { width: 1.1rem; height: 1.1rem; color: var(--text-subtle); flex-shrink: 0; }
+.search-icon { width: 1rem; height: 1rem; color: var(--text-subtle); flex-shrink: 0; }
 .search-box input {
   width: 100%;
   min-width: 0;
@@ -68,52 +84,60 @@
   background: transparent;
   color: var(--text-main);
   font: inherit;
-  font-size: .78rem;
+  font-size: .8rem;
 }
 .search-box input::placeholder { color: var(--text-subtle); }
 .search-shortcut {
-  padding: .15rem .45rem;
+  flex-shrink: 0;
+  padding: .16rem .42rem;
   border-radius: .35rem;
   background: #f1f5f3;
   color: var(--text-subtle);
   font-size: .62rem;
-  font-family: ui-monospace, monospace;
-  font-weight: 750;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
 }
 
 .filter-tabs {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: .25rem;
-  padding: .25rem;
+  gap: .2rem;
+  height: 2.65rem;
+  padding: .22rem;
   border: 1px solid var(--border-light);
-  border-radius: .8rem;
+  border-radius: .78rem;
   background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 40, 28, 0.03);
+  max-width: 100%;
+  overflow-x: auto;
 }
 .filter-tab {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: .4rem;
-  padding: .5rem .75rem;
+  gap: .38rem;
+  height: 100%;
+  padding: 0 .7rem;
   border: 0;
-  border-radius: .6rem;
+  border-radius: .56rem;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
-  font-size: .72rem;
-  font-weight: 750;
+  font-size: .74rem;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
-  transition: all .16s ease;
+  transition: background-color .15s ease, color .15s ease;
 }
 .filter-tab span {
   padding: .1rem .4rem;
   border-radius: 999px;
   background: #f1f5f3;
-  font-size: .62rem;
+  font-size: .64rem;
+  font-variant-numeric: tabular-nums;
 }
 .filter-tab:hover {
   color: var(--text-main);
-  background: #f8faf8;
+  background: #f5f8f6;
 }
 .filter-tab.is-active, .filter-tab.is-selected {
   color: var(--brand-green);
@@ -126,7 +150,9 @@
 
 /* Table Shell */
 .table-shell {
-  overflow: hidden;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border-light);
   border-radius: 1rem;
   background: #fff;
@@ -138,113 +164,143 @@ table {
   text-align: left;
 }
 thead {
-  background: #fafcfb;
+  background: #f9fbfa;
 }
 th {
-  height: 2.85rem;
-  padding: 0 .95rem;
-  border-bottom: 1px solid #edf2ef;
+  height: 2.65rem;
+  padding: 0 .9rem;
+  border-bottom: 1px solid #e9f0ec;
   color: var(--text-subtle);
-  font-size: .6rem;
-  font-weight: 850;
-  letter-spacing: .08em;
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 td {
-  padding: .95rem .95rem;
+  padding: .82rem .9rem;
   border-bottom: 1px solid #f1f5f3;
   color: var(--text-muted);
-  font-size: .74rem;
+  font-size: .76rem;
   vertical-align: middle;
 }
-tbody tr:hover { background: #fbfdfc; }
+tbody tr { transition: background-color .12s ease; }
+tbody tr:hover { background: #f9fcfa; }
 tbody tr:last-child td { border-bottom: 0; }
 
 /* Business Cell */
 .business-cell {
   display: flex;
   align-items: center;
-  gap: .8rem;
-  min-width: 12rem;
+  gap: .75rem;
+  min-width: 12.5rem;
+  max-width: 17.5rem;
+}
+.business-cell-text {
+  min-width: 0;
+  flex: 1;
 }
 .business-avatar {
   display: grid;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 2.3rem;
+  height: 2.3rem;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: .75rem;
+  border-radius: .7rem;
   background: linear-gradient(135deg, #eaf6ee, #bbf7d0);
   border: 1px solid #bbf7d0;
   color: #065f46;
   font-family: var(--heading-font);
-  font-size: .95rem;
-  font-weight: 850;
+  font-size: .9rem;
+  font-weight: 800;
 }
 .business-name {
   display: block;
-  max-width: 14rem;
   overflow: hidden;
   color: var(--text-main);
-  font-size: .78rem;
-  font-weight: 800;
+  font-size: .82rem;
+  font-weight: 750;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .business-type {
   display: block;
-  margin-top: .15rem;
+  margin-top: .12rem;
   color: var(--text-subtle);
-  font-size: .66rem;
+  font-size: .68rem;
+}
+.business-owner-meta {
+  display: block;
+  margin-top: .12rem;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: .68rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Store Link & Pill */
 .store-url-pill {
   display: inline-flex;
   align-items: center;
-  gap: .4rem;
-  padding: .28rem .55rem;
+  gap: .28rem;
+  max-width: 16.5rem;
+  padding: .28rem .45rem .28rem .58rem;
   border-radius: .55rem;
   background: #f8faf9;
   border: 1px solid #e2ece6;
 }
 .store-link {
+  overflow: hidden;
   color: var(--brand-green);
   text-decoration: none;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: .68rem;
-  font-weight: 700;
+  font-size: .7rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .store-link:hover { text-decoration: underline; }
 .copy-url-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.35rem;
-  height: 1.35rem;
+  flex-shrink: 0;
+  width: 1.4rem;
+  height: 1.4rem;
   padding: 0;
   border: 0;
   border-radius: .35rem;
   background: transparent;
   color: var(--text-subtle);
-  font-size: .75rem;
   cursor: pointer;
+  transition: background-color .14s ease, color .14s ease;
 }
 .copy-url-btn:hover { background: #e2ece6; color: var(--text-main); }
 
 .category-pill {
   display: inline-block;
-  padding: .2rem .5rem;
+  padding: .22rem .55rem;
   border-radius: .45rem;
   background: #f1f5f3;
   color: var(--text-muted);
-  font-size: .65rem;
+  font-size: .68rem;
   font-weight: 650;
   white-space: nowrap;
 }
 
 .date-cell {
-  color: var(--text-subtle);
-  font-size: .7rem;
+  color: var(--text-muted);
+  font-size: .73rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.status-cell-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .26rem;
   white-space: nowrap;
 }

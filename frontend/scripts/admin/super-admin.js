@@ -127,6 +127,7 @@
     );
     if (!confirmed) return;
 
+    const prevHtml = button.innerHTML;
     button.disabled = true;
     button.textContent = "Sending…";
     const result = await platformApiFetch(`/stores/${encodeURIComponent(store.id)}/billing/payment-prompt`, {
@@ -134,7 +135,8 @@
       body: JSON.stringify({ phoneNumber }),
     });
     button.disabled = false;
-    button.textContent = "↗ M-Pesa prompt";
+    button.innerHTML = prevHtml;
+    if (window.lucide?.createIcons) window.lucide.createIcons();
     if (!result.ok || !result.data.success) {
       if (result.status === 401) window.location.replace("./super-admin-login.html");
       setAdminNotice(result.data.error?.message || "Could not send the M-Pesa prompt.", true);
@@ -279,12 +281,14 @@
         false,
       );
       if (!confirmed) return;
+      const prevHtml = button.innerHTML;
       button.disabled = true;
       button.textContent = "Adding month…";
       const result = await platformApiFetch(`/stores/${encodeURIComponent(store.id)}/billing/trial`, { method: "PATCH" });
       if (!result.ok || !result.data.success) {
         button.disabled = false;
-        button.textContent = "Free month";
+        button.innerHTML = prevHtml;
+        if (window.lucide?.createIcons) window.lucide.createIcons();
         if (result.status === 401) {
           window.location.replace("./super-admin-login.html");
           return;
@@ -311,12 +315,14 @@
     const confirmed = await confirmDialog(title, message, isSuspension);
     if (!confirmed) return;
 
+    const prevHtml = button.innerHTML;
     button.disabled = true;
     button.textContent = isApproval ? "Approving…" : isReactivation ? "Reactivating…" : "Suspending…";
     const result = await platformApiFetch(`/stores/${encodeURIComponent(store.id)}/${action}`, { method: "PATCH" });
     if (!result.ok || !result.data.success) {
       button.disabled = false;
-      button.textContent = isApproval ? "Approve store" : isReactivation ? "Reactivate" : "Suspend";
+      button.innerHTML = prevHtml;
+      if (window.lucide?.createIcons) window.lucide.createIcons();
       if (result.status === 401) {
         window.location.replace("./super-admin-login.html");
         return;
@@ -343,7 +349,7 @@
       await loadDashboard();
     } catch (error) {
       setAdminNotice(error.message || "Could not load platform data.", true);
-      ui.rows.innerHTML = '<tr><td colspan="7" class="table-message">The business directory could not be loaded. Try refreshing.</td></tr>';
+      ui.rows.innerHTML = '<tr><td colspan="6" class="table-message">The business directory could not be loaded. Try refreshing.</td></tr>';
     }
 
     // Keyboard shortcut ⌘K / Ctrl+K
@@ -370,6 +376,32 @@
   document.getElementById("save-billing-settings").addEventListener("click", () => void saveBillingSettings());
   document.getElementById("subdomain-form")?.addEventListener("submit", (event) => void saveSubdomainEdit(event));
   document.getElementById("subdomain-cancel-btn")?.addEventListener("click", closeSubdomainModal);
+  document.getElementById("subdomain-modal")?.addEventListener("click", (event) => {
+    if (event.target.id === "subdomain-modal") closeSubdomainModal();
+  });
+
+  // Sidebar active section indicator
+  const navLinks = Array.from(document.querySelectorAll("[data-nav-section]"));
+  const setActiveNav = (sectionId) => {
+    navLinks.forEach((link) => {
+      link.classList.toggle("is-current", link.dataset.navSection === sectionId);
+    });
+  };
+  navLinks.forEach((link) => {
+    link.addEventListener("click", () => setActiveNav(link.dataset.navSection));
+  });
+  if ("IntersectionObserver" in window && navLinks.length > 0) {
+    const sections = navLinks
+      .map((link) => document.getElementById(link.dataset.navSection))
+      .filter(Boolean);
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visible) setActiveNav(visible.target.id);
+    }, { rootMargin: "-20% 0px -60% 0px", threshold: 0 });
+    sections.forEach((section) => observer.observe(section));
+  }
   document.getElementById("subdomain-input")?.addEventListener("input", (event) => {
     const raw = (event.target.value || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
     const preview = document.getElementById("subdomain-preview");
