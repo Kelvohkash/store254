@@ -21,6 +21,22 @@
           document.documentElement.setAttribute("data-platform-view", "stores");
         }
       }
+
+      const normalizeDisplayAndFontScale = () => {
+        try {
+          const root = document.documentElement;
+          root.style.setProperty("font-size", "16px", "important");
+          const measuredPx = parseFloat(window.getComputedStyle(root).fontSize) || 16;
+          const osFontRatio = measuredPx > 0 ? measuredPx / 16 : 1;
+          const vw = window.innerWidth || document.documentElement.clientWidth || 390;
+          const viewportScale = vw > 0 && vw < 390 ? Math.max(0.72, vw / 390) : 1;
+          const targetPx = (16 * viewportScale) / osFontRatio;
+          root.style.setProperty("font-size", `${targetPx.toFixed(3)}px`, "important");
+        } catch {}
+      };
+      normalizeDisplayAndFontScale();
+      window.addEventListener("resize", normalizeDisplayAndFontScale, { passive: true });
+      window.addEventListener("orientationchange", normalizeDisplayAndFontScale, { passive: true });
     })();
   </script>
   <title>Store254 | Kenyan online stores</title>
@@ -44,11 +60,12 @@
     html[data-storefront="true"] .platform-nav-links,
     html[data-storefront="true"] #platform-mobile-menu { display: none !important; }
     html:not([data-storefront="true"]):not([data-platform-view="stores"]) #platform-stores-section,
-    html:not([data-storefront="true"]):not([data-platform-view="stores"]) #platform-demo-stores-section { display: none !important; }
+    html:not([data-storefront="true"]):not([data-platform-view="stores"]) #platform-demo-stores-section,
+    html:not([data-storefront="true"]):not([data-platform-view="stores"]) .platform-intro,
+    #platform-benefit-strip,
+    .platform-showcase-art { display: none !important; }
     html:not([data-platform-view="stores"]) .stores-only-nav { display: none !important; }
     html[data-platform-view="stores"] #platform-ripple-search-section,
-    html[data-platform-view="stores"] .platform-intro,
-    html[data-platform-view="stores"] #platform-benefit-strip,
     html[data-platform-view="stores"] #platform-kenya-metrics { display: none !important; }
     html[data-platform-view="stores"] #platform-stores-section { margin-top: 1.5rem; }
     html[data-platform-view="stores"] .platform-nav-links a[href="/stores"] {
@@ -308,19 +325,12 @@
             </button>
           </div>
           <div id="marketplace-location-panel" class="hidden absolute right-0 top-full mt-2 w-[min(92vw,23rem)] bg-white border border-slate-200 rounded-2xl shadow-2xl p-3.5 z-40">
-            <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
-              <span class="text-xs font-extrabold text-slate-800">Your location</span>
-              <button type="button" onclick="useBrowserGpsLocation()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                <i data-lucide="crosshair" class="w-3 h-3"></i>
-                <span>Click to auto detect location</span>
-              </button>
-            </div>
-            <div id="marketplace-county-step" class="mt-2.5 space-y-2">
+            <div id="marketplace-county-step" class="space-y-2">
               <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">1. Select County</label>
               <input id="marketplace-county-filter" type="search" oninput="onMarketplaceCountyInput(this.value)" placeholder="Filter county (e.g. Murang'a, Nairobi)..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
               <div id="marketplace-county-list" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto py-0.5"></div>
             </div>
-            <div id="marketplace-town-search-wrap" class="hidden mt-2.5 space-y-2">
+            <div id="marketplace-town-search-wrap" class="hidden space-y-2">
               <div class="flex items-center justify-between gap-2">
                 <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">2. Town in <span id="marketplace-town-county-label" class="text-emerald-800">County</span></label>
                 <button type="button" onclick="backToMarketplaceCountyStep()" class="text-[11px] font-bold text-emerald-700 hover:underline shrink-0">← Change county</button>
@@ -381,10 +391,8 @@
       </div>
       <div class="platform-stores-heading">
         <div>
-          <p class="platform-eyebrow">DISCOVER KENYAN SELLERS</p>
-          <h2 id="platform-stores-title">Explore active storefronts</h2>
+          <h2 id="platform-stores-title">Active storefronts</h2>
         </div>
-        <p>Support independent entrepreneurs, makers, and boutiques — stores nearest to your chosen town appear first.</p>
       </div>
       <div id="platform-directory-toolbar" class="platform-directory-toolbar hidden">
         <div class="platform-directory-search">
@@ -398,18 +406,12 @@
 
     <div class="platform-intro">
       <div class="platform-intro-copy">
-        <p class="platform-eyebrow">Store254 <span>/</span> For Sellers</p>
         <h1><span class="hero-heading-ink">Every Hustle<br class="desktop-headline-break"><br class="mobile-headline-break">has a home<br class="desktop-headline-break"> here</span></h1>
-        <p class="platform-summary">Claim your free store domain, showcase your products and start selling online with your own storefront website</p>
-        <div class="platform-hero-actions">
+        <div class="platform-hero-actions mt-4">
           <button type="button" onclick="toggleDrawer('onboard-modal', true)" class="platform-primary">
             <span>Open your store</span>
             <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
           </button>
-          <a href="/stores" class="platform-secondary">
-            <span>Browse storefronts</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </a>
         </div>
         <div class="platform-hero-proof" aria-label="Platform highlights">
           <span><i data-lucide="globe"></i> Free .store254.co.ke domain</span>
@@ -417,70 +419,39 @@
           <span><i data-lucide="zap"></i> Live in 3 minutes</span>
         </div>
       </div>
-      <div class="platform-showcase-art" aria-label="A preview of independent Kenyan storefronts">
-        <div class="showcase-glow"></div>
-        <div class="showcase-carousel" aria-label="Featured Kenyan store stories" aria-live="polite"></div>
-        <div class="showcase-carousel-controls" role="group" aria-label="Choose a featured store story"></div>
-        <div class="showcase-float-tag" hidden><span class="showcase-live-dot"></span><span><strong>Created by</strong><small id="featured-store-owner">Store owner</small></span></div>
-        <div class="showcase-stamp">254<br><small>KE</small></div>
-      </div>
     </div>
-
-    <!-- Platform Benefit Strip -->
-    <section id="platform-benefit-strip" class="platform-benefit-strip" aria-label="Why Store254">
-      <article>
-        <span class="benefit-number">01 / SUBDOMAIN &amp; SSL</span>
-        <h2>Claim your Kenyan store subdomain</h2>
-        <p>Get a clean, branded address like yourbrand.store254.co.ke with automated SSL, fast CDN, and zero hosting fees.</p>
-      </article>
-      <article>
-        <span class="benefit-number">02 / M-PESA CHECKOUT</span>
-        <h2>Direct M-Pesa STK push payments</h2>
-        <p>Customers check out with their Safaricom number and pay directly into your Till or Paybill with instant confirmation.</p>
-      </article>
-      <article>
-        <span class="benefit-number">03 / BRAND &amp; MOBILE READY</span>
-        <h2>Brand colours &amp; mobile-first storefront</h2>
-        <p>Set your accent colour, upload a hero banner, and launch a clean, high-contrast catalog built for phone shoppers.</p>
-      </article>
-    </section>
 
     <!-- Kenya Location & Smart Network Metrics -->
     <section id="platform-kenya-metrics" class="platform-metrics-band" aria-labelledby="kenya-metrics-title">
       <div class="platform-metrics-header">
         <div>
-          <p class="platform-eyebrow">NATIONWIDE HYPERLOCAL REACH</p>
-          <h2 id="kenya-metrics-title">Mapped across every corner of Kenya</h2>
+          <h2 id="kenya-metrics-title">Kenya Coverage</h2>
         </div>
-        <p class="platform-metrics-subtitle">Every store connects into a smart proximity graph so nearby shoppers always find local stock.</p>
       </div>
       <div class="platform-metrics-grid">
         <article class="platform-metric-card">
-          <span class="platform-metric-label">Level 1 · Counties</span>
+          <span class="platform-metric-label">Counties</span>
           <strong id="metric-kenya-counties" class="platform-metric-value">47</strong>
-          <small class="platform-metric-meta">All 47 Kenyan Counties covered</small>
         </article>
         <article class="platform-metric-card">
-          <span class="platform-metric-label">Level 2 · Constituencies</span>
+          <span class="platform-metric-label">Constituencies</span>
           <strong id="metric-kenya-constituencies" class="platform-metric-value">290</strong>
-          <small class="platform-metric-meta">Complete constituency mapping</small>
         </article>
         <article class="platform-metric-card">
-          <span class="platform-metric-label">Level 3 · Towns, Wards &amp; Centres</span>
+          <span class="platform-metric-label">Towns &amp; Centres</span>
           <strong id="metric-kenya-locations" class="platform-metric-value">22,794</strong>
-          <small id="metric-kenya-breakdown" class="platform-metric-meta">Trading centres, markets, malls, towns &amp; estates</small>
+          <small id="metric-kenya-breakdown" class="hidden"></small>
         </article>
         <article class="platform-metric-card platform-metric-card-accent">
-          <span class="platform-metric-label">Smart Neighbor Graph</span>
+          <span class="platform-metric-label">Linked Routes</span>
           <strong id="metric-kenya-neighbors" class="platform-metric-value">182,352</strong>
-          <small class="platform-metric-meta">Pre-linked closest centres (8 per location)</small>
         </article>
       </div>
       <div class="platform-metrics-pills" aria-label="Level 3 location breakdown">
-        <span><strong id="metric-kind-trading">17,469</strong> Trading Centres &amp; Villages</span>
-        <span><strong id="metric-kind-shopping">2,862</strong> Shopping Centres &amp; Markets</span>
-        <span><strong id="metric-kind-towns">1,620</strong> Towns &amp; Wards</span>
-        <span><strong id="metric-kind-estates">843</strong> Estates &amp; Suburbs</span>
+        <span><strong id="metric-kind-trading">17,469</strong> Trading Centres</span>
+        <span><strong id="metric-kind-shopping">2,862</strong> Markets</span>
+        <span><strong id="metric-kind-towns">1,620</strong> Towns</span>
+        <span><strong id="metric-kind-estates">843</strong> Estates</span>
       </div>
     </section>
 
@@ -488,10 +459,8 @@
     <section id="platform-demo-stores-section" class="platform-stores-section" aria-labelledby="demo-stores-title">
       <div class="platform-stores-heading">
         <div>
-          <p class="platform-eyebrow">SAMPLE BUSINESSES</p>
           <h2 id="demo-stores-title">Demo businesses</h2>
         </div>
-        <p>Explore sample stores across fashion, electronics, salons, services, and more.</p>
       </div>
       <div id="demo-stores-grid" class="platform-stores-grid" aria-live="polite"></div>
     </section>
@@ -499,9 +468,7 @@
     <!-- Platform Seller Callout -->
     <section class="platform-seller-callout" aria-labelledby="seller-callout-title">
       <div class="seller-callout-copy">
-        <p class="platform-eyebrow">START IN 3 MINUTES</p>
         <h2 id="seller-callout-title">Turn your hustle into a live online store.</h2>
-        <p>No credit card required. Connect your M-Pesa Till or Paybill and start sharing your link on Instagram, WhatsApp, and TikTok.</p>
       </div>
       <button type="button" class="platform-primary" onclick="toggleDrawer('onboard-modal', true)">
         <span>Create your store free</span>
@@ -1324,71 +1291,38 @@
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
 
-      <!-- Step 1: Respectful Google Sign-In Invite -->
-      <div id="buyer-welcome-step-1" class="p-6 sm:p-8 space-y-5">
-        <div class="space-y-2">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-extrabold uppercase tracking-wider">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-            <span>Karibu Store254 Kenya</span>
-          </span>
-          <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900">See only good products near you — zero clutter</h3>
-          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Signing in with Google is quick and optional. Here is why shoppers love it:
-          </p>
+      <!-- Step 1: Minimal Google Sign-In Invite -->
+      <div id="buyer-welcome-step-1" class="p-6 space-y-4">
+        <div class="pr-8">
+          <h3 class="text-lg font-extrabold text-slate-900">Sign in to Store254</h3>
         </div>
 
-        <ul class="space-y-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 p-4 text-xs text-slate-700">
-          <li class="flex items-start gap-2.5">
-            <i data-lucide="map-pin" class="w-4 h-4 text-emerald-700 shrink-0 mt-0.5"></i>
-            <span><strong>Remembers your town:</strong> Shows locally available stock near you first with zero clutter.</span>
-          </li>
-          <li class="flex items-start gap-2.5">
-            <i data-lucide="shopping-bag" class="w-4 h-4 text-emerald-700 shrink-0 mt-0.5"></i>
-            <span><strong>One shared cart:</strong> Buy from any Kenyan shop with M-Pesa without hopping websites.</span>
-          </li>
-          <li class="flex items-start gap-2.5">
-            <i data-lucide="receipt" class="w-4 h-4 text-emerald-700 shrink-0 mt-0.5"></i>
-            <span><strong>All receipts in one place:</strong> Track orders and deliveries anytime.</span>
-          </li>
-        </ul>
-
         <div class="space-y-2.5">
-          <button type="button" onclick="startPlatformGoogleSignIn()" class="w-full py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm flex items-center justify-center gap-2.5 shadow-lg">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.3-1.5 3.9-5.4 3.9-3.2 0-5.9-2.7-5.9-6s2.7-6 5.9-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.4 14.6 2.5 12 2.5 6.8 2.5 2.5 6.8 2.5 12s4.3 9.5 9.5 9.5c5.5 0 9.1-3.8 9.1-9.2 0-.6-.1-1.1-.2-1.6H12z"/></svg>
+          <button type="button" onclick="startPlatformGoogleSignIn()" class="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-sm">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.3-1.5 3.9-5.4 3.9-3.2 0-5.9-2.7-5.9-6s2.7-6 5.9-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.4 14.6 2.5 12 2.5 6.8 2.5 2.5 6.8 2.5 12s4.3 9.5 9.5 9.5c5.5 0 9.1-3.8 9.1-9.2 0-.6-.1-1.1-.2-1.6H12z"/></svg>
             <span>Continue with Google</span>
           </button>
-          <button type="button" onclick="goToBuyerWelcomeStep(2)" class="w-full py-3 px-4 rounded-2xl border-2 border-emerald-700 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5">
-            <span>Continue as Guest → Pick My Town</span>
+          <button type="button" onclick="goToBuyerWelcomeStep(2)" class="w-full py-3 px-4 rounded-xl border border-emerald-700 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+            <span>Select location</span>
             <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </button>
-          <p class="text-center text-[11px] text-slate-500">
-            No pressure — browse freely as a guest and sign in later only if you want.
-            <button type="button" onclick="dismissBuyerWelcomeModal()" class="underline font-bold text-slate-600 hover:text-slate-900 ml-1">Browse all Kenya</button>
-          </p>
+          <div class="text-center pt-1">
+            <button type="button" onclick="dismissBuyerWelcomeModal()" class="text-xs font-bold text-slate-500 hover:text-slate-800">Skip</button>
+          </div>
         </div>
       </div>
 
       <!-- Step 2: Location Selector (County -> Live Town / Centre) -->
-      <div id="buyer-welcome-step-2" class="hidden p-6 sm:p-8 space-y-4">
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between gap-2 pr-8">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-extrabold uppercase tracking-wider">Step 2 · Local First</span>
-            <button id="welcome-step2-back-btn" type="button" onclick="goToBuyerWelcomeStep(1)" class="text-xs font-bold text-slate-500 hover:text-slate-900">← Back to Sign In</button>
-          </div>
-          <h3 class="text-xl font-extrabold text-slate-900">Where are you shopping from?</h3>
-          <p id="welcome-step2-greeting" class="text-xs text-slate-600 leading-relaxed">Pick your County and town to see nearby products first.</p>
+      <div id="buyer-welcome-step-2" class="hidden p-6 space-y-4">
+        <div class="flex items-center justify-between gap-2 pr-8">
+          <h3 class="text-lg font-extrabold text-slate-900">Select your location</h3>
+          <button id="welcome-step2-back-btn" type="button" onclick="goToBuyerWelcomeStep(1)" class="text-xs font-bold text-slate-500 hover:text-slate-900">← Back</button>
         </div>
-
-        <button id="welcome-auto-detect-btn" type="button" onclick="useWelcomeGpsLocation()" class="w-full py-2.5 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-extrabold flex items-center justify-center gap-2 transition-colors">
-          <i data-lucide="crosshair" class="w-4 h-4"></i>
-          <span>Click to auto detect location</span>
-        </button>
-        <p id="welcome-gps-status" class="hidden text-[11px] font-semibold px-3 py-2 rounded-xl border"></p>
 
         <div id="welcome-county-step" class="space-y-2">
           <label for="welcome-county-filter" class="block text-[11px] font-extrabold uppercase tracking-wide text-slate-600">1. Choose County</label>
-          <input id="welcome-county-filter" type="search" oninput="onWelcomeCountyInput(this.value)" placeholder="Type county (e.g. Nairobi, Kiambu, Murang'a, Kisumu)..." class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
-          <div id="welcome-county-list" class="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto py-0.5"></div>
+          <input id="welcome-county-filter" type="search" oninput="onWelcomeCountyInput(this.value)" placeholder="Search county (e.g. Nairobi, Kiambu, Murang'a)..." class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
+          <div id="welcome-county-list" class="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto py-0.5"></div>
         </div>
 
         <div id="welcome-town-search-wrap" class="hidden space-y-2.5 pt-1">
@@ -1396,13 +1330,13 @@
             <button type="button" onclick="backToWelcomeCountyStep()" class="inline-flex items-center gap-1 text-xs font-extrabold text-emerald-700 hover:underline">← Change county</button>
             <button type="button" onclick="chooseWelcomeCountyOnly()" class="text-[11px] font-bold text-slate-600 hover:text-emerald-800 hover:underline">Use whole county</button>
           </div>
-          <label for="welcome-town-search" class="block text-[11px] font-extrabold uppercase tracking-wide text-slate-600">2. Pick Town / Shopping Centre in <span id="welcome-town-county-label" class="text-emerald-800">County</span></label>
-          <input id="welcome-town-search" type="search" oninput="onWelcomeTownInput(this.value)" placeholder="Type first letters (e.g. Kenol, Westlands, Ruaka)..." class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
+          <label for="welcome-town-search" class="block text-[11px] font-extrabold uppercase tracking-wide text-slate-600">2. Town / Centre in <span id="welcome-town-county-label" class="text-emerald-800">County</span></label>
+          <input id="welcome-town-search" type="search" oninput="onWelcomeTownInput(this.value)" placeholder="Search town or shopping centre..." class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
           <div id="welcome-town-results" class="max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/40"></div>
         </div>
 
         <div class="text-right pt-1">
-          <button type="button" onclick="dismissBuyerWelcomeModal()" class="text-xs font-bold text-slate-500 hover:text-slate-800">Skip for now (Show all Kenya)</button>
+          <button type="button" onclick="dismissBuyerWelcomeModal()" class="text-xs font-bold text-slate-500 hover:text-slate-800">Skip</button>
         </div>
       </div>
     </div>
