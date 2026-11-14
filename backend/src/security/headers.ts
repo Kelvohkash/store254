@@ -16,7 +16,7 @@ export function enterpriseSecurityHeaders(): MiddlewareHandler {
     permissionsPolicy: {
       camera: [],
       microphone: [],
-      geolocation: [],
+      geolocation: ["self"],
       payment: [],
       usb: [],
     },
