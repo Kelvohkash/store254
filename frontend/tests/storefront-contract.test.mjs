@@ -74,3 +74,17 @@ test("platform homepage renders Kenya coverage & smart network metrics", async (
   assert.match(homeCss, /\.platform-metrics-band/);
   assert.match(platformJs, /\/api\/platform\/locations\/stats/);
 });
+
+test("platform homepage exposes progressive ripple product search with location picker", async () => {
+  const [html, homeCss, searchJs] = await Promise.all([
+    read("../index.html"),
+    read("../styles/platform-home.css"),
+    read("../scripts/storefront/marketplace-search.js"),
+  ]);
+  assert.match(html, /id="platform-ripple-search-section"/);
+  assert.match(html, /id="marketplace-product-query"/);
+  assert.match(html, /id="marketplace-ripple-trail"/);
+  assert.match(homeCss, /\.platform-ripple-search-band/);
+  assert.match(searchJs, /\/api\/platform\/search\/products/);
+  assert.match(searchJs, /\/api\/platform\/search\/suggest/);
+});

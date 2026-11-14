@@ -20,6 +20,7 @@ import { rateLimiter } from "../../security/rate-limiter";
 import { SECURITY_LIMITS } from "../../config/constants";
 import { EmailService } from "../../services/email.service";
 import { locationsRouter } from "./locations.routes";
+import { searchRouter } from "./search.routes";
 import {
   LocationResolutionError,
   resolveOrCreateStoreLocation,
@@ -28,6 +29,7 @@ import {
 export const platformRouter = new Hono<AppEnv>();
 
 platformRouter.route("/locations", locationsRouter);
+platformRouter.route("/search", searchRouter);
 
 // Register Store Input Schema
 const registerStoreSchema = z
