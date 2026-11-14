@@ -395,8 +395,10 @@
     syncMarketplaceHeaderState();
     showToast(`Showing local products near ${loc.locationName} first`, "success");
     const searchSec = document.getElementById("platform-ripple-search-section");
-    if (searchSec) {
+    if (searchSec && window.getComputedStyle(searchSec).display !== "none") {
       searchSec.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (typeof window.filterPlatformStores === "function") {
+      window.filterPlatformStores();
     }
   };
 
@@ -1276,6 +1278,7 @@
 
     const savedLoc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
     const dismissed = localStorage.getItem(WELCOME_DISMISSED_KEY) === "1";
+    const isStoresPage = document.documentElement.dataset.platformView === "stores";
 
     if (loginResult === "success") {
       showToast(
@@ -1284,10 +1287,10 @@
           : "Signed in to Store254!",
         "success"
       );
-      if (!savedLoc) {
+      if (!savedLoc && !isStoresPage) {
         window.openBuyerWelcomeModal(2);
       }
-    } else if (!savedLoc && !dismissed) {
+    } else if (!savedLoc && !dismissed && !isStoresPage) {
       window.openBuyerWelcomeModal(platformUser ? 2 : 1);
     }
   });

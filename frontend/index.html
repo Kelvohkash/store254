@@ -15,6 +15,11 @@
       if (hasExplicitStore || storeSubdomain || localSubdomain || (!isPlatformHost && !host.endsWith(".localhost"))) {
         document.documentElement.setAttribute("data-storefront", "true");
         document.documentElement.setAttribute("data-storefront-pending", "true");
+      } else {
+        const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
+        if (normalizedPath === "/stores") {
+          document.documentElement.setAttribute("data-platform-view", "stores");
+        }
       }
     })();
   </script>
@@ -38,6 +43,18 @@
     html[data-storefront="true"] #platform-hero { display: none !important; }
     html[data-storefront="true"] .platform-nav-links,
     html[data-storefront="true"] #platform-mobile-menu { display: none !important; }
+    html:not([data-storefront="true"]):not([data-platform-view="stores"]) #platform-stores-section,
+    html:not([data-storefront="true"]):not([data-platform-view="stores"]) #platform-demo-stores-section { display: none !important; }
+    html:not([data-platform-view="stores"]) .stores-only-nav { display: none !important; }
+    html[data-platform-view="stores"] #platform-ripple-search-section,
+    html[data-platform-view="stores"] .platform-intro,
+    html[data-platform-view="stores"] #platform-benefit-strip,
+    html[data-platform-view="stores"] #platform-kenya-metrics { display: none !important; }
+    html[data-platform-view="stores"] #platform-stores-section { margin-top: 1.5rem; }
+    html[data-platform-view="stores"] .platform-nav-links a[href="/stores"] {
+      color: #07834e;
+      font-weight: 800;
+    }
     html[data-storefront="true"][data-storefront-pending="true"] #storefront-loading-screen { display: block !important; }
     html[data-storefront="true"][data-storefront-pending="true"] #store-info-banner,
     html[data-storefront="true"][data-storefront-pending="true"] #storefront-view { display: none !important; }
@@ -108,8 +125,8 @@
           <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-700 shrink-0"></i>
           <span id="platform-nav-location-label" class="max-w-[9.5rem] truncate">Pick Your Town</span>
         </button>
-        <a href="#platform-ripple-search-section">Shop Local</a>
-        <a href="#platform-stores-section">Stores</a>
+        <a href="/">Shop Local</a>
+        <a href="/stores">Stores</a>
         <button id="platform-nav-account-btn" type="button" onclick="handlePlatformAccountClick()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors">
           <i data-lucide="user-round" class="w-3.5 h-3.5"></i>
           <span id="platform-nav-account-label">Sign in</span>
@@ -182,11 +199,12 @@
     </nav>
 
     <nav id="platform-mobile-menu" class="platform-mobile-menu" aria-label="Mobile navigation" hidden>
-      <a href="#platform-ripple-search-section" onclick="togglePlatformMobileMenu(false); openBuyerWelcomeModal(2)"><span id="platform-mobile-location-label">Pick Your Town</span><i data-lucide="map-pin" class="w-4 h-4"></i></a>
-      <a href="#platform-ripple-search-section" onclick="togglePlatformMobileMenu(false); handlePlatformAccountClick()"><span id="platform-mobile-account-label">Sign in with Google</span><i data-lucide="user-round" class="w-4 h-4"></i></a>
-      <a href="#platform-ripple-search-section" onclick="togglePlatformMobileMenu(false); openMarketplaceOrdersModal()"><span>My Orders</span><i data-lucide="package-check" class="w-4 h-4"></i></a>
-      <a href="#platform-stores-section" onclick="togglePlatformMobileMenu(false)"><span>Active storefronts</span><i data-lucide="store" class="w-4 h-4"></i></a>
-      <a href="#platform-demo-stores-section" onclick="togglePlatformMobileMenu(false)"><span>Demo businesses</span><i data-lucide="sparkles" class="w-4 h-4"></i></a>
+      <a href="/" onclick="togglePlatformMobileMenu(false)"><span>Shop Products</span><i data-lucide="shopping-bag" class="w-4 h-4"></i></a>
+      <a href="/stores" onclick="togglePlatformMobileMenu(false)"><span>Active storefronts</span><i data-lucide="store" class="w-4 h-4"></i></a>
+      <a href="/stores#platform-demo-stores-section" onclick="togglePlatformMobileMenu(false)"><span>Demo businesses</span><i data-lucide="sparkles" class="w-4 h-4"></i></a>
+      <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); openBuyerWelcomeModal(2)"><span id="platform-mobile-location-label">Pick Your Town</span><i data-lucide="map-pin" class="w-4 h-4"></i></a>
+      <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); handlePlatformAccountClick()"><span id="platform-mobile-account-label">Sign in with Google</span><i data-lucide="user-round" class="w-4 h-4"></i></a>
+      <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); openMarketplaceOrdersModal()"><span>My Orders</span><i data-lucide="package-check" class="w-4 h-4"></i></a>
       <button type="button" onclick="togglePlatformMobileMenu(false); toggleDrawer('onboard-modal', true)"><span>Open your store</span><i data-lucide="arrow-up-right" class="w-4 h-4"></i></button>
     </nav>
   </header>
@@ -346,6 +364,16 @@
 
     <!-- Platform Stores Section -->
     <section id="platform-stores-section" class="platform-stores-section" aria-labelledby="platform-stores-title">
+      <div class="stores-only-nav mb-4 flex flex-wrap items-center justify-between gap-2">
+        <a href="/" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-bold transition-colors">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          <span>Back to Product Search</span>
+        </a>
+        <a href="#platform-demo-stores-section" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-700"></i>
+          <span>Jump to Demo Businesses</span>
+        </a>
+      </div>
       <div class="platform-stores-heading">
         <div>
           <p class="platform-eyebrow">DISCOVER KENYAN SELLERS</p>
@@ -373,9 +401,9 @@
             <span>Open your store</span>
             <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
           </button>
-          <a href="#platform-stores-section" class="platform-secondary">
+          <a href="/stores" class="platform-secondary">
             <span>Browse storefronts</span>
-            <i data-lucide="arrow-down" class="w-4 h-4"></i>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </a>
         </div>
         <div class="platform-hero-proof" aria-label="Platform highlights">
