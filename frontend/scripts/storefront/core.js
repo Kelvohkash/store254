@@ -2,7 +2,7 @@
 async function loadDefaultStorefrontStyles() {
   const id = "active-storefront-styles";
   let link = document.getElementById(id);
-  const href = new URL("/styles/storefront-default.css", window.location.origin).href;
+  const href = new URL("/styles/storefront-default.css?v=20261115d", window.location.origin).href;
   if (link?.href === href && link.dataset.loaded === "true") return;
   link?.remove();
   link = document.createElement("link");

@@ -58,11 +58,11 @@
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
 
   <link rel="stylesheet" href="/styles/tailwind.generated.css?v=20261114">
-  <link rel="stylesheet" href="/styles/base.css">
-  <link rel="stylesheet" href="/styles/storefront-components.css">
-  <link rel="stylesheet" href="/styles/storefront-quality.css">
+  <link rel="stylesheet" href="/styles/base.css?v=20261115d">
+  <link rel="stylesheet" href="/styles/storefront-components.css?v=20261115d">
+  <link rel="stylesheet" href="/styles/storefront-quality.css?v=20261115d">
   <link rel="stylesheet" href="/styles/platform-home.css?v=20261115c">
-  <link rel="stylesheet" href="/styles/ui-polish.css">
+  <link rel="stylesheet" href="/styles/ui-polish.css?v=20261115d">
   <style>
     html[data-storefront="true"] #platform-hero { display: none !important; }
     html[data-storefront="true"] .platform-nav-links,
@@ -248,12 +248,47 @@
 
   <!-- STOREFRONT BANNER (Visible only when browsing an active store subdomain) -->
   <section id="store-info-banner" class="store-banner hidden">
+    <div class="store-hero-ambient" aria-hidden="true">
+      <span class="hero-aurora-orb orb-1"></span>
+      <span class="hero-aurora-orb orb-2"></span>
+      <span class="hero-aurora-orb orb-3"></span>
+      <span class="hero-mesh-grid"></span>
+      <span class="hero-sparkle sparkle-1">&#10022;</span>
+      <span class="hero-sparkle sparkle-2">&#10022;</span>
+    </div>
     <div class="store-banner-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="store-banner-copy">
-        <p id="banner-store-subdomain" class="store-address">store.store254.co.ke</p>
+        <div class="store-hero-identity">
+          <div class="store-hero-avatar-wrap" aria-hidden="true">
+            <span class="store-hero-avatar-ring"></span>
+            <div id="banner-store-avatar" class="store-hero-avatar">S</div>
+            <span class="store-hero-verified-dot"></span>
+          </div>
+          <div class="store-hero-identity-meta">
+            <p id="banner-store-subdomain" class="store-address">store.store254.co.ke</p>
+            <span class="store-hero-verified-pill">
+              <i data-lucide="badge-check" class="w-3.5 h-3.5"></i>
+              <span>Verified Store</span>
+            </span>
+          </div>
+        </div>
         <h1 id="banner-store-name">Store Name</h1>
         <p id="banner-store-tagline" class="store-tagline hidden"></p>
         <p id="banner-store-desc">Store description</p>
+        <div class="store-hero-trust-rail" aria-label="Store highlights">
+          <span class="store-hero-trust-chip">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span>Authentic</span>
+          </span>
+          <span class="store-hero-trust-chip">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+            <span>Instant M-Pesa</span>
+          </span>
+          <span class="store-hero-trust-chip">
+            <i data-lucide="truck" class="w-3.5 h-3.5"></i>
+            <span>Fast Dispatch</span>
+          </span>
+        </div>
         <div id="banner-social-links" class="store-social-links hidden" aria-label="Store social media links"></div>
         <div class="store-banner-actions">
           <a id="storefront-primary-cta" class="storefront-primary-cta hidden" href="#items-grid">
@@ -1391,10 +1426,10 @@
     </div>
   </div>
 
-  <script src="/scripts/storefront/core.js"></script>
+  <script src="/scripts/storefront/core.js?v=20261115d"></script>
   <script src="/scripts/storefront/core-theme.js"></script>
-  <script src="/scripts/storefront/social.js"></script>
-  <script src="/scripts/storefront/banner.js?v=20261115c"></script>
+  <script src="/scripts/storefront/social.js?v=20261115d"></script>
+  <script src="/scripts/storefront/banner.js?v=20261115d"></script>
   <script src="/scripts/storefront/navigation.js?v=20261115b"></script>
   <script src="/scripts/shared/category-icon-classifier.js"></script>
   <script src="/scripts/storefront/categories.js"></script>

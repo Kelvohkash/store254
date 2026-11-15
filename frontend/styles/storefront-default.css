@@ -222,28 +222,28 @@ html[data-storefront="true"] #storefront-fashion-nav {
 }
 
 /* ==========================================================================
-   2. Storefront Hero Banner (PC Split Showcase vs Mobile Compact Card)
+   2. Storefront Hero Banner (Creative Animated Mobile Card & PC Showcase)
    ========================================================================== */
 
 html[data-storefront="true"] .store-banner,
 html[data-storefront="true"] #store-info-banner {
   position: relative;
   overflow: hidden;
-  padding: clamp(1.5rem, 3vw, 2.6rem) 0 !important;
+  padding: clamp(1.35rem, 3vw, 2.5rem) 0 !important;
   border-bottom: 1px solid var(--store-line) !important;
 }
 
-/* Dynamic Theme-Driven Hero Gradient (No hardcoded pink/terracotta or background.jfif) */
+/* Dynamic Theme-Driven Hero Gradient */
 html[data-storefront="true"] .store-banner:not(.has-banner-image),
 html[data-storefront="true"] #store-info-banner:not(.has-banner-image) {
   background:
-    radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--store-primary) 22%, transparent) 0%, transparent 45%),
-    radial-gradient(circle at 12% 85%, color-mix(in srgb, var(--store-primary) 15%, transparent) 0%, transparent 42%),
+    radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--store-primary) 26%, transparent) 0%, transparent 48%),
+    radial-gradient(circle at 12% 85%, color-mix(in srgb, var(--store-primary) 18%, transparent) 0%, transparent 44%),
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--store-primary) 12%, var(--store-white)) 0%,
+      color-mix(in srgb, var(--store-primary) 14%, var(--store-white)) 0%,
       var(--store-paper) 54%,
-      color-mix(in srgb, var(--store-primary) 8%, var(--store-white)) 100%
+      color-mix(in srgb, var(--store-primary) 10%, var(--store-white)) 100%
     ) !important;
 }
 
@@ -252,10 +252,10 @@ html[data-storefront="true"] .store-banner.has-banner-image,
 html[data-storefront="true"] #store-info-banner.has-banner-image {
   background-image:
     linear-gradient(
-      115deg,
-      color-mix(in srgb, var(--store-primary) 42%, rgba(15, 23, 42, 0.72)) 0%,
-      rgba(15, 23, 42, 0.55) 52%,
-      color-mix(in srgb, var(--store-primary) 30%, rgba(15, 23, 42, 0.76)) 100%
+      145deg,
+      color-mix(in srgb, var(--store-primary) 34%, rgba(10, 15, 28, 0.56)) 0%,
+      rgba(10, 15, 28, 0.4) 50%,
+      color-mix(in srgb, var(--store-primary) 28%, rgba(10, 15, 28, 0.62)) 100%
     ),
     var(--store-banner-image) !important;
   background-position: var(--store-banner-position, center) !important;
@@ -263,7 +263,145 @@ html[data-storefront="true"] #store-info-banner.has-banner-image {
   background-repeat: no-repeat !important;
 }
 
+/* Ambient Animated Aurora Orbs, Mesh Grid & Floating Sparkles */
+html[data-storefront="true"] .store-hero-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+html[data-storefront="true"] .hero-mesh-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(color-mix(in srgb, var(--store-primary) 26%, transparent) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.4;
+  mask-image: radial-gradient(ellipse at 50% 45%, black 35%, transparent 82%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 45%, black 35%, transparent 82%);
+}
+
+html[data-storefront="true"] .store-banner.has-banner-image .hero-mesh-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.28) 1px, transparent 1px);
+  opacity: 0.22;
+}
+
+html[data-storefront="true"] .hero-aurora-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(42px);
+  opacity: 0.55;
+  will-change: transform;
+}
+
+html[data-storefront="true"] .store-banner.has-banner-image .hero-aurora-orb {
+  mix-blend-mode: screen;
+  opacity: 0.42;
+}
+
+html[data-storefront="true"] .hero-aurora-orb.orb-1 {
+  width: 15rem;
+  height: 15rem;
+  top: -4.5rem;
+  right: -2.5rem;
+  background: radial-gradient(circle, color-mix(in srgb, var(--store-primary) 75%, #38bdf8), transparent 72%);
+  animation: heroAuroraDrift1 11s ease-in-out infinite alternate;
+}
+
+html[data-storefront="true"] .hero-aurora-orb.orb-2 {
+  width: 13rem;
+  height: 13rem;
+  bottom: -4.5rem;
+  left: -3rem;
+  background: radial-gradient(circle, color-mix(in srgb, var(--store-primary) 60%, #818cf8), transparent 72%);
+  animation: heroAuroraDrift2 13s ease-in-out infinite alternate;
+}
+
+html[data-storefront="true"] .hero-aurora-orb.orb-3 {
+  width: 9rem;
+  height: 9rem;
+  top: 35%;
+  left: 42%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--store-primary) 45%, #f59e0b), transparent 72%);
+  opacity: 0.34;
+  animation: heroAuroraDrift3 15s ease-in-out infinite alternate;
+}
+
+html[data-storefront="true"] .hero-sparkle {
+  position: absolute;
+  color: color-mix(in srgb, var(--store-primary) 65%, #ffffff);
+  font-size: 0.95rem;
+  line-height: 1;
+  opacity: 0.65;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--store-primary) 50%, transparent);
+  animation: heroSparkleFloat 5.5s ease-in-out infinite;
+}
+
+html[data-storefront="true"] .store-banner.has-banner-image .hero-sparkle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+html[data-storefront="true"] .hero-sparkle.sparkle-1 {
+  top: 1.1rem;
+  right: 1.25rem;
+}
+
+html[data-storefront="true"] .hero-sparkle.sparkle-2 {
+  bottom: 1.1rem;
+  left: 1.15rem;
+  font-size: 0.72rem;
+  animation-delay: 2.2s;
+}
+
+@keyframes heroAuroraDrift1 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(-24px, 18px, 0) scale(1.16); }
+}
+
+@keyframes heroAuroraDrift2 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(26px, -16px, 0) scale(1.14); }
+}
+
+@keyframes heroAuroraDrift3 {
+  0% { transform: translate3d(-12px, 8px, 0) scale(0.95); }
+  100% { transform: translate3d(18px, -14px, 0) scale(1.12); }
+}
+
+@keyframes heroSparkleFloat {
+  0%, 100% { transform: translateY(0) scale(0.9) rotate(0deg); opacity: 0.45; }
+  50% { transform: translateY(-6px) scale(1.18) rotate(18deg); opacity: 0.95; }
+}
+
+@keyframes heroRingSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes heroLivePulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes heroCtaShimmer {
+  0%, 62% { transform: translateX(-140%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+
+@keyframes heroArrowBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2.5px); }
+}
+
+@keyframes heroStaggerIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 html[data-storefront="true"] .store-banner-inner {
+  position: relative;
+  z-index: 1;
   min-height: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
@@ -275,19 +413,154 @@ html[data-storefront="true"] .store-banner-inner {
 
 html[data-storefront="true"] .store-banner-copy,
 html[data-storefront="true"] #store-info-banner .store-banner-copy {
+  position: relative;
+  overflow: hidden;
   width: 100% !important;
   max-width: none !important;
   text-align: left !important;
-  background: color-mix(in srgb, var(--store-white) 92%, var(--store-primary-soft)) !important;
-  border: 1px solid color-mix(in srgb, var(--store-primary) 20%, var(--store-line)) !important;
-  box-shadow: 0 18px 42px -16px color-mix(in srgb, var(--store-primary) 18%, rgba(15, 23, 42, 0.12)) !important;
-  border-radius: 1.25rem !important;
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    color-mix(in srgb, var(--store-white) 88%, var(--store-primary-subtle)) 100%
+  ) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow:
+    0 22px 48px -16px rgba(15, 23, 42, 0.24),
+    0 0 0 1px color-mix(in srgb, var(--store-primary) 16%, transparent) !important;
+  border-radius: 1.35rem !important;
   padding: clamp(1.35rem, 2.6vw, 2.2rem) !important;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
-  backdrop-filter: blur(16px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+}
+
+html[data-storefront="true"] .store-banner-copy::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--store-primary),
+    color-mix(in srgb, var(--store-primary) 45%, #38bdf8),
+    transparent
+  );
+  opacity: 0.9;
+  z-index: 2;
+}
+
+html[data-storefront="true"] .store-banner-copy::after {
+  content: "";
+  position: absolute;
+  top: -3rem;
+  right: -3rem;
+  width: 10rem;
+  height: 10rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--store-primary) 14%, transparent), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-storefront="true"] .store-banner-copy > * {
+  position: relative;
+  z-index: 1;
+  animation: heroStaggerIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-storefront="true"] .store-banner-copy > *:nth-child(2) { animation-delay: 50ms; }
+html[data-storefront="true"] .store-banner-copy > *:nth-child(3) { animation-delay: 100ms; }
+html[data-storefront="true"] .store-banner-copy > *:nth-child(4) { animation-delay: 150ms; }
+html[data-storefront="true"] .store-banner-copy > *:nth-child(5) { animation-delay: 200ms; }
+html[data-storefront="true"] .store-banner-copy > *:nth-child(6) { animation-delay: 250ms; }
+html[data-storefront="true"] .store-banner-copy > *:nth-child(7) { animation-delay: 300ms; }
+
+/* Store Identity Row (Animated Crest Avatar + Domain + Verified Pill) */
+html[data-storefront="true"] .store-hero-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.8rem;
+  min-width: 0;
+}
+
+html[data-storefront="true"] .store-hero-avatar-wrap {
+  position: relative;
+  width: 3.35rem;
+  height: 3.35rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+html[data-storefront="true"] .store-hero-avatar-ring {
+  position: absolute;
+  inset: -2.5px;
+  border-radius: 1.05rem;
+  background: conic-gradient(
+    from 0deg,
+    var(--store-primary),
+    color-mix(in srgb, var(--store-primary) 40%, #38bdf8),
+    #f59e0b,
+    var(--store-primary)
+  );
+  opacity: 0.92;
+  animation: heroRingSpin 8s linear infinite;
+}
+
+html[data-storefront="true"] .store-hero-avatar {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.92rem;
+  border: 2px solid #ffffff;
+  background: linear-gradient(135deg, var(--store-primary), color-mix(in srgb, var(--store-primary) 70%, #0f172a));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--store-font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  overflow: hidden;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--store-primary) 25%, rgba(15, 23, 42, 0.2));
+}
+
+html[data-storefront="true"] .store-hero-avatar.has-logo {
+  background: #0f172a;
+}
+
+html[data-storefront="true"] .store-hero-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+html[data-storefront="true"] .store-hero-verified-dot {
+  position: absolute;
+  z-index: 2;
+  right: -2px;
+  bottom: -2px;
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 9999px;
+  background: #10b981;
+  border: 2px solid #ffffff;
+  animation: heroLivePulse 2.4s ease-out infinite;
+}
+
+html[data-storefront="true"] .store-hero-identity-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 /* Subdomain pill badge */
@@ -295,8 +568,10 @@ html[data-storefront="true"] .store-banner-copy .store-address,
 html[data-storefront="true"] #banner-store-subdomain {
   display: inline-flex !important;
   align-items: center;
+  gap: 0.4rem;
   width: fit-content;
-  padding: 0.28rem 0.8rem !important;
+  max-width: 100%;
+  padding: 0.24rem 0.68rem !important;
   border-radius: 9999px !important;
   background: var(--store-primary-subtle) !important;
   color: var(--store-primary) !important;
@@ -304,62 +579,263 @@ html[data-storefront="true"] #banner-store-subdomain {
   font-weight: 800 !important;
   letter-spacing: 0.06em !important;
   text-transform: uppercase !important;
-  font-size: 0.68rem !important;
-  margin: 0 0 0.6rem 0 !important;
+  font-size: 0.64rem !important;
+  margin: 0 !important;
+  text-shadow: none !important;
+}
+
+html[data-storefront="true"] .store-banner-copy .store-address::before,
+html[data-storefront="true"] #banner-store-subdomain::before {
+  content: "";
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 9999px;
+  background: var(--store-primary);
+  flex: 0 0 auto;
+}
+
+html[data-storefront="true"] .store-hero-verified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--store-muted);
+}
+
+html[data-storefront="true"] .store-hero-verified-pill svg,
+html[data-storefront="true"] .store-hero-verified-pill i {
+  color: #10b981;
 }
 
 html[data-storefront="true"] .store-banner-copy h1,
 html[data-storefront="true"] #banner-store-name {
   font-family: var(--store-font-heading) !important;
-  font-size: clamp(1.75rem, 3.2vw, 2.65rem) !important;
-  line-height: 1.1 !important;
+  font-size: clamp(1.7rem, 3.3vw, 2.75rem) !important;
+  line-height: 1.08 !important;
   font-weight: 800 !important;
-  letter-spacing: -0.025em !important;
+  letter-spacing: -0.028em !important;
   color: var(--store-ink) !important;
-  margin: 0 0 0.5rem 0 !important;
+  margin: 0 0 0.45rem 0 !important;
   max-width: 24ch;
+  text-shadow: none !important;
+}
+
+/* Expressive accent motto (never a dark grey pill box) */
+html[data-storefront="true"] .store-banner-copy .store-tagline:not(.hidden),
+html[data-storefront="true"] #banner-store-tagline:not(.hidden) {
+  display: inline-flex !important;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0.05rem 0 0.5rem 0 !important;
+  padding: 0.1rem 0 0.1rem 0.65rem !important;
+  border: 0 !important;
+  border-left: 3px solid var(--store-primary) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: color-mix(in srgb, var(--store-primary) 88%, #0f172a) !important;
+  font-size: clamp(0.9rem, 1.5vw, 1.06rem) !important;
+  font-weight: 750 !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.01em !important;
   text-shadow: none !important;
 }
 
 html[data-storefront="true"] #banner-store-desc {
   color: var(--store-muted) !important;
-  font-size: 0.94rem !important;
-  line-height: 1.6 !important;
+  font-size: 0.92rem !important;
+  line-height: 1.55 !important;
   max-width: 44rem;
   margin: 0 !important;
   text-shadow: none !important;
+  opacity: 1 !important;
 }
 
+/* Mobile & Tablet Trust Highlights Rail */
+html[data-storefront="true"] .store-hero-trust-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  margin-top: 0.85rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 0.1rem;
+}
+
+html[data-storefront="true"] .store-hero-trust-rail::-webkit-scrollbar {
+  display: none;
+}
+
+html[data-storefront="true"] .store-hero-trust-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+  padding: 0.28rem 0.62rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--store-white) 85%, var(--store-primary-soft));
+  border: 1px solid color-mix(in srgb, var(--store-primary) 20%, var(--store-line));
+  color: var(--store-ink);
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+html[data-storefront="true"] .store-hero-trust-chip svg,
+html[data-storefront="true"] .store-hero-trust-chip i {
+  color: var(--store-primary);
+}
+
+@media (min-width: 960px) {
+  html[data-storefront="true"] .store-hero-trust-rail {
+    display: none;
+  }
+  html[data-storefront="true"] .store-hero-avatar-wrap {
+    width: 3.75rem;
+    height: 3.75rem;
+  }
+}
+
+/* Social Link Brand Chips */
+html[data-storefront="true"] #banner-social-links.store-social-links:not(.hidden) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem !important;
+}
+
+html[data-storefront="true"] #banner-social-links.store-social-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.36rem 0.72rem !important;
+  border-radius: 9999px !important;
+  background: var(--store-white) !important;
+  border: 1px solid var(--store-line) !important;
+  color: var(--store-ink) !important;
+  font-size: 0.73rem !important;
+  font-weight: 700 !important;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+html[data-storefront="true"] #banner-social-links.store-social-links a:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
+}
+
+html[data-storefront="true"] #banner-social-links.store-social-links a:active {
+  transform: scale(0.96);
+}
+
+html[data-storefront="true"] #banner-social-links a[data-social-platform="whatsapp"] {
+  background: #ecfdf5 !important;
+  border-color: #86efac !important;
+  color: #047857 !important;
+}
+
+html[data-storefront="true"] #banner-social-links a[data-social-platform="whatsapp"]:hover {
+  background: #d1fae5 !important;
+  border-color: #22c55e !important;
+}
+
+html[data-storefront="true"] .social-live-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 9999px;
+  background: #16a34a;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
+  flex: 0 0 auto;
+}
+
+html[data-storefront="true"] #banner-social-links a[data-social-platform="instagram"] {
+  background: #fdf2f8 !important;
+  border-color: #fbcfe8 !important;
+  color: #be185d !important;
+}
+
+html[data-storefront="true"] #banner-social-links a[data-social-platform="facebook"] {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+}
+
+html[data-storefront="true"] #banner-social-links a[data-social-platform="tiktok"] {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-storefront="true"] #banner-social-links a[data-social-platform="twitter"] {
+  background: #f0f9ff !important;
+  border-color: #bae6fd !important;
+  color: #0369a1 !important;
+}
+
+/* Action Buttons Row */
 html[data-storefront="true"] .store-banner-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start !important;
-  gap: 0.65rem;
-  margin-top: 1.15rem !important;
+  gap: 0.6rem;
+  margin-top: 1.05rem !important;
 }
 
-html[data-storefront="true"] #storefront-primary-cta:not(.hidden) {
+html[data-storefront="true"] #store-info-banner #storefront-primary-cta:not(.hidden) {
+  position: relative;
+  overflow: hidden;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 0.45rem !important;
-  padding: 0.7rem 1.35rem !important;
+  padding: 0.72rem 1.35rem !important;
   border-radius: 9999px !important;
-  background-color: var(--store-primary) !important;
-  color: var(--store-on-primary) !important;
+  background: linear-gradient(
+    135deg,
+    var(--store-primary) 0%,
+    color-mix(in srgb, var(--store-primary) 78%, #0f172a) 100%
+  ) !important;
+  color: var(--store-on-primary, #ffffff) !important;
   border: 1px solid var(--store-primary) !important;
   font-weight: 750 !important;
-  font-size: 0.8rem !important;
+  font-size: 0.82rem !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
   text-decoration: none !important;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--store-primary) 28%, transparent) !important;
-  transition: all 160ms ease !important;
+  box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--store-primary) 38%, transparent) !important;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease !important;
 }
 
-html[data-storefront="true"] #storefront-primary-cta:hover {
-  background-color: var(--store-primary-hover) !important;
-  border-color: var(--store-primary-hover) !important;
-  transform: translateY(-1px) !important;
+html[data-storefront="true"] #store-info-banner #storefront-primary-cta:not(.hidden)::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+  transform: translateX(-140%) skewX(-20deg);
+  animation: heroCtaShimmer 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+html[data-storefront="true"] #store-info-banner #storefront-primary-cta svg {
+  animation: heroArrowBounce 2s ease-in-out infinite;
+}
+
+html[data-storefront="true"] #store-info-banner #storefront-primary-cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1.5px) !important;
+  box-shadow: 0 12px 24px -4px color-mix(in srgb, var(--store-primary) 46%, transparent) !important;
+}
+
+html[data-storefront="true"] #store-info-banner #storefront-primary-cta:active {
+  transform: scale(0.97) !important;
 }
 
 html[data-storefront="true"] #banner-store-call-btn:not(.hidden),
@@ -367,15 +843,18 @@ html[data-storefront="true"] .store-contact:not(.hidden) {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0.45rem !important;
-  padding: 0.7rem 1.2rem !important;
+  gap: 0.4rem !important;
+  padding: 0.68rem 1.1rem !important;
   border-radius: 9999px !important;
   background: var(--store-primary-subtle) !important;
   color: var(--store-primary) !important;
   border: 1px solid color-mix(in srgb, var(--store-primary) 28%, var(--store-line)) !important;
   font-weight: 750 !important;
   font-size: 0.8rem !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
   text-decoration: none !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--store-primary) 12%, transparent) !important;
 }
 
 html[data-storefront="true"] #banner-store-call-btn:hover {
@@ -387,14 +866,16 @@ html[data-storefront="true"] .store-follow-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0.45rem !important;
-  padding: 0.7rem 1.2rem !important;
+  gap: 0.4rem !important;
+  padding: 0.68rem 1.1rem !important;
   border-radius: 9999px !important;
   background: var(--store-white) !important;
   color: var(--store-ink) !important;
   border: 1px solid color-mix(in srgb, var(--store-primary) 26%, var(--store-line)) !important;
   font-weight: 750 !important;
   font-size: 0.8rem !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
   cursor: pointer !important;
   transition: all 160ms ease !important;
 }
@@ -406,10 +887,10 @@ html[data-storefront="true"] .store-follow-btn:hover {
 }
 
 html[data-storefront="true"] .store-follow-btn.is-following {
-  background: #fef3c7 !important;
+  background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
   border-color: #f59e0b !important;
   color: #92400e !important;
-  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.18) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.22) !important;
 }
 
 /* PC Right-Side Verified Merchant Showcase Card */
@@ -417,17 +898,24 @@ html[data-storefront="true"] .store-follow-btn.is-following {
   html[data-storefront="true"] .store-banner-showcase {
     display: flex !important;
     flex-direction: column;
+    animation: heroStaggerIn 600ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
   }
   html[data-storefront="true"] .store-showcase-card {
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    background: color-mix(in srgb, var(--store-white) 90%, var(--store-primary-soft)) !important;
-    border: 1px solid color-mix(in srgb, var(--store-primary) 20%, var(--store-line)) !important;
-    border-radius: 1.25rem !important;
+    background: linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.94) 0%,
+      color-mix(in srgb, var(--store-white) 86%, var(--store-primary-subtle)) 100%
+    ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.85) !important;
+    border-radius: 1.35rem !important;
     padding: 1.35rem 1.5rem !important;
-    box-shadow: 0 18px 42px -16px color-mix(in srgb, var(--store-primary) 16%, rgba(15, 23, 42, 0.1)) !important;
+    box-shadow:
+      0 22px 48px -16px rgba(15, 23, 42, 0.2),
+      0 0 0 1px color-mix(in srgb, var(--store-primary) 16%, transparent) !important;
   }
 }
 
@@ -1698,10 +2186,10 @@ html[data-storefront="true"] .product-card-add:hover {
     color: var(--store-primary) !important;
   }
 
-  /* Compact Mobile Store Hero Card */
+  /* Creative Animated Mobile Store Hero Card */
   html[data-storefront="true"] .store-banner,
   html[data-storefront="true"] #store-info-banner {
-    padding: 0.85rem 0 !important;
+    padding: 0.95rem 0 !important;
   }
 
   html[data-storefront="true"] .store-banner-inner {
@@ -1709,44 +2197,97 @@ html[data-storefront="true"] .product-card-add:hover {
     padding: 0 0.85rem !important;
   }
 
-  html[data-storefront="true"] .store-banner-copy {
-    padding: 1.05rem 1.1rem !important;
-    border-radius: 1rem !important;
+  html[data-storefront="true"] .store-banner-copy,
+  html[data-storefront="true"] #store-info-banner .store-banner-copy {
+    padding: 1.1rem 1.05rem !important;
+    border-radius: 1.2rem !important;
     text-align: left !important;
+  }
+
+  html[data-storefront="true"] .store-hero-identity {
+    gap: 0.72rem;
+    margin-bottom: 0.65rem;
+  }
+
+  html[data-storefront="true"] .store-hero-avatar-wrap {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  html[data-storefront="true"] .store-hero-avatar {
+    font-size: 1.1rem;
   }
 
   html[data-storefront="true"] .store-banner h1,
   html[data-storefront="true"] #banner-store-name {
-    font-size: clamp(1.35rem, 6vw, 1.75rem) !important;
-    line-height: 1.15 !important;
-    margin: 0 0 0.35rem 0 !important;
+    font-size: clamp(1.5rem, 6.4vw, 1.95rem) !important;
+    line-height: 1.12 !important;
+    margin: 0 0 0.3rem 0 !important;
     text-align: left !important;
+  }
+
+  html[data-storefront="true"] .store-banner-copy .store-tagline:not(.hidden),
+  html[data-storefront="true"] #banner-store-tagline:not(.hidden) {
+    font-size: 0.88rem !important;
+    margin: 0.05rem 0 0.4rem 0 !important;
+    padding-left: 0.55rem !important;
   }
 
   html[data-storefront="true"] #banner-store-desc {
     font-size: 0.82rem !important;
-    line-height: 1.45 !important;
+    line-height: 1.48 !important;
     text-align: left !important;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     overflow: hidden;
   }
 
   html[data-storefront="true"] .store-banner-actions {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     width: 100% !important;
     gap: 0.5rem !important;
-    margin-top: 0.85rem !important;
+    margin-top: 0.9rem !important;
   }
 
-  html[data-storefront="true"] #storefront-primary-cta:not(.hidden),
-  html[data-storefront="true"] #banner-store-call-btn:not(.hidden) {
+  html[data-storefront="true"] #store-info-banner #storefront-primary-cta:not(.hidden) {
+    grid-column: 1 / -1 !important;
     width: 100% !important;
-    min-height: 2.4rem !important;
-    padding: 0.55rem 0.85rem !important;
-    font-size: 0.75rem !important;
+    min-height: 2.75rem !important;
+    padding: 0.65rem 1rem !important;
+    font-size: 0.84rem !important;
+  }
+
+  html[data-storefront="true"] .store-banner-actions #banner-store-call-btn:not(.hidden),
+  html[data-storefront="true"] .store-banner-actions .store-follow-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.55rem !important;
+    padding: 0.55rem 0.65rem !important;
+    font-size: clamp(0.7rem, 3.1vw, 0.79rem) !important;
+    gap: 0.32rem !important;
+    white-space: nowrap !important;
+  }
+
+  html[data-storefront="true"] .store-banner-actions #banner-store-call-btn svg,
+  html[data-storefront="true"] .store-banner-actions .store-follow-btn svg {
+    width: 0.9rem !important;
+    height: 0.9rem !important;
+    flex: 0 0 auto !important;
+  }
+
+  html[data-storefront="true"] .store-banner-actions #banner-store-call-btn span,
+  html[data-storefront="true"] .store-banner-actions .store-follow-btn span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html[data-storefront="true"] .store-banner-actions:not(.has-call-btn) .store-follow-btn,
+  html[data-storefront="true"] .store-banner-actions:has(#banner-store-call-btn.hidden) .store-follow-btn {
+    grid-column: 1 / -1 !important;
   }
 
   /* Mobile Swipeable Category Bar (Visible & Compact on Phone Screens) */
@@ -1980,25 +2521,33 @@ html[data-storefront="true"] .product-card-add:hover {
   }
 }
 
-/* Apply the frosted glass treatment after the storefront theme's panel defaults. */
+/* Luminous high-contrast frosted glass treatment for hero card and merchant showcase. */
 html[data-storefront="true"] .store-banner-copy,
 html[data-storefront="true"] #store-info-banner .store-banner-copy {
-  background: color-mix(in srgb, var(--store-white, #fff) 42%, transparent) !important;
-  border-color: color-mix(in srgb, var(--store-primary, #15803d) 28%, rgba(255, 255, 255, 0.28)) !important;
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    color-mix(in srgb, var(--store-white, #fff) 88%, var(--store-primary-subtle)) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.85) !important;
   -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
 html[data-storefront="true"] .store-showcase-card {
-  background: color-mix(in srgb, var(--store-white, #fff) 40%, transparent) !important;
-  border-color: color-mix(in srgb, var(--store-primary, #15803d) 28%, rgba(255, 255, 255, 0.28)) !important;
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    color-mix(in srgb, var(--store-white, #fff) 86%, var(--store-primary-subtle)) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.85) !important;
   -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
   backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
 html[data-storefront="true"] .store-showcase-metric {
-  background: color-mix(in srgb, var(--store-white, #fff) 22%, transparent) !important;
-  border-color: color-mix(in srgb, var(--store-ink, #0f172a) 12%, transparent) !important;
+  background: color-mix(in srgb, var(--store-white, #fff) 72%, transparent) !important;
+  border-color: color-mix(in srgb, var(--store-ink, #0f172a) 10%, transparent) !important;
   -webkit-backdrop-filter: blur(12px) !important;
   backdrop-filter: blur(12px) !important;
 }
@@ -2149,8 +2698,9 @@ html[data-storefront="true"] .store-showcase-metric {
 
   html[data-storefront="true"] #banner-store-subdomain {
     max-width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   html[data-storefront="true"] .store-banner-copy h1,
@@ -2159,7 +2709,7 @@ html[data-storefront="true"] .store-showcase-metric {
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   html[data-storefront="true"] .store-banner-actions,
@@ -2170,29 +2720,50 @@ html[data-storefront="true"] .store-showcase-metric {
   }
 
   html[data-storefront="true"] .store-banner-actions #banner-store-call-btn,
-  html[data-storefront="true"] .store-banner-actions .store-contact {
-    white-space: normal !important;
-    overflow-wrap: anywhere;
+  html[data-storefront="true"] .store-banner-actions .store-contact,
+  html[data-storefront="true"] .store-banner-actions .store-follow-btn {
+    white-space: nowrap !important;
+    overflow: hidden;
   }
 
-  html[data-storefront="true"] #banner-store-call-btn svg {
+  html[data-storefront="true"] #banner-store-call-btn svg,
+  html[data-storefront="true"] .store-follow-btn svg {
     flex: 0 0 auto;
   }
 
-  html[data-storefront="true"] #banner-store-call-btn span {
+  html[data-storefront="true"] #banner-store-call-btn span,
+  html[data-storefront="true"] .store-follow-btn span {
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 @media (max-width: 380px) {
   html[data-storefront="true"] .store-banner-copy h1,
   html[data-storefront="true"] #banner-store-name {
-    font-size: clamp(1.2rem, 6vw, 1.55rem) !important;
+    font-size: clamp(1.35rem, 6.2vw, 1.7rem) !important;
   }
 
   html[data-storefront="true"] .store-banner-actions #banner-store-call-btn,
-  html[data-storefront="true"] .store-banner-actions .store-contact {
-    font-size: 0.72rem !important;
+  html[data-storefront="true"] .store-banner-actions .store-contact,
+  html[data-storefront="true"] .store-banner-actions .store-follow-btn {
+    padding: 0.5rem 0.55rem !important;
+    font-size: 0.7rem !important;
+    gap: 0.28rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-storefront="true"] .hero-aurora-orb,
+  html[data-storefront="true"] .hero-sparkle,
+  html[data-storefront="true"] .store-hero-avatar-ring,
+  html[data-storefront="true"] .store-hero-verified-dot,
+  html[data-storefront="true"] #store-info-banner #storefront-primary-cta::after,
+  html[data-storefront="true"] #store-info-banner #storefront-primary-cta svg,
+  html[data-storefront="true"] .store-banner-copy > *,
+  html[data-storefront="true"] .store-banner-showcase {
+    animation: none !important;
   }
 }

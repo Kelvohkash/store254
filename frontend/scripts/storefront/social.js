@@ -43,15 +43,15 @@ function renderStoreSocialLinks(socialLinks = {}) {
   }
 
   const platforms = [
-    ["instagram", "Instagram"],
-    ["facebook", "Facebook"],
-    ["tiktok", "TikTok"],
-    ["twitter", "X"],
-    ["whatsapp", "WhatsApp"],
+    ["whatsapp", "WhatsApp", "message-circle"],
+    ["instagram", "Instagram", "instagram"],
+    ["tiktok", "TikTok", "music-2"],
+    ["facebook", "Facebook", "facebook"],
+    ["twitter", "X", "twitter"],
   ];
 
   container.replaceChildren();
-  for (const [platform, label] of platforms) {
+  for (const [platform, label, iconName] of platforms) {
     const href = getSocialLinkUrl(platform, links[platform]);
     if (!href) continue;
 
@@ -59,11 +59,37 @@ function renderStoreSocialLinks(socialLinks = {}) {
     link.href = href;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.textContent = label;
+    link.dataset.socialPlatform = platform;
+    link.setAttribute("aria-label", `${label} — ${state.activeTenant?.name || "Store"}`);
+
+    if (platform === "whatsapp") {
+      const pulse = document.createElement("span");
+      pulse.className = "social-live-dot";
+      pulse.setAttribute("aria-hidden", "true");
+      link.appendChild(pulse);
+    }
+
+    const icon = document.createElement("i");
+    icon.setAttribute("data-lucide", iconName);
+    icon.className = "w-3.5 h-3.5 shrink-0";
+    icon.setAttribute("aria-hidden", "true");
+
+    const textSpan = document.createElement("span");
+    textSpan.textContent = label;
+
+    const extIcon = document.createElement("i");
+    extIcon.setAttribute("data-lucide", "arrow-up-right");
+    extIcon.className = "w-3 h-3 opacity-60 shrink-0";
+    extIcon.setAttribute("aria-hidden", "true");
+
+    link.append(icon, textSpan, extIcon);
     container.appendChild(link);
   }
 
   container.classList.toggle("hidden", container.childElementCount === 0);
+  if (typeof renderIcons === "function") {
+    renderIcons(container);
+  }
 }
 
 function renderStorefrontContact(settings) {

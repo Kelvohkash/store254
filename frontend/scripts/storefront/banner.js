@@ -1,5 +1,42 @@
 // Storefront Banner & Branding
 
+function renderBannerStoreAvatar(settings = {}) {
+  const avatarEl = document.getElementById("banner-store-avatar");
+  if (!avatarEl || !state.activeTenant) return;
+
+  const storeName = String(state.activeTenant.name || state.activeTenant.subdomain || "Store").trim();
+  const initial = (storeName.slice(0, 1) || "S").toUpperCase();
+  const rawLogo = String(settings.logoUrl || "").trim();
+
+  avatarEl.replaceChildren();
+  avatarEl.classList.remove("has-logo");
+
+  if (rawLogo) {
+    try {
+      const url = new URL(rawLogo, window.location.origin);
+      if (url.protocol === "https:" || url.protocol === "http:") {
+        const img = document.createElement("img");
+        img.src = url.href;
+        img.alt = storeName;
+        img.className = "store-hero-avatar-img";
+        img.loading = "eager";
+        img.decoding = "async";
+        img.onerror = () => {
+          avatarEl.classList.remove("has-logo");
+          avatarEl.textContent = initial;
+        };
+        avatarEl.classList.add("has-logo");
+        avatarEl.appendChild(img);
+        return;
+      }
+    } catch {
+      // Fall back to monogram initial if logoUrl is malformed.
+    }
+  }
+
+  avatarEl.textContent = initial;
+}
+
 function renderStoreBanner() {
   const banner = document.getElementById("store-info-banner");
   if (!banner || !state.activeTenant) return;
@@ -9,26 +46,48 @@ function renderStoreBanner() {
 
   document.getElementById("banner-store-name").textContent = state.activeTenant.name;
   document.getElementById("banner-store-subdomain").textContent = `${state.activeTenant.subdomain}.store254.co.ke`;
+  renderBannerStoreAvatar(settings);
+
+  const rawTagline = String(settings.tagline || "").trim();
+  const rawDesc = String(settings.description || "").trim();
   const tagline = document.getElementById("banner-store-tagline");
   if (tagline) {
-    tagline.textContent = settings.tagline || "";
-    tagline.classList.toggle("hidden", !settings.tagline);
+    tagline.textContent = rawTagline;
+    tagline.classList.toggle("hidden", !rawTagline);
   }
+
+  const isDuplicateDesc =
+    Boolean(rawTagline) && rawDesc.toLowerCase() === rawTagline.toLowerCase();
+  const locationParts = [
+    state.activeTenant.locationName || settings.locationName || "",
+    state.activeTenant.countyName || settings.countyName || "",
+  ].filter(Boolean);
+  const uniqueLocation = [...new Set(locationParts)].join(", ");
+  const fallbackDesc = uniqueLocation
+    ? `Serving ${uniqueLocation} — shop verified products & services with instant M-Pesa checkout.`
+    : `Explore authentic products & services from ${state.activeTenant.name} with instant M-Pesa checkout.`;
   document.getElementById("banner-store-desc").textContent =
-    settings.description || `Welcome to ${state.activeTenant.name} on Store254`;
+    rawDesc && !isDuplicateDesc ? rawDesc : fallbackDesc;
 
   setStoreBannerBackground(banner, settings.bannerUrl);
   renderArchetypeContent(settings);
 
   const callBtn = document.getElementById("banner-store-call-btn");
   const phoneText = document.getElementById("banner-store-phone-text");
-  const phone = settings.contactPhone || settings.phone;
-  if (phone && callBtn && phoneText && settings.sectionVisibility?.contactActions !== false) {
-    callBtn.href = `tel:${phone}`;
-    phoneText.textContent = `Call ${phone}`;
+  const actionsWrap = banner.querySelector(".store-banner-actions");
+  const rawPhone = String(settings.contactPhone || settings.phone || "").trim();
+  const showCallBtn = Boolean(rawPhone && callBtn && phoneText && settings.sectionVisibility?.contactActions !== false);
+  if (showCallBtn) {
+    callBtn.href = `tel:${rawPhone}`;
+    phoneText.textContent = `Call ${rawPhone}`;
+    callBtn.setAttribute("title", `Call ${rawPhone}`);
+    callBtn.setAttribute("aria-label", `Call ${state.activeTenant.name} at ${rawPhone}`);
     callBtn.classList.remove("hidden");
   } else if (callBtn) {
     callBtn.classList.add("hidden");
+  }
+  if (actionsWrap) {
+    actionsWrap.classList.toggle("has-call-btn", showCallBtn);
   }
 
   setHeaderLogo(settings.logoUrl || DEFAULT_STOREFRONT_LOGO, state.activeTenant.name, DEFAULT_STOREFRONT_LOGO);

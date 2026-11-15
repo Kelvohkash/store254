@@ -32,8 +32,7 @@
   font-size: 1.05rem !important;
   max-width: 44rem !important;
 }
-.store-banner.has-banner-image .store-address,
-.store-banner.has-banner-image .store-tagline {
+.store-banner.has-banner-image .store-address {
   color: #ffffff !important;
   background: rgba(15, 23, 42, 0.6) !important;
   backdrop-filter: blur(8px) !important;
@@ -45,6 +44,12 @@
   border-radius: 9999px !important;
   font-weight: 700 !important;
   margin-bottom: 0.85rem !important;
+}
+.store-banner.has-banner-image .store-tagline {
+  color: var(--store-primary) !important;
+  background: transparent !important;
+  border: 0 !important;
+  text-shadow: none !important;
 }
 .store-banner.has-banner-image .storefront-primary-cta {
   color: var(--store-ink, #17251f) !important;
@@ -283,23 +288,37 @@
     max-width: 100% !important;
   }
   .store-banner-actions {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    gap: 0.65rem !important;
-    margin-top: 1rem !important;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
   }
-  .store-banner-actions .storefront-primary-cta,
+  .store-banner-actions .storefront-primary-cta {
+    grid-column: 1 / -1;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    font-size: 0.86rem;
+    box-sizing: border-box;
+    text-align: center;
+    white-space: nowrap;
+  }
   .store-banner-actions #banner-store-call-btn,
-  .store-banner-actions .store-contact {
-    width: 100% !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 2.75rem !important;
-    font-size: 0.88rem !important;
-    box-sizing: border-box !important;
-    text-align: center !important;
+  .store-banner-actions .store-contact,
+  .store-banner-actions .store-follow-btn {
+    width: 100%;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.55rem;
+    font-size: 0.78rem;
+    box-sizing: border-box;
+    text-align: center;
+    white-space: nowrap;
   }
 }
 

@@ -1475,9 +1475,12 @@ export function buildStorefrontSeoData(options: {
   const settings = parseSettings(tenant.settings);
   const currency = tenant.currency || "KES";
   const subdomainLabel = `${tenant.subdomain}.${PRIMARY_DOMAIN}`;
+  const rawTagline = typeof settings.tagline === "string" ? settings.tagline.trim() : "";
+  const rawDescription = typeof settings.description === "string" ? settings.description.trim() : "";
+  const isDuplicateTaglineDesc =
+    Boolean(rawTagline) && rawDescription.toLowerCase() === rawTagline.toLowerCase();
   const defaultStoreDesc =
-    settings.description ||
-    settings.tagline ||
+    (rawDescription && !isDuplicateTaglineDesc ? rawDescription : "") ||
     `Shop verified products and services directly from ${tenant.name} (${subdomainLabel}) with instant M-Pesa checkout.`;
   const storeImage =
     toAbsoluteUrl(settings.bannerUrl || settings.logoUrl, origin) || `${origin}/assets/store254Logo.webp`;
