@@ -957,7 +957,23 @@
         Register your store on Store254. Your application will be reviewed and activated by Our 254 team.
       </p>
 
-      <form id="onboard-form" onsubmit="handleOnboardSubmit(event)" novalidate class="space-y-4 text-xs">
+      <div id="onboard-auth-gate" class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 text-center space-y-3">
+        <div class="w-11 h-11 rounded-2xl bg-white border border-emerald-200 text-emerald-700 mx-auto flex items-center justify-center shadow-xs">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <div class="space-y-1">
+          <h4 class="text-sm font-black text-slate-900">Sign in with Google first</h4>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Before opening a business on Store254, sign in with Google. Your Google email will be permanently used as the store owner email and cannot be changed.
+          </p>
+        </div>
+        <button id="btn-onboard-google-signin" type="button" onclick="startOnboardGoogleSignIn()" class="w-full py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2">
+          <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white text-emerald-800 font-black text-[11px]" aria-hidden="true">G</span>
+          <span>Continue with Google to Open Store</span>
+        </button>
+      </div>
+
+      <form id="onboard-form" onsubmit="handleOnboardSubmit(event)" novalidate class="hidden space-y-4 text-xs">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Business / Store Name</label>
           <input type="text" id="onboard-name" required class="w-full p-2.5 rounded-xl border border-slate-300">
@@ -1095,8 +1111,14 @@
         </div>
 
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Owner Email</label>
-          <input type="email" id="onboard-email" required class="w-full p-2.5 rounded-xl border border-slate-300">
+          <label class="flex items-center justify-between font-bold text-slate-700 mb-1" for="onboard-email">
+            <span>Owner Email</span>
+            <span id="onboard-email-locked-badge" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <i data-lucide="lock" class="w-3 h-3"></i> Verified via Google
+            </span>
+          </label>
+          <input type="email" id="onboard-email" required readonly aria-readonly="true" tabindex="-1" class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-100 text-slate-600 cursor-not-allowed select-none" placeholder="Sign in with Google to use your email">
+          <p class="mt-1 text-[11px] text-slate-500">Linked to your signed-in Google account and cannot be edited.</p>
         </div>
 
         <div>
@@ -1373,7 +1395,7 @@
   <script src="/scripts/storefront/core-theme.js"></script>
   <script src="/scripts/storefront/social.js"></script>
   <script src="/scripts/storefront/banner.js"></script>
-  <script src="/scripts/storefront/navigation.js"></script>
+  <script src="/scripts/storefront/navigation.js?v=20261115b"></script>
   <script src="/scripts/shared/category-icon-classifier.js"></script>
   <script src="/scripts/storefront/categories.js"></script>
   <script src="/scripts/storefront/catalog.js"></script>
@@ -1387,8 +1409,8 @@
   <script src="/scripts/storefront/storefront.js?v=20261115"></script>
   <script src="/scripts/storefront/platform.js?v=20261115"></script>
   <script src="/scripts/storefront/marketplace-search.js?v=20261114"></script>
-  <script src="/scripts/storefront/marketplace-cart.js?v=20261115"></script>
-  <script src="/scripts/storefront/onboarding.js?v=20261114c"></script>
+  <script src="/scripts/storefront/marketplace-cart.js?v=20261115b"></script>
+  <script src="/scripts/storefront/onboarding.js?v=20261115b"></script>
   <script src="/scripts/storefront/pwa.js"></script>
 
 </body>

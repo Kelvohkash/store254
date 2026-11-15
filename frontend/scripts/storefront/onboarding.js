@@ -564,28 +564,68 @@ function extractApiErrorMessage(res, fallback) {
   return fallback;
 }
 
+function getSignedInPlatformUserForOnboard() {
+  const user = typeof window.getStore254PlatformUser === "function" ? window.getStore254PlatformUser() : null;
+  return user && user.email ? user : null;
+}
+
+function syncOnboardModalAuthState() {
+  const gateEl = document.getElementById("onboard-auth-gate");
+  const formEl = document.getElementById("onboard-form");
+  const emailEl = document.getElementById("onboard-email");
+  const ownerNameEl = document.getElementById("onboard-owner-name");
+  const user = getSignedInPlatformUserForOnboard();
+
+  if (user) {
+    if (gateEl) gateEl.classList.add("hidden");
+    if (formEl) formEl.classList.remove("hidden");
+    if (emailEl) {
+      emailEl.value = user.email.trim().toLowerCase();
+      emailEl.readOnly = true;
+      emailEl.setAttribute("readonly", "readonly");
+      emailEl.setAttribute("aria-readonly", "true");
+    }
+    if (ownerNameEl && !ownerNameEl.value.trim() && user.fullName) {
+      ownerNameEl.value = user.fullName;
+    }
+  } else {
+    if (gateEl) gateEl.classList.remove("hidden");
+    if (formEl) formEl.classList.add("hidden");
+    if (emailEl) {
+      emailEl.value = "";
+      emailEl.readOnly = true;
+      emailEl.setAttribute("readonly", "readonly");
+    }
+  }
+
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+async function prepareOnboardModal() {
+  if (!getSignedInPlatformUserForOnboard() && typeof window.refreshStore254PlatformSession === "function") {
+    await window.refreshStore254PlatformSession();
+  }
+  syncOnboardModalAuthState();
+}
+
+function startOnboardGoogleSignIn() {
+  try {
+    sessionStorage.setItem("store254_reopen_onboard", "1");
+  } catch {}
+  if (typeof window.startPlatformGoogleSignIn === "function") {
+    window.startPlatformGoogleSignIn();
+    return;
+  }
+  window.location.href = `/auth/google/login?return_to=${encodeURIComponent(window.location.href)}`;
+}
+
+window.syncOnboardModalAuthState = syncOnboardModalAuthState;
+window.prepareOnboardModal = prepareOnboardModal;
+window.startOnboardGoogleSignIn = startOnboardGoogleSignIn;
+
 async function handleOnboardSubmit(e) {
   if (e && typeof e.preventDefault === "function") e.preventDefault();
   clearOnboardFeedback();
-
-  const storeNameEl = document.getElementById("onboard-name");
-  const subdomainEl = document.getElementById("onboard-subdomain");
-  const ownerNameEl = document.getElementById("onboard-owner-name");
-  const emailEl = document.getElementById("onboard-email");
-  const passwordEl = document.getElementById("onboard-password");
-
-  const storeName = (storeNameEl?.value || "").trim();
-  const subdomain = (subdomainEl?.value || "").trim().toLowerCase();
-  const ownerFullName = (ownerNameEl?.value || "").trim();
-  const ownerEmail = (emailEl?.value || "").trim();
-  const ownerPassword = passwordEl?.value || "";
-  const countyId = document.getElementById("onboard-county")?.value || "";
-  const selected = onboardLocationState.selectedLocation;
-  const customLocationName = (
-    document.getElementById("onboard-custom-location")?.value || ""
-  ).trim();
-  const customConstituencyId =
-    document.getElementById("onboard-custom-constituency")?.value || "";
 
   const failValidation = (msg, focusEl) => {
     setOnboardFeedback(msg, "error");
@@ -598,6 +638,32 @@ async function handleOnboardSubmit(e) {
       }
     }
   };
+
+  const platformUser = getSignedInPlatformUserForOnboard();
+  if (!platformUser) {
+    syncOnboardModalAuthState();
+    return failValidation("Please sign in with Google first before opening a store.");
+  }
+
+  const storeNameEl = document.getElementById("onboard-name");
+  const subdomainEl = document.getElementById("onboard-subdomain");
+  const ownerNameEl = document.getElementById("onboard-owner-name");
+  const emailEl = document.getElementById("onboard-email");
+  const passwordEl = document.getElementById("onboard-password");
+
+  const storeName = (storeNameEl?.value || "").trim();
+  const subdomain = (subdomainEl?.value || "").trim().toLowerCase();
+  const ownerFullName = (ownerNameEl?.value || "").trim();
+  const ownerEmail = platformUser.email.trim().toLowerCase();
+  if (emailEl) emailEl.value = ownerEmail;
+  const ownerPassword = passwordEl?.value || "";
+  const countyId = document.getElementById("onboard-county")?.value || "";
+  const selected = onboardLocationState.selectedLocation;
+  const customLocationName = (
+    document.getElementById("onboard-custom-location")?.value || ""
+  ).trim();
+  const customConstituencyId =
+    document.getElementById("onboard-custom-constituency")?.value || "";
 
   if (storeName.length < 2) {
     return failValidation("Please enter your business / store name (at least 2 characters).", storeNameEl);
@@ -681,6 +747,10 @@ async function handleOnboardSubmit(e) {
       formEl?.reset?.();
       clearSelectedCounty();
       clearOnboardFeedback();
+      if (typeof window.refreshStore254PlatformSession === "function") {
+        await window.refreshStore254PlatformSession();
+      }
+      syncOnboardModalAuthState();
       toggleDrawer("onboard-modal", false);
     } else {
       const errMsg = extractApiErrorMessage(
@@ -691,6 +761,9 @@ async function handleOnboardSubmit(e) {
       );
       setOnboardFeedback(errMsg, "error");
       if (typeof showToast === "function") showToast(errMsg, "error");
+      if (res.status === 401) {
+        syncOnboardModalAuthState();
+      }
     }
   } catch (err) {
     console.error("[Onboarding] Submit failed unexpectedly:", err);
@@ -722,4 +795,12 @@ document.addEventListener("click", (ev) => {
 
 document.addEventListener("DOMContentLoaded", () => {
   ensureOnboardLocationsLoaded();
+  syncOnboardModalAuthState();
+  const onboardEmailEl = document.getElementById("onboard-email");
+  if (onboardEmailEl) {
+    onboardEmailEl.addEventListener("input", () => {
+      const user = getSignedInPlatformUserForOnboard();
+      onboardEmailEl.value = user ? user.email.trim().toLowerCase() : "";
+    });
+  }
 });

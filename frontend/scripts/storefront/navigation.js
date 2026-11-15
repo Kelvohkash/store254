@@ -56,6 +56,9 @@ function toggleDrawer(id, show, options = {}) {
 
   if (show) {
     el.classList.remove("hidden");
+    if (id === "onboard-modal" && typeof window.prepareOnboardModal === "function") {
+      void window.prepareOnboardModal();
+    }
     if (id === "cart-drawer") {
       renderCartDrawer();
       void refreshCheckoutCustomerProfile();

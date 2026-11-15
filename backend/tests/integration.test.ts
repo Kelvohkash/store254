@@ -271,4 +271,65 @@ describe("Store254 End-to-End Workflow & Security Tests", () => {
     expect(dist).toBeGreaterThan(2.0);
     expect(dist).toBeLessThan(3.5);
   });
+
+  it("should require Google sign-in before store creation and reject mismatched ownerEmail", async () => {
+    const validRegistrationBody = {
+      storeName: "Test Verified Shop",
+      subdomain: "verifiedshopke99",
+      businessType: "GENERAL",
+      ownerEmail: "verified.owner@gmail.com",
+      ownerPassword: "StrongPassword123!",
+      ownerFullName: "Jane Wanjiku",
+      countyId: "county-nairobi",
+      customLocationName: "Westlands Market",
+    };
+
+    // Unauthenticated call without Google SSO cookie must fail with 401 GOOGLE_AUTH_REQUIRED
+    const unauthRes = await app.request(
+      "https://store254.co.ke/api/platform/register-store",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://store254.co.ke",
+        },
+        body: JSON.stringify(validRegistrationBody),
+      },
+      mockEnv as any
+    );
+    expect(unauthRes.status).toBe(401);
+    const unauthJson = (await unauthRes.json()) as any;
+    expect(unauthJson.error.code).toBe("GOOGLE_AUTH_REQUIRED");
+
+    // Authenticated Google user trying to register with a different email must fail with 403 EMAIL_MISMATCH
+    const { createCustomerSsoToken } = await import("../src/security/jwt");
+    const { CUSTOMER_SESSION_COOKIE } = await import("../src/security/session-cookie");
+    const ssoToken = await createCustomerSsoToken(
+      {
+        sub: "google-sub-123",
+        email: "signedin.user@gmail.com",
+        email_verified: true,
+        name: "Signed In Owner",
+      },
+      jwtSecret,
+      3600
+    );
+
+    const mismatchRes = await app.request(
+      "https://store254.co.ke/api/platform/register-store",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://store254.co.ke",
+          Cookie: `${CUSTOMER_SESSION_COOKIE}=${ssoToken}`,
+        },
+        body: JSON.stringify(validRegistrationBody),
+      },
+      mockEnv as any
+    );
+    expect(mismatchRes.status).toBe(403);
+    const mismatchJson = (await mismatchRes.json()) as any;
+    expect(mismatchJson.error.code).toBe("EMAIL_MISMATCH");
+  });
 });

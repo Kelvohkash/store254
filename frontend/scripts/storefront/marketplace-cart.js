@@ -138,6 +138,7 @@
   };
 
   window.syncMarketplaceHeaderState = syncMarketplaceHeaderState;
+  window.refreshStore254PlatformSession = refreshPlatformSession;
 
   async function refreshPlatformSession() {
     try {
@@ -157,6 +158,9 @@
       platformUser = null;
     }
     syncMarketplaceHeaderState();
+    if (typeof window.syncOnboardModalAuthState === "function") {
+      window.syncOnboardModalAuthState();
+    }
     if (platformUser) {
       const s1 = document.getElementById("buyer-welcome-step-1");
       if (s1 && !s1.classList.contains("hidden")) {
@@ -1408,6 +1412,12 @@
     const isStoresPage = document.documentElement.dataset.platformView === "stores";
 
     if (loginResult === "success") {
+      let reopenOnboard = false;
+      try {
+        reopenOnboard = sessionStorage.getItem("store254_reopen_onboard") === "1";
+        sessionStorage.removeItem("store254_reopen_onboard");
+      } catch {}
+
       window.closeBuyerWelcomeModal(false);
       showToast(
         platformUser?.fullName
@@ -1415,10 +1425,15 @@
           : "Signed in to Store254!",
         "success"
       );
-      if (!savedLoc && !isStoresPage) {
+      if (reopenOnboard && platformUser && typeof window.toggleDrawer === "function") {
+        window.toggleDrawer("onboard-modal", true);
+      } else if (!savedLoc && !isStoresPage) {
         window.openBuyerWelcomeModal(2);
       }
     } else if (loginResult === "error") {
+      try {
+        sessionStorage.removeItem("store254_reopen_onboard");
+      } catch {}
       window.closeBuyerWelcomeModal(false);
       showToast("Google sign-in was cancelled or failed. Please try again.", "error");
     } else if (!savedLoc && !dismissed && !isStoresPage) {

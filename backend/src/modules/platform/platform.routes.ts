@@ -107,7 +107,7 @@ const registerStoreSchema = z
     subdomain: z.string().min(2).max(32),
     businessType: businessTypeSchema.default("GENERAL"),
     currency: z.string().length(3).default("KES"),
-    ownerEmail: z.string().email("Valid email address required"),
+    ownerEmail: z.string().email("Valid email address required").optional(),
     ownerPassword: z
       .string()
       .min(SECURITY_LIMITS.MIN_PASSWORD_LENGTH, "Password must be at least 8 characters")
@@ -234,6 +234,24 @@ platformRouter.post(
   zValidator("json", registerStoreSchema),
   async (c) => {
     const body = c.req.valid("json");
+    const googleUser = await readPlatformGoogleUser(c);
+    if (!googleUser || !googleUser.email) {
+      throw new AppError(
+        "Please sign in with Google before opening a store.",
+        401,
+        "GOOGLE_AUTH_REQUIRED"
+      );
+    }
+
+    const verifiedOwnerEmail = googleUser.email.toLowerCase().trim();
+    if (body.ownerEmail && body.ownerEmail.toLowerCase().trim() !== verifiedOwnerEmail) {
+      throw new AppError(
+        "Owner email must match your signed-in Google account and cannot be changed.",
+        403,
+        "EMAIL_MISMATCH"
+      );
+    }
+
     const sanitizedSub = sanitizeSubdomain(body.subdomain);
 
     if (!sanitizedSub) {
@@ -300,7 +318,7 @@ platformRouter.post(
       settings: {
         theme: "default",
         primaryColor: "#9a3412",
-        contactEmail: body.ownerEmail,
+        contactEmail: verifiedOwnerEmail,
         contactPhone: body.ownerPhone || null,
         location: {
           countyId: resolvedLocation.county.id,
@@ -319,7 +337,7 @@ platformRouter.post(
     await db.insert(users).values({
       id: userId,
       tenantId: tenantId,
-      email: body.ownerEmail.toLowerCase(),
+      email: verifiedOwnerEmail,
       passwordHash: hashedPassword,
       fullName: body.ownerFullName,
       phone: body.ownerPhone || null,
@@ -333,7 +351,7 @@ platformRouter.post(
     // 3. Send Pending Activation Notice from official email (non-blocking on provider failures)
     try {
       await EmailService.sendStorePendingActivation({
-        to: body.ownerEmail,
+        to: verifiedOwnerEmail,
         storeName: body.storeName,
         subdomain: sanitizedSub,
         primaryDomain,
@@ -363,7 +381,7 @@ platformRouter.post(
           },
           owner: {
             id: userId,
-            email: body.ownerEmail,
+            email: verifiedOwnerEmail,
             fullName: body.ownerFullName,
             role: "OWNER",
           },

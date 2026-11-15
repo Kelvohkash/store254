@@ -252,3 +252,22 @@ test("user profile displays active store and admin supports password change and 
   assert.match(authRoutes, /authRouter\.get\("\/staff"/);
   assert.match(authRoutes, /authRouter\.post\(\s*"\/staff"/);
 });
+
+test("store onboarding requires Google sign-in and locks owner email", async () => {
+  const [html, onboardingJs, cartJs, platformRoutes] = await Promise.all([
+    read("../index.html"),
+    read("../scripts/storefront/onboarding.js"),
+    read("../scripts/storefront/marketplace-cart.js"),
+    read("../../backend/src/modules/platform/platform.routes.ts"),
+  ]);
+
+  assert.match(html, /id="onboard-auth-gate"/);
+  assert.match(html, /id="btn-onboard-google-signin"/);
+  assert.match(html, /id="onboard-email"[^>]*readonly/);
+  assert.match(onboardingJs, /startOnboardGoogleSignIn/);
+  assert.match(onboardingJs, /syncOnboardModalAuthState/);
+  assert.match(onboardingJs, /platformUser\.email/);
+  assert.match(cartJs, /store254_reopen_onboard/);
+  assert.match(platformRoutes, /GOOGLE_AUTH_REQUIRED/);
+  assert.match(platformRoutes, /EMAIL_MISMATCH/);
+});
