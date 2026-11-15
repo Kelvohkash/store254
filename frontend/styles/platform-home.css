@@ -1082,3 +1082,231 @@ html[data-platform-view="stores"] #platform-stores-section .platform-intro h1 {
     padding-bottom:5.5rem !important;
   }
 }
+
+/* ── Subscribed & Pinned Stores Bar + Card Follow Controls ── */
+.platform-pinned-stores-bar {
+  margin: 0 0 0.9rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #cce6d4;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f1faf4 100%);
+  box-shadow: 0 8px 22px -12px rgba(15, 76, 45, 0.16);
+}
+#platform-stores-section .platform-pinned-stores-bar {
+  margin: 0.9rem 0 0.35rem;
+}
+.platform-pinned-stores-bar.hidden {
+  display: none !important;
+}
+.pinned-stores-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.65rem;
+}
+.pinned-stores-title-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  min-width: 0;
+}
+.pinned-stores-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.24rem 0.65rem;
+  border-radius: 999px;
+  background: #07834e;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.pinned-stores-sub {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4b5f53;
+}
+.pinned-stores-count {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #07834e;
+  background: #e7f6ec;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid #c5e6cf;
+}
+.pinned-stores-rail {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: thin;
+}
+.pinned-store-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  max-width: 17.5rem;
+  padding: 0.42rem 0.5rem 0.42rem 0.55rem;
+  border: 1px solid #cce6d4;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 60, 35, 0.05);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.pinned-store-chip:hover {
+  border-color: #07834e;
+  box-shadow: 0 6px 16px rgba(15, 60, 35, 0.1);
+  transform: translateY(-1px);
+}
+.pinned-store-chip-link {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  text-decoration: none;
+  color: #0f172a;
+}
+.pinned-store-avatar {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  background: #07834e;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.pinned-store-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pinned-store-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pinned-store-copy strong {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pinned-store-copy small {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #5b6d62;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pinned-store-remove {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pinned-store-remove:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.platform-store-cover .store-card-follow-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(15, 23, 42, 0.56);
+  color: #ffffff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1.1;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+.platform-store-cover .store-card-follow-btn:hover {
+  background: #07834e;
+  border-color: #ffffff;
+  transform: scale(1.03);
+}
+.platform-store-cover .store-card-follow-btn.is-following {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+.platform-store-card.is-followed-store {
+  border-color: #86efac !important;
+  box-shadow: 0 8px 22px rgba(7, 131, 78, 0.11) !important;
+}
+.platform-store-live-pill.is-pinned {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+.qv-follow-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+  cursor: pointer;
+}
+.qv-follow-btn:hover {
+  border-color: #07834e;
+  color: #07834e;
+  background: #ecfdf5;
+}
+.qv-follow-btn.is-following {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+@media (max-width: 640px) {
+  .platform-pinned-stores-bar {
+    padding: 0.75rem 0.8rem;
+    border-radius: 0.9rem;
+  }
+  .pinned-stores-sub {
+    display: none;
+  }
+  .platform-store-cover .store-card-follow-btn {
+    top: 0.38rem;
+    right: 0.38rem;
+    padding: 0.24rem 0.5rem;
+    font-size: 0.62rem;
+  }
+}

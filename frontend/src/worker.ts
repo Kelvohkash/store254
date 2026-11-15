@@ -354,59 +354,34 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    // Dynamic Web App Manifest: platform-wide on root domain, store-branded on tenant storefronts.
+    // Web App Manifest: always install the main Store254 platform app (never subdomain-scoped PWAs).
     if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/manifest.webmanifest") {
       if (isTenantContext) {
-        try {
-          const tenantHeaders: Record<string, string> = explicitStoreSlug
-            ? { "X-Forwarded-Host": "api.internal", "X-Tenant-Slug": explicitStoreSlug }
-            : { "X-Forwarded-Host": url.host };
-          const cacheScope = explicitStoreSlug || hostInfo.hostname;
-          const { data: storefrontPayload } = await fetchCachedSeoJson<SeoStorefrontPayload>(
-            env.API,
-            "/api/seo/storefront",
-            cacheScope,
-            tenantHeaders,
-            clientIp,
-            ctx,
-            120
-          );
-          const tenant = storefrontPayload?.tenant;
-          if (tenant?.name) {
-            const storeName = String(tenant.name).trim();
-            const shortName = storeName.length > 18 ? `${storeName.slice(0, 17).trim()}…` : storeName;
-            const themeColor = /^#[0-9a-fA-F]{6}$/.test(String(tenant.primary_color || ""))
-              ? String(tenant.primary_color)
-              : "#0f7a44";
-            const startUrl = explicitStoreSlug ? `/?store=${encodeURIComponent(explicitStoreSlug)}` : "/";
-            const manifestBody = JSON.stringify({
-              id: startUrl,
-              name: `${storeName} — Store254`,
-              short_name: shortName,
-              description: String(tenant.description || `Shop ${storeName} online on Store254 Kenya.`),
-              start_url: startUrl,
-              scope: "/",
-              display: "standalone",
-              orientation: "portrait-primary",
-              background_color: "#ffffff",
-              theme_color: themeColor,
-              lang: "en-KE",
-              icons: [
-                { src: "/assets/pwa-icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-                { src: "/assets/pwa-icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-                { src: "/assets/pwa-icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-              ],
-            }, null, 2);
-            return new Response(request.method === "HEAD" ? null : manifestBody, {
-              headers: {
-                "Content-Type": "application/manifest+json; charset=utf-8",
-                "Cache-Control": "public, max-age=120, stale-while-revalidate=600",
-              },
-            });
-          }
-        } catch {
-          // Fall back cleanly to static manifest.
-        }
+        const rootOrigin = `https://${PRIMARY_DOMAIN}`;
+        const manifestBody = JSON.stringify({
+          id: `${rootOrigin}/`,
+          name: "Store254 — Kenya Online Stores & Marketplace",
+          short_name: "Store254",
+          description: "Browse independent Kenyan stores, products, and services across all 47 counties, or launch your own storefront.",
+          start_url: `${rootOrigin}/`,
+          scope: `${rootOrigin}/`,
+          display: "standalone",
+          orientation: "portrait-primary",
+          background_color: "#ffffff",
+          theme_color: "#0f7a44",
+          lang: "en-KE",
+          icons: [
+            { src: `${rootOrigin}/assets/pwa-icon-192.png`, sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: `${rootOrigin}/assets/pwa-icon-512.png`, sizes: "512x512", type: "image/png", purpose: "any" },
+            { src: `${rootOrigin}/assets/pwa-icon-maskable-512.png`, sizes: "512x512", type: "image/png", purpose: "maskable" },
+          ],
+        }, null, 2);
+        return new Response(request.method === "HEAD" ? null : manifestBody, {
+          headers: {
+            "Content-Type": "application/manifest+json; charset=utf-8",
+            "Cache-Control": "public, max-age=300",
+          },
+        });
       }
 
       const staticManifest = await env.ASSETS.fetch(request);
@@ -576,7 +551,7 @@ export default {
 
       if (!storefrontPayload?.tenant) {
         const transformed = new HTMLRewriter()
-          .on("#platform-hero, .platform-nav-links, #platform-mobile-menu", {
+          .on('#platform-hero, .platform-nav-links, #platform-mobile-menu, link[rel="manifest"]', {
             element(el) {
               el.remove();
             },
@@ -615,7 +590,7 @@ export default {
 
       const directoryHub = getDirectoryHubForBusinessType(storefrontPayload.tenant.businessType);
       const rewriter = new HTMLRewriter()
-        .on("#platform-hero, .platform-nav-links, #platform-mobile-menu, #footer-about-link", {
+        .on('#platform-hero, .platform-nav-links, #platform-mobile-menu, #footer-about-link, link[rel="manifest"]', {
           element(el) {
             el.remove();
           },

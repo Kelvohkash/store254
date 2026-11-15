@@ -383,6 +383,35 @@ html[data-storefront="true"] #banner-store-call-btn:hover {
   color: var(--store-on-primary) !important;
 }
 
+html[data-storefront="true"] .store-follow-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.45rem !important;
+  padding: 0.7rem 1.2rem !important;
+  border-radius: 9999px !important;
+  background: var(--store-white) !important;
+  color: var(--store-ink) !important;
+  border: 1px solid color-mix(in srgb, var(--store-primary) 26%, var(--store-line)) !important;
+  font-weight: 750 !important;
+  font-size: 0.8rem !important;
+  cursor: pointer !important;
+  transition: all 160ms ease !important;
+}
+
+html[data-storefront="true"] .store-follow-btn:hover {
+  border-color: var(--store-primary) !important;
+  color: var(--store-primary) !important;
+  background: var(--store-primary-soft) !important;
+}
+
+html[data-storefront="true"] .store-follow-btn.is-following {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #92400e !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.18) !important;
+}
+
 /* PC Right-Side Verified Merchant Showcase Card */
 @media (min-width: 960px) {
   html[data-storefront="true"] .store-banner-showcase {

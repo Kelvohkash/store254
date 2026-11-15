@@ -48,8 +48,32 @@ function renderStoreBanner() {
     document.title = `${state.activeTenant.name} • Store254`;
   }
 
+  if (typeof window.syncStorefrontFollowButton === "function") {
+    window.syncStorefrontFollowButton();
+  }
+
   renderIcons();
 }
+
+function toggleActiveStoreFollow(event) {
+  if (!state?.activeTenant || typeof window.toggleFollowStore !== "function") return;
+  const settings = state.activeTenant.settings || {};
+  const loc = [state.activeTenant.locationName || settings.locationName, state.activeTenant.countyName || settings.countyName]
+    .filter(Boolean)
+    .join(", ");
+  window.toggleFollowStore(
+    {
+      id: state.activeTenant.id || "",
+      subdomain: state.activeTenant.subdomain || "",
+      name: state.activeTenant.name || state.activeTenant.subdomain || "Store",
+      businessType: state.activeTenant.businessType || "GENERAL",
+      logoUrl: settings.logoUrl || "",
+      locationLabel: loc,
+    },
+    event
+  );
+}
+window.toggleActiveStoreFollow = toggleActiveStoreFollow;
 
 function renderFooterBrand(storeName) {
   const platformCopy = document.getElementById("footer-platform-copy");

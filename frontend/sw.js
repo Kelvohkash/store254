@@ -1,4 +1,4 @@
-const CACHE_VERSION = "store254-pwa-v5";
+const CACHE_VERSION = "store254-pwa-v6";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -6,7 +6,23 @@ const PRECACHE_URLS = [
   "/offline.html",
   "/manifest.webmanifest",
   "/styles/tailwind.generated.css",
-  "/styles/storefront.css",
+  "/styles/tailwind.generated.css?v=20261114",
+  "/styles/base.css",
+  "/styles/base/tokens-reset.css",
+  "/styles/base/header-nav.css",
+  "/styles/base/hero-banner.css",
+  "/styles/base/cards-catalog.css",
+  "/styles/base/drawers-modals.css",
+  "/styles/storefront-components.css",
+  "/styles/components/tokens-variants.css",
+  "/styles/components/archetypes-hero.css",
+  "/styles/components/cards-interactions.css",
+  "/styles/storefront-default.css",
+  "/styles/storefront-quality.css",
+  "/styles/platform-home.css",
+  "/styles/platform-home.css?v=20261115c",
+  "/styles/ui-polish.css",
+  "/assets/store254Logo.webp",
   "/assets/store254Icon.webp",
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
@@ -94,14 +110,15 @@ self.addEventListener("fetch", (event) => {
           }
           return networkResponse;
         } catch {
+          const offlineFallback = await caches.match(OFFLINE_URL);
+          if (offlineFallback) return offlineFallback;
           const cachedPage = await caches.match(request);
           if (cachedPage) return cachedPage;
           if (!isProtectedAdminPath(url.pathname)) {
             const cachedShell = await caches.match("/");
             if (cachedShell) return cachedShell;
           }
-          const offlineFallback = await caches.match(OFFLINE_URL);
-          return offlineFallback || new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
+          return new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
         }
       })()
     );

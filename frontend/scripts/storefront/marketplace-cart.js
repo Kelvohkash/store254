@@ -846,6 +846,14 @@
     const reviewsList = Array.isArray(activeQuickViewData.reviews) ? activeQuickViewData.reviews : [];
     const attrs = item.attributes && typeof item.attributes === "object" ? Object.entries(item.attributes).slice(0, 6) : [];
     const storefrontHref = `https://${store.subdomain}.store254.co.ke/item/${encodeURIComponent(item.slug || item.id)}`;
+    const isStoreFollowedNow = typeof window.isStoreFollowed === "function" && window.isStoreFollowed(store.subdomain);
+    const followStorePayload = {
+      id: store.id || "",
+      subdomain: store.subdomain || "",
+      name: store.name || store.subdomain || "Store",
+      businessType: store.businessType || "GENERAL",
+      locationLabel: storeLoc || "",
+    };
 
     bodyEl.innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 sm:p-6">
@@ -878,10 +886,21 @@
                 <span class="text-xs font-extrabold text-emerald-900">${escapeHtml(store.name)}</span>
                 ${storeLoc ? `<span class="text-[11px] text-emerald-700">· ${escapeHtml(storeLoc)}</span>` : ""}
               </div>
-              <a href="${escapeHtml(storefrontHref)}" target="_blank" rel="noopener" class="text-[11px] font-bold text-slate-500 hover:text-emerald-700 inline-flex items-center gap-1">
-                <span>Visit Storefront</span>
-                <i data-lucide="external-link" class="w-3 h-3"></i>
-              </a>
+              <div class="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  data-follow-subdomain="${escapeHtml(store.subdomain)}"
+                  data-follow-store="${escapeHtml(JSON.stringify(followStorePayload))}"
+                  onclick="window.toggleFollowStore?.(JSON.parse(this.dataset.followStore), event)"
+                  aria-pressed="${isStoreFollowedNow ? "true" : "false"}"
+                  class="qv-follow-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors${isStoreFollowedNow ? " is-following" : ""}">
+                  <span>${isStoreFollowedNow ? "Subscribed ★" : "+ Subscribe"}</span>
+                </button>
+                <a href="${escapeHtml(storefrontHref)}" target="_blank" rel="noopener" class="text-[11px] font-bold text-slate-500 hover:text-emerald-700 inline-flex items-center gap-1">
+                  <span>Visit Storefront</span>
+                  <i data-lucide="external-link" class="w-3 h-3"></i>
+                </a>
+              </div>
             </div>
             <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(item.categoryName || item.itemType)}</p>
             <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">${escapeHtml(item.title)}</h3>
@@ -1328,13 +1347,36 @@
           : "";
       const activeStoreBlock = activeStoreHtml ? `<div class="mb-4">${activeStoreHtml}</div>` : "";
 
+      const followedStores = typeof window.getFollowedStores === "function" ? window.getFollowedStores() : [];
+      const followedStoresBlock =
+        followedStores.length > 0
+          ? `<div class="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">★ Subscribed Stores (${followedStores.length})</span>
+                <span class="text-[11px] text-emerald-700 font-semibold">Pinned at top</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                ${followedStores
+                  .slice(0, 8)
+                  .map((fs) => {
+                    const fsUrls =
+                      typeof window.buildStore254StoreUrls === "function"
+                        ? window.buildStore254StoreUrls(fs.subdomain)
+                        : { storefrontUrl: `https://${fs.subdomain}.store254.co.ke/` };
+                    return `<a href="${escapeHtml(fsUrls.storefrontUrl)}" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-emerald-200 hover:border-emerald-500 text-xs font-bold text-slate-800 shadow-xs">${escapeHtml(fs.name)}</a>`;
+                  })
+                  .join("")}
+              </div>
+            </div>`
+          : "";
+
       if (ordersList.length === 0) {
-        bodyEl.innerHTML = `<div class="p-5">${accountBar}${activeStoreBlock}<div class="py-8 text-center text-xs text-slate-500">You haven't placed any orders yet. Explore local stores below!</div></div>`;
+        bodyEl.innerHTML = `<div class="p-5">${accountBar}${activeStoreBlock}${followedStoresBlock}<div class="py-8 text-center text-xs text-slate-500">You haven't placed any orders yet. Explore local stores below!</div></div>`;
         if (typeof window.renderIcons === "function") window.renderIcons();
         return;
       }
 
-      bodyEl.innerHTML = `<div class="p-5">${accountBar}${activeStoreBlock}<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">${ordersList
+      bodyEl.innerHTML = `<div class="p-5">${accountBar}${activeStoreBlock}${followedStoresBlock}<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">${ordersList
         .map(
           (o) => {
             const storeUrls = typeof window.buildStore254StoreUrls === "function"

@@ -271,3 +271,52 @@ test("store onboarding requires Google sign-in and locks owner email", async () 
   assert.match(platformRoutes, /GOOGLE_AUTH_REQUIRED/);
   assert.match(platformRoutes, /EMAIL_MISMATCH/);
 });
+
+test("offline fallback renders styled self-contained page with auto-reconnect and pinned stores", async () => {
+  const [swJs, offlineHtml, pwaJs] = await Promise.all([
+    read("../sw.js"),
+    read("../offline.html"),
+    read("../scripts/storefront/pwa.js"),
+  ]);
+
+  assert.match(swJs, /\/styles\/platform-home\.css/);
+  assert.match(swJs, /\/styles\/storefront-default\.css/);
+  assert.match(swJs, /\/styles\/storefront-quality\.css/);
+  assert.match(swJs, /\/styles\/base\.css/);
+  assert.match(swJs, /caches\.match\(OFFLINE_URL\)/);
+  assert.match(offlineHtml, /window\.addEventListener\("online"/);
+  assert.match(offlineHtml, /id="offline-pinned-stores"/);
+  assert.match(pwaJs, /pwa-network-banner/);
+});
+
+test("PWA installation installs the main Store254 domain and never installs tenant subdomains", async () => {
+  const [pwaJs, worker] = await Promise.all([
+    read("../scripts/storefront/pwa.js"),
+    read("../src/worker.ts"),
+  ]);
+
+  assert.match(pwaJs, /function isTenantSubdomainHost/);
+  assert.match(pwaJs, /function getMainPlatformInstallUrl/);
+  assert.match(pwaJs, /install_app/);
+  assert.match(worker, /link\[rel="manifest"\]/);
+  assert.match(worker, /start_url:\s*`\$\{rootOrigin\}\/`/);
+});
+
+test("shoppers can subscribe to stores and keep them pinned at the top of Store254", async () => {
+  const [html, platformJs, bannerJs, cartJs] = await Promise.all([
+    read("../index.html"),
+    read("../scripts/storefront/platform.js"),
+    read("../scripts/storefront/banner.js"),
+    read("../scripts/storefront/marketplace-cart.js"),
+  ]);
+
+  assert.match(html, /id="platform-pinned-stores-section"/);
+  assert.match(html, /id="stores-directory-pinned-section"/);
+  assert.match(html, /id="banner-follow-store-btn"/);
+  assert.match(platformJs, /function getFollowedStores/);
+  assert.match(platformJs, /function toggleFollowStore/);
+  assert.match(platformJs, /function renderPinnedStoresSection/);
+  assert.match(bannerJs, /function toggleActiveStoreFollow/);
+  assert.match(bannerJs, /syncStorefrontFollowButton/);
+  assert.match(cartJs, /qv-follow-btn/);
+});

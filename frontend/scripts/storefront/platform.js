@@ -190,12 +190,33 @@ function renderStoreCardMarkup(s, index) {
     ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(s.name)}" class="w-full h-full object-cover rounded-full" onerror="this.parentElement.textContent='${initial}'">`
     : initial;
 
+  const isFollowed = isStoreFollowed(s.subdomain);
+  const storePayload = {
+    id: s.id || "",
+    subdomain: s.subdomain || "",
+    name: s.name || s.subdomain || "Store",
+    businessType: s.businessType || "GENERAL",
+    logoUrl: logoUrl || "",
+    locationLabel: s.locationLabel || s.countyName || "",
+  };
+
   return `
-    <a href="${storeUrl}" class="platform-store-card bg-white rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer text-left group flex flex-col justify-between no-underline overflow-hidden">
+    <a href="${storeUrl}" class="platform-store-card ${isFollowed ? "is-followed-store " : ""}bg-white rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer text-left group flex flex-col justify-between no-underline overflow-hidden">
       <div>
         <div class="platform-store-cover cover-${coverType}${bannerUrl ? " has-hero-photo" : ""}" ${coverStyle}>
           <span class="platform-store-avatar">${avatarContent}</span>
           <small>${badgeLabel}</small>
+          <button
+            type="button"
+            data-follow-subdomain="${escapeHtml(s.subdomain)}"
+            data-follow-store="${escapeHtml(JSON.stringify(storePayload))}"
+            onclick="event.preventDefault(); event.stopPropagation(); toggleFollowStore(JSON.parse(this.dataset.followStore), event)"
+            aria-pressed="${isFollowed ? "true" : "false"}"
+            aria-label="${isFollowed ? `Unsubscribe from ${escapeHtml(s.name)}` : `Subscribe to ${escapeHtml(s.name)}`}"
+            class="store-card-follow-btn${isFollowed ? " is-following" : ""}">
+            <i data-lucide="${isFollowed ? "star" : "bookmark-plus"}" class="w-3.5 h-3.5"></i>
+            <span>${isFollowed ? "Subscribed" : "Subscribe"}</span>
+          </button>
         </div>
         <div class="platform-store-details">
           <div>
@@ -210,7 +231,7 @@ function renderStoreCardMarkup(s, index) {
           <span>Visit Storefront</span>
           <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
         </span>
-        <span class="platform-store-live-pill">Open</span>
+        <span class="platform-store-live-pill${isFollowed ? " is-pinned" : ""}">${isFollowed ? "★ Pinned" : "Open"}</span>
       </div>
     </a>
   `;
@@ -218,6 +239,320 @@ function renderStoreCardMarkup(s, index) {
 
 let platformLiveStoresCache = [];
 let platformActiveTypeFilter = "";
+
+const FOLLOWED_STORES_STORAGE_KEY = "store254_followed_stores_v1";
+const FOLLOWED_STORES_META_KEY = "store254_followed_updated_v1";
+const FOLLOWED_STORES_COOKIE_KEY = "store254_followed_v1";
+const MAX_FOLLOWED_STORES = 30;
+
+function readCookieValue(name) {
+  try {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${escaped}=([^;]+)`));
+    return match && match[1] ? decodeURIComponent(match[1]) : "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeFollowedStoreRecord(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const rawSub = raw.subdomain || raw.sub || "";
+  const subdomain = String(rawSub).trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+  if (!subdomain) return null;
+  return {
+    id: String(raw.id || "").trim(),
+    subdomain,
+    name: String(raw.name || raw.n || subdomain).trim(),
+    businessType: String(raw.businessType || raw.t || "GENERAL").trim(),
+    logoUrl: safeShowcaseImageUrl(raw.logoUrl || ""),
+    locationLabel: String(raw.locationLabel || raw.l || "").trim(),
+    pinnedAt: Number(raw.pinnedAt || raw.p || Date.now()),
+  };
+}
+
+function enrichFollowedStoreRecord(record) {
+  if (!record || !Array.isArray(platformLiveStoresCache) || platformLiveStoresCache.length === 0) {
+    return record;
+  }
+  const match = platformLiveStoresCache.find(
+    (s) => s && String(s.subdomain || "").toLowerCase() === record.subdomain
+  );
+  if (!match) return record;
+  let settings = match.settings;
+  if (typeof settings === "string") {
+    try { settings = JSON.parse(settings); } catch {}
+  }
+  const liveLogo = safeShowcaseImageUrl(settings?.logoUrl || match.logoUrl);
+  return {
+    ...record,
+    id: match.id || record.id,
+    name: match.name || record.name,
+    businessType: match.businessType || record.businessType,
+    logoUrl: liveLogo || record.logoUrl,
+    locationLabel: match.locationLabel || match.countyName || record.locationLabel,
+  };
+}
+
+function writeFollowedCookie(stores, updatedAt) {
+  try {
+    const compact = stores.slice(0, 20).map((s) => ({
+      sub: s.subdomain,
+      n: String(s.name || s.subdomain).slice(0, 48),
+      t: s.businessType || "GENERAL",
+      l: String(s.locationLabel || "").slice(0, 40),
+      p: Number(s.pinnedAt || updatedAt),
+    }));
+    const payload = encodeURIComponent(JSON.stringify({ updatedAt, stores: compact }));
+    const host = (window.location.hostname || "").toLowerCase();
+    const attrs = ["Path=/", "Max-Age=31536000", "SameSite=Lax"];
+    if (host === "store254.co.ke" || host.endsWith(".store254.co.ke")) {
+      attrs.push("Domain=.store254.co.ke");
+    } else if (host === "localhost" || host.endsWith(".localhost")) {
+      attrs.push("Domain=localhost");
+    }
+    if (window.location.protocol === "https:") {
+      attrs.push("Secure");
+    }
+    document.cookie = `${FOLLOWED_STORES_COOKIE_KEY}=${payload}; ${attrs.join("; ")}`;
+  } catch {
+    // Ignore cookie errors in restricted contexts.
+  }
+}
+
+function saveFollowedStoresList(list) {
+  const updatedAt = Date.now();
+  const deduped = [];
+  const seen = new Set();
+  for (const item of list) {
+    const norm = normalizeFollowedStoreRecord(item);
+    if (!norm || seen.has(norm.subdomain)) continue;
+    seen.add(norm.subdomain);
+    deduped.push(norm);
+    if (deduped.length >= MAX_FOLLOWED_STORES) break;
+  }
+  deduped.sort((a, b) => Number(b.pinnedAt || 0) - Number(a.pinnedAt || 0));
+  try {
+    localStorage.setItem(FOLLOWED_STORES_STORAGE_KEY, JSON.stringify(deduped));
+    localStorage.setItem(FOLLOWED_STORES_META_KEY, String(updatedAt));
+  } catch {}
+  writeFollowedCookie(deduped, updatedAt);
+  return deduped;
+}
+
+function getFollowedStores() {
+  let lsStores = [];
+  let lsUpdatedAt = 0;
+  try {
+    const raw = localStorage.getItem(FOLLOWED_STORES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        lsStores = parsed.map(normalizeFollowedStoreRecord).filter(Boolean);
+      }
+    }
+    lsUpdatedAt = Number(localStorage.getItem(FOLLOWED_STORES_META_KEY) || 0) || 0;
+  } catch {}
+
+  let cookieStores = [];
+  let cookieUpdatedAt = 0;
+  try {
+    const rawCookie = readCookieValue(FOLLOWED_STORES_COOKIE_KEY);
+    if (rawCookie) {
+      const parsedCookie = JSON.parse(rawCookie);
+      if (parsedCookie && Array.isArray(parsedCookie.stores)) {
+        cookieStores = parsedCookie.stores.map(normalizeFollowedStoreRecord).filter(Boolean);
+        cookieUpdatedAt = Number(parsedCookie.updatedAt || 0) || 0;
+      }
+    }
+  } catch {}
+
+  let activeList = lsStores;
+  if (cookieUpdatedAt > lsUpdatedAt) {
+    activeList = cookieStores;
+    try {
+      const enrichedFromLs = cookieStores.map((cs) => {
+        const prev = lsStores.find((ls) => ls.subdomain === cs.subdomain);
+        return prev?.logoUrl && !cs.logoUrl ? { ...cs, logoUrl: prev.logoUrl } : cs;
+      });
+      activeList = enrichedFromLs;
+      localStorage.setItem(FOLLOWED_STORES_STORAGE_KEY, JSON.stringify(activeList));
+      localStorage.setItem(FOLLOWED_STORES_META_KEY, String(cookieUpdatedAt));
+    } catch {}
+  } else if (lsStores.length > 0 && cookieUpdatedAt === 0) {
+    writeFollowedCookie(lsStores, lsUpdatedAt || Date.now());
+  }
+
+  return activeList
+    .map(enrichFollowedStoreRecord)
+    .sort((a, b) => Number(b.pinnedAt || 0) - Number(a.pinnedAt || 0));
+}
+window.getFollowedStores = getFollowedStores;
+
+function isStoreFollowed(subdomain) {
+  const safeSub = String(subdomain || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+  if (!safeSub) return false;
+  return getFollowedStores().some((s) => s.subdomain === safeSub);
+}
+window.isStoreFollowed = isStoreFollowed;
+
+function syncStorefrontFollowButton() {
+  const btn = document.getElementById("banner-follow-store-btn");
+  const label = document.getElementById("banner-follow-store-label");
+  const sub = state?.activeTenant?.subdomain;
+  if (!btn || !sub) return;
+  const following = isStoreFollowed(sub);
+  btn.classList.toggle("is-following", following);
+  btn.setAttribute("aria-pressed", following ? "true" : "false");
+  if (label) {
+    label.textContent = following ? "Subscribed · Pinned" : "Subscribe to Store";
+  }
+  const icon = btn.querySelector("i, svg");
+  if (icon && icon.tagName.toLowerCase() === "i") {
+    icon.setAttribute("data-lucide", following ? "star" : "bookmark-plus");
+  } else if (btn.firstElementChild) {
+    const newIcon = document.createElement("i");
+    newIcon.setAttribute("data-lucide", following ? "star" : "bookmark-plus");
+    newIcon.className = "w-4 h-4";
+    btn.replaceChild(newIcon, btn.firstElementChild);
+  }
+}
+window.syncStorefrontFollowButton = syncStorefrontFollowButton;
+
+function syncFollowButtonsInDom() {
+  syncStorefrontFollowButton();
+  document.querySelectorAll("[data-follow-subdomain]").forEach((btn) => {
+    const sub = btn.getAttribute("data-follow-subdomain") || "";
+    const followed = isStoreFollowed(sub);
+    btn.classList.toggle("is-following", followed);
+    btn.setAttribute("aria-pressed", followed ? "true" : "false");
+    const span = btn.querySelector("span");
+    if (span) {
+      span.textContent = followed ? "Subscribed ★" : "Subscribe";
+    }
+  });
+}
+window.syncFollowButtonsInDom = syncFollowButtonsInDom;
+
+function renderPinnedStoresSection() {
+  const followed = getFollowedStores();
+  const containers = [
+    document.getElementById("platform-pinned-stores-section"),
+    document.getElementById("stores-directory-pinned-section"),
+  ].filter(Boolean);
+
+  if (containers.length === 0) return;
+
+  if (followed.length === 0) {
+    containers.forEach((el) => {
+      el.classList.add("hidden");
+      el.innerHTML = "";
+    });
+    return;
+  }
+
+  const cardsHtml = followed
+    .map((store) => {
+      const storeUrl = getStoreUrl(store.subdomain);
+      const initial = escapeHtml((store.name || store.subdomain || "S").trim().slice(0, 1).toUpperCase());
+      const avatarHtml = store.logoUrl
+        ? `<img src="${escapeHtml(store.logoUrl)}" alt="${escapeHtml(store.name)}" onerror="this.parentElement.textContent='${initial}'">`
+        : initial;
+      const metaParts = [];
+      if (store.locationLabel) metaParts.push(store.locationLabel);
+      metaParts.push(`${store.subdomain}.store254.co.ke`);
+      const unpinPayload = escapeHtml(JSON.stringify({ subdomain: store.subdomain, name: store.name }));
+      return `
+        <div class="pinned-store-chip">
+          <a href="${escapeHtml(storeUrl)}" class="pinned-store-chip-link">
+            <span class="pinned-store-avatar">${avatarHtml}</span>
+            <span class="pinned-store-copy">
+              <strong>${escapeHtml(store.name)}</strong>
+              <small>${escapeHtml(metaParts.join(" · "))}</small>
+            </span>
+          </a>
+          <button
+            type="button"
+            data-unpin-store="${unpinPayload}"
+            onclick="toggleFollowStore(JSON.parse(this.dataset.unpinStore), event)"
+            aria-label="Unpin ${escapeHtml(store.name)}"
+            title="Unfollow ${escapeHtml(store.name)}"
+            class="pinned-store-remove">
+            ×
+          </button>
+        </div>
+      `;
+    })
+    .join("");
+
+  const markup = `
+    <div class="pinned-stores-header">
+      <div class="pinned-stores-title-wrap">
+        <span class="pinned-stores-badge">
+          <i data-lucide="star" class="w-3.5 h-3.5"></i>
+          <span>Pinned Stores</span>
+        </span>
+        <p class="pinned-stores-sub">Your subscribed Kenyan shops stay pinned right here for one-tap shopping</p>
+      </div>
+      <span class="pinned-stores-count">${followed.length} store${followed.length === 1 ? "" : "s"}</span>
+    </div>
+    <div class="pinned-stores-rail">${cardsHtml}</div>
+  `;
+
+  containers.forEach((el) => {
+    el.innerHTML = markup;
+    el.classList.remove("hidden");
+  });
+  renderIcons();
+}
+window.renderPinnedStoresSection = renderPinnedStoresSection;
+
+function toggleFollowStore(storeInput, event) {
+  if (event) {
+    if (typeof event.preventDefault === "function") event.preventDefault();
+    if (typeof event.stopPropagation === "function") event.stopPropagation();
+  }
+
+  let resolvedInput = storeInput;
+  if (typeof storeInput === "string") {
+    const cleanSub = storeInput.trim().toLowerCase();
+    const liveMatch = (platformLiveStoresCache || []).find(
+      (s) => s && String(s.subdomain || "").toLowerCase() === cleanSub
+    );
+    resolvedInput = liveMatch || { subdomain: cleanSub, name: cleanSub };
+  }
+
+  const candidate = normalizeFollowedStoreRecord({
+    ...resolvedInput,
+    pinnedAt: Date.now(),
+  });
+  if (!candidate) return false;
+
+  const existing = getFollowedStores();
+  const alreadyFollowed = existing.some((s) => s.subdomain === candidate.subdomain);
+  let nextList;
+  if (alreadyFollowed) {
+    nextList = existing.filter((s) => s.subdomain !== candidate.subdomain);
+    if (platformActiveTypeFilter === "__SUBSCRIBED__" && nextList.length === 0) {
+      platformActiveTypeFilter = "";
+    }
+    showToast(`Unfollowed ${candidate.name}.`, "info");
+  } else {
+    nextList = [enrichFollowedStoreRecord(candidate), ...existing];
+    showToast(`Subscribed! ${candidate.name} is now pinned at the top of Store254.`, "success");
+  }
+
+  saveFollowedStoresList(nextList);
+  renderPinnedStoresSection();
+  syncFollowButtonsInDom();
+  if (platformLiveStoresCache.length > 0) {
+    renderPlatformDirectoryFilters(platformLiveStoresCache);
+    filterPlatformStores();
+  }
+  renderIcons();
+  return !alreadyFollowed;
+}
+window.toggleFollowStore = toggleFollowStore;
 
 function formatBusinessTypeLabel(type) {
   return String(type || "Store")
@@ -238,9 +573,16 @@ function renderPlatformDirectoryFilters(liveStores) {
   }
 
   toolbar.classList.remove("hidden");
+  const followedSet = new Set(getFollowedStores().map((s) => s.subdomain));
+  const followedCount = liveStores.filter((s) => followedSet.has(String(s.subdomain || "").toLowerCase())).length;
   const types = Array.from(new Set(liveStores.map((s) => String(s.businessType || "GENERAL").toUpperCase())));
   const buttons = [
     `<button type="button" onclick="setPlatformTypeFilter('')" class="platform-type-chip ${platformActiveTypeFilter === "" ? "is-active" : ""}">All (${liveStores.length})</button>`,
+    ...(followedCount > 0
+      ? [
+          `<button type="button" onclick="setPlatformTypeFilter('__SUBSCRIBED__')" class="platform-type-chip ${platformActiveTypeFilter === "__SUBSCRIBED__" ? "is-active" : ""}">★ Subscribed (${followedCount})</button>`,
+        ]
+      : []),
     ...types.map((t) => {
       const count = liveStores.filter((s) => String(s.businessType || "GENERAL").toUpperCase() === t).length;
       return `<button type="button" onclick="setPlatformTypeFilter(${inlineJs(t)})" class="platform-type-chip ${platformActiveTypeFilter === t ? "is-active" : ""}">${escapeHtml(formatBusinessTypeLabel(t))} (${count})</button>`;
@@ -282,15 +624,29 @@ function filterPlatformStores() {
 
   const q = (document.getElementById("platform-store-search")?.value || "").toLowerCase().trim();
   const buyerLoc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
+  const followedOrder = new Map(getFollowedStores().map((s, idx) => [s.subdomain, idx]));
+
   const filtered = platformLiveStoresCache
     .filter((s) => {
-      const typeMatch = !platformActiveTypeFilter || String(s.businessType || "GENERAL").toUpperCase() === platformActiveTypeFilter;
-      if (!typeMatch) return false;
+      const slug = String(s.subdomain || "").toLowerCase();
+      if (platformActiveTypeFilter === "__SUBSCRIBED__") {
+        if (!followedOrder.has(slug)) return false;
+      } else if (platformActiveTypeFilter && String(s.businessType || "GENERAL").toUpperCase() !== platformActiveTypeFilter) {
+        return false;
+      }
       if (!q) return true;
       const haystack = `${s.name || ""} ${s.subdomain || ""} ${s.description || ""} ${s.businessType || ""} ${s.locationLabel || ""}`.toLowerCase();
       return haystack.includes(q);
     })
     .sort((a, b) => {
+      const aSlug = String(a.subdomain || "").toLowerCase();
+      const bSlug = String(b.subdomain || "").toLowerCase();
+      const aPinned = followedOrder.has(aSlug);
+      const bPinned = followedOrder.has(bSlug);
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      if (aPinned && bPinned) {
+        return followedOrder.get(aSlug) - followedOrder.get(bSlug);
+      }
       if (!buyerLoc) return 0;
       const score = (store) => {
         if (buyerLoc.locationId && store.locationId === buyerLoc.locationId) return 0;
@@ -364,6 +720,7 @@ async function loadPlatformStores() {
 
   platformLiveStoresCache = liveStores;
   renderFeaturedStoreShowcase(liveStores);
+  renderPinnedStoresSection();
   renderPlatformDirectoryFilters(liveStores);
   filterPlatformStores();
 
@@ -375,6 +732,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (typeof setThemePalette === "function") setThemePalette("trust-forest");
   renderIcons();
   updateCartBadge();
+  renderPinnedStoresSection();
   loadPlatformLocationMetrics();
   loadStoreProfile().then(() => {
     const url = new URL(window.location.href);
