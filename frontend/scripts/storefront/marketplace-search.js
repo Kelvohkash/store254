@@ -163,7 +163,6 @@
 
   window.selectMarketplaceCounty = function selectMarketplaceCounty(countyId) {
     activeCountyFilter = buyerCountyList.find((c) => c.id === countyId) || null;
-    renderBuyerCountyChips(document.getElementById("marketplace-county-filter")?.value || "");
     const countyStep = document.getElementById("marketplace-county-step");
     const townWrap = document.getElementById("marketplace-town-search-wrap");
     const townHint = document.getElementById("marketplace-town-county-label");
@@ -194,16 +193,25 @@
         return;
       }
       resultsEl.innerHTML = locs
-        .map(
-          (loc) => `
-          <button type="button" onclick="selectMarketplaceBuyerLocation(${inlineJs(loc)})" class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between gap-2 border-b border-slate-100 last:border-0 text-xs">
+        .map((loc) => {
+          const payload = {
+            id: loc.id || loc.locationId || "",
+            locationId: loc.locationId || loc.id || "",
+            name: loc.name || loc.locationName || "",
+            locationName: loc.locationName || loc.name || "",
+            countyId: loc.countyId || activeCountyFilter?.id || "",
+            countyName: loc.countyName || activeCountyFilter?.name || "",
+            constituencyName: loc.constituencyName || "",
+          };
+          return `
+          <button type="button" data-loc="${escapeHtml(JSON.stringify(payload))}" onclick="selectMarketplaceBuyerLocation(JSON.parse(this.dataset.loc))" class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between gap-2 border-b border-slate-100 last:border-0 text-xs">
             <div>
               <strong class="text-slate-800 block">${escapeHtml(loc.name)}</strong>
               <span class="text-[11px] text-emerald-700">${escapeHtml(loc.constituencyName || "")} · ${escapeHtml(loc.countyName || activeCountyFilter.name)}</span>
             </div>
             <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${escapeHtml(loc.kind === "TOWN" ? "Town" : loc.kind === "ESTATE" ? "Estate" : "Centre")}</span>
-          </button>`
-        )
+          </button>`;
+        })
         .join("");
     }, 160);
   };
@@ -391,7 +399,7 @@
     const sugBox = document.getElementById("marketplace-suggest-dropdown");
     if (sugBox) sugBox.classList.add("hidden");
     expandFullSearch = false;
-    window.runMarketplaceProductSearch();
+    window.runMarketplaceProductSearch(undefined, { userInitiated: true });
   };
 
   window.clearMarketplaceQuery = function clearMarketplaceQuery() {
@@ -425,89 +433,37 @@
     window.runMarketplaceProductSearch();
   };
 
-  window.shareStoreOnboardingInvite = async function shareStoreOnboardingInvite() {
-    const shareUrl = window.location.origin || "https://store254.co.ke";
-    const locName = selectedBuyerLocation?.locationName;
-    const shareText = locName
-      ? `Help us bring more shops in ${locName} online on Store254! Open your free online storefront in 3 minutes:`
-      : "Help us onboard more local shops in your shopping centre on Store254! Open a free online storefront in 3 minutes:";
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "Store254 — Onboard Local Stores",
-          text: shareText,
-          url: shareUrl,
-        });
-        return;
-      }
-    } catch (err) {
-      if (err && err.name === "AbortError") return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-      if (typeof showToast === "function") {
-        showToast("Invite message copied! Share it with shops in your local shopping centre.");
-      }
-    } catch {
-      if (typeof toggleDrawer === "function") {
-        toggleDrawer("onboard-modal", true);
-      }
-    }
-  };
-
   function renderOnboardingEmptyProductsState(query, buyerLoc) {
     const locName = buyerLoc?.locationName
       ? [buyerLoc.locationName, buyerLoc.countyName].filter(Boolean).join(", ")
       : "";
     const heading = query
-      ? `No products found for "${escapeHtml(query)}"${locName ? ` in ${escapeHtml(locName)}` : ""} yet`
-      : locName
-        ? `Onboarding stores in ${escapeHtml(locName)}`
-        : "We are in the process of onboarding stores across Kenya";
+      ? `"${escapeHtml(query)}" not found`
+      : "Product not found";
+    const where = locName ? ` in ${escapeHtml(locName)}` : "";
 
     return `
-      <div class="col-span-full marketplace-onboarding-empty-card">
-        <div class="onboarding-empty-icon-wrap" aria-hidden="true">
-          <span class="onboarding-empty-icon-main">
-            <i data-lucide="store" class="w-5 h-5"></i>
-          </span>
-          <span class="onboarding-empty-icon-sub">
-            <i data-lucide="map-pin" class="w-3 h-3"></i>
-          </span>
-        </div>
-        <span class="onboarding-empty-badge">
-          <span class="onboarding-empty-badge-dot" aria-hidden="true"></span>
-          <span>Store Onboarding in Progress</span>
+      <div class="col-span-full marketplace-onboarding-empty-card flex flex-col items-center text-center bg-white rounded-2xl border border-slate-200 px-5 py-6 shadow-sm">
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 mb-2.5" aria-hidden="true">
+          <i data-lucide="package-search" class="w-5 h-5"></i>
         </span>
-        <h3 class="onboarding-empty-title">${heading}</h3>
-        <p class="onboarding-empty-copy">
-          We are in the process of onboarding stores — please be patient and help us onboard more in your local shopping centre.
+        <h3 class="onboarding-empty-title m-0 text-slate-900 font-extrabold text-sm sm:text-base">${heading}</h3>
+        <p class="onboarding-empty-copy max-w-md mt-1 mb-0 text-slate-600 text-xs sm:text-sm leading-relaxed">
+          We are working to add more products and stores${where}. Please check back soon.
         </p>
-        <p class="onboarding-empty-subcopy">
-          Own a business or know a great shop, market stall, or service provider near you? Invite them or launch a store in under 3 minutes.
-        </p>
-        <div class="onboarding-empty-actions">
-          <button type="button" onclick="toggleDrawer('onboard-modal', true)" class="onboarding-empty-btn-primary">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i>
-            <span>Onboard a Store in Your Shopping Centre</span>
-          </button>
-          <button type="button" onclick="shareStoreOnboardingInvite()" class="onboarding-empty-btn-secondary">
-            <i data-lucide="share-2" class="w-4 h-4"></i>
-            <span>Invite a Local Shop</span>
-          </button>
+        <div class="onboarding-empty-actions flex flex-wrap items-center justify-center gap-2 mt-3.5">
           ${
             query
-              ? `<button type="button" onclick="clearMarketplaceQuery()" class="onboarding-empty-btn-ghost">
+              ? `<button type="button" onclick="clearMarketplaceQuery()" class="onboarding-empty-btn-ghost inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-white border border-slate-200 text-slate-700 text-xs font-bold cursor-pointer transition-colors">
                   <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                   <span>Clear search</span>
                 </button>`
-              : `<a href="/stores#platform-demo-stores-section" class="onboarding-empty-btn-ghost no-underline">
-                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                  <span>Explore Demo Stores</span>
-                </a>`
+              : ""
           }
+          <button type="button" onclick="toggleDrawer('onboard-modal', true)" class="onboarding-empty-btn-secondary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold cursor-pointer transition-colors">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+            <span>Add a store</span>
+          </button>
         </div>
       </div>`;
   }
@@ -517,7 +473,7 @@
     window.runMarketplaceProductSearch();
   };
 
-  window.runMarketplaceProductSearch = async function runMarketplaceProductSearch(overrideQuery) {
+  window.runMarketplaceProductSearch = async function runMarketplaceProductSearch(overrideQuery, opts = {}) {
     const input = document.getElementById("marketplace-product-query");
     if (typeof overrideQuery === "string" && input) {
       input.value = overrideQuery;
@@ -529,6 +485,13 @@
 
     const sugBox = document.getElementById("marketplace-suggest-dropdown");
     if (sugBox) sugBox.classList.add("hidden");
+
+    if (opts?.userInitiated && !selectedBuyerLocation) {
+      if (typeof window.openBuyerWelcomeModal === "function") {
+        window.openBuyerWelcomeModal(2);
+      }
+      return;
+    }
 
     const resultsWrap = document.getElementById("marketplace-search-results-wrap");
     const gridEl = document.getElementById("marketplace-search-results");
@@ -570,8 +533,8 @@
 
       if (!res.ok || !res.data?.success) {
         if (statusEl) {
-          const locPart = selectedBuyerLocation?.locationName ? ` near ${selectedBuyerLocation.locationName}` : " across Kenya";
-          statusEl.textContent = `Onboarding local stores${locPart}`;
+          const locPart = selectedBuyerLocation?.locationName ? ` near ${selectedBuyerLocation.locationName}` : "";
+          statusEl.textContent = `Product not found${locPart}`;
         }
         gridEl.innerHTML = renderOnboardingEmptyProductsState(q, selectedBuyerLocation);
         if (typeof renderIcons === "function") renderIcons();
@@ -598,7 +561,7 @@
         statusEl.textContent =
           count > 0
             ? `${count} item${count === 1 ? "" : "s"}${locPart}`
-            : `Onboarding local stores${locPart || " across Kenya"}`;
+            : `Product not found${locPart}`;
       }
 
       // Did-you-mean banner
@@ -690,24 +653,33 @@
     } catch (err) {
       if (err && err.name === "AbortError") return;
       if (statusEl) {
-        const locPart = selectedBuyerLocation?.locationName ? ` near ${selectedBuyerLocation.locationName}` : " across Kenya";
-        statusEl.textContent = `Onboarding local stores${locPart}`;
+        const locPart = selectedBuyerLocation?.locationName ? ` near ${selectedBuyerLocation.locationName}` : "";
+        statusEl.textContent = `Product not found${locPart}`;
       }
       gridEl.innerHTML = renderOnboardingEmptyProductsState(q, selectedBuyerLocation);
       if (typeof renderIcons === "function") renderIcons();
     }
   };
 
+  function eventIsInside(ev, el) {
+    if (!el) return false;
+    if (typeof ev.composedPath === "function" && ev.composedPath().includes(el)) {
+      return true;
+    }
+    return Boolean(ev.target && el.contains(ev.target));
+  }
+
   // Close autocomplete / location popovers when clicking outside
   document.addEventListener("click", (ev) => {
     const sugBox = document.getElementById("marketplace-suggest-dropdown");
     const searchWrap = document.getElementById("marketplace-search-input-wrap");
-    if (sugBox && searchWrap && !searchWrap.contains(ev.target)) {
+    if (sugBox && searchWrap && !eventIsInside(ev, searchWrap)) {
       sugBox.classList.add("hidden");
     }
     const locPanel = document.getElementById("marketplace-location-panel");
     const locWrap = document.getElementById("marketplace-location-selector-wrap");
-    if (locPanel && locWrap && !locWrap.contains(ev.target)) {
+    const isExternalTrigger = Boolean(ev.target?.closest?.("[data-opens-location-panel]"));
+    if (locPanel && locWrap && !isExternalTrigger && !eventIsInside(ev, locWrap)) {
       locPanel.classList.add("hidden");
     }
   });

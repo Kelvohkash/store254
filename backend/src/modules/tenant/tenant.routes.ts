@@ -7,7 +7,7 @@ import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
 import { items } from "../../db/schema/items";
 import { orders } from "../../db/schema/orders";
-import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
+import { authMiddleware, requireRole, requirePermission } from "../../middlewares/auth.middleware";
 import { AppError } from "../../security/error-handler";
 import { generateUUID } from "../../security/crypto";
 import { businessTypeSchema } from "../../config/business-types";
@@ -99,11 +99,11 @@ const customDomainSchema = z.object({
     .regex(/^[a-z0-9][a-z0-9-.]+\.[a-z]{2,}$/i, "Invalid domain format (e.g. yourstore.com)"),
 });
 
-// Update Store Profile & Branding (Store Owner & Admins only)
+// Update Store Profile & Branding (Store Owner, Admins, or Staff with manage_settings)
 tenantSettingsRouter.patch(
   "/",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_settings"),
   zValidator("json", updateStoreProfileSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -140,10 +140,20 @@ tenantSettingsRouter.patch(
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
     const db = createDb(c.env.DB);
 
+    const [latestTenant] = await db
+      .select({ settings: tenants.settings })
+      .from(tenants)
+      .where(eq(tenants.id, tenant.id))
+      .limit(1);
+    const latestSettings = ((latestTenant?.settings as Record<string, unknown>) || currentSettings);
+
     const mergedSettings: Record<string, unknown> = {
       ...currentSettings,
       ...(body.settings || {}),
     };
+    if (latestSettings.staffPermissions && typeof latestSettings.staffPermissions === "object") {
+      mergedSettings.staffPermissions = latestSettings.staffPermissions;
+    }
     delete mergedSettings.storefrontTemplate;
     delete mergedSettings.storefrontTemplateVersion;
     delete mergedSettings.themePalette;
@@ -177,7 +187,7 @@ tenantSettingsRouter.patch(
 tenantSettingsRouter.put(
   "/custom-domain",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_settings"),
   zValidator("json", customDomainSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -228,7 +238,7 @@ tenantSettingsRouter.put(
 tenantSettingsRouter.get(
   "/stats",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requireRole(["OWNER", "ADMIN", "STAFF"]),
   async (c) => {
     const tenant = c.get("tenant")!;
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
@@ -266,7 +276,7 @@ tenantSettingsRouter.get(
 tenantSettingsRouter.post(
   "/media",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_products", "manage_settings"),
   async (c) => {
     if (!c.env?.MEDIA_BUCKET) {
       return c.json(

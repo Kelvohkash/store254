@@ -12,6 +12,11 @@ import {
 } from "../../db/schema";
 import type { Env } from "../../config/env";
 import { generateUUID } from "../../security/crypto";
+import {
+  getStaticConstituencies,
+  getStaticCountyById,
+  getStaticLocationById,
+} from "./kenya-static-data";
 
 export const GOOGLE_MAPS_SOLUTION_ID = "gmp_git_agentskills_v1";
 const PLACES_AUTOCOMPLETE_URL = "https://places.googleapis.com/v1/places:autocomplete";
@@ -94,13 +99,27 @@ export async function getCountyAndConstituency(
   return { county, constituency };
 }
 
+const WARD_NAME_RE = /\bward$/i;
+const LOW_HUB_SIGNAL_RE = /\b(sub[- ]?location|location|plantation|ranch|farm|forest|division)\b/i;
+
+function isExcludedWardLocation(id: string, name: string): boolean {
+  return id.startsWith("loc-ward-") || WARD_NAME_RE.test(name.trim());
+}
+
+function neighborPenaltyKm(kind: string, name: string): number {
+  if (kind === "SHOPPING_CENTRE" || kind === "TOWN") return 0;
+  if (LOW_HUB_SIGNAL_RE.test(name)) return 4.5;
+  if (kind === "ESTATE") return 4.0;
+  return 2.0;
+}
+
 export async function getNearestNeighborsForLocation(
   db: AppDb,
   locationId: string,
   limit: number = TOP_NEIGHBORS_LIMIT
 ) {
   const safeLimit = Math.min(Math.max(limit, 1), 24);
-  return db
+  const rows = await db
     .select({
       id: kenyaLocations.id,
       name: kenyaLocations.name,
@@ -126,7 +145,11 @@ export async function getNearestNeighborsForLocation(
     .innerJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
     .where(eq(kenyaLocationNeighbors.locationId, locationId))
     .orderBy(asc(kenyaLocationNeighbors.rank), asc(kenyaLocationNeighbors.distanceKm))
-    .limit(safeLimit);
+    .limit(Math.min(safeLimit * 2, 48));
+
+  return rows
+    .filter((row) => !isExcludedWardLocation(row.id, row.name))
+    .slice(0, safeLimit);
 }
 
 /**
@@ -142,6 +165,8 @@ export async function linkNeighborsForNewLocation(
   let candidates = await db
     .select({
       id: kenyaLocations.id,
+      name: kenyaLocations.name,
+      kind: kenyaLocations.kind,
       latitude: kenyaLocations.latitude,
       longitude: kenyaLocations.longitude,
     })
@@ -158,6 +183,8 @@ export async function linkNeighborsForNewLocation(
     candidates = await db
       .select({
         id: kenyaLocations.id,
+        name: kenyaLocations.name,
+        kind: kenyaLocations.kind,
         latitude: kenyaLocations.latitude,
         longitude: kenyaLocations.longitude,
       })
@@ -168,18 +195,21 @@ export async function linkNeighborsForNewLocation(
   if (candidates.length === 0) return;
 
   const ranked = candidates
-    .map((candidate) => ({
-      id: candidate.id,
-      distanceKm: Number(
-        haversineKm(
-          location.latitude,
-          location.longitude,
-          candidate.latitude,
-          candidate.longitude
-        ).toFixed(2)
-      ),
-    }))
-    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .filter((candidate) => !isExcludedWardLocation(candidate.id, candidate.name))
+    .map((candidate) => {
+      const dist = haversineKm(
+        location.latitude,
+        location.longitude,
+        candidate.latitude,
+        candidate.longitude
+      );
+      return {
+        id: candidate.id,
+        distanceKm: Number(dist.toFixed(2)),
+        effectiveKm: dist + neighborPenaltyKm(candidate.kind, candidate.name),
+      };
+    })
+    .sort((a, b) => a.effectiveKm - b.effectiveKm || a.distanceKm - b.distanceKm)
     .slice(0, TOP_NEIGHBORS_LIMIT);
 
   if (ranked.length === 0) return;
@@ -375,28 +405,37 @@ export async function resolveOrCreateStoreLocation(
     customLocationName?: string;
   }
 ): Promise<ResolvedStoreLocation> {
-  const [county] = await db
-    .select()
-    .from(kenyaCounties)
-    .where(eq(kenyaCounties.id, input.countyId))
-    .limit(1);
+  let county = getStaticCountyById(input.countyId);
+  if (!county) {
+    const [dbCounty] = await db
+      .select()
+      .from(kenyaCounties)
+      .where(eq(kenyaCounties.id, input.countyId))
+      .limit(1);
+    county = dbCounty;
+  }
 
   if (!county) {
     throw new LocationResolutionError("Selected county is invalid", 400);
   }
 
+  const staticConsts = getStaticConstituencies(county.id);
   let explicitConstituency: KenyaConstituency | null = null;
   if (input.constituencyId) {
-    const [matchedConst] = await db
-      .select()
-      .from(kenyaConstituencies)
-      .where(
-        and(
-          eq(kenyaConstituencies.id, input.constituencyId),
-          eq(kenyaConstituencies.countyId, county.id)
+    let matchedConst = staticConsts.find((c) => c.id === input.constituencyId);
+    if (!matchedConst) {
+      const [dbConst] = await db
+        .select()
+        .from(kenyaConstituencies)
+        .where(
+          and(
+            eq(kenyaConstituencies.id, input.constituencyId),
+            eq(kenyaConstituencies.countyId, county.id)
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
+      matchedConst = dbConst;
+    }
 
     if (!matchedConst) {
       throw new LocationResolutionError(
@@ -407,8 +446,66 @@ export async function resolveOrCreateStoreLocation(
     explicitConstituency = matchedConst;
   }
 
-  // 1. Existing pre-seeded or previously resolved location (auto-resolves linked constituency)
+  // 1. Existing pre-seeded (static in-memory graph) or custom D1 location
   if (input.locationId) {
+    const staticExisting = getStaticLocationById(input.locationId);
+    if (staticExisting) {
+      if (
+        staticExisting.countyId !== county.id ||
+        (explicitConstituency && staticExisting.constituencyId !== explicitConstituency.id)
+      ) {
+        throw new LocationResolutionError(
+          "Selected town or shopping centre does not belong to the chosen county",
+          400
+        );
+      }
+      const linkedConst =
+        explicitConstituency ||
+        staticConsts.find((c) => c.id === staticExisting.constituencyId) ||
+        (
+          await db
+            .select()
+            .from(kenyaConstituencies)
+            .where(eq(kenyaConstituencies.id, staticExisting.constituencyId))
+            .limit(1)
+        )[0];
+
+      if (!linkedConst) {
+        throw new LocationResolutionError("Linked constituency not found for location", 404);
+      }
+
+      const mappedKind: KenyaLocation["kind"] =
+        staticExisting.kind === "CUSTOM" ? "SHOPPING_CENTRE" : staticExisting.kind;
+      const mappedSource: KenyaLocation["source"] =
+        staticExisting.source === "MERCHANT_CUSTOM"
+          ? "MERCHANT"
+          : staticExisting.source === "GOOGLE_PLACES"
+            ? "GOOGLE_MAPS"
+            : "GEONAMES";
+
+      const locationRecord: KenyaLocation = {
+        id: staticExisting.id,
+        countyId: staticExisting.countyId,
+        constituencyId: staticExisting.constituencyId,
+        name: staticExisting.name,
+        slug: staticExisting.slug,
+        kind: mappedKind,
+        latitude: staticExisting.latitude,
+        longitude: staticExisting.longitude,
+        source: mappedSource,
+        googlePlaceId: null,
+        population: staticExisting.population,
+        createdAt: new Date(0),
+      };
+
+      return {
+        county,
+        constituency: linkedConst,
+        location: locationRecord,
+        locationLabel: formatLocationLabel(staticExisting.name, linkedConst.name, county.name),
+      };
+    }
+
     const conditions = [
       eq(kenyaLocations.id, input.locationId),
       eq(kenyaLocations.countyId, county.id),
@@ -432,6 +529,7 @@ export async function resolveOrCreateStoreLocation(
 
     const linkedConst =
       explicitConstituency ||
+      staticConsts.find((c) => c.id === existing.constituencyId) ||
       (
         await db
           .select()
@@ -591,6 +689,7 @@ export async function resolveOrCreateStoreLocation(
 
     const linkedConst =
       explicitConstituency ||
+      staticConsts[0] ||
       (
         await db
           .select()

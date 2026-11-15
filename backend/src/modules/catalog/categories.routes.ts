@@ -5,7 +5,7 @@ import { eq, and, asc } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { categories, type Category } from "../../db/schema/categories";
-import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
+import { authMiddleware, requirePermission } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { slugify } from "../../security/sanitize";
 import { AppError } from "../../security/error-handler";
@@ -74,7 +74,7 @@ categoriesRouter.get("/", async (c) => {
 categoriesRouter.post(
   "/",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_categories", "manage_products"),
   zValidator("json", createCategorySchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -163,7 +163,7 @@ categoriesRouter.post(
 categoriesRouter.put(
   "/:id",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_categories", "manage_products"),
   zValidator("json", createCategorySchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -237,7 +237,7 @@ categoriesRouter.put(
 categoriesRouter.delete(
   "/:id",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_categories", "manage_products"),
   async (c) => {
     const tenant = c.get("tenant")!;
     const { id } = c.req.param();

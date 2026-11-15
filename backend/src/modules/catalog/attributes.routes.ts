@@ -6,7 +6,7 @@ import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { attributeDefinitions } from "../../db/schema/attributes";
 import { categories } from "../../db/schema/categories";
-import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
+import { authMiddleware, requirePermission } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { slugify } from "../../security/sanitize";
 import { AppError } from "../../security/error-handler";
@@ -54,7 +54,7 @@ attributesRouter.get("/", async (c) => {
 attributesRouter.post(
   "/",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_categories", "manage_products"),
   zValidator("json", createAttributeSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -113,7 +113,7 @@ attributesRouter.post(
 attributesRouter.put(
   "/:id",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_categories", "manage_products"),
   zValidator("json", createAttributeSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -160,7 +160,7 @@ attributesRouter.put(
 attributesRouter.delete(
   "/:id",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_categories", "manage_products"),
   async (c) => {
     const tenant = c.get("tenant")!;
     const { id } = c.req.param();

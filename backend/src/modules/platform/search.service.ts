@@ -463,7 +463,7 @@ async function resolveOriginContext(
       const ring2Ids = new Set<string>();
       const ring2Dist = new Map<string, number>();
       for (const n of directNeighbors.slice(8)) {
-        if (n.distanceKm <= 35 || n.constituencyId === staticOrigin.constituencyId) {
+        if (n.distanceKm <= 35) {
           ring2Ids.add(n.id);
           ring2Dist.set(n.id, n.distanceKm);
         }
@@ -617,12 +617,7 @@ async function resolveOriginContext(
     for (const row of [...secondHopRows, ...nearbyHubRows]) {
       if (row.id === origin.id || ring1Ids.has(row.id)) continue;
       const km = haversineKm(origin.latitude, origin.longitude, row.lat, row.lng);
-      const sameConstituencyHub =
-        "constituencyId" in row &&
-        "kind" in row &&
-        row.constituencyId === origin.constituencyId &&
-        (row.kind === "TOWN" || row.kind === "SHOPPING_CENTRE");
-      if (km <= 35 || sameConstituencyHub) {
+      if (km <= 35) {
         ring2Ids.add(row.id);
         ring2Dist.set(row.id, Number(km.toFixed(1)));
       }

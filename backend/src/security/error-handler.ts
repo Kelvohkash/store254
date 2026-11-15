@@ -39,6 +39,24 @@ export const globalErrorHandler: ErrorHandler<AppEnv> = (err, c) => {
     );
   }
 
+  // Surface Cloudflare D1 free-tier quota limits clearly instead of opaque 500s
+  const errMsg = `${err instanceof Error ? err.message : String(err ?? "")} ${(err as { cause?: { message?: string } })?.cause?.message ?? ""}`;
+  if (/exceeded D1's free tier|daily row (?:read|write) limit/i.test(errMsg)) {
+    console.warn(`[D1 QUOTA EXCEEDED] [Request: ${requestId}]`, errMsg.trim());
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: "D1_QUOTA_EXCEEDED",
+          message:
+            "Cloudflare D1 free-tier daily limit has been reached (resets at 00:00 UTC). Upgrade the D1 plan or retry after reset.",
+        },
+        requestId,
+      },
+      503
+    );
+  }
+
   // Unhandled internal server error
   console.error(`[CRITICAL ERROR] [Request: ${requestId}]`, err);
 

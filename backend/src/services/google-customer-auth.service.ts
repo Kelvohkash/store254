@@ -27,9 +27,6 @@ export async function resolveGoogleCustomerForTenant(
     if (existing.status !== "ACTIVE") {
       throw new AppError("Your account has been deactivated. Please contact support.", 403, "ACCOUNT_INACTIVE");
     }
-    if (existing.role !== "CUSTOMER") {
-      throw new AppError("This Google account is not a customer account for this store.", 403, "CUSTOMER_ACCOUNT_REQUIRED");
-    }
 
     if (
       existing.googleId !== googleUser.sub ||

@@ -1,0 +1,134 @@
+const CACHE_VERSION = "store254-pwa-v3";
+const OFFLINE_URL = "/offline.html";
+const PRECACHE_URLS = [
+  "/",
+  "/stores",
+  "/offline.html",
+  "/manifest.webmanifest",
+  "/styles/tailwind.generated.css",
+  "/styles/storefront.css",
+  "/assets/store254Icon.webp",
+  "/assets/pwa-icon-192.png",
+  "/assets/pwa-icon-512.png",
+  "/assets/apple-touch-icon.png"
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then(async (cache) => {
+      await Promise.allSettled(
+        PRECACHE_URLS.map(async (url) => {
+          try {
+            const response = await fetch(url, { cache: "reload" });
+            if (response && response.ok) {
+              await cache.put(url, response);
+            }
+          } catch {
+            // Keep install resilient if an asset is temporarily unavailable.
+          }
+        })
+      );
+    }).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_VERSION)
+            .map((key) => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+function isBypassPath(pathname) {
+  return (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/sitemap") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sw.js"
+  );
+}
+
+function isStaticAssetPath(pathname) {
+  return (
+    pathname.startsWith("/styles/") ||
+    pathname.startsWith("/scripts/") ||
+    pathname.startsWith("/assets/") ||
+    pathname === "/manifest.webmanifest"
+  );
+}
+
+function isProtectedAdminPath(pathname) {
+  return pathname.startsWith("/admin") || pathname.startsWith("/super-admin");
+}
+
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (isBypassPath(url.pathname) || url.searchParams.has("_customer_login")) return;
+
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && networkResponse.ok && !isProtectedAdminPath(url.pathname)) {
+            const cache = await caches.open(CACHE_VERSION);
+            cache.put(request, networkResponse.clone()).catch(() => {});
+          }
+          return networkResponse;
+        } catch {
+          const cachedPage = await caches.match(request);
+          if (cachedPage) return cachedPage;
+          if (!isProtectedAdminPath(url.pathname)) {
+            const cachedShell = await caches.match("/");
+            if (cachedShell) return cachedShell;
+          }
+          const offlineFallback = await caches.match(OFFLINE_URL);
+          return offlineFallback || new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
+        }
+      })()
+    );
+    return;
+  }
+
+  if (isStaticAssetPath(url.pathname)) {
+    event.respondWith(
+      caches.open(CACHE_VERSION).then(async (cache) => {
+        const cached = await cache.match(request);
+        const networkFetch = fetch(request)
+          .then((response) => {
+            if (response && response.ok) {
+              cache.put(request, response.clone()).catch(() => {});
+            }
+            return response;
+          })
+          .catch(() => null);
+
+        if (cached) {
+          event.waitUntil(networkFetch);
+          return cached;
+        }
+
+        const fresh = await networkFetch;
+        return fresh || new Response("", { status: 504 });
+      })
+    );
+  }
+});

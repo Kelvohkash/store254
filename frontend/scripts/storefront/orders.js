@@ -71,6 +71,8 @@ async function loadMyOrders() {
     return;
   }
   persistCustomerSession(profile, state.customerToken || null);
+  state.customerActiveStore = profile.activeStore || null;
+  state.customerUserStores = Array.isArray(profile.stores) ? profile.stores : [];
   renderCustomerAuth();
 
   const res = await apiFetch("/api/orders/my-orders");

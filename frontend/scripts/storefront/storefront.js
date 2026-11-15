@@ -88,6 +88,9 @@ async function loadStoreProfile() {
     document.getElementById("storefront-view")?.classList.remove("hidden");
     syncStorefrontStickyOffset();
     updateWishlistButton();
+    if (typeof hydrateStorefrontCustomerSession === "function") {
+      await hydrateStorefrontCustomerSession();
+    }
     if (state.initialItemSlug && typeof viewItemDetails === "function") {
       const targetSlug = state.initialItemSlug;
       state.initialItemSlug = "";

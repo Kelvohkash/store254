@@ -16,6 +16,7 @@ export interface UserContext {
   tenantId: string;
   email: string;
   role: "OWNER" | "ADMIN" | "STAFF" | "CUSTOMER";
+  permissions?: string[];
 }
 
 export type AppVariables = {

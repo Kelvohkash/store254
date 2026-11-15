@@ -319,7 +319,7 @@ function filterPlatformStores() {
 window.filterPlatformStores = filterPlatformStores;
 
 async function loadPlatformLocationMetrics() {
-  if (!document.getElementById("platform-kenya-metrics")) return;
+  if (!document.getElementById("platform-coverage-hero") && !document.getElementById("metric-kenya-locations")) return;
   try {
     const res = await apiFetch("/api/platform/locations/stats");
     if (!res.ok || !res.data) return;
@@ -335,9 +335,13 @@ async function loadPlatformLocationMetrics() {
       ["metric-kind-estates", res.data.byKind?.ESTATE],
     ];
     for (const [id, val] of mapText) {
-      const el = document.getElementById(id);
-      if (el && typeof val === "number" && val > 0) {
-        el.textContent = fmt(val);
+      if (typeof val === "number" && val > 0) {
+        const formatted = fmt(val);
+        const el = document.getElementById(id);
+        if (el) el.textContent = formatted;
+        document.querySelectorAll(`[data-metric-mirror="${id}"]`).forEach((mirrorEl) => {
+          mirrorEl.textContent = formatted;
+        });
       }
     }
   } catch (err) {
@@ -346,9 +350,6 @@ async function loadPlatformLocationMetrics() {
 }
 
 async function loadPlatformStores() {
-  const liveContainer = document.getElementById("platform-stores-grid");
-  const demoContainer = document.getElementById("demo-stores-grid");
-
   let stores = [];
   try {
     const res = await apiFetch("/api/platform/stores");
@@ -359,21 +360,12 @@ async function loadPlatformStores() {
     console.warn("Failed to load platform stores:", err);
   }
 
-  // Separate real merchant stores from demo businesses
   const liveStores = stores.filter((s) => s && s.id && !s.id.startsWith("tenant-demo-"));
-  let demoStores = stores.filter((s) => s && s.id && s.id.startsWith("tenant-demo-"));
-  if (demoStores.length === 0) {
-    demoStores = DEMO_STORES_FALLBACK;
-  }
 
   platformLiveStoresCache = liveStores;
-  renderFeaturedStoreShowcase(liveStores.length > 0 ? liveStores : demoStores);
+  renderFeaturedStoreShowcase(liveStores);
   renderPlatformDirectoryFilters(liveStores);
   filterPlatformStores();
-
-  if (demoContainer) {
-    demoContainer.innerHTML = demoStores.map(renderStoreCardMarkup).join("");
-  }
 
   renderIcons();
 }
@@ -387,7 +379,7 @@ window.addEventListener("DOMContentLoaded", () => {
   loadStoreProfile().then(() => {
     const url = new URL(window.location.href);
     const loginResult = url.searchParams.get("_customer_login");
-    if (!loginResult) return;
+    if (!loginResult || !state.activeTenantSlug) return;
     url.searchParams.delete("_customer_login");
     window.history.replaceState({}, "", url.toString());
     toggleDrawer("orders-drawer", true);

@@ -26,7 +26,9 @@ async function initializeGoogleSignIn(containerId = "google-signin-button") {
     return;
   }
 
-  loginUrl.searchParams.set("return_to", window.location.href);
+  const returnUrl = new URL(window.location.href);
+  returnUrl.searchParams.delete("_customer_login");
+  loginUrl.searchParams.set("return_to", returnUrl.toString());
   container.replaceChildren();
   const link = document.createElement("a");
   link.href = loginUrl.toString();
@@ -34,6 +36,97 @@ async function initializeGoogleSignIn(containerId = "google-signin-button") {
   link.innerHTML = '<span class="customer-google-g" aria-hidden="true">G</span><span>Continue with Google</span>';
   container.appendChild(link);
 }
+
+function escapeProfileHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildStore254StoreUrls(subdomain) {
+  const safeSlug = encodeURIComponent(String(subdomain || "").trim());
+  const { protocol, hostname, port } = window.location;
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost")) {
+    const portPart = port ? `:${port}` : "";
+    const storefrontUrl = `${protocol}//${safeSlug}.localhost${portPart}`;
+    return { storefrontUrl, adminUrl: `${storefrontUrl}/admin.html` };
+  }
+  const storefrontUrl = `https://${safeSlug}.store254.co.ke`;
+  return { storefrontUrl, adminUrl: `${storefrontUrl}/admin.html` };
+}
+
+function buildActiveStoreProfileHtml(activeStore, stores = []) {
+  if (!activeStore || !activeStore.subdomain) return "";
+  const { storefrontUrl, adminUrl } = buildStore254StoreUrls(activeStore.subdomain);
+  const locParts = [
+    activeStore.locationName || activeStore.locationLabel || "",
+    activeStore.constituencyName || "",
+    activeStore.countyName || "",
+  ].filter(Boolean);
+  const uniqueLocParts = [...new Set(locParts)];
+  const locationText = uniqueLocParts.join(", ") || "Location not set yet";
+  const addressLine = activeStore.physicalAddress ? `${locationText} · ${activeStore.physicalAddress}` : locationText;
+
+  const statusColors = {
+    ACTIVE: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    PENDING: "bg-amber-100 text-amber-800 border-amber-200",
+    SUSPENDED: "bg-rose-100 text-rose-800 border-rose-200",
+  };
+  const statusCls = statusColors[activeStore.status] || "bg-slate-100 text-slate-700 border-slate-200";
+  const roleLabel = activeStore.userRole === "OWNER" ? "Store Owner" : activeStore.userRole === "ADMIN" ? "Store Admin" : "Store Staff";
+  const extraCount = Array.isArray(stores) ? Math.max(0, stores.length - 1) : 0;
+
+  return `
+    <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3.5 space-y-2.5">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">My Active Store</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-emerald-200 text-emerald-800">${escapeProfileHtml(roleLabel)}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusCls}">${escapeProfileHtml(activeStore.status || "ACTIVE")}</span>
+          </div>
+          <p class="mt-1 text-sm font-extrabold text-slate-900 truncate">${escapeProfileHtml(activeStore.name)}</p>
+          <p class="text-[11px] font-medium text-slate-500 truncate">${escapeProfileHtml(activeStore.subdomain)}.store254.co.ke</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-1.5 text-xs text-slate-700">
+        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5"></i>
+        <span class="leading-snug">${escapeProfileHtml(addressLine)}</span>
+      </div>
+      ${extraCount > 0 ? `<p class="text-[11px] font-semibold text-emerald-800">+${extraCount} more store${extraCount === 1 ? "" : "s"} linked to this account</p>` : ""}
+      <div class="flex flex-wrap items-center gap-2 pt-1">
+        <a href="${escapeProfileHtml(storefrontUrl)}" class="inline-flex items-center gap-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 px-3 py-1.5 text-[11px] font-bold text-white transition">Visit Storefront</a>
+        <a href="${escapeProfileHtml(adminUrl)}" class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-white hover:bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-800 transition">Manage Store Admin</a>
+      </div>
+    </div>
+  `;
+}
+
+window.buildStore254StoreUrls = buildStore254StoreUrls;
+window.buildActiveStoreProfileHtml = buildActiveStoreProfileHtml;
+
+async function hydrateStorefrontCustomerSession() {
+  if (!state.activeTenant) return false;
+  try {
+    const profileRes = await apiFetch("/api/auth/me");
+    if (profileRes.ok && profileRes.data?.success && profileRes.data.data?.role === "CUSTOMER") {
+      persistCustomerSession(profileRes.data.data, state.customerToken || null);
+      renderCustomerAuth();
+      closeShoppingSignInPrompt();
+      return true;
+    }
+    if (profileRes.status === 401 || profileRes.status === 403 || profileRes.status === 404) {
+      clearCustomerSession();
+      renderCustomerAuth();
+    }
+  } catch {}
+  return false;
+}
+
+window.hydrateStorefrontCustomerSession = hydrateStorefrontCustomerSession;
 
 function renderGoogleSignInUnavailable(container, message) {
   container.replaceChildren();
@@ -108,8 +201,20 @@ function renderCustomerAuth() {
   section.classList.toggle("customer-auth-guest", !isSignedIn);
   const signInTitle = document.getElementById("customer-signin-title");
   if (signInTitle) signInTitle.textContent = `Sign in to ${state.activeTenant?.name || "your store"}`;
-  if (!isSignedIn) return;
+  if (!isSignedIn) {
+    const activeStoreCard = document.getElementById("customer-active-store-card");
+    if (activeStoreCard) {
+      activeStoreCard.innerHTML = "";
+      activeStoreCard.classList.add("hidden");
+    }
+    const btnContainer = document.getElementById("google-signin-button");
+    if (state.activeTenant && btnContainer && !btnContainer.querySelector(".customer-google-link")) {
+      void initializeGoogleSignIn("google-signin-button");
+    }
+    return;
+  }
 
+  closeShoppingSignInPrompt();
   document.getElementById("customer-account-name").textContent =
     state.customerUser.fullName || "Store customer";
   document.getElementById("customer-account-email").textContent =
@@ -134,6 +239,15 @@ function renderCustomerAuth() {
     memberSince.textContent = createdAt && !Number.isNaN(createdAt.getTime())
       ? `Store member since ${createdAt.toLocaleDateString(undefined, { month: "long", year: "numeric" })}`
       : "";
+  }
+  const activeStoreCard = document.getElementById("customer-active-store-card");
+  if (activeStoreCard) {
+    const activeStore = state.customerUser?.activeStore || state.customerActiveStore || null;
+    const stores = state.customerUser?.stores || state.customerUserStores || [];
+    const cardHtml = buildActiveStoreProfileHtml(activeStore, stores);
+    activeStoreCard.innerHTML = cardHtml;
+    activeStoreCard.classList.toggle("hidden", !cardHtml);
+    if (cardHtml && typeof renderIcons === "function") renderIcons();
   }
 }
 

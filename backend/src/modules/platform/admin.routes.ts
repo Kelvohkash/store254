@@ -566,17 +566,34 @@ platformAdminRouter.patch("/stores/:id/billing/price", zValidator("json", storeB
 });
 
 platformAdminRouter.get("/billing/settings", async (c) => {
-  if (!c.env?.DB) throw new AppError("Database not ready", 500);
-  const db = createDb(c.env.DB);
-  const [settings] = await db
-    .select()
-    .from(platformBillingSettings)
-    .where(eq(platformBillingSettings.id, "platform"))
-    .limit(1);
   const darajaConfigured = Boolean(
-    c.env.MPESA_CONSUMER_KEY && c.env.MPESA_CONSUMER_SECRET &&
-    c.env.MPESA_PASSKEY && c.env.MPESA_SHORTCODE
+    c.env?.MPESA_CONSUMER_KEY && c.env?.MPESA_CONSUMER_SECRET &&
+    c.env?.MPESA_PASSKEY && c.env?.MPESA_SHORTCODE
   );
+  const darajaMode = c.env?.MPESA_IS_SANDBOX === "true" ? "SANDBOX" : "PRODUCTION";
+
+  let settings: { amount: number | null; shortcodeType: string } | undefined;
+  let warning: string | undefined;
+
+  if (c.env?.DB) {
+    try {
+      const db = createDb(c.env.DB);
+      [settings] = await db
+        .select({
+          amount: platformBillingSettings.amount,
+          shortcodeType: platformBillingSettings.shortcodeType,
+        })
+        .from(platformBillingSettings)
+        .where(eq(platformBillingSettings.id, "platform"))
+        .limit(1);
+    } catch (err) {
+      const msg = `${err instanceof Error ? err.message : String(err ?? "")}`;
+      warning = /exceeded D1's free tier|daily row (?:read|write) limit/i.test(msg)
+        ? "Cloudflare D1 free-tier daily limit reached (resets at 00:00 UTC). Showing Worker Daraja config only."
+        : "Saved billing amount is temporarily unavailable from database.";
+      console.warn("[Admin Billing] Settings DB query failed:", msg);
+    }
+  }
 
   return c.json({
     success: true,
@@ -585,7 +602,8 @@ platformAdminRouter.get("/billing/settings", async (c) => {
       intervalMonths: 1,
       shortcodeType: settings?.shortcodeType || "PAYBILL",
       darajaConfigured,
-      darajaMode: c.env.MPESA_IS_SANDBOX === "true" ? "SANDBOX" : "PRODUCTION",
+      darajaMode,
+      ...(warning ? { warning } : {}),
     },
   });
 });

@@ -7,7 +7,7 @@ import { createDb } from "../../db";
 import { reviews } from "../../db/schema/reviews";
 import { items } from "../../db/schema/items";
 import { orders, orderItems } from "../../db/schema/orders";
-import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
+import { authMiddleware, requirePermission } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
 import { rateLimiter } from "../../security/rate-limiter";
@@ -186,7 +186,7 @@ reviewsRouter.post(
 reviewsRouter.delete(
   "/:itemId/reviews/:reviewId",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_products", "manage_orders"),
   async (c) => {
     const tenant = c.get("tenant")!;
     const itemId = c.req.param("itemId");

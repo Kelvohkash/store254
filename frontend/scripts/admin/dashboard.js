@@ -1,9 +1,10 @@
 // DASHBOARD
   // ═══════════════════════════════════════
   async function loadDashboard() {
+    const canManageOrders = typeof hasAdminPermission !== 'function' || hasAdminPermission('manage_orders');
     const [prodRes, orderRes, statsRes] = await Promise.all([
       apiFetch('/items?limit=100&includeAll=true'),
-      apiFetch('/orders?limit=50'),
+      canManageOrders ? apiFetch('/orders?limit=50') : Promise.resolve({ ok: false, data: null }),
       apiFetch('/store/settings/stats'),
     ]);
 
@@ -41,7 +42,9 @@
     // Recent orders
     const container = document.getElementById('dashboard-recent-orders');
     const recent = [...allOrders].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
-    if (recent.length === 0) {
+    if (!canManageOrders) {
+      container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Order details restricted for your staff role.</p>';
+    } else if (recent.length === 0) {
       container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">No orders yet.</p>';
     } else {
       container.innerHTML = recent.map(o => `

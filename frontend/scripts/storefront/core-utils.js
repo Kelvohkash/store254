@@ -14,24 +14,25 @@ function showToast(message, type = "success") {
   const container = document.getElementById("toast-container");
   if (!container) return;
 
+  const normalizedType = type === true ? "error" : type === false ? "success" : type;
   const toast = document.createElement("div");
   const bgClass =
-    type === "success"
+    normalizedType === "success"
       ? "bg-emerald-600 text-white"
-      : type === "error"
+      : normalizedType === "error"
       ? "bg-rose-600 text-white"
       : "bg-slate-800 text-white";
 
-  const iconName = type === "success" ? "check-circle-2" : type === "error" ? "alert-circle" : "info";
+  const iconName = normalizedType === "success" ? "check-circle-2" : normalizedType === "error" ? "alert-circle" : "info";
 
-  toast.className = `flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-xs font-semibold transition-all transform duration-300 ease-out ${bgClass}`;
+  toast.className = `pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-xs font-semibold transition-all transform duration-300 ease-out ${bgClass}`;
   toast.innerHTML = `
-    <i data-lucide="${iconName}" class="w-4 h-4"></i>
+    <i data-lucide="${iconName}" class="w-4 h-4 shrink-0"></i>
     <span>${escapeHtml(message)}</span>
   `;
 
   container.appendChild(toast);
-  renderIcons();
+  renderIcons(toast);
 
   setTimeout(() => {
     toast.style.opacity = "0";

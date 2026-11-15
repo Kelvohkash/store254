@@ -15,7 +15,21 @@ function toggleAdminSidebar(forceOpen) {
 
 let mobilePageReturnTo = 'dashboard';
 
+function canAccessAdminPage(name) {
+  if (typeof hasAdminPermission !== 'function') return true;
+  if (name === 'dashboard' || name === 'settings') return true;
+  if (name === 'products') return hasAdminPermission('manage_products');
+  if (name === 'categories') return hasAdminPermission('manage_categories') || hasAdminPermission('manage_products');
+  if (name === 'orders') return hasAdminPermission('manage_orders');
+  if (name === 'payments') return hasAdminPermission('manage_payments');
+  return true;
+}
+
 function showPage(name) {
+  if (!canAccessAdminPage(name)) {
+    if (typeof showToast === 'function') showToast('Your account does not have permission to open that section.', false);
+    return;
+  }
   if ((name === 'settings' || name === 'payments') && currentPage !== 'settings' && currentPage !== 'payments') {
     mobilePageReturnTo = currentPage || 'dashboard';
   }
@@ -58,11 +72,13 @@ function showPage(name) {
   
   const headerAddBtn = document.getElementById('header-add-product');
   if (headerAddBtn) {
-    if (name === 'categories') {
+    const canManageProducts = typeof hasAdminPermission !== 'function' || hasAdminPermission('manage_products');
+    const canManageCategories = typeof hasAdminPermission !== 'function' || hasAdminPermission('manage_categories') || canManageProducts;
+    if (name === 'categories' && canManageCategories) {
       headerAddBtn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i><span>Category</span>';
       headerAddBtn.onclick = () => { if (typeof openAddCategoryModal === 'function') openAddCategoryModal(); };
       headerAddBtn.classList.remove('hidden');
-    } else if (name === 'settings' || name === 'payments') {
+    } else if (name === 'settings' || name === 'payments' || !canManageProducts) {
       headerAddBtn.classList.add('hidden');
     } else {
       headerAddBtn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i><span>Add Product</span>';
@@ -74,7 +90,14 @@ function showPage(name) {
   if (name === 'products' && typeof loadProducts === 'function') loadProducts();
   if (name === 'categories' && typeof loadCategories === 'function') loadCategories();
   if (name === 'orders' && typeof loadOrders === 'function') loadOrders();
-  if (name === 'settings' && typeof loadSettings === 'function') loadSettings();
+  if (name === 'settings') {
+    if (typeof loadSettings === 'function' && (typeof hasAdminPermission !== 'function' || hasAdminPermission('manage_settings'))) {
+      loadSettings();
+    }
+    if (typeof loadStaffAccounts === 'function' && currentAdminUser?.role === 'OWNER') {
+      loadStaffAccounts();
+    }
+  }
   if (name === 'payments' && typeof loadPaymentSettings === 'function') loadPaymentSettings();
   if (window.lucide?.createIcons) lucide.createIcons();
 }

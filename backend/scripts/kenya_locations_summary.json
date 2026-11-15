@@ -2,25 +2,25 @@
   "counties": 47,
   "constituencies": 290,
   "raw_sources": {
-    "geonames_filtered": 16082,
+    "geonames_filtered": 15926,
     "osm_places": 10488,
-    "osm_commercial_centres": 2576,
-    "iebc_wards": 1437
+    "osm_commercial_centres": 2591,
+    "iebc_wards": 0
   },
   "unmatched_outside_kenya_tolerance": 73,
-  "locations_total": 22794,
+  "locations_total": 23682,
   "locations_by_kind": {
-    "TRADING_CENTRE": 17469,
-    "SHOPPING_CENTRE": 2862,
-    "ESTATE": 843,
-    "TOWN": 1620
+    "TRADING_CENTRE": 19569,
+    "SHOPPING_CENTRE": 2810,
+    "ESTATE": 869,
+    "TOWN": 434
   },
   "locations_by_origin": {
-    "geonames": 11683,
-    "osm": 9920,
-    "iebc_ward": 1191
+    "geonames": 13234,
+    "osm": 10436,
+    "curated": 12
   },
-  "neighbor_edges_total": 182352,
+  "neighbor_edges_total": 189456,
   "sql_seed_files_count": 31,
   "samples": {
     "Westlands": {
@@ -31,24 +31,24 @@
       "origin": "osm",
       "neighbors": [
         [
-          "Sobea Inner",
-          1.67
-        ],
-        [
-          "Sobea Highway",
-          1.75
-        ],
-        [
           "Kiptenden",
-          1.81
+          1.93
         ],
         [
-          "Ngecha",
-          1.94
+          "Roret Center",
+          9.4
         ],
         [
-          "Bethesda",
-          2.1
+          "Ngecha A",
+          5.13
+        ],
+        [
+          "Telcom",
+          4.96
+        ],
+        [
+          "Salgaa",
+          13.69
         ]
       ]
     },
@@ -60,24 +60,24 @@
       "origin": "osm",
       "neighbors": [
         [
-          "Gorofani",
-          0.14
+          "Nairobi",
+          3.87
         ],
         [
-          "NACICO PLAZA",
-          0.32
+          "Westlands",
+          5.4
         ],
         [
-          "Kamukunji",
-          0.32
+          "Mlango Kubwa Market",
+          2.93
         ],
         [
-          "Wood market",
-          0.39
+          "Burma Market",
+          1.7
         ],
         [
-          "Mumias",
-          0.4
+          "South \u2019C\u2019",
+          5.75
         ]
       ]
     },
@@ -89,24 +89,24 @@
       "origin": "osm",
       "neighbors": [
         [
-          "Juja City Mall",
-          1.97
+          "Ruiru",
+          9.42
         ],
         [
-          "Kenyatta Road Trade Centre",
-          2.88
+          "Thika",
+          11.15
         ],
         [
-          "Kenyatta Road-Thika Road Junction Market",
-          2.96
+          "Witeithie",
+          10.94
         ],
         [
-          "Ndarugu",
-          2.98
+          "Witheithie Market",
+          5.96
         ],
         [
-          "Benvar Farm",
-          3.49
+          "Toll Station Shopping Center",
+          6.05
         ]
       ]
     },
@@ -118,24 +118,24 @@
       "origin": "osm",
       "neighbors": [
         [
+          "Salgaa",
+          4.3
+        ],
+        [
+          "Centre",
+          8.84
+        ],
+        [
           "Kwa D.O",
-          0.6
+          1.32
         ],
         [
-          "Nafaka",
-          1.01
+          "Mukinyai Center",
+          11.15
         ],
         [
-          "Public Works",
-          1.48
-        ],
-        [
-          "Visoi Ward",
-          1.49
-        ],
-        [
-          "Jamii Estate",
-          1.72
+          "Belbur",
+          7.71
         ]
       ]
     }

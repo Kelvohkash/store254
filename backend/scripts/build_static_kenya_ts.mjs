@@ -102,6 +102,31 @@ for (const file of locFiles) {
   }
 }
 
+const locIndexById = new Map();
+for (let i = 0; i < compactLocations.length; i++) {
+  locIndexById.set(compactLocations[i][0], i);
+}
+
+const nbrFiles = fs
+  .readdirSync(seedDir)
+  .filter((f) => f.startsWith("03_neighbors_") && f.endsWith(".sql"))
+  .sort();
+
+const compactNeighbors = Array.from({ length: compactLocations.length }, () => []);
+const nbrTupleRe = /\(\s*'([^']+)'\s*,\s*'([^']+)'\s*,\s*([-\d.]+)\s*,\s*(\d+)\s*\)/g;
+for (const file of nbrFiles) {
+  const sql = fs.readFileSync(path.join(seedDir, file), "utf8");
+  let m;
+  while ((m = nbrTupleRe.exec(sql)) !== null) {
+    const [, uId, vId, distStr] = m;
+    const uIdx = locIndexById.get(uId);
+    const vIdx = locIndexById.get(vId);
+    if (uIdx !== undefined && vIdx !== undefined) {
+      compactNeighbors[uIdx].push(vIdx, Math.round(parseFloat(distStr) * 100));
+    }
+  }
+}
+
 const tsContent = `// AUTO-GENERATED from backend/drizzle/kenya_seed — DO NOT EDIT MANUALLY
 import type { KenyaCounty, KenyaConstituency } from "../../db/schema";
 
@@ -129,9 +154,37 @@ const KINDS: StaticKenyaLocation["kind"][] = ["TRADING_CENTRE", "TOWN", "SHOPPIN
 type CompactLocTuple = [string, number, number, string, number, number, number, number];
 
 const RAW_LOCATIONS: CompactLocTuple[] = ${JSON.stringify(compactLocations)};
+// Flattened pairs [neighborIdx, distKmTimes100, ...] parallel to RAW_LOCATIONS (human-brain OSM road graph).
+const RAW_NEIGHBORS: number[][] = ${JSON.stringify(compactNeighbors)};
+
+export const STATIC_KENYA_STATS = (() => {
+  const byKind: Record<string, number> = {
+    TRADING_CENTRE: 0,
+    TOWN: 0,
+    SHOPPING_CENTRE: 0,
+    ESTATE: 0,
+    CUSTOM: 0,
+  };
+  for (let i = 0; i < RAW_LOCATIONS.length; i++) {
+    const k = KINDS[RAW_LOCATIONS[i][4]] || "TRADING_CENTRE";
+    byKind[k] = (byKind[k] || 0) + 1;
+  }
+  return {
+    counties: STATIC_KENYA_COUNTIES.length,
+    constituencies: STATIC_KENYA_CONSTITUENCIES.length,
+    locations: RAW_LOCATIONS.length,
+    neighbors: RAW_LOCATIONS.length * 8,
+    byKind,
+  };
+})();
+
+export function getStaticLocationStats() {
+  return STATIC_KENYA_STATS;
+}
 
 let _allLocations: StaticKenyaLocation[] | null = null;
 let _byId: Map<string, StaticKenyaLocation> | null = null;
+let _locIndexById: Map<string, number> | null = null;
 let _byCountyId: Map<string, StaticKenyaLocation[]> | null = null;
 
 function pad3(n: number): string {
@@ -146,6 +199,7 @@ function ensureHydrated() {
   for (const cs of STATIC_KENYA_CONSTITUENCIES) constMap.set(cs.id, cs);
 
   _allLocations = new Array(RAW_LOCATIONS.length);
+  _locIndexById = new Map();
   _byId = new Map();
   _byCountyId = new Map();
 
@@ -173,6 +227,7 @@ function ensureHydrated() {
     };
     _allLocations[i] = loc;
     _byId.set(id, loc);
+    _locIndexById!.set(id, i);
     let bucket = _byCountyId.get(countyId);
     if (!bucket) {
       bucket = [];
@@ -297,41 +352,75 @@ export function findStaticNearestLocation(lat: number, lng: number): (StaticKeny
   };
 }
 
+const WARD_NAME_RE = /\\bward$/i;
+const LOW_HUB_SIGNAL_RE = /\\b(sub[- ]?location|location|plantation|ranch|farm|forest|division)\\b/i;
+
 export function findStaticNeighborsForLocation(
   locationId: string,
   limit = 8
 ): Array<StaticKenyaLocation & { distanceKm: number; rank: number }> {
   ensureHydrated();
-  const origin = _byId!.get(locationId);
-  if (!origin || !_allLocations) return [];
+  const originIdx = _locIndexById!.get(locationId);
+  if (originIdx === undefined || !_allLocations) return [];
+  const origin = _allLocations[originIdx];
   const safeLimit = Math.min(Math.max(limit, 1), 24);
-  const r = 6371.0088;
-  const p1 = (origin.latitude * Math.PI) / 180;
-  const cosP1 = Math.cos(p1);
+  const packed = RAW_NEIGHBORS[originIdx] || [];
+  const out: Array<StaticKenyaLocation & { distanceKm: number; rank: number }> = [];
+  const seen = new Set<string>([origin.id]);
 
-  const candidates: Array<{ loc: StaticKenyaLocation; distanceKm: number }> = [];
-  for (let i = 0; i < _allLocations.length; i++) {
-    const loc = _allLocations[i];
-    if (loc.id === origin.id) continue;
-    const dLat = loc.latitude - origin.latitude;
-    const dLng = loc.longitude - origin.longitude;
-    if (Math.abs(dLat) > 0.65 || Math.abs(dLng) > 0.65) continue;
-    const p2 = (loc.latitude * Math.PI) / 180;
-    const dp = (dLat * Math.PI) / 180;
-    const dl = (dLng * Math.PI) / 180;
-    const a =
-      Math.sin(dp / 2) * Math.sin(dp / 2) +
-      cosP1 * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
-    const distKm = 2 * r * Math.asin(Math.min(1, Math.sqrt(a)));
-    candidates.push({ loc, distanceKm: Number(distKm.toFixed(2)) });
+  // 1. Primary Ring-1 road-connected hubs (precomputed via OSM Kenya highway network)
+  for (let i = 0; i < packed.length && out.length < safeLimit; i += 2) {
+    const nbrId = RAW_LOCATIONS[packed[i]]?.[0];
+    const nbr = nbrId ? _byId!.get(nbrId) : undefined;
+    if (!nbr || seen.has(nbr.id) || nbr.id.startsWith("loc-ward-") || WARD_NAME_RE.test(nbr.name)) {
+      continue;
+    }
+    seen.add(nbr.id);
+    out.push({
+      ...nbr,
+      distanceKm: Math.round(packed[i + 1]) / 100,
+      rank: out.length + 1,
+    });
   }
 
-  candidates.sort((a, b) => a.distanceKm - b.distanceKm);
-  return candidates.slice(0, safeLimit).map((c, idx) => ({
-    ...c.loc,
-    distanceKm: c.distanceKm,
-    rank: idx + 1,
-  }));
+  // 2. Extended Ring-2 horizon (limit > 8): walk 2nd-hop connected road hubs sorted by road travel km
+  if (out.length < safeLimit && out.length > 0) {
+    const hop2: Array<{ loc: StaticKenyaLocation; distKm: number }> = [];
+    for (let i = 0; i < packed.length; i += 2) {
+      const hop1Idx = packed[i];
+      const hop1Dist = packed[i + 1] / 100;
+      const hop2Packed = RAW_NEIGHBORS[hop1Idx] || [];
+      for (let j = 0; j < hop2Packed.length; j += 2) {
+        const hop2Id = RAW_LOCATIONS[hop2Packed[j]]?.[0];
+        const hop2Loc = hop2Id ? _byId!.get(hop2Id) : undefined;
+        if (
+          !hop2Loc ||
+          seen.has(hop2Loc.id) ||
+          hop2Loc.id.startsWith("loc-ward-") ||
+          WARD_NAME_RE.test(hop2Loc.name)
+        ) {
+          continue;
+        }
+        hop2.push({
+          loc: hop2Loc,
+          distKm: Math.round((hop1Dist + hop2Packed[j + 1] / 100) * 100) / 100,
+        });
+      }
+    }
+    hop2.sort((a, b) => a.distKm - b.distKm || a.loc.id.localeCompare(b.loc.id));
+    for (const item of hop2) {
+      if (out.length >= safeLimit) break;
+      if (seen.has(item.loc.id)) continue;
+      seen.add(item.loc.id);
+      out.push({
+        ...item.loc,
+        distanceKm: item.distKm,
+        rank: out.length + 1,
+      });
+    }
+  }
+
+  return out;
 }
 `;
 

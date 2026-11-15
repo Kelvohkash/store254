@@ -126,6 +126,8 @@ const state = {
   cart: getInitialCart(),
   customerToken: getInitialCustomerStorage("token", "store254_customer_token"),
   customerUser: JSON.parse(getInitialCustomerStorage("user", "store254_customer_user") || "null"),
+  customerActiveStore: null,
+  customerUserStores: [],
   merchantToken: null,
   myOrders: [],
   activePollInterval: null,
@@ -137,12 +139,16 @@ const state = {
 function persistCustomerSession(user, token) {
   state.customerUser = user;
   state.customerToken = token;
+  state.customerActiveStore = user?.activeStore || null;
+  state.customerUserStores = Array.isArray(user?.stores) ? user.stores : [];
   localStorage.setItem(getCustomerStorageKey("user"), JSON.stringify(user));
 }
 
 function clearCustomerSession() {
   state.customerUser = null;
   state.customerToken = null;
+  state.customerActiveStore = null;
+  state.customerUserStores = [];
   localStorage.removeItem(getCustomerStorageKey("user"));
   localStorage.removeItem(getCustomerStorageKey("token"));
 }

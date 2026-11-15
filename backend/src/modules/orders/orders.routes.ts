@@ -7,7 +7,7 @@ import { createDb } from "../../db";
 import { orders, orderItems, payments } from "../../db/schema/orders";
 import { items, itemVariants } from "../../db/schema/items";
 import { tenantPaymentConfigs } from "../../db/schema/payment-configs";
-import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
+import { authMiddleware, hasPermission, requirePermission } from "../../middlewares/auth.middleware";
 import { generateUUID, generateSecureToken, hashOtp } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
 import { rateLimiter } from "../../security/rate-limiter";
@@ -69,7 +69,7 @@ ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkou
 ordersRouter.patch(
   "/:id/status",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_orders"),
   zValidator("json", updateOrderStatusSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -385,7 +385,7 @@ ordersRouter.post("/:id/confirm-delivery", authMiddleware(true), async (c) => {
 ordersRouter.patch(
   "/:id/payment-status",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_orders"),
   zValidator("json", markOrderPaidSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -439,7 +439,7 @@ ordersRouter.patch(
 ordersRouter.post(
   "/:id/payment-instructions",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_orders"),
   async (c) => {
     const tenant = c.get("tenant")!;
     const orderId = c.req.param("id");
@@ -517,7 +517,7 @@ ordersRouter.post(
 ordersRouter.post(
   "/:id/payment-prompt",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_orders"),
   zValidator("json", sendPaymentPromptSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -635,7 +635,7 @@ ordersRouter.post(
 );
 
 // Merchant Scheduled Service Bookings Calendar
-ordersRouter.get("/calendar/bookings", authMiddleware(true), requireRole(["OWNER", "ADMIN"]), async (c) => {
+ordersRouter.get("/calendar/bookings", authMiddleware(true), requirePermission("manage_orders"), async (c) => {
   const tenant = c.get("tenant")!;
 
   if (!c.env?.DB) throw new AppError("Database not ready", 500);
@@ -769,7 +769,7 @@ ordersRouter.get(
     // Check if requester has authorized access to view full customer PII
     const isMerchant =
       user &&
-      ["OWNER", "ADMIN"].includes(user.role) &&
+      hasPermission(user, "manage_orders") &&
       user.tenantId === tenant.id;
     const isCustomerOwner =
       user &&
@@ -825,7 +825,7 @@ ordersRouter.get(
 );
 
 // Merchant List Orders (Auth required)
-ordersRouter.get("/", authMiddleware(true), requireRole(["OWNER", "ADMIN"]), async (c) => {
+ordersRouter.get("/", authMiddleware(true), requirePermission("manage_orders"), async (c) => {
   const tenant = c.get("tenant")!;
 
   if (!c.env?.DB) throw new AppError("Database not ready", 500);
@@ -888,7 +888,7 @@ ordersRouter.get("/", authMiddleware(true), requireRole(["OWNER", "ADMIN"]), asy
 ordersRouter.delete(
   "/:id",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("delete_orders"),
   async (c) => {
     const tenant = c.get("tenant")!;
     const orderId = c.req.param("id");

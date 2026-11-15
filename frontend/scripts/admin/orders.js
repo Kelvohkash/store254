@@ -118,7 +118,7 @@ function renderOrdersTable(orders) {
             : `<select onchange="updateOrderStatus('${escHtml(o.id)}', this.value)" class="order-status-select text-xs border border-slate-300 rounded-lg px-2.5 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white shadow-sm">
                 ${['PROCESSING','SHIPPED','CANCELLED'].map(s => `<option ${o.status===s?'selected':''} value="${s}">${formatStatusLabel(s)}</option>`).join('')}
               </select>`}
-          ${canDeleteOrder(o) ? `
+          ${(typeof hasAdminPermission !== 'function' || hasAdminPermission('delete_orders')) && canDeleteOrder(o) ? `
             <button type="button" onclick="deleteOrder(${inlineJs(o.id)}, ${inlineJs(o.orderNumber || o.id.slice(0,8))})" class="order-delete-btn" title="Delete Order">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
@@ -289,7 +289,7 @@ window.setOrdersPage = function(page) {
           : '<p class="text-[11px] text-slate-500">Mark this order as shipped so the customer can confirm delivery.</p>'}
       ` : ''}
 
-      ${canDeleteOrder(o) ? `
+      ${(typeof hasAdminPermission !== 'function' || hasAdminPermission('delete_orders')) && canDeleteOrder(o) ? `
         <div class="pt-2">
           <button type="button" onclick="deleteOrder(${inlineJs(o.id)}, ${inlineJs(o.orderNumber || o.id.slice(0,8))}); document.getElementById('order-drawer').classList.add('hidden');" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
             <i data-lucide="trash-2" class="w-4 h-4"></i>

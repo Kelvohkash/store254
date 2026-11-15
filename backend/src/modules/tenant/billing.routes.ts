@@ -7,7 +7,7 @@ import { createDb } from "../../db";
 import { platformBillingPayments, platformBillingSettings } from "../../db/schema/platform-billing";
 import { tenants } from "../../db/schema/tenants";
 import { users } from "../../db/schema/users";
-import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
+import { authMiddleware, requirePermission } from "../../middlewares/auth.middleware";
 import { AppError } from "../../security/error-handler";
 import { generateSecureToken, generateUUID, hashOtp } from "../../security/crypto";
 import { normalizeKenyanPhone, initiateMpesaStkPush } from "../../security/mpesa";
@@ -16,7 +16,7 @@ import { rateLimiter } from "../../security/rate-limiter";
 
 export const tenantBillingRouter = new Hono<AppEnv>();
 
-tenantBillingRouter.use("*", authMiddleware(true), requireRole(["OWNER", "ADMIN"]));
+tenantBillingRouter.use("*", authMiddleware(true), requirePermission("manage_payments"));
 
 const paymentPromptSchema = z.object({
   phoneNumber: z.string().trim().min(9).max(20).optional(),

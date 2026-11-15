@@ -65,6 +65,9 @@
     document.getElementById("daraja-secret-help").textContent = ready
       ? "Daraja credentials are stored securely as Cloudflare Worker secrets. Secret values are never shown here."
       : "Add MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_PASSKEY, and MPESA_SHORTCODE to the backend Worker secrets in Cloudflare.";
+    if (settings.warning) {
+      setAdminNotice(settings.warning, true);
+    }
   }
 
   async function saveBillingSettings() {

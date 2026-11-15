@@ -41,6 +41,14 @@
   </script>
   <title>Store254 | Kenyan online stores</title>
   <meta name="description" content="Browse independent Kenyan stores and shop directly from their online storefronts.">
+  <meta name="theme-color" content="#0f7a44">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Store254">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/pwa-icon-192.png">
   <link rel="icon" type="image/webp" href="/assets/store254Icon.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,27 +57,28 @@
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
 
-  <link rel="stylesheet" href="/styles/tailwind.generated.css">
+  <link rel="stylesheet" href="/styles/tailwind.generated.css?v=20261114">
   <link rel="stylesheet" href="/styles/base.css">
   <link rel="stylesheet" href="/styles/storefront-components.css">
   <link rel="stylesheet" href="/styles/storefront-quality.css">
-  <link rel="stylesheet" href="/styles/platform-home.css">
+  <link rel="stylesheet" href="/styles/platform-home.css?v=20261114">
   <link rel="stylesheet" href="/styles/ui-polish.css">
   <style>
     html[data-storefront="true"] #platform-hero { display: none !important; }
     html[data-storefront="true"] .platform-nav-links,
-    html[data-storefront="true"] #platform-mobile-menu { display: none !important; }
+    html[data-storefront="true"] #platform-mobile-menu,
+    html[data-storefront="true"] #platform-mobile-bottom-nav { display: none !important; }
     html:not([data-storefront="true"]):not([data-platform-view="stores"]) #platform-stores-section,
-    html:not([data-storefront="true"]):not([data-platform-view="stores"]) #platform-demo-stores-section,
     html:not([data-storefront="true"]):not([data-platform-view="stores"]) .platform-intro,
     #platform-benefit-strip,
     .platform-showcase-art { display: none !important; }
     html:not([data-platform-view="stores"]) .stores-only-nav { display: none !important; }
-    html[data-platform-view="stores"] #platform-ripple-search-section,
-    html[data-platform-view="stores"] #platform-kenya-metrics { display: none !important; }
+    html[data-platform-view="stores"] #platform-ripple-search-section { display: none !important; }
     html[data-platform-view="stores"] #platform-stores-section { margin-top: 1.5rem; }
     html[data-platform-view="stores"] .platform-nav-links a[href="/stores"] {
       color: #07834e;
+      border-color: #a7f3d0;
+      background: #ecfdf5;
       font-weight: 800;
     }
     html[data-storefront="true"][data-storefront-pending="true"] #storefront-loading-screen { display: block !important; }
@@ -93,8 +102,8 @@
 </head>
 <body class="text-slate-900 antialiased min-h-screen flex flex-col">
 
-  <!-- Toast Notifications Container -->
-  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm"></div>
+  <!-- Toast Notifications Container (kept above all modals/drawers) -->
+  <div id="toast-container" style="z-index: 120;" class="pointer-events-none fixed bottom-4 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 flex flex-col gap-2 sm:max-w-sm"></div>
 
   <!-- Top Navigation Header -->
   <header class="site-header sticky top-0 z-40">
@@ -138,12 +147,14 @@
       </div>
 
       <nav class="platform-nav-links hidden lg:flex items-center gap-3" aria-label="Main navigation">
-        <button id="platform-nav-location-btn" type="button" onclick="openBuyerWelcomeModal(2)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 text-xs font-bold transition-colors">
-          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-700 shrink-0"></i>
-          <span id="platform-nav-location-label" class="max-w-[9.5rem] truncate">Pick Your Town</span>
-        </button>
-        <a href="/">Shop Local</a>
-        <a href="/stores">Stores</a>
+        <a href="/" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors">
+          <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
+          <span>Shop Local</span>
+        </a>
+        <a href="/stores" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors">
+          <i data-lucide="store" class="w-3.5 h-3.5"></i>
+          <span>Stores</span>
+        </a>
         <button id="platform-nav-account-btn" type="button" onclick="handlePlatformAccountClick()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors">
           <i data-lucide="user-round" class="w-3.5 h-3.5"></i>
           <span id="platform-nav-account-label">Sign in</span>
@@ -161,10 +172,6 @@
       </nav>
 
       <div class="platform-mobile-controls">
-        <button type="button" onclick="openMarketplaceCartDrawer()" aria-label="Open shopping cart" class="platform-mobile-buyer-cart relative inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-800">
-          <i data-lucide="shopping-cart" class="w-4 h-4"></i>
-          <span id="platform-mobile-cart-badge" class="hidden absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-emerald-700 text-white text-[10px] font-black flex items-center justify-center">0</span>
-        </button>
         <button type="button" class="platform-mobile-cta" onclick="toggleDrawer('onboard-modal', true)">Open store <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i></button>
         <button id="mobile-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="platform-mobile-menu fashion-mobile-menu" aria-expanded="false" onclick="toggleStorefrontMenu()">
           <i id="mobile-menu-icon" data-lucide="menu" class="w-5 h-5"></i>
@@ -218,7 +225,6 @@
     <nav id="platform-mobile-menu" class="platform-mobile-menu" aria-label="Mobile navigation" hidden>
       <a href="/" onclick="togglePlatformMobileMenu(false)"><span>Shop Products</span><i data-lucide="shopping-bag" class="w-4 h-4"></i></a>
       <a href="/stores" onclick="togglePlatformMobileMenu(false)"><span>Active storefronts</span><i data-lucide="store" class="w-4 h-4"></i></a>
-      <a href="/stores#platform-demo-stores-section" onclick="togglePlatformMobileMenu(false)"><span>Demo businesses</span><i data-lucide="sparkles" class="w-4 h-4"></i></a>
       <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); openBuyerWelcomeModal(2)"><span id="platform-mobile-location-label">Pick Your Town</span><i data-lucide="map-pin" class="w-4 h-4"></i></a>
       <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); handlePlatformAccountClick()"><span id="platform-mobile-account-label">Sign in with Google</span><i data-lucide="user-round" class="w-4 h-4"></i></a>
       <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); openMarketplaceOrdersModal()"><span>My Orders</span><i data-lucide="package-check" class="w-4 h-4"></i></a>
@@ -295,49 +301,53 @@
   </section>
 
   <section id="platform-hero" class="platform-home max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Minimalist Localized Marketplace Search -->
+    <!-- Minimalist Localized Marketplace Search + Small Kenya Coverage Hero -->
     <section id="platform-ripple-search-section" class="platform-ripple-search-band" aria-label="Search for anything">
-      <div class="flex flex-col md:flex-row md:items-center gap-2.5">
-        <form onsubmit="event.preventDefault(); runMarketplaceProductSearch();" class="ripple-search-form flex-1">
-          <div id="marketplace-search-input-wrap" class="ripple-search-input-box">
-            <i data-lucide="search" class="ripple-search-icon"></i>
-            <input id="marketplace-product-query" type="search" autocomplete="off" oninput="onMarketplaceQueryInput(this.value)" placeholder="Search for anything..." aria-label="Search for anything" />
-            <button id="marketplace-query-clear" type="button" onclick="clearMarketplaceQuery()" aria-label="Clear search query" class="hidden p-1.5 text-slate-400 hover:text-slate-700">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-            <div id="marketplace-suggest-dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-30"></div>
+      <div id="platform-coverage-hero" class="platform-coverage-mini-hero">
+        <div class="coverage-mini-hero-top">
+          <div class="coverage-mini-hero-copy">
+            <span class="coverage-mini-hero-badge">
+              <span class="coverage-mini-hero-dot" aria-hidden="true"></span>
+              <span>Kenya Coverage · All 47 Counties Connected</span>
+            </span>
+            <h1 class="coverage-mini-hero-title">Shop Local Across Every Town &amp; Shopping Centre in Kenya</h1>
           </div>
-          <button type="submit" aria-label="Search" class="ripple-search-submit">
-            <i data-lucide="search" class="w-4 h-4"></i>
-            <span class="hidden sm:inline">Search</span>
-          </button>
-        </form>
+          <div class="coverage-mini-hero-stats" aria-label="Kenya coverage summary">
+            <div class="coverage-mini-stat">
+              <strong id="metric-kenya-counties">47</strong>
+              <span>Counties</span>
+            </div>
+            <div class="coverage-mini-stat">
+              <strong id="metric-kenya-constituencies">290</strong>
+              <span>Constituencies</span>
+            </div>
+            <div class="coverage-mini-stat">
+              <strong id="metric-kenya-locations">22,794</strong>
+              <span>Towns &amp; Centres</span>
+            </div>
+            <div class="coverage-mini-stat is-accent">
+              <strong id="metric-kenya-neighbors">182,352</strong>
+              <span>Linked Routes</span>
+            </div>
+          </div>
+        </div>
 
-        <div id="marketplace-location-selector-wrap" class="relative shrink-0">
-          <div class="flex items-center gap-1.5">
-            <button id="marketplace-location-trigger" type="button" onclick="toggleMarketplaceLocationPanel()" class="marketplace-location-pill">
-              <i data-lucide="map-pin" class="w-4 h-4 text-emerald-700 shrink-0"></i>
-              <span id="marketplace-location-pill-label" class="truncate max-w-[14rem]">All Kenya (Set your town)</span>
-              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
-            </button>
-            <button id="marketplace-location-clear" type="button" onclick="clearMarketplaceBuyerLocation()" title="Clear selected location" aria-label="Clear selected location" class="hidden w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 flex items-center justify-center">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-          </div>
-          <div id="marketplace-location-panel" class="hidden absolute right-0 top-full mt-2 w-[min(92vw,23rem)] bg-white border border-slate-200 rounded-2xl shadow-2xl p-3.5 z-40">
-            <div id="marketplace-county-step" class="space-y-2">
-              <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">1. Select County</label>
-              <input id="marketplace-county-filter" type="search" oninput="onMarketplaceCountyInput(this.value)" placeholder="Filter county (e.g. Murang'a, Nairobi)..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
-              <div id="marketplace-county-list" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto py-0.5"></div>
-            </div>
-            <div id="marketplace-town-search-wrap" class="hidden space-y-2">
-              <div class="flex items-center justify-between gap-2">
-                <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wide">2. Town in <span id="marketplace-town-county-label" class="text-emerald-800">County</span></label>
-                <button type="button" onclick="backToMarketplaceCountyStep()" class="text-[11px] font-bold text-emerald-700 hover:underline shrink-0">← Change county</button>
+        <div class="coverage-mini-hero-search">
+          <div class="flex flex-col md:flex-row md:items-center gap-2.5">
+            <form onsubmit="event.preventDefault(); runMarketplaceProductSearch(undefined, { userInitiated: true });" class="ripple-search-form flex-1">
+              <div id="marketplace-search-input-wrap" class="ripple-search-input-box">
+                <i data-lucide="search" class="ripple-search-icon"></i>
+                <input id="marketplace-product-query" type="search" autocomplete="off" oninput="onMarketplaceQueryInput(this.value)" placeholder="Search for anything..." aria-label="Search for anything" />
+                <button id="marketplace-query-clear" type="button" onclick="clearMarketplaceQuery()" aria-label="Clear search query" class="hidden p-1.5 text-slate-400 hover:text-slate-700">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+                <div id="marketplace-suggest-dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-30"></div>
               </div>
-              <input id="marketplace-town-search" type="search" oninput="onMarketplaceTownInput(this.value)" placeholder="Type town or shopping centre..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
-              <div id="marketplace-town-results" class="max-h-48 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/40"></div>
-            </div>
+              <button type="submit" aria-label="Search" class="ripple-search-submit">
+                <i data-lucide="search" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Search</span>
+              </button>
+            </form>
           </div>
         </div>
       </div>
@@ -384,14 +394,21 @@
           <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
           <span>Back to Product Search</span>
         </a>
-        <a href="#platform-demo-stores-section" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-700"></i>
-          <span>Jump to Demo Businesses</span>
-        </a>
       </div>
-      <div class="platform-stores-heading">
-        <div>
-          <h2 id="platform-stores-title">Active storefronts</h2>
+      <div class="platform-intro">
+        <div class="platform-intro-copy">
+          <h1 id="platform-stores-title"><span class="hero-heading-ink">Every Hustle<br class="desktop-headline-break"><br class="mobile-headline-break">has a home<br class="desktop-headline-break"> here</span></h1>
+          <div class="platform-hero-actions mt-4">
+            <button type="button" onclick="toggleDrawer('onboard-modal', true)" class="platform-primary">
+              <span>Open your store</span>
+              <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div class="platform-hero-proof" aria-label="Platform highlights">
+            <span><i data-lucide="globe"></i> Free .store254.co.ke domain</span>
+            <span><i data-lucide="smartphone"></i> Direct M-Pesa Till &amp; Paybill</span>
+            <span><i data-lucide="zap"></i> Live in 3 minutes</span>
+          </div>
         </div>
       </div>
       <div id="platform-directory-toolbar" class="platform-directory-toolbar hidden">
@@ -402,81 +419,6 @@
         <div id="platform-type-filters" class="platform-type-filters" role="group" aria-label="Filter stores by business type"></div>
       </div>
       <div id="platform-stores-grid" class="platform-stores-grid" aria-live="polite"></div>
-    </section>
-
-    <div class="platform-intro">
-      <div class="platform-intro-copy">
-        <h1><span class="hero-heading-ink">Every Hustle<br class="desktop-headline-break"><br class="mobile-headline-break">has a home<br class="desktop-headline-break"> here</span></h1>
-        <div class="platform-hero-actions mt-4">
-          <button type="button" onclick="toggleDrawer('onboard-modal', true)" class="platform-primary">
-            <span>Open your store</span>
-            <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
-          </button>
-        </div>
-        <div class="platform-hero-proof" aria-label="Platform highlights">
-          <span><i data-lucide="globe"></i> Free .store254.co.ke domain</span>
-          <span><i data-lucide="smartphone"></i> Direct M-Pesa Till &amp; Paybill</span>
-          <span><i data-lucide="zap"></i> Live in 3 minutes</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Kenya Location & Smart Network Metrics -->
-    <section id="platform-kenya-metrics" class="platform-metrics-band" aria-labelledby="kenya-metrics-title">
-      <div class="platform-metrics-header">
-        <div>
-          <h2 id="kenya-metrics-title">Kenya Coverage</h2>
-        </div>
-      </div>
-      <div class="platform-metrics-grid">
-        <article class="platform-metric-card">
-          <span class="platform-metric-label">Counties</span>
-          <strong id="metric-kenya-counties" class="platform-metric-value">47</strong>
-        </article>
-        <article class="platform-metric-card">
-          <span class="platform-metric-label">Constituencies</span>
-          <strong id="metric-kenya-constituencies" class="platform-metric-value">290</strong>
-        </article>
-        <article class="platform-metric-card">
-          <span class="platform-metric-label">Towns &amp; Centres</span>
-          <strong id="metric-kenya-locations" class="platform-metric-value">22,794</strong>
-          <small id="metric-kenya-breakdown" class="hidden"></small>
-        </article>
-        <article class="platform-metric-card platform-metric-card-accent">
-          <span class="platform-metric-label">Linked Routes</span>
-          <strong id="metric-kenya-neighbors" class="platform-metric-value">182,352</strong>
-        </article>
-      </div>
-      <div class="platform-metrics-pills" aria-label="Level 3 location breakdown">
-        <span><strong id="metric-kind-trading">17,469</strong> Trading Centres</span>
-        <span><strong id="metric-kind-shopping">2,862</strong> Markets</span>
-        <span><strong id="metric-kind-towns">1,620</strong> Towns</span>
-        <span><strong id="metric-kind-estates">843</strong> Estates</span>
-      </div>
-    </section>
-
-    <!-- Demo Businesses Section -->
-    <section id="platform-demo-stores-section" class="platform-stores-section" aria-labelledby="demo-stores-title">
-      <div class="platform-stores-heading">
-        <div>
-          <h2 id="demo-stores-title">Demo businesses</h2>
-        </div>
-      </div>
-      <div id="demo-stores-grid" class="platform-stores-grid" aria-live="polite"></div>
-    </section>
-
-    <!-- Platform Seller Callout -->
-    <section class="platform-seller-callout" aria-labelledby="seller-callout-title">
-      <div class="seller-callout-copy">
-        <h2 id="seller-callout-title">Turn your hustle into a live online store.</h2>
-      </div>
-      <button type="button" class="platform-primary" onclick="toggleDrawer('onboard-modal', true)">
-        <span>Create your store free</span>
-        <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
-      </button>
-      <div class="seller-callout-decoration" aria-hidden="true">
-        <span></span><span></span><span></span>
-      </div>
     </section>
 
   </section>
@@ -987,6 +929,7 @@
               </div>
             </div>
             <p id="customer-member-since" class="mt-3 text-[11px] text-slate-500"></p>
+            <div id="customer-active-store-card" class="hidden mt-3"></div>
           </div>
         </section>
         <section id="customer-orders-section">
@@ -1014,7 +957,7 @@
         Register your store on Store254. Your application will be reviewed and activated by Our 254 team.
       </p>
 
-      <form onsubmit="handleOnboardSubmit(event)" class="space-y-4 text-xs">
+      <form id="onboard-form" onsubmit="handleOnboardSubmit(event)" novalidate class="space-y-4 text-xs">
         <div>
           <label class="block font-bold text-slate-700 mb-1">Business / Store Name</label>
           <input type="text" id="onboard-name" required class="w-full p-2.5 rounded-xl border border-slate-300">
@@ -1161,6 +1104,8 @@
           <input type="password" id="onboard-password" required class="w-full p-2.5 rounded-xl border border-slate-300">
         </div>
 
+        <div id="onboard-feedback" role="alert" aria-live="assertive" class="hidden rounded-xl border px-3.5 py-2.5 text-xs font-semibold"></div>
+
         <button type="submit" id="btn-onboard" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md mt-2 flex items-center justify-center gap-2">
           <i data-lucide="check-circle-2" class="w-4 h-4"></i>
           <span>Submit Store Application</span>
@@ -1281,7 +1226,32 @@
     </button>
   </div>
 
-  <script src="/scripts/storefront/core-utils.js"></script>
+  <!-- PLATFORM MOBILE BOTTOM NAVIGATION BAR (Phone view only) -->
+  <nav id="platform-mobile-bottom-nav" class="platform-mobile-bottom-nav lg:hidden" aria-label="Mobile quick navigation">
+    <a href="/" data-bottom-nav="home" class="platform-bottom-nav-item">
+      <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+      <span>Shop</span>
+    </a>
+    <a href="/stores" data-bottom-nav="stores" class="platform-bottom-nav-item">
+      <i data-lucide="store" class="w-5 h-5"></i>
+      <span>Stores</span>
+    </a>
+    <button type="button" onclick="openMarketplaceOrdersModal()" class="platform-bottom-nav-item">
+      <i data-lucide="package-check" class="w-5 h-5"></i>
+      <span>Orders</span>
+    </button>
+    <button type="button" onclick="openMarketplaceCartDrawer()" class="platform-bottom-nav-item relative">
+      <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+      <span>Cart</span>
+      <span id="platform-bottom-cart-badge" class="hidden platform-bottom-cart-badge">0</span>
+    </button>
+    <button type="button" onclick="handlePlatformAccountClick()" class="platform-bottom-nav-item">
+      <i data-lucide="user-round" class="w-5 h-5"></i>
+      <span id="platform-bottom-account-label" class="truncate max-w-full">Account</span>
+    </button>
+  </nav>
+
+  <script src="/scripts/storefront/core-utils.js?v=20261114c"></script>
   <script src="/scripts/storefront/state.js"></script>
   <script src="/scripts/storefront/api.js"></script>
   <!-- Buyer First-Visit Welcome Modal (Step 1: Google Sign-In Invite -> Step 2: County & Town Selector) -->
@@ -1301,10 +1271,6 @@
           <button type="button" onclick="startPlatformGoogleSignIn()" class="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-sm">
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.3-1.5 3.9-5.4 3.9-3.2 0-5.9-2.7-5.9-6s2.7-6 5.9-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.4 14.6 2.5 12 2.5 6.8 2.5 2.5 6.8 2.5 12s4.3 9.5 9.5 9.5c5.5 0 9.1-3.8 9.1-9.2 0-.6-.1-1.1-.2-1.6H12z"/></svg>
             <span>Continue with Google</span>
-          </button>
-          <button type="button" onclick="goToBuyerWelcomeStep(2)" class="w-full py-3 px-4 rounded-xl border border-emerald-700 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5">
-            <span>Select location</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </button>
           <div class="text-center pt-1">
             <button type="button" onclick="dismissBuyerWelcomeModal()" class="text-xs font-bold text-slate-500 hover:text-slate-800">Skip</button>
@@ -1392,8 +1358,8 @@
     <div class="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white border border-slate-200 shadow-2xl">
       <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <div>
-          <h3 class="text-base font-extrabold text-slate-900">Your Store254 Orders</h3>
-          <p class="text-[11px] text-slate-500">Orders &amp; M-Pesa receipts across all Kenyan shops</p>
+          <h3 class="text-base font-extrabold text-slate-900">My Profile &amp; Orders</h3>
+          <p class="text-[11px] text-slate-500">Your Store254 account, active store, location &amp; M-Pesa receipts</p>
         </div>
         <button type="button" onclick="closeMarketplaceOrdersModal()" aria-label="Close orders" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -1412,17 +1378,18 @@
   <script src="/scripts/storefront/categories.js"></script>
   <script src="/scripts/storefront/catalog.js"></script>
   <script src="/scripts/storefront/wishlist.js"></script>
-  <script src="/scripts/storefront/customer.js"></script>
+  <script src="/scripts/storefront/customer.js?v=20261115"></script>
   <script src="/scripts/storefront/reviews.js"></script>
   <script src="/scripts/storefront/item-modal.js"></script>
   <script src="/scripts/storefront/cart.js"></script>
   <script src="/scripts/storefront/checkout.js"></script>
-  <script src="/scripts/storefront/orders.js"></script>
-  <script src="/scripts/storefront/storefront.js"></script>
-  <script src="/scripts/storefront/platform.js"></script>
-  <script src="/scripts/storefront/marketplace-search.js"></script>
-  <script src="/scripts/storefront/marketplace-cart.js"></script>
-  <script src="/scripts/storefront/onboarding.js"></script>
+  <script src="/scripts/storefront/orders.js?v=20261115"></script>
+  <script src="/scripts/storefront/storefront.js?v=20261115"></script>
+  <script src="/scripts/storefront/platform.js?v=20261115"></script>
+  <script src="/scripts/storefront/marketplace-search.js?v=20261114"></script>
+  <script src="/scripts/storefront/marketplace-cart.js?v=20261115"></script>
+  <script src="/scripts/storefront/onboarding.js?v=20261114c"></script>
+  <script src="/scripts/storefront/pwa.js"></script>
 
 </body>
 </html>

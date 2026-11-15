@@ -1,0 +1,57 @@
+{
+  "id": "/",
+  "name": "Store254 — Kenya Online Stores",
+  "short_name": "Store254",
+  "description": "Browse independent Kenyan stores, products, and services across all 47 counties, or launch your own storefront.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0f7a44",
+  "lang": "en-KE",
+  "categories": ["shopping", "business"],
+  "icons": [
+    {
+      "src": "/assets/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/pwa-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Stores",
+      "short_name": "Stores",
+      "description": "Explore active stores across Kenya",
+      "url": "/stores",
+      "icons": [{ "src": "/assets/pwa-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Open Your Store",
+      "short_name": "Open Store",
+      "description": "Launch your Store254 storefront",
+      "url": "/?openStore=1",
+      "icons": [{ "src": "/assets/pwa-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Store Admin",
+      "short_name": "Admin",
+      "description": "Manage orders and inventory",
+      "url": "/admin",
+      "icons": [{ "src": "/assets/pwa-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

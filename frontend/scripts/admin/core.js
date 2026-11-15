@@ -27,10 +27,46 @@ if (queryStore) {
 localStorage.removeItem('store254_owner_token');
 let hasSession = false;
 let adminAccessToken = null;
+let currentAdminUser = null;
 let allProducts = [];
 let allOrders = [];
 let flatCategories = [];
 let currentPage = 'dashboard';
+
+function hasAdminPermission(permission) {
+  if (!currentAdminUser) return false;
+  if (['OWNER', 'ADMIN'].includes(currentAdminUser.role)) return true;
+  const perms = Array.isArray(currentAdminUser.permissions) ? currentAdminUser.permissions : [];
+  return perms.includes('*') || perms.includes(permission);
+}
+
+function applyRolePermissionsUI() {
+  const isOwner = currentAdminUser?.role === 'OWNER';
+  const toggleAllowed = (id, allowed) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', !allowed);
+  };
+
+  toggleAllowed('nav-products', hasAdminPermission('manage_products'));
+  toggleAllowed('nav-categories', hasAdminPermission('manage_categories') || hasAdminPermission('manage_products'));
+  toggleAllowed('nav-orders', hasAdminPermission('manage_orders'));
+  toggleAllowed('nav-payments', hasAdminPermission('manage_payments'));
+  toggleAllowed('mobile-nav-products', hasAdminPermission('manage_products'));
+  toggleAllowed('mobile-nav-categories', hasAdminPermission('manage_categories') || hasAdminPermission('manage_products'));
+  toggleAllowed('mobile-nav-orders', hasAdminPermission('manage_orders'));
+  toggleAllowed('mobile-quick-products', hasAdminPermission('manage_products'));
+  toggleAllowed('mobile-quick-orders', hasAdminPermission('manage_orders'));
+  toggleAllowed('mobile-quick-categories', hasAdminPermission('manage_categories') || hasAdminPermission('manage_products'));
+  toggleAllowed('mobile-menu-payments', hasAdminPermission('manage_payments'));
+  toggleAllowed('settings-profile-design-card', hasAdminPermission('manage_settings'));
+  toggleAllowed('settings-custom-domain-card', hasAdminPermission('manage_settings'));
+  toggleAllowed('settings-staff-card', isOwner);
+  toggleAllowed('header-add-product', hasAdminPermission('manage_products'));
+
+  if (!hasAdminPermission('manage_payments')) {
+    document.getElementById('subscription-card')?.classList.add('hidden');
+  }
+}
 
 // ═══════════════════════════════════════
 // HELPERS
@@ -201,14 +237,15 @@ async function handleLogin(e) {
   }
 
   const userData = respData.user;
-  // Only OWNER or ADMIN can use this dashboard
-  if (!['OWNER', 'ADMIN'].includes(userData?.role)) {
+  // OWNER, ADMIN, or STAFF can use this dashboard according to assigned permissions
+  if (!['OWNER', 'ADMIN', 'STAFF'].includes(userData?.role)) {
     errEl.textContent = 'You do not have admin access to this store.';
     errEl.classList.remove('hidden');
     return;
   }
 
   adminAccessToken = respData.accessToken;
+  currentAdminUser = userData;
   hasSession = true;
   bootApp(userData);
 }
@@ -216,6 +253,7 @@ async function handleLogin(e) {
 async function handleLogout(message = '') {
   const hadSession = hasSession || Boolean(adminAccessToken);
   adminAccessToken = null;
+  currentAdminUser = null;
   hasSession = false;
   if (hadSession && !message) {
     await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
@@ -233,6 +271,7 @@ async function handleLogout(message = '') {
 // BOOT
 // ═══════════════════════════════════════
 async function bootApp(user) {
+  currentAdminUser = user || currentAdminUser || null;
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app-shell').classList.remove('hidden');
   document.getElementById('app-shell').classList.add('flex');
@@ -245,17 +284,21 @@ async function bootApp(user) {
     document.title = `${name} — Admin`;
   };
 
-  if (user) {
-    const displayName = user.fullName || user.email || 'Owner';
+  if (currentAdminUser) {
+    const displayName = currentAdminUser.fullName || currentAdminUser.email || 'Owner';
     const sidebarUser = document.getElementById('sidebar-user-name');
     if (sidebarUser) sidebarUser.textContent = displayName;
     const sidebarRole = document.getElementById('sidebar-user-role');
-    if (sidebarRole) sidebarRole.textContent = user.role || 'OWNER';
+    if (sidebarRole) sidebarRole.textContent = currentAdminUser.role || 'OWNER';
     const mobileUser = document.getElementById('mobile-menu-user-name');
     if (mobileUser) mobileUser.textContent = displayName;
+    const mobileRole = document.getElementById('mobile-menu-role-badge');
+    if (mobileRole) mobileRole.textContent = currentAdminUser.role === 'STAFF' ? 'Staff' : currentAdminUser.role === 'ADMIN' ? 'Admin' : 'Owner';
   }
 
-  const subscription = typeof loadStoreSubscription === 'function'
+  applyRolePermissionsUI();
+
+  const subscription = hasAdminPermission('manage_payments') && typeof loadStoreSubscription === 'function'
     ? await loadStoreSubscription()
     : null;
   const isSuspended = subscription?.storeStatus === 'SUSPENDED';

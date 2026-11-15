@@ -34,6 +34,7 @@ import {
   LocationResolutionError,
   resolveOrCreateStoreLocation,
 } from "./locations.service";
+import { findMerchantStoresByEmail } from "../../services/user-stores.service";
 
 export const platformRouter = new Hono<AppEnv>();
 
@@ -61,6 +62,20 @@ platformRouter.get("/me", async (c) => {
       data: { authenticated: false, user: null },
     });
   }
+  let storeSummary: Awaited<ReturnType<typeof findMerchantStoresByEmail>> = {
+    stores: [],
+    activeStore: null,
+  };
+  if (c.env?.DB) {
+    try {
+      storeSummary = await findMerchantStoresByEmail(
+        createDb(c.env.DB),
+        googleUser.email
+      );
+    } catch {
+      storeSummary = { stores: [], activeStore: null };
+    }
+  }
   return c.json({
     success: true,
     data: {
@@ -71,6 +86,8 @@ platformRouter.get("/me", async (c) => {
         fullName: googleUser.name,
         avatarUrl: googleUser.picture || null,
         role: "CUSTOMER",
+        stores: storeSummary.stores,
+        activeStore: storeSummary.activeStore,
       },
     },
   });
@@ -313,14 +330,18 @@ platformRouter.post(
     const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
     const storeUrl = `https://${sanitizedSub}.${primaryDomain}`;
 
-    // 3. Send Pending Activation Notice from official email
-    await EmailService.sendStorePendingActivation({
-      to: body.ownerEmail,
-      storeName: body.storeName,
-      subdomain: sanitizedSub,
-      primaryDomain,
-      apiKey: c.env?.RESEND_API_KEY,
-    });
+    // 3. Send Pending Activation Notice from official email (non-blocking on provider failures)
+    try {
+      await EmailService.sendStorePendingActivation({
+        to: body.ownerEmail,
+        storeName: body.storeName,
+        subdomain: sanitizedSub,
+        primaryDomain,
+        apiKey: c.env?.RESEND_API_KEY,
+      });
+    } catch (emailErr) {
+      console.error("[Platform] Failed sending store pending email:", emailErr);
+    }
 
     return c.json(
       {

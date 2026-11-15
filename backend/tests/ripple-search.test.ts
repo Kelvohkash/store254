@@ -9,6 +9,11 @@ import {
   PLATFORM_ROOT_RETURN_SLUG,
   parseTenantReturnTo,
 } from "../src/modules/auth/google-gateway.routes";
+import {
+  findStaticNeighborsForLocation,
+  getStaticLocationStats,
+  searchStaticTowns,
+} from "../src/modules/platform/kenya-static-data";
 
 describe("International Ripple Search Query Engine", () => {
   it("normalizes multi-term queries, removes stop words, and builds prefix/synonym FTS5 expressions", () => {
@@ -64,5 +69,48 @@ describe("International Ripple Search Query Engine", () => {
 
     expect(parseTenantReturnTo("https://evil.com/", "store254.co.ke")).toBeNull();
     expect(parseTenantReturnTo("http://store254.co.ke/", "store254.co.ke")).toBeNull();
+  });
+
+  it("connects nearby towns and shopping centres across ward/county borders without connecting to wards", () => {
+    const stats = getStaticLocationStats();
+    expect(stats.locations).toBeGreaterThan(23000);
+
+    const kenol = searchStaticTowns({ countyId: "county-021", q: "Kenol", limit: 5 })
+      .find((loc) => loc.name.toLowerCase() === "kenol");
+    expect(kenol).toBeDefined();
+
+    const kenolNeighbors = findStaticNeighborsForLocation(kenol!.id, 8);
+    expect(kenolNeighbors.length).toBe(8);
+    expect(kenolNeighbors.some((n) => /kabati/i.test(n.name))).toBe(true);
+    expect(kenolNeighbors.some((n) => /saba saba/i.test(n.name))).toBe(true);
+    expect(kenolNeighbors.some((n) => /karugia/i.test(n.name))).toBe(true);
+    expect(kenolNeighbors.some((n) => /makuyu/i.test(n.name))).toBe(true);
+    expect(kenolNeighbors.some((n) => n.constituencyId !== kenol!.constituencyId)).toBe(true);
+    expect(kenolNeighbors.every((n) => !n.id.startsWith("loc-ward-") && !/\bward$/i.test(n.name))).toBe(true);
+
+    const kabati = searchStaticTowns({ q: "Kabati", limit: 1 })[0];
+    expect(kabati).toBeDefined();
+    expect(kabati!.name).toBe("Kabati");
+    expect(kabati!.countyName).toContain("Murang");
+    const kabatiNeighbors = findStaticNeighborsForLocation(kabati!.id, 8);
+    expect(kabatiNeighbors.some((n) => /^kenol$/i.test(n.name))).toBe(true);
+    expect(kabatiNeighbors.some((n) => /^thika$/i.test(n.name))).toBe(true);
+    expect(kabatiNeighbors.some((n) => /makenji/i.test(n.name))).toBe(true);
+
+    const thika = searchStaticTowns({ q: "Thika", limit: 1 })[0];
+    expect(thika).toBeDefined();
+    const thikaNeighbors = findStaticNeighborsForLocation(thika!.id, 8);
+    expect(thikaNeighbors.some((n) => /makenji/i.test(n.name))).toBe(true);
+    expect(thikaNeighbors.some((n) => /^kabati$/i.test(n.name))).toBe(true);
+    expect(thikaNeighbors.some((n) => /^kenol$/i.test(n.name))).toBe(true);
+
+    const makenji = searchStaticTowns({ countyId: "county-021", q: "Makenji", limit: 5 })
+      .find((loc) => /makenji/i.test(loc.name));
+    expect(makenji).toBeDefined();
+    expect(makenji!.kind).toBe("SHOPPING_CENTRE");
+
+    const makenjiNeighbors = findStaticNeighborsForLocation(makenji!.id, 8);
+    expect(makenjiNeighbors.some((n) => n.countyId !== makenji!.countyId)).toBe(true);
+    expect(makenjiNeighbors.every((n) => !n.id.startsWith("loc-ward-") && !/\bward$/i.test(n.name))).toBe(true);
   });
 });

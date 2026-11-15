@@ -46,10 +46,10 @@
     const r = await apiFetch('/auth/me');
     if (r.ok) {
       const user = r.data?.data;
-      if (['OWNER', 'ADMIN'].includes(user?.role)) {
+      if (['OWNER', 'ADMIN', 'STAFF'].includes(user?.role)) {
         hasSession = true;
         bootApp(user);
-      } else {
+      } else if (user?.role && user.role !== 'CUSTOMER') {
         handleLogout('This account does not have store admin access.');
       }
     }

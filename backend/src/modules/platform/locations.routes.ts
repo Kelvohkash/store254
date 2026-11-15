@@ -17,6 +17,7 @@ import {
   getStaticCounties,
   getStaticCountyById,
   getStaticLocationById,
+  getStaticLocationStats,
   searchStaticTowns,
 } from "./kenya-static-data";
 
@@ -316,16 +317,5 @@ locationsRouter.post(
  * Lightweight summary count for verification/health checks.
  */
 locationsRouter.get("/stats", (c) => {
-  return c.json({
-    counties: getStaticCounties().length,
-    constituencies: getStaticConstituencies().length,
-    locations: 22794,
-    neighbors: 182352,
-    byKind: {
-      TRADING_CENTRE: 18829,
-      TOWN: 1689,
-      ESTATE: 1218,
-      SHOPPING_CENTRE: 1058,
-    },
-  });
+  return c.json(getStaticLocationStats());
 });

@@ -337,6 +337,88 @@ export default {
     const explicitStoreSlug = sanitizeSlug(url.searchParams.get("store") || url.searchParams.get("subdomain"));
     const isTenantContext = !hostInfo.isPlatformRoot || Boolean(explicitStoreSlug);
 
+    // Service worker and offline fallback bypass SEO HTMLRewriter transformations.
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/sw.js") {
+      const swAsset = await env.ASSETS.fetch(request);
+      const headers = new Headers(swAsset.headers);
+      headers.set("Content-Type", "application/javascript; charset=utf-8");
+      headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      headers.set("Service-Worker-Allowed", "/");
+      return new Response(request.method === "HEAD" ? null : swAsset.body, {
+        status: swAsset.status,
+        headers,
+      });
+    }
+
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/offline.html") {
+      return env.ASSETS.fetch(request);
+    }
+
+    // Dynamic Web App Manifest: platform-wide on root domain, store-branded on tenant storefronts.
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/manifest.webmanifest") {
+      if (isTenantContext) {
+        try {
+          const tenantHeaders: Record<string, string> = explicitStoreSlug
+            ? { "X-Forwarded-Host": "api.internal", "X-Tenant-Slug": explicitStoreSlug }
+            : { "X-Forwarded-Host": url.host };
+          const cacheScope = explicitStoreSlug || hostInfo.hostname;
+          const { data: storefrontPayload } = await fetchCachedSeoJson<SeoStorefrontPayload>(
+            env.API,
+            "/api/seo/storefront",
+            cacheScope,
+            tenantHeaders,
+            clientIp,
+            ctx,
+            120
+          );
+          const tenant = storefrontPayload?.tenant;
+          if (tenant?.name) {
+            const storeName = String(tenant.name).trim();
+            const shortName = storeName.length > 18 ? `${storeName.slice(0, 17).trim()}…` : storeName;
+            const themeColor = /^#[0-9a-fA-F]{6}$/.test(String(tenant.primary_color || ""))
+              ? String(tenant.primary_color)
+              : "#0f7a44";
+            const startUrl = explicitStoreSlug ? `/?store=${encodeURIComponent(explicitStoreSlug)}` : "/";
+            const manifestBody = JSON.stringify({
+              id: startUrl,
+              name: `${storeName} — Store254`,
+              short_name: shortName,
+              description: String(tenant.description || `Shop ${storeName} online on Store254 Kenya.`),
+              start_url: startUrl,
+              scope: "/",
+              display: "standalone",
+              orientation: "portrait-primary",
+              background_color: "#ffffff",
+              theme_color: themeColor,
+              lang: "en-KE",
+              icons: [
+                { src: "/assets/pwa-icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+                { src: "/assets/pwa-icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+                { src: "/assets/pwa-icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+              ],
+            }, null, 2);
+            return new Response(request.method === "HEAD" ? null : manifestBody, {
+              headers: {
+                "Content-Type": "application/manifest+json; charset=utf-8",
+                "Cache-Control": "public, max-age=120, stale-while-revalidate=600",
+              },
+            });
+          }
+        } catch {
+          // Fall back cleanly to static manifest.
+        }
+      }
+
+      const staticManifest = await env.ASSETS.fetch(request);
+      const headers = new Headers(staticManifest.headers);
+      headers.set("Content-Type", "application/manifest+json; charset=utf-8");
+      headers.set("Cache-Control", "public, max-age=300");
+      return new Response(request.method === "HEAD" ? null : staticManifest.body, {
+        status: staticManifest.status,
+        headers,
+      });
+    }
+
     // About Page (/about) on platform root domain (kept off top header nav; indexed via sitemap & subtle footer link)
     if (
       (request.method === "GET" || request.method === "HEAD") &&
@@ -435,7 +517,7 @@ export default {
         const seo = buildPlatformSeoData(stores || [], hostInfo.isPreviewHost);
         const pageTitle = isPlatformStoresPage ? "Active Kenyan Storefronts | Store254" : seo.title;
         const pageDescription = isPlatformStoresPage
-          ? "Browse verified independent Kenyan online stores and demo storefronts across counties and towns on Store254."
+          ? "Browse verified independent Kenyan online stores across counties and towns on Store254."
           : seo.description;
         let rewriter = new HTMLRewriter()
           .on("title", {

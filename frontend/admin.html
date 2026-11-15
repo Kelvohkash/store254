@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Store Admin — Store254</title>
   <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0f7a44" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Store254 Admin" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/pwa-icon-192.png" />
   <link rel="icon" type="image/webp" href="/assets/store254Icon.webp" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -195,26 +203,26 @@
 
           <!-- Quick Action Buttons -->
           <div class="grid grid-cols-4 gap-2">
-            <button type="button" onclick="showPage('products'); setTimeout(openAddProductModal, 100)" class="mobile-quick-btn">
+            <button id="mobile-quick-products" type="button" onclick="showPage('products'); setTimeout(openAddProductModal, 100)" class="mobile-quick-btn">
               <div class="mobile-quick-icon bg-emerald-50 text-emerald-700">
                 <i data-lucide="plus" class="w-4 h-4"></i>
               </div>
               <span>Add Item</span>
             </button>
-            <button type="button" onclick="showPage('orders')" class="mobile-quick-btn">
+            <button id="mobile-quick-orders" type="button" onclick="showPage('orders')" class="mobile-quick-btn">
               <div class="mobile-quick-icon bg-blue-50 text-blue-700 relative">
                 <i data-lucide="shopping-bag" class="w-4 h-4"></i>
                 <span id="mobile-quick-orders-badge" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
               </div>
               <span>Orders</span>
             </button>
-            <button type="button" onclick="showPage('categories')" class="mobile-quick-btn">
+            <button id="mobile-quick-categories" type="button" onclick="showPage('categories')" class="mobile-quick-btn">
               <div class="mobile-quick-icon bg-purple-50 text-purple-700">
                 <i data-lucide="tag" class="w-4 h-4"></i>
               </div>
               <span>Categories</span>
             </button>
-            <button type="button" onclick="showPage('settings')" class="mobile-quick-btn">
+            <button id="mobile-quick-settings" type="button" onclick="showPage('settings')" class="mobile-quick-btn">
               <div class="mobile-quick-icon bg-slate-100 text-slate-700">
                 <i data-lucide="settings" class="w-4 h-4"></i>
               </div>
@@ -414,7 +422,7 @@
         <div class="mobile-admin-page-header"><button type="button" onclick="closeMobileAdminPage()" aria-label="Back to admin"><i data-lucide="arrow-left"></i></button><div><strong>Store settings</strong><span>Update your storefront</span></div></div>
         <div class="max-w-5xl">
           <div class="space-y-6">
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <div id="settings-profile-design-card" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2"><i data-lucide="paintbrush-vertical" class="w-4 h-4 text-emerald-600"></i> Store appearance &amp; profile</h3>
               <p class="text-xs text-slate-500 mb-5">Manage your storefront details and choose an accent colour for buttons and the glossy hero.</p>
               <form onsubmit="saveStoreSettings(event)" class="space-y-6">
@@ -538,7 +546,7 @@
             </div>
 
             <!-- Custom Domain Mapping Card -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <div id="settings-custom-domain-card" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2">
                 <i data-lucide="globe" class="w-4 h-4 text-emerald-600"></i> Custom Domain
               </h3>
@@ -550,6 +558,128 @@
                 </button>
               </form>
               <div id="custom-domain-dns-box" class="hidden mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 space-y-1"></div>
+            </div>
+
+            <!-- Store Password Change Card -->
+            <div id="settings-password-card" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2">
+                <i data-lucide="key-round" class="w-4 h-4 text-emerald-600"></i> Store Password &amp; Security
+              </h3>
+              <p class="text-xs text-slate-500 mb-4">Change your Store Admin login password. Owner and staff passwords stay separate.</p>
+              <form onsubmit="handleChangeStorePassword(event)" class="space-y-4 max-w-xl">
+                <div>
+                  <label class="label" for="settings-current-password">Current Password *</label>
+                  <div class="relative">
+                    <input id="settings-current-password" type="password" required class="input pr-10" placeholder="Enter current password" />
+                    <button type="button" onclick="togglePasswordVis('settings-current-password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="label" for="settings-new-password">New Password *</label>
+                    <div class="relative">
+                      <input id="settings-new-password" type="password" required minlength="8" class="input pr-10" placeholder="Minimum 8 characters" />
+                      <button type="button" onclick="togglePasswordVis('settings-new-password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="label" for="settings-confirm-password">Confirm New Password *</label>
+                    <div class="relative">
+                      <input id="settings-confirm-password" type="password" required minlength="8" class="input pr-10" placeholder="Re-enter new password" />
+                      <button type="button" onclick="togglePasswordVis('settings-confirm-password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div id="settings-password-feedback" class="hidden rounded-xl px-4 py-2.5 text-xs font-semibold border"></div>
+                <button id="settings-password-save-btn" type="submit" class="btn-primary">
+                  <i data-lucide="shield-check" class="w-4 h-4"></i>
+                  <span>Update Store Password</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Owner-Only Staff Passwords & Granular Permissions Card -->
+            <div id="settings-staff-card" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+              <div>
+                <h3 class="font-black text-slate-900 mb-1 flex items-center gap-2">
+                  <i data-lucide="users-round" class="w-4 h-4 text-emerald-600"></i> Staff Passwords &amp; Access Rights
+                </h3>
+                <p class="text-xs text-slate-500">
+                  Create separate staff accounts with their own password and chosen rights (e.g. adding products only, managing orders, or settings).
+                  Staff can sign in using their staff email/username, or using your store email or <span class="font-mono font-semibold text-slate-700">staff</span> with their staff password.
+                </p>
+              </div>
+
+              <form id="staff-account-form" onsubmit="handleCreateStaffAccount(event)" class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-4">
+                <h4 class="text-xs font-black uppercase tracking-wider text-slate-700">Add Staff Account</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label class="label" for="staff-full-name">Staff Name *</label>
+                    <input id="staff-full-name" type="text" required minlength="2" class="input" placeholder="e.g. Brian Clerk" />
+                  </div>
+                  <div>
+                    <label class="label" for="staff-email">Staff Email or Username</label>
+                    <input id="staff-email" type="text" maxlength="150" class="input" placeholder="Optional (or brian@shop.co.ke)" />
+                  </div>
+                  <div>
+                    <label class="label" for="staff-password">Staff Password *</label>
+                    <div class="relative">
+                      <input id="staff-password" type="password" required minlength="8" class="input pr-10" placeholder="Min 8 characters" />
+                      <button type="button" onclick="togglePasswordVis('staff-password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <p class="label mb-2">Grant Specific Rights</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs font-semibold text-slate-700">
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer">
+                      <input type="checkbox" name="staff-perm" value="manage_products" checked class="rounded border-slate-300 text-emerald-600" />
+                      <span>Add &amp; edit products</span>
+                    </label>
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer">
+                      <input type="checkbox" name="staff-perm" value="manage_categories" class="rounded border-slate-300 text-emerald-600" />
+                      <span>Categories &amp; filters</span>
+                    </label>
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer">
+                      <input type="checkbox" name="staff-perm" value="manage_orders" class="rounded border-slate-300 text-emerald-600" />
+                      <span>View &amp; fulfill orders</span>
+                    </label>
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer">
+                      <input type="checkbox" name="staff-perm" value="delete_orders" class="rounded border-slate-300 text-emerald-600" />
+                      <span>Delete unpaid orders</span>
+                    </label>
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer">
+                      <input type="checkbox" name="staff-perm" value="manage_settings" class="rounded border-slate-300 text-emerald-600" />
+                      <span>Store profile &amp; design</span>
+                    </label>
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer">
+                      <input type="checkbox" name="staff-perm" value="manage_payments" class="rounded border-slate-300 text-emerald-600" />
+                      <span>M-Pesa &amp; subscription</span>
+                    </label>
+                  </div>
+                </div>
+                <div id="staff-form-feedback" class="hidden rounded-xl px-4 py-2.5 text-xs font-semibold border"></div>
+                <button id="staff-create-btn" type="submit" class="btn-primary">
+                  <i data-lucide="user-plus" class="w-4 h-4"></i>
+                  <span>Create Staff Account</span>
+                </button>
+              </form>
+
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-xs font-black uppercase tracking-wider text-slate-700">Existing Staff Accounts</h4>
+                  <button type="button" onclick="loadStaffAccounts()" class="text-xs font-bold text-emerald-700 hover:underline">Refresh</button>
+                </div>
+                <div id="staff-accounts-list" class="space-y-3"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -631,11 +761,11 @@
         <p id="mobile-menu-store-name" class="font-extrabold text-slate-900 text-xs truncate">My Store</p>
         <p id="mobile-menu-user-name" class="text-[11px] text-slate-500 truncate">Owner</p>
       </div>
-      <span class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Admin</span>
+      <span id="mobile-menu-role-badge" class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Owner</span>
     </div>
     <div class="mobile-admin-menu-heading"><strong>Store tools</strong><button type="button" onclick="toggleMobileAdminMenu(false)" aria-label="Close menu"><i data-lucide="x"></i></button></div>
-    <button type="button" onclick="showPage('settings')"><i data-lucide="settings"></i><span>Store settings</span><i data-lucide="chevron-right"></i></button>
-    <button type="button" onclick="showPage('payments')"><i data-lucide="credit-card"></i><span>M-Pesa &amp; payments</span><i data-lucide="chevron-right"></i></button>
+    <button id="mobile-menu-settings" type="button" onclick="showPage('settings')"><i data-lucide="settings"></i><span>Store settings</span><i data-lucide="chevron-right"></i></button>
+    <button id="mobile-menu-payments" type="button" onclick="showPage('payments')"><i data-lucide="credit-card"></i><span>M-Pesa &amp; payments</span><i data-lucide="chevron-right"></i></button>
     <a href="/" target="_blank" class="mobile-admin-menu-link"><i data-lucide="external-link"></i><span>View storefront</span><i data-lucide="chevron-right"></i></a>
     <button type="button" class="mobile-admin-menu-signout" onclick="toggleMobileAdminMenu(false); handleLogout()"><i data-lucide="log-out"></i><span>Sign out</span></button>
   </div>
@@ -989,18 +1119,19 @@
   </div>
 </div>
 
-<script src="./scripts/admin/core.js"></script>
+<script src="./scripts/admin/core.js?v=20261115"></script>
 <script src="./scripts/admin/media-optimizer.js"></script>
-<script src="./scripts/admin/navigation.js"></script>
-<script src="./scripts/admin/dashboard.js"></script>
+<script src="./scripts/admin/navigation.js?v=20261115"></script>
+<script src="./scripts/admin/dashboard.js?v=20261115"></script>
 <script src="./scripts/admin/subscription.js"></script>
 <script src="./scripts/shared/category-icon-classifier.js"></script>
 <script src="./scripts/admin/categories.js"></script>
 <script src="./scripts/admin/product-editor.js"></script>
 <script src="./scripts/admin/catalog.js"></script>
-<script src="./scripts/admin/orders.js"></script>
+<script src="./scripts/admin/orders.js?v=20261115"></script>
 <script src="./scripts/admin/design-branding.js"></script>
-<script src="./scripts/admin/design.js"></script>
-<script src="./scripts/admin/payments.js"></script>
+<script src="./scripts/admin/design.js?v=20261115"></script>
+<script src="./scripts/admin/payments.js?v=20261115"></script>
+<script src="/scripts/storefront/pwa.js"></script>
 </body>
 </html>

@@ -8,6 +8,7 @@ export interface JWTPayload {
   tenantId: string;
   email: string;
   role: UserContext["role"];
+  permissions?: string[];
   iss: string;
   aud: string;
   iat: number;
@@ -34,6 +35,7 @@ export async function createAccessToken(
     tenantId: user.tenantId,
     email: user.email,
     role: user.role,
+    ...(Array.isArray(user.permissions) ? { permissions: user.permissions } : {}),
     iss: JWT_ISSUER,
     aud: JWT_AUDIENCE,
     iat: now,
@@ -74,6 +76,9 @@ export async function verifyAccessToken(
       tenantId: payload.tenantId,
       email: payload.email,
       role: payload.role,
+      ...(Array.isArray(payload.permissions)
+        ? { permissions: payload.permissions.filter((p): p is string => typeof p === "string") }
+        : {}),
     };
   } catch {
     return null;

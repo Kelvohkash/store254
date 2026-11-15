@@ -3,6 +3,17 @@ import app from "../src/index";
 import { normalizeKenyanPhone } from "../src/security/mpesa";
 import { hashPassword, verifyPassword, timingSafeEqual } from "../src/security/crypto";
 import { sanitizeSubdomain } from "../src/security/sanitize";
+import { Hono } from "hono";
+import type { AppEnv } from "../src/types/context";
+import { AppError } from "../src/security/error-handler";
+import {
+  STAFF_PERMISSIONS,
+  getStaffPermissions,
+  hasPermission,
+  authMiddleware,
+  requirePermission,
+} from "../src/middlewares/auth.middleware";
+import { createAccessToken, verifyAccessToken } from "../src/security/jwt";
 
 describe("Store254 Security & Core Logic Suite", () => {
   it("should sanitize and validate subdomains strictly", () => {
@@ -67,5 +78,130 @@ describe("Store254 Security & Core Logic Suite", () => {
     const data = await res.json();
     expect(data.status).toBe("ok");
     expect(data.service).toBe("store254-engine");
+  });
+
+  it("should extract valid staff permissions and evaluate role/permission access", () => {
+    expect(STAFF_PERMISSIONS).toContain("manage_products");
+    expect(STAFF_PERMISSIONS).toContain("delete_orders");
+
+    const settings = {
+      staffPermissions: {
+        "staff-1": ["manage_products", "manage_orders", "invalid_perm_key"],
+      },
+    };
+    expect(getStaffPermissions(settings, "staff-1")).toEqual(["manage_products", "manage_orders"]);
+    expect(getStaffPermissions(settings, "missing-staff")).toEqual([]);
+
+    expect(
+      hasPermission({ id: "owner-1", tenantId: "t1", email: "o@example.com", role: "OWNER" }, "manage_payments")
+    ).toBe(true);
+    expect(
+      hasPermission(
+        {
+          id: "staff-1",
+          tenantId: "t1",
+          email: "s@example.com",
+          role: "STAFF",
+          permissions: ["manage_products"],
+        },
+        "manage_products"
+      )
+    ).toBe(true);
+    expect(
+      hasPermission(
+        {
+          id: "staff-1",
+          tenantId: "t1",
+          email: "s@example.com",
+          role: "STAFF",
+          permissions: ["manage_products"],
+        },
+        "manage_payments"
+      )
+    ).toBe(false);
+    expect(
+      hasPermission({ id: "cust-1", tenantId: "t1", email: "c@example.com", role: "CUSTOMER" }, "manage_products")
+    ).toBe(false);
+  });
+
+  it("should preserve granular permissions across JWT signing and verification", async () => {
+    const secret = "test-jwt-secret-key-at-least-32-chars!!";
+    const token = await createAccessToken(
+      {
+        sub: "staff-42",
+        tid: "tenant-1",
+        role: "STAFF",
+        email: "clerk@shop.store254.co.ke",
+        permissions: ["manage_products", "manage_categories"],
+      },
+      secret
+    );
+    const verified = await verifyAccessToken(token, secret);
+    expect(verified).not.toBeNull();
+    expect(verified?.role).toBe("STAFF");
+    expect(verified?.permissions).toEqual(["manage_products", "manage_categories"]);
+  });
+
+  it("should enforce requirePermission and authMiddleware across owner, staff, and unauthenticated callers", async () => {
+    const testApp = new Hono<AppEnv>();
+    testApp.onError((err, c) => {
+      if (err instanceof AppError) {
+        return c.json({ success: false, error: { code: err.code, message: err.message } }, err.statusCode as any);
+      }
+      return c.json({ success: false }, 500);
+    });
+
+    testApp.use("/guarded/*", async (c, next) => {
+      const role = c.req.header("X-Test-Role") as any;
+      const permsHeader = c.req.header("X-Test-Perms");
+      if (role) {
+        c.set("user", {
+          id: "u-1",
+          tenantId: "t-1",
+          email: "u@example.com",
+          role,
+          permissions: permsHeader ? permsHeader.split(",") : [],
+        });
+      }
+      await next();
+    });
+    testApp.post("/guarded/items", requirePermission("manage_products"), (c) => c.json({ ok: true }));
+    testApp.delete("/guarded/orders", requirePermission("delete_orders"), (c) => c.json({ ok: true }));
+    testApp.post("/auth-required", authMiddleware(true), (c) => c.json({ ok: true }));
+
+    // Missing auth header or cookie on authMiddleware(true) -> 401
+    const unauthRes = await testApp.request("https://demo.store254.co.ke/auth-required", {
+      method: "POST",
+    });
+    expect(unauthRes.status).toBe(401);
+
+    // Owner allowed everywhere -> 200
+    const ownerRes = await testApp.request("https://demo.store254.co.ke/guarded/orders", {
+      method: "DELETE",
+      headers: { "X-Test-Role": "OWNER" },
+    });
+    expect(ownerRes.status).toBe(200);
+
+    // Staff with manage_products allowed on /items -> 200, blocked on /orders delete -> 403
+    const staffAllowed = await testApp.request("https://demo.store254.co.ke/guarded/items", {
+      method: "POST",
+      headers: { "X-Test-Role": "STAFF", "X-Test-Perms": "manage_products" },
+    });
+    expect(staffAllowed.status).toBe(200);
+
+    const staffBlocked = await testApp.request("https://demo.store254.co.ke/guarded/orders", {
+      method: "DELETE",
+      headers: { "X-Test-Role": "STAFF", "X-Test-Perms": "manage_products,manage_orders" },
+    });
+    expect(staffBlocked.status).toBe(403);
+    const blockedJson = (await staffBlocked.json()) as any;
+    expect(blockedJson.error.code).toBe("INSUFFICIENT_PERMISSIONS");
+
+    // Customer blocked on merchant permission guard -> 403
+    const customerBlocked = await testApp.request("https://demo.store254.co.ke/guarded/items", {
+      method: "POST",
+      headers: { "X-Test-Role": "CUSTOMER" },
+    });
+    expect(customerBlocked.status).toBe(403);
   });
 });

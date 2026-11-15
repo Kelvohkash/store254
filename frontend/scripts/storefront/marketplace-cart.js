@@ -78,7 +78,7 @@
     if (!isPlatformRootMode()) return;
 
     const totalCount = getCartTotalCount();
-    ["platform-cart-badge", "platform-mobile-cart-badge"].forEach((id) => {
+    ["platform-cart-badge", "platform-mobile-cart-badge", "platform-bottom-cart-badge"].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.textContent = String(totalCount);
@@ -110,10 +110,12 @@
     const navAccountEl = document.getElementById("platform-nav-account-label");
     const heroSigninBtn = document.getElementById("buyer-hero-signin-btn");
     const mobileAuthLabel = document.getElementById("platform-mobile-account-label");
+    const bottomAuthLabel = document.getElementById("platform-bottom-account-label");
     if (platformUser) {
       const firstName = (platformUser.fullName || platformUser.email || "Account").split(" ")[0];
       if (navAccountEl) navAccountEl.textContent = firstName;
-      if (mobileAuthLabel) mobileAuthLabel.textContent = `Signed in as ${firstName} • My Orders`;
+      if (mobileAuthLabel) mobileAuthLabel.textContent = `Signed in as ${firstName}`;
+      if (bottomAuthLabel) bottomAuthLabel.textContent = firstName;
       if (heroSigninBtn) {
         heroSigninBtn.innerHTML = `<i data-lucide="user-check" class="w-3.5 h-3.5"></i><span>${escapeHtml(firstName)} · My Orders</span>`;
         heroSigninBtn.onclick = () => window.openMarketplaceOrdersModal();
@@ -121,6 +123,7 @@
     } else {
       if (navAccountEl) navAccountEl.textContent = "Sign in";
       if (mobileAuthLabel) mobileAuthLabel.textContent = "Sign in with Google";
+      if (bottomAuthLabel) bottomAuthLabel.textContent = "Account";
       if (heroSigninBtn) {
         heroSigninBtn.innerHTML = `<i data-lucide="log-in" class="w-3.5 h-3.5"></i><span>Sign in with Google</span>`;
         heroSigninBtn.onclick = () => window.openBuyerWelcomeModal(1);
@@ -139,8 +142,8 @@
   async function refreshPlatformSession() {
     try {
       const [meRes, cfgRes] = await Promise.all([
-        fetch("/api/platform/me", { credentials: "include" }),
-        fetch("/api/platform/google-config", { credentials: "include" }),
+        fetch("/api/platform/me", { credentials: "include", cache: "no-store" }),
+        fetch("/api/platform/google-config", { credentials: "include", cache: "no-store" }),
       ]);
       const meJson = await meRes.json().catch(() => null);
       const cfgJson = await cfgRes.json().catch(() => null);
@@ -154,6 +157,17 @@
       platformUser = null;
     }
     syncMarketplaceHeaderState();
+    if (platformUser) {
+      const s1 = document.getElementById("buyer-welcome-step-1");
+      if (s1 && !s1.classList.contains("hidden")) {
+        const savedLoc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
+        if (savedLoc?.countyId && savedLoc?.constituencyId) {
+          window.closeBuyerWelcomeModal(false);
+        } else {
+          await window.goToBuyerWelcomeStep(2);
+        }
+      }
+    }
   }
 
   window.startPlatformGoogleSignIn = function startPlatformGoogleSignIn() {
@@ -165,8 +179,9 @@
       window.goToBuyerWelcomeStep(2);
       return;
     }
-    const cleanUrl = `${window.location.origin}${window.location.pathname}`;
-    const target = `${platformGoogleLoginPath}?return_to=${encodeURIComponent(cleanUrl)}`;
+    const cleanUrlObj = new URL(window.location.href);
+    cleanUrlObj.searchParams.delete("_customer_login");
+    const target = `${platformGoogleLoginPath}?return_to=${encodeURIComponent(cleanUrlObj.toString())}`;
     window.location.href = target;
   };
 
@@ -192,10 +207,19 @@
   window.openBuyerWelcomeModal = async function openBuyerWelcomeModal(step = 1) {
     const modal = document.getElementById("buyer-welcome-modal");
     if (!modal) return;
+    let nextStep = step;
+    if (nextStep === 1 && platformUser) {
+      const savedLoc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
+      if (savedLoc?.countyId && savedLoc?.constituencyId) {
+        window.closeBuyerWelcomeModal(false);
+        return;
+      }
+      nextStep = 2;
+    }
     modal.classList.remove("hidden");
     modal.setAttribute("aria-hidden", "false");
-    window.goToBuyerWelcomeStep(step);
-    if (step === 2) {
+    await window.goToBuyerWelcomeStep(nextStep);
+    if (nextStep === 2) {
       await ensureWelcomeCountiesLoaded();
     }
     if (typeof window.renderIcons === "function") window.renderIcons();
@@ -234,10 +258,11 @@
   };
 
   window.goToBuyerWelcomeStep = async function goToBuyerWelcomeStep(step) {
+    const effectiveStep = step === 1 && platformUser ? 2 : step;
     const s1 = document.getElementById("buyer-welcome-step-1");
     const s2 = document.getElementById("buyer-welcome-step-2");
-    if (s1) s1.classList.toggle("hidden", step !== 1);
-    if (s2) s2.classList.toggle("hidden", step !== 2);
+    if (s1) s1.classList.toggle("hidden", effectiveStep !== 1);
+    if (s2) s2.classList.toggle("hidden", effectiveStep !== 2);
 
     const welcomeGreeting = document.getElementById("welcome-step2-greeting");
     if (welcomeGreeting) {
@@ -253,7 +278,7 @@
     const backBtn = document.getElementById("welcome-step2-back-btn");
     if (backBtn) backBtn.classList.toggle("hidden", Boolean(platformUser));
 
-    if (step === 2) {
+    if (effectiveStep === 2) {
       resetWelcomeGpsUi();
       window.backToWelcomeCountyStep();
       await ensureWelcomeCountiesLoaded();
@@ -1252,28 +1277,66 @@
       return;
     }
 
+    if (platformUser && !Array.isArray(platformUser.stores)) {
+      await refreshPlatformSession();
+    }
+
     bodyEl.innerHTML = `<div class="p-8 text-center text-xs font-semibold text-slate-500">Loading your Store254 orders…</div>`;
     try {
-      const res = await fetch("/api/platform/marketplace/my-orders", { credentials: "include" });
+      const res = await fetch("/api/platform/marketplace/my-orders", { credentials: "include", cache: "no-store" });
       const json = await res.json();
       const ordersList = Array.isArray(json.data) ? json.data : [];
 
-      const accountBar = `<div class="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-100">
-        <div class="min-w-0">
-          <p class="text-xs font-extrabold text-slate-900 truncate">${escapeHtml(platformUser.fullName || platformUser.email)}</p>
-          <p class="text-[11px] text-slate-500 truncate">${escapeHtml(platformUser.email)}</p>
+      const savedLoc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
+      const locLabel = savedLoc?.locationName
+        ? [savedLoc.locationName, savedLoc.countyName].filter(Boolean).join(", ")
+        : "";
+      const locationRow = `<div class="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 min-w-0 text-xs">
+          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-700 shrink-0"></i>
+          <span class="font-semibold text-slate-600 shrink-0">Location:</span>
+          <span class="font-bold text-slate-900 truncate">${escapeHtml(locLabel || "Not selected")}</span>
         </div>
-        <button type="button" onclick="signOutPlatformBuyer()" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">Sign out</button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" onclick="closeMarketplaceOrdersModal(); openBuyerWelcomeModal(2);" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[11px] font-bold text-emerald-800">${locLabel ? "Change" : "Set town"}</button>
+          ${
+            locLabel
+              ? `<button type="button" onclick="clearMarketplaceBuyerLocation(); openMarketplaceOrdersModal();" class="px-2 py-1 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50">Clear</button>`
+              : ""
+          }
+        </div>
       </div>`;
 
+      const accountBar = `<div class="pb-3 mb-3 border-b border-slate-100">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <p class="text-xs font-extrabold text-slate-900 truncate">${escapeHtml(platformUser.fullName || platformUser.email)}</p>
+            <p class="text-[11px] text-slate-500 truncate">${escapeHtml(platformUser.email)}</p>
+          </div>
+          <button type="button" onclick="signOutPlatformBuyer()" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">Sign out</button>
+        </div>
+        ${locationRow}
+      </div>`;
+
+      const activeStoreHtml =
+        typeof window.buildActiveStoreProfileHtml === "function"
+          ? window.buildActiveStoreProfileHtml(platformUser.activeStore, platformUser.stores)
+          : "";
+      const activeStoreBlock = activeStoreHtml ? `<div class="mb-4">${activeStoreHtml}</div>` : "";
+
       if (ordersList.length === 0) {
-        bodyEl.innerHTML = `<div class="p-5">${accountBar}<div class="py-8 text-center text-xs text-slate-500">You haven't placed any orders yet. Explore local stores below!</div></div>`;
+        bodyEl.innerHTML = `<div class="p-5">${accountBar}${activeStoreBlock}<div class="py-8 text-center text-xs text-slate-500">You haven't placed any orders yet. Explore local stores below!</div></div>`;
+        if (typeof window.renderIcons === "function") window.renderIcons();
         return;
       }
 
-      bodyEl.innerHTML = `<div class="p-5">${accountBar}<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">${ordersList
+      bodyEl.innerHTML = `<div class="p-5">${accountBar}${activeStoreBlock}<div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">${ordersList
         .map(
-          (o) => `
+          (o) => {
+            const storeUrls = typeof window.buildStore254StoreUrls === "function"
+              ? window.buildStore254StoreUrls(o.storeSubdomain)
+              : { storefrontUrl: `https://${o.storeSubdomain}.store254.co.ke` };
+            return `
           <div class="rounded-2xl border border-slate-200 bg-white p-3.5 space-y-2">
             <div class="flex items-center justify-between gap-2">
               <div class="min-w-0">
@@ -1291,11 +1354,13 @@
             </div>
             <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
               <strong class="text-emerald-700">${formatKes(o.totalAmount, o.currency)}</strong>
-              <a href="https://${escapeHtml(o.storeSubdomain)}.store254.co.ke" target="_blank" rel="noopener" class="text-[11px] font-bold text-slate-500 hover:text-emerald-700">Visit Shop ↗</a>
+              <a href="${escapeHtml(storeUrls.storefrontUrl)}" target="_blank" rel="noopener" class="text-[11px] font-bold text-slate-500 hover:text-emerald-700">Visit Shop ↗</a>
             </div>
-          </div>`
+          </div>`;
+          }
         )
         .join("")}</div></div>`;
+      if (typeof window.renderIcons === "function") window.renderIcons();
     } catch {
       bodyEl.innerHTML = `<div class="p-8 text-center text-xs text-rose-600">Could not load your orders right now.</div>`;
     }
@@ -1309,12 +1374,22 @@
     }
   };
 
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted && isPlatformRootMode()) {
+      void refreshPlatformSession();
+    }
+  });
+
   // --- Bootstrap Platform Buyer Experience ---
   window.addEventListener("DOMContentLoaded", async () => {
     if (!isPlatformRootMode()) return;
 
-    syncMarketplaceHeaderState();
-    await refreshPlatformSession();
+    // Storefront account drawer stays closed on root platform so returning shoppers never hit a blank white drawer
+    const ordersDrawer = document.getElementById("orders-drawer");
+    if (ordersDrawer) {
+      ordersDrawer.classList.add("hidden");
+      ordersDrawer.setAttribute("aria-hidden", "true");
+    }
 
     const params = new URLSearchParams(window.location.search);
     const loginResult = params.get("_customer_login");
@@ -1325,11 +1400,15 @@
       window.history.replaceState({}, "", nextUrl);
     }
 
+    syncMarketplaceHeaderState();
+    await refreshPlatformSession();
+
     const savedLoc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
     const dismissed = localStorage.getItem(WELCOME_DISMISSED_KEY) === "1";
     const isStoresPage = document.documentElement.dataset.platformView === "stores";
 
     if (loginResult === "success") {
+      window.closeBuyerWelcomeModal(false);
       showToast(
         platformUser?.fullName
           ? `Signed in as ${platformUser.fullName}`
@@ -1339,6 +1418,9 @@
       if (!savedLoc && !isStoresPage) {
         window.openBuyerWelcomeModal(2);
       }
+    } else if (loginResult === "error") {
+      window.closeBuyerWelcomeModal(false);
+      showToast("Google sign-in was cancelled or failed. Please try again.", "error");
     } else if (!savedLoc && !dismissed && !isStoresPage) {
       window.openBuyerWelcomeModal(platformUser ? 2 : 1);
     }

@@ -13,10 +13,10 @@ const onboardLocationState = {
 };
 
 const LOCATION_KIND_LABELS = {
-  TOWN: "Town / Ward",
+  TOWN: "Town",
   ESTATE: "Estate",
   SHOPPING_CENTRE: "Shopping Centre / Market",
-  TRADING_CENTRE: "Centre / Village",
+  TRADING_CENTRE: "Trading Centre",
 };
 
 function hideNearbyPreview() {
@@ -527,9 +527,58 @@ function checkSubdomainAvailability(rawVal) {
   }, 300);
 }
 
-async function handleOnboardSubmit(e) {
-  e.preventDefault();
+function setOnboardFeedback(message, type = "error") {
+  const el = document.getElementById("onboard-feedback");
+  if (!el) return;
+  if (!message) {
+    el.textContent = "";
+    el.className = "hidden rounded-xl border px-3.5 py-2.5 text-xs font-semibold";
+    return;
+  }
+  const palette =
+    type === "success"
+      ? "bg-emerald-50 border-emerald-300 text-emerald-900"
+      : type === "info"
+        ? "bg-slate-50 border-slate-300 text-slate-800"
+        : "bg-rose-50 border-rose-300 text-rose-800";
+  el.textContent = message;
+  el.className = `rounded-xl border px-3.5 py-2.5 text-xs font-semibold ${palette}`;
+  el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
 
+function clearOnboardFeedback() {
+  setOnboardFeedback("", "info");
+}
+
+function extractApiErrorMessage(res, fallback) {
+  const err = res?.data?.error;
+  if (Array.isArray(err?.issues) && err.issues.length > 0 && err.issues[0]?.message) {
+    return err.issues[0].message;
+  }
+  if (typeof err?.message === "string" && err.message.trim()) {
+    return err.message.trim();
+  }
+  if (typeof res?.data?.message === "string" && res.data.message.trim()) {
+    return res.data.message.trim();
+  }
+  return fallback;
+}
+
+async function handleOnboardSubmit(e) {
+  if (e && typeof e.preventDefault === "function") e.preventDefault();
+  clearOnboardFeedback();
+
+  const storeNameEl = document.getElementById("onboard-name");
+  const subdomainEl = document.getElementById("onboard-subdomain");
+  const ownerNameEl = document.getElementById("onboard-owner-name");
+  const emailEl = document.getElementById("onboard-email");
+  const passwordEl = document.getElementById("onboard-password");
+
+  const storeName = (storeNameEl?.value || "").trim();
+  const subdomain = (subdomainEl?.value || "").trim().toLowerCase();
+  const ownerFullName = (ownerNameEl?.value || "").trim();
+  const ownerEmail = (emailEl?.value || "").trim();
+  const ownerPassword = passwordEl?.value || "";
   const countyId = document.getElementById("onboard-county")?.value || "";
   const selected = onboardLocationState.selectedLocation;
   const customLocationName = (
@@ -538,10 +587,26 @@ async function handleOnboardSubmit(e) {
   const customConstituencyId =
     document.getElementById("onboard-custom-constituency")?.value || "";
 
+  const failValidation = (msg, focusEl) => {
+    setOnboardFeedback(msg, "error");
+    if (typeof showToast === "function") showToast(msg, "error");
+    if (focusEl && typeof focusEl.focus === "function") {
+      try {
+        focusEl.focus();
+      } catch {
+        // ignore focus failures on hidden controls
+      }
+    }
+  };
+
+  if (storeName.length < 2) {
+    return failValidation("Please enter your business / store name (at least 2 characters).", storeNameEl);
+  }
+  if (!/^[a-z0-9][a-z0-9-]{0,30}[a-z0-9]$/.test(subdomain)) {
+    return failValidation("Please enter a valid subdomain (lowercase letters, numbers, hyphens, at least 2 characters).", subdomainEl);
+  }
   if (!countyId) {
-    showToast("Please search and select your County.", true);
-    document.getElementById("onboard-county-search")?.focus();
-    return;
+    return failValidation("Please search and select your County from the dropdown list.", document.getElementById("onboard-county-search"));
   }
 
   const hasSelectedLocation = Boolean(
@@ -551,24 +616,41 @@ async function handleOnboardSubmit(e) {
   );
 
   if (!hasSelectedLocation) {
-    showToast("Please search and select your Town / Shopping Centre.", true);
-    document.getElementById("onboard-location-search")?.focus();
-    return;
+    return failValidation(
+      onboardLocationState.usingCustomMode
+        ? "Please enter your shopping centre name (at least 2 characters)."
+        : "Please search and select your Town / Shopping Centre from the dropdown list.",
+      onboardLocationState.usingCustomMode
+        ? document.getElementById("onboard-custom-location")
+        : document.getElementById("onboard-location-search")
+    );
+  }
+
+  if (ownerFullName.length < 2) {
+    return failValidation("Please enter the owner's full name.", ownerNameEl);
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
+    return failValidation("Please enter a valid owner email address.", emailEl);
+  }
+  if (ownerPassword.length < 8) {
+    return failValidation("Password must be at least 8 characters long.", passwordEl);
   }
 
   const btn = document.getElementById("btn-onboard");
-  const originalBtnHtml = btn.innerHTML;
-  btn.disabled = true;
-  btn.textContent = "Submitting...";
+  const originalBtnHtml = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Submitting...";
+  }
 
   const payload = {
-    storeName: document.getElementById("onboard-name").value.trim(),
-    subdomain: document.getElementById("onboard-subdomain").value.trim(),
-    businessType: document.getElementById("onboard-type").value,
+    storeName,
+    subdomain,
+    businessType: document.getElementById("onboard-type")?.value || "GENERAL",
     primaryColor: "#9a3412",
-    ownerFullName: document.getElementById("onboard-owner-name").value.trim(),
-    ownerEmail: document.getElementById("onboard-email").value.trim(),
-    ownerPassword: document.getElementById("onboard-password").value,
+    ownerFullName,
+    ownerEmail,
+    ownerPassword,
     countyId,
   };
 
@@ -583,22 +665,44 @@ async function handleOnboardSubmit(e) {
     if (customConstituencyId) payload.constituencyId = customConstituencyId;
   }
 
-  const res = await apiFetch("/api/platform/register-store", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await apiFetch("/api/platform/register-store", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
 
-  btn.disabled = false;
-  btn.innerHTML = originalBtnHtml;
-  if (typeof lucide !== "undefined") lucide.createIcons();
-
-  if (res.ok && res.data?.success) {
-    showToast(res.data.message || "Business registered successfully!");
-    e.target.reset();
-    clearSelectedCounty();
-    toggleDrawer("onboard-modal", false);
-  } else {
-    showToast(res.data?.error?.message || res.data?.message || "Registration failed", true);
+    if (res.ok && res.data?.success) {
+      const okMsg =
+        res.data.message ||
+        "Business registered successfully! Your application is under review.";
+      setOnboardFeedback(okMsg, "success");
+      if (typeof showToast === "function") showToast(okMsg, "success");
+      const formEl = e?.target && typeof e.target.reset === "function" ? e.target : document.getElementById("onboard-form");
+      formEl?.reset?.();
+      clearSelectedCounty();
+      clearOnboardFeedback();
+      toggleDrawer("onboard-modal", false);
+    } else {
+      const errMsg = extractApiErrorMessage(
+        res,
+        res.status === 0
+          ? "Network error while submitting your store. Please check your connection and try again."
+          : "Store registration failed. Please review your details and try again."
+      );
+      setOnboardFeedback(errMsg, "error");
+      if (typeof showToast === "function") showToast(errMsg, "error");
+    }
+  } catch (err) {
+    console.error("[Onboarding] Submit failed unexpectedly:", err);
+    const errMsg = "Something went wrong while submitting your store. Please try again.";
+    setOnboardFeedback(errMsg, "error");
+    if (typeof showToast === "function") showToast(errMsg, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalBtnHtml;
+    }
+    if (typeof lucide !== "undefined") lucide.createIcons();
   }
 }
 

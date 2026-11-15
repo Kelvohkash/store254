@@ -7,7 +7,7 @@ import { createDb } from "../../db";
 import { items, itemVariants, type ItemVariant } from "../../db/schema/items";
 import { categories } from "../../db/schema/categories";
 import { attributeDefinitions } from "../../db/schema/attributes";
-import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
+import { authMiddleware, hasPermission, requirePermission } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { slugify } from "../../security/sanitize";
 import { AppError } from "../../security/error-handler";
@@ -71,7 +71,7 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
 
   const isMerchant =
     user &&
-    ["OWNER", "ADMIN"].includes(user.role) &&
+    hasPermission(user, "manage_products") &&
     user.tenantId === tenant.id &&
     query.includeAll === "true";
 
@@ -247,7 +247,7 @@ itemsRouter.get("/:slug", async (c) => {
 itemsRouter.post(
   "/",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_products"),
   zValidator("json", createItemSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -376,7 +376,7 @@ const updateItemSchema = createItemSchema.partial().extend({
 itemsRouter.put(
   "/:id",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_products"),
   zValidator("json", updateItemSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
@@ -483,7 +483,7 @@ itemsRouter.put(
 itemsRouter.delete(
   "/:id",
   authMiddleware(true),
-  requireRole(["OWNER", "ADMIN"]),
+  requirePermission("manage_products"),
   async (c) => {
     const tenant = c.get("tenant")!;
     const { id } = c.req.param();

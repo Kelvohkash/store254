@@ -5,7 +5,7 @@ import { eq, and } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { tenantPaymentConfigs } from "../../db/schema/payment-configs";
-import { authMiddleware, requireRole } from "../../middlewares/auth.middleware";
+import { authMiddleware, requirePermission } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
 import { getMpesaOAuthToken } from "../../security/mpesa";
@@ -15,7 +15,7 @@ import { requireSecret } from "../../security/secrets";
 export const paymentSettingsRouter = new Hono<AppEnv>();
 
 // Protect all payment settings routes to Store Owners and Admins only
-paymentSettingsRouter.use("*", authMiddleware(true), requireRole(["OWNER", "ADMIN"]));
+paymentSettingsRouter.use("*", authMiddleware(true), requirePermission("manage_payments"));
 
 const updateMpesaSettingsSchema = z.object({
   isEnabled: z.boolean().default(false),
