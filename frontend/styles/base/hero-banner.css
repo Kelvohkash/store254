@@ -13,7 +13,7 @@
 /* ═════ WHEN MERCHANT HAS UPLOADED A HERO BACKGROUND IMAGE ═════ */
 .store-banner.has-banner-image {
   background-image:
-    linear-gradient(180deg, rgba(10, 18, 14, 0.82) 0%, rgba(10, 18, 14, 0.65) 50%, rgba(10, 18, 14, 0.85) 100%),
+    linear-gradient(180deg, rgba(10, 15, 28, 0.12) 0%, rgba(10, 15, 28, 0.05) 50%, rgba(10, 15, 28, 0.16) 100%),
     var(--store-banner-image);
   background-position: center;
   background-size: cover;

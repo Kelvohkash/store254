@@ -15,10 +15,10 @@ html[data-storefront="true"] .store-banner h1 {
   text-wrap: balance;
 }
 
-/* Keep white copy legible even when the uploaded hero photo cannot be loaded. */
+/* Keep banner legible without obscuring custom uploaded hero art. */
 html[data-storefront="true"] .store-banner.has-banner-image {
   background-image:
-    linear-gradient(180deg, rgba(10, 18, 14, 0.82) 0%, rgba(10, 18, 14, 0.65) 50%, rgba(10, 18, 14, 0.85) 100%),
+    linear-gradient(180deg, rgba(10, 15, 28, 0.12) 0%, rgba(10, 15, 28, 0.05) 50%, rgba(10, 15, 28, 0.16) 100%),
     var(--store-banner-image) !important;
   color: #ffffff !important;
 }
@@ -79,12 +79,12 @@ html[data-storefront="true"][data-hero-style="editorial"] .store-banner-copy,
 html[data-storefront="true"][data-hero-style="editorial"] #store-banner-content {
   background: linear-gradient(
     145deg,
-    rgba(255, 255, 255, 0.62) 0%,
-    rgba(255, 255, 255, 0.46) 100%
+    rgba(255, 255, 255, 0.30) 0%,
+    rgba(255, 255, 255, 0.18) 100%
   ) !important;
-  backdrop-filter: blur(8px) saturate(145%) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.68) !important;
+  backdrop-filter: blur(2px) saturate(125%) !important;
+  -webkit-backdrop-filter: blur(2px) saturate(125%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
   box-shadow:
     0 20px 44px -16px rgba(15, 23, 42, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
@@ -95,19 +95,19 @@ html[data-storefront="true"][data-hero-style="editorial"] #store-banner-content 
 html[data-storefront="true"] .store-showcase-card {
   background: linear-gradient(
     145deg,
-    rgba(255, 255, 255, 0.60) 0%,
-    rgba(255, 255, 255, 0.44) 100%
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.16) 100%
   ) !important;
-  border-color: rgba(255, 255, 255, 0.68) !important;
-  backdrop-filter: blur(8px) saturate(145%) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(2px) saturate(125%) !important;
+  -webkit-backdrop-filter: blur(2px) saturate(125%) !important;
 }
 
 html[data-storefront="true"] .store-showcase-metric {
-  background: rgba(255, 255, 255, 0.46) !important;
-  border-color: rgba(255, 255, 255, 0.62) !important;
-  backdrop-filter: blur(6px) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
+  background: rgba(255, 255, 255, 0.24) !important;
+  border-color: rgba(255, 255, 255, 0.48) !important;
+  backdrop-filter: blur(1.5px) !important;
+  -webkit-backdrop-filter: blur(1.5px) !important;
 }
 
 /* Sharp typography on hero title inside the hero card / editorial layout */
@@ -136,7 +136,10 @@ html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has
 html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image #store-banner-content h1,
 html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image #store-banner-content #banner-store-name {
   color: #0b1120 !important;
-  text-shadow: 0 1px 10px rgba(255, 255, 255, 0.9), 0 0 2px rgba(255, 255, 255, 0.96) !important;
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 1),
+    0 0 6px rgba(255, 255, 255, 0.96),
+    0 1px 14px rgba(255, 255, 255, 0.92) !important;
   font-family: var(--store-font-heading);
   font-size: clamp(2.2rem, 4.5vw, 3.85rem) !important;
   line-height: 1.06 !important;
@@ -157,7 +160,10 @@ html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-bann
 html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image .store-banner-copy #banner-store-desc,
 html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image #store-banner-content #banner-store-desc {
   color: #0f172a !important;
-  text-shadow: 0 1px 10px rgba(255, 255, 255, 0.9), 0 0 2px rgba(255, 255, 255, 0.96) !important;
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 1),
+    0 0 6px rgba(255, 255, 255, 0.96),
+    0 1px 14px rgba(255, 255, 255, 0.92) !important;
   opacity: 1;
   font-weight: 600;
   font-size: 1.02rem !important;
@@ -303,11 +309,11 @@ html[data-storefront="true"] #items-grid .product-card:focus-within {
   html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy {
     width: 100%;
     padding: 1.1rem;
-    border: 1px solid rgba(255, 255, 255, 0.68);
+    border: 1px solid rgba(255, 255, 255, 0.55);
     background: linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.62) 0%,
-      rgba(255, 255, 255, 0.46) 100%
+      rgba(255, 255, 255, 0.30) 0%,
+      rgba(255, 255, 255, 0.18) 100%
     );
     box-shadow: 0 20px 44px -16px rgba(15, 23, 42, 0.22);
   }
