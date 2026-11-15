@@ -70,45 +70,44 @@ html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-bann
   display: none !important;
 }
 
-/* Hero card backdrop: polished frosted glass / luxury boutique card */
+/* Hero card backdrop: crystal-glass translucent panel so hero background peeks through */
 html[data-storefront="true"] .store-banner-copy,
 html[data-storefront="true"] #store-banner-content,
 html[data-storefront="true"] #store-info-banner .store-banner-copy,
 html[data-storefront="true"] #store-info-banner #store-banner-content,
 html[data-storefront="true"][data-hero-style="editorial"] .store-banner-copy,
-html[data-storefront="true"][data-hero-style="editorial"] #store-banner-content,
-html[data-storefront="true"] .store-banner-copy,
-html[data-storefront="true"] #store-banner-content {
-  background: color-mix(in srgb, var(--store-white) 92%, transparent) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-  border: 1px solid color-mix(in srgb, var(--store-primary) 16%, rgba(255, 255, 255, 0.85)) !important;
-  box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.14) !important;
+html[data-storefront="true"][data-hero-style="editorial"] #store-banner-content {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.62) 0%,
+    rgba(255, 255, 255, 0.46) 100%
+  ) !important;
+  backdrop-filter: blur(8px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.68) !important;
+  box-shadow:
+    0 20px 44px -16px rgba(15, 23, 42, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
   border-radius: 1.25rem !important;
   padding: clamp(1.5rem, 3.5vw, 2.75rem) !important;
 }
 
-/* Luminous frosted-glass finish with strong ink contrast over custom hero photos. */
-html[data-storefront="true"] .store-banner-copy,
-html[data-storefront="true"] #store-info-banner .store-banner-copy {
-  background: color-mix(in srgb, var(--store-white, #fff) 92%, transparent) !important;
-  border-color: color-mix(in srgb, var(--store-primary, #15803d) 20%, rgba(255, 255, 255, 0.72)) !important;
-  backdrop-filter: blur(20px) saturate(155%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(155%) !important;
-}
-
 html[data-storefront="true"] .store-showcase-card {
-  background: color-mix(in srgb, var(--store-white, #fff) 90%, transparent) !important;
-  border-color: color-mix(in srgb, var(--store-primary, #15803d) 20%, rgba(255, 255, 255, 0.72)) !important;
-  backdrop-filter: blur(20px) saturate(155%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(155%) !important;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.60) 0%,
+    rgba(255, 255, 255, 0.44) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.68) !important;
+  backdrop-filter: blur(8px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(145%) !important;
 }
 
 html[data-storefront="true"] .store-showcase-metric {
-  background: color-mix(in srgb, var(--store-white, #fff) 42%, transparent) !important;
-  border-color: color-mix(in srgb, var(--store-ink, #0f172a) 10%, transparent) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background: rgba(255, 255, 255, 0.46) !important;
+  border-color: rgba(255, 255, 255, 0.62) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
 }
 
 /* Sharp typography on hero title inside the hero card / editorial layout */
@@ -136,8 +135,8 @@ html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has
 html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image .store-banner-copy #banner-store-name,
 html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image #store-banner-content h1,
 html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image #store-banner-content #banner-store-name {
-  color: var(--store-ink) !important;
-  text-shadow: none !important;
+  color: #0b1120 !important;
+  text-shadow: 0 1px 10px rgba(255, 255, 255, 0.9), 0 0 2px rgba(255, 255, 255, 0.96) !important;
   font-family: var(--store-font-heading);
   font-size: clamp(2.2rem, 4.5vw, 3.85rem) !important;
   line-height: 1.06 !important;
@@ -157,9 +156,10 @@ html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-bann
 html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image #store-banner-content #banner-store-desc,
 html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image .store-banner-copy #banner-store-desc,
 html[data-storefront="true"][data-hero-style="editorial"] #store-info-banner.has-banner-image #store-banner-content #banner-store-desc {
-  color: var(--store-ink) !important;
-  text-shadow: none !important;
-  opacity: 0.92;
+  color: #0f172a !important;
+  text-shadow: 0 1px 10px rgba(255, 255, 255, 0.9), 0 0 2px rgba(255, 255, 255, 0.96) !important;
+  opacity: 1;
+  font-weight: 600;
   font-size: 1.02rem !important;
   line-height: 1.6 !important;
 }
@@ -303,9 +303,13 @@ html[data-storefront="true"] #items-grid .product-card:focus-within {
   html[data-storefront="true"][data-hero-style="editorial"] .store-banner.has-banner-image .store-banner-copy {
     width: 100%;
     padding: 1.1rem;
-    border: 1px solid color-mix(in srgb, var(--store-primary) 16%, rgba(255, 255, 255, .82));
-    background: color-mix(in srgb, var(--store-white) 94%, transparent);
-    box-shadow: 0 12px 32px rgba(15, 23, 42, .12);
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.62) 0%,
+      rgba(255, 255, 255, 0.46) 100%
+    );
+    box-shadow: 0 20px 44px -16px rgba(15, 23, 42, 0.22);
   }
 }
 
