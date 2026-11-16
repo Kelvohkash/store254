@@ -32,22 +32,34 @@ const categoriesPerPage = 10;
 let attributeDefinitionsCache = [];
 
 async function loadCategories() {
-  const [catRes, attrRes] = await Promise.all([
-    apiFetch('/categories'),
-    apiFetch('/attributes')
-  ]);
-  flatCategories = catRes.ok ? flattenTree(catRes.data?.data || []) : [];
-  attributeDefinitionsCache = attrRes.ok && Array.isArray(attrRes.data?.data) ? attrRes.data.data : [];
-  categoriesCurrentPage = 1;
-  renderCategoriesTable(flatCategories);
-  // Reload parent dropdown
-  const parentCatEl = document.getElementById('category-parent');
-  if (parentCatEl) {
-    parentCatEl.innerHTML = '<option value="">None (top-level)</option>' + topLevelCategoryOptions(flatCategories);
-  }
-  const attributeCategoryEl = document.getElementById('attribute-category');
-  if (attributeCategoryEl) {
-    attributeCategoryEl.innerHTML = '<option value="">All categories (Global filter)</option>' + flatCategories.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.displayName)}</option>`).join('');
+  const tbody = document.getElementById('categories-table-body');
+  try {
+    const [catRes, attrRes] = await Promise.all([
+      apiFetch('/categories'),
+      apiFetch('/attributes')
+    ]);
+    if (!catRes.ok && tbody) {
+      tbody.innerHTML = '<tr><td colspan="4" class="px-5 py-10 text-center text-red-500 font-semibold">Failed to load categories. <button type="button" onclick="loadCategories()" class="underline font-bold ml-1">Retry</button></td></tr>';
+      return;
+    }
+    flatCategories = catRes.ok ? flattenTree(catRes.data?.data || []) : [];
+    attributeDefinitionsCache = attrRes.ok && Array.isArray(attrRes.data?.data) ? attrRes.data.data : [];
+    categoriesCurrentPage = 1;
+    renderCategoriesTable(flatCategories);
+    // Reload parent dropdown
+    const parentCatEl = document.getElementById('category-parent');
+    if (parentCatEl) {
+      parentCatEl.innerHTML = '<option value="">None (top-level)</option>' + topLevelCategoryOptions(flatCategories);
+    }
+    const attributeCategoryEl = document.getElementById('attribute-category');
+    if (attributeCategoryEl) {
+      attributeCategoryEl.innerHTML = '<option value="">All categories (Global filter)</option>' + flatCategories.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.displayName)}</option>`).join('');
+    }
+  } catch (err) {
+    console.error('loadCategories error:', err);
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="4" class="px-5 py-10 text-center text-red-500 font-semibold">Could not render categories. <button type="button" onclick="loadCategories()" class="underline font-bold ml-1">Retry</button></td></tr>';
+    }
   }
 }
 
@@ -253,6 +265,12 @@ function renderFilterRowHtml(f, { parentId = '', parentLabel = 'All categories',
   `;
 }
 
+function getAdminStoreInfo() {
+  if (typeof tenantInfo !== 'undefined' && tenantInfo) return tenantInfo;
+  if (typeof currentStoreDesign !== 'undefined' && currentStoreDesign) return currentStoreDesign;
+  return null;
+}
+
 function toggleAdminCategory(catId) {
   if (expandedAdminCategories.has(catId)) {
     expandedAdminCategories.delete(catId);
@@ -395,8 +413,9 @@ function renderCategoriesTable(cats) {
     if (categoryFilters.length) parts.push(`${categoryFilters.length} filter${categoryFilters.length === 1 ? '' : 's'}`);
     const summaryText = parts.join(' · ');
 
+    const storeInfo = getAdminStoreInfo();
     const resolvedCatIcon = window.Store254CategoryClassifier
-      ? window.Store254CategoryClassifier.resolveIcon(c, { businessType: tenantInfo?.businessType, storeName: tenantInfo?.name })
+      ? window.Store254CategoryClassifier.resolveIcon(c, { businessType: storeInfo?.businessType, storeName: storeInfo?.name })
       : (c.icon || 'tag');
 
     rowsHtml += `
@@ -442,7 +461,7 @@ function renderCategoriesTable(cats) {
     for (const sub of children) {
       const subFilters = showFiltersInTree ? allFilters.filter(f => f.categoryId === sub.id) : [];
       const resolvedSubIcon = window.Store254CategoryClassifier
-        ? window.Store254CategoryClassifier.resolveIcon(sub, { parentName: c.name, businessType: tenantInfo?.businessType, storeName: tenantInfo?.name })
+        ? window.Store254CategoryClassifier.resolveIcon(sub, { parentName: c.name, businessType: storeInfo?.businessType, storeName: storeInfo?.name })
         : (sub.icon || 'tag');
       rowsHtml += `
         <tr class="admin-cat-row admin-cat-sub hover:bg-slate-50 transition-colors ${isExpanded ? 'is-visible' : 'is-collapsed'}" data-parent-id="${escHtml(sub.parentId)}">
@@ -531,12 +550,13 @@ function getCategoryClassifierContext() {
   const description = document.getElementById('category-desc')?.value?.trim() || '';
   const parentId = document.getElementById('category-parent')?.value || '';
   const parentCat = parentId ? flatCategories.find(c => c.id === parentId) : null;
+  const storeInfo = getAdminStoreInfo();
   return {
     name,
     description,
     parentName: parentCat?.name || '',
-    businessType: typeof tenantInfo !== 'undefined' ? tenantInfo?.businessType : '',
-    storeName: typeof tenantInfo !== 'undefined' ? tenantInfo?.name : '',
+    businessType: storeInfo?.businessType || '',
+    storeName: storeInfo?.name || '',
   };
 }
 

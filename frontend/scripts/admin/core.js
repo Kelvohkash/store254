@@ -28,6 +28,7 @@ localStorage.removeItem('store254_owner_token');
 let hasSession = false;
 let adminAccessToken = null;
 let currentAdminUser = null;
+let tenantInfo = null;
 let allProducts = [];
 let allOrders = [];
 let flatCategories = [];
@@ -311,6 +312,7 @@ async function bootApp(user) {
     const profileRes = await apiFetch('/store');
     if (profileRes.ok && profileRes.data?.data) {
       const st = profileRes.data.data;
+      tenantInfo = st;
       const name = st.name || tenantSlug || 'My Store';
       setStoreNames(name);
     }
