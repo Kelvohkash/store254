@@ -696,14 +696,35 @@ export default {
           : rawSettings && typeof rawSettings === "object"
             ? (rawSettings as Record<string, unknown>)
             : {};
-      const ssrLogoUrl = toAbsoluteUrl(tenantSettings.logoUrl, url.origin);
-      const ssrBannerUrl = toAbsoluteUrl(tenantSettings.bannerUrl || tenantSettings.logoUrl, url.origin);
+      const ssrLogoUrl = toAbsoluteUrl(tenantSettings.logoUrl, canonicalOrigin);
+      const ssrBannerUrl = toAbsoluteUrl(
+        tenantSettings.bannerUrl || tenantSettings.heroBannerUrl || tenantSettings.logoUrl,
+        canonicalOrigin
+      );
+      const ssrShareIconUrl = ssrLogoUrl || ssrBannerUrl;
 
       const directoryHub = getDirectoryHubForBusinessType(storefrontPayload.tenant.businessType);
       const rewriter = new HTMLRewriter()
         .on('#platform-hero, .platform-nav-links, #platform-mobile-menu, #footer-platform-links, link[rel="manifest"]', {
           element(el) {
             el.remove();
+          },
+        })
+        .on('link[rel="icon"], link[rel="apple-touch-icon"]', {
+          element(el) {
+            if (ssrShareIconUrl) {
+              el.setAttribute("href", ssrShareIconUrl);
+              el.removeAttribute("type");
+              el.removeAttribute("sizes");
+            }
+          },
+        })
+        .on("#header-platform-logo", {
+          element(el) {
+            if (ssrLogoUrl) {
+              el.setAttribute("src", ssrLogoUrl);
+              el.setAttribute("alt", storefrontPayload.tenant.name);
+            }
           },
         })
         .on("#footer-powered-by", {

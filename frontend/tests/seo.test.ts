@@ -205,6 +205,18 @@ test("storefront home SEO targets exact brand & subdomain searches with OfferCat
   assert.match(seo.headTagsHtml, /"alternateName":\["alicebabycare","alicebabycare\.store254\.co\.ke"\]/);
   assert.match(seo.headTagsHtml, /"memberOf":\{"@type":"Organization","@id":"https:\/\/store254\.co\.ke\/#organization"/);
   assert.match(seo.headTagsHtml, /"@type":"OfferCatalog"/);
+  assert.match(
+    seo.headTagsHtml,
+    /<meta property="og:image" content="https:\/\/alicebabycare\.store254\.co\.ke\/api\/media\/tenant-alice-babycare-101\/logo\.webp">/
+  );
+  assert.match(
+    seo.headTagsHtml,
+    /<meta property="og:logo" content="https:\/\/alicebabycare\.store254\.co\.ke\/api\/media\/tenant-alice-babycare-101\/logo\.webp">/
+  );
+  assert.match(
+    seo.headTagsHtml,
+    /<meta name="twitter:image" content="https:\/\/alicebabycare\.store254\.co\.ke\/api\/media\/tenant-alice-babycare-101\/logo\.webp">/
+  );
   assert.match(seo.ssrItemsHtml, /href="\/item\/ergobaby-omni-360-carrier"/);
   assert.match(seo.ssrCategoryHtml, /href="\/category\/baby-carriers"/);
 });

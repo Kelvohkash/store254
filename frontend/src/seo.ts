@@ -1993,8 +1993,16 @@ export function buildStorefrontSeoData(options: {
   const defaultStoreDesc =
     (rawDescription && !isDuplicateTaglineDesc ? rawDescription : "") ||
     `Shop verified products and services directly from ${tenant.name} (${subdomainLabel}) with instant M-Pesa checkout.`;
+  const storeLogoUrl = toAbsoluteUrl(settings.logoUrl, origin);
+  const storeBannerUrl = toAbsoluteUrl(settings.bannerUrl || settings.heroBannerUrl, origin);
+  const firstUploadedItemImg =
+    items
+      .map((it) => (Array.isArray(it.images) ? toAbsoluteUrl(it.images[0], origin) : ""))
+      .find(Boolean) || "";
+  // Always prioritize the merchant's own logo when sharing their storefront link,
+  // falling back to their banner or uploaded product photo before Store254's mark.
   const storeImage =
-    toAbsoluteUrl(settings.bannerUrl || settings.logoUrl, origin) || `${origin}/assets/store254Logo.webp`;
+    storeLogoUrl || storeBannerUrl || firstUploadedItemImg || `${origin}/assets/store254Logo.webp`;
   const robotsBase = isPreview
     ? "noindex, nofollow"
     : items.length === 0
@@ -2072,6 +2080,7 @@ export function buildStorefrontSeoData(options: {
       `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
       `<meta property="og:image" content="${escapeHtml(primaryItemImg)}">`,
       `<meta property="og:image:alt" content="${escapeHtml(matchedItem.title)}">`,
+      ...(storeLogoUrl ? [`<meta property="og:logo" content="${escapeHtml(storeLogoUrl)}">`] : []),
       `<meta property="product:price:amount" content="${escapeHtml(String(matchedItem.basePrice))}">`,
       `<meta property="product:price:currency" content="${escapeHtml(currency)}">`,
       `<meta property="product:availability" content="${availabilityText}">`,
@@ -2176,6 +2185,8 @@ export function buildStorefrontSeoData(options: {
       `<meta property="og:description" content="${escapeHtml(description)}">`,
       `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
       `<meta property="og:image" content="${escapeHtml(storeImage)}">`,
+      `<meta property="og:image:alt" content="${escapeHtml(`${cat.name} — ${tenant.name}`)}">`,
+      ...(storeLogoUrl ? [`<meta property="og:logo" content="${escapeHtml(storeLogoUrl)}">`] : []),
       `<meta name="twitter:card" content="summary_large_image">`,
       `<meta name="twitter:title" content="${escapeHtml(title)}">`,
       `<meta name="twitter:description" content="${escapeHtml(description)}">`,
@@ -2263,6 +2274,7 @@ export function buildStorefrontSeoData(options: {
     `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
     `<meta property="og:image" content="${escapeHtml(storeImage)}">`,
     `<meta property="og:image:alt" content="${escapeHtml(tenant.name)}">`,
+    ...(storeLogoUrl ? [`<meta property="og:logo" content="${escapeHtml(storeLogoUrl)}">`] : []),
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${escapeHtml(title)}">`,
     `<meta name="twitter:description" content="${escapeHtml(description)}">`,
