@@ -26,26 +26,38 @@ async function submitCheckout(paymentMethod) {
     return;
   }
 
-  if (paymentMethod === "CASH_ON_DELIVERY" && deliveryAddress.length < 5) {
-    showToast("Enter a delivery address and nearby landmark for pay on delivery", "error");
-    document.getElementById("checkout-address").focus();
-    return;
-  }
-
   if (state.cart.length === 0) {
     showToast("Your cart is empty", "error");
     return;
   }
 
+  const hasService = state.cart.some((i) => i.itemType === "SERVICE");
+  const hasPhysical = state.cart.some((i) => i.itemType === "PHYSICAL" || !i.itemType);
+  const isServiceOnly = hasService && !hasPhysical;
+  const bookingMode = document.getElementById("booking-mode")?.value || "IN_PERSON_SHOP";
+
+  if (hasPhysical && paymentMethod === "CASH_ON_DELIVERY" && deliveryAddress.length < 5) {
+    showToast("Enter a delivery address and nearby landmark for pay on delivery", "error");
+    document.getElementById("checkout-address")?.focus();
+    return;
+  }
+
+  if (isServiceOnly && bookingMode === "ON_SITE_CLIENT" && deliveryAddress.length < 5) {
+    showToast("Enter the location or landmark where the service visit should take place", "error");
+    document.getElementById("checkout-address")?.focus();
+    return;
+  }
+
   // Booking details for services
   let bookingDetails = undefined;
-  const hasService = state.cart.some((i) => i.itemType === "SERVICE");
   if (hasService) {
     const bookingDate = document.getElementById("booking-date")?.value;
     const timeSlot = document.getElementById("booking-time")?.value;
     bookingDetails = {
       bookingDate: bookingDate || new Date().toISOString().split("T")[0],
       timeSlot: timeSlot || "Morning (9am - 12pm)",
+      serviceMode: bookingMode,
+      serviceLocation: bookingMode === "ON_SITE_CLIENT" ? deliveryAddress : undefined,
     };
   }
 
@@ -54,14 +66,14 @@ async function submitCheckout(paymentMethod) {
   deliveryButton.disabled = true;
   selectedButton.innerHTML = paymentMethod === "MPESA"
     ? `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full spin-slow mr-2"></div> Initiating STK Push...`
-    : `<div class="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full spin-slow mr-2"></div> Placing order...`;
+    : `<div class="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full spin-slow mr-2"></div> ${isServiceOnly ? "Confirming booking..." : "Placing order..."}`;
 
   const payload = {
     customerName: name,
     customerEmail: email,
     customerPhone: phone,
     paymentMethod,
-    deliveryAddress: deliveryAddress || undefined,
+    deliveryAddress: !isServiceOnly && deliveryAddress ? deliveryAddress : undefined,
     items: state.cart.map((i) => ({
       itemId: i.itemId,
       variantId: i.variantId || undefined,
@@ -78,7 +90,11 @@ async function submitCheckout(paymentMethod) {
   mpesaButton.disabled = false;
   deliveryButton.disabled = false;
   mpesaButton.innerHTML = `<i data-lucide="smartphone" class="w-4 h-4"></i><span>Pay with M-Pesa STK Push</span>`;
-  deliveryButton.innerHTML = `<i data-lucide="truck" class="w-4 h-4"></i><span>Place Order · Pay on Delivery</span>`;
+  if (typeof syncCheckoutDeliveryAndBookingUI === "function") {
+    syncCheckoutDeliveryAndBookingUI();
+  } else {
+    deliveryButton.innerHTML = `<i data-lucide="truck" class="w-4 h-4"></i><span>Place Order · Pay on Delivery</span>`;
+  }
   renderIcons();
 
   if (res.ok && res.data.success) {
@@ -91,7 +107,11 @@ async function submitCheckout(paymentMethod) {
     toggleDrawer("cart-drawer", false);
 
     if (paymentMethod === "CASH_ON_DELIVERY") {
-      showToast(`Order #${orderData.orderNumber} placed. Pay KES ${Number(orderData.totalAmount).toLocaleString()} on delivery.`);
+      showToast(
+        isServiceOnly
+          ? `Booking #${orderData.orderNumber} confirmed. Pay KES ${Number(orderData.totalAmount).toLocaleString()} at your appointment.`
+          : `Order #${orderData.orderNumber} placed. Pay KES ${Number(orderData.totalAmount).toLocaleString()} on delivery.`
+      );
     } else {
       // Open live PIN prompt modal
       openMpesaPinModal(

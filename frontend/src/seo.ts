@@ -1365,20 +1365,43 @@ function buildSsrCategoryLinksHtml(categories: SeoCategory[], activeSlug = ""): 
   return [allBtn, ...links].join("");
 }
 
+function buildSsrFallbackArtworkUri(item: SeoItem, categoryName: string | undefined, tenant?: TenantSeo): string {
+  try {
+    // Load shared artwork classifier when bundled or available globally
+    const classifier =
+      (globalThis as unknown as { Store254ItemArtwork?: { buildDataUri: (i: unknown, c: unknown) => string } }).Store254ItemArtwork;
+    if (classifier?.buildDataUri) {
+      return classifier.buildDataUri(item, {
+        categoryName,
+        businessType: tenant?.businessType,
+        storeName: tenant?.name,
+      });
+    }
+  } catch {
+    // Fallback cleanly below
+  }
+  const isService = item.itemType === "SERVICE";
+  const accent = isService ? "#4f46e5" : "#059669";
+  const bg = isService ? "#eef2ff" : "#ecfdf5";
+  const strokeDark = isService ? "#312e81" : "#064e3b";
+  const shape = isService
+    ? `<rect x="24" y="28" width="72" height="64" rx="12" fill="#ffffff" stroke="${accent}" stroke-width="3"/><path d="M24 44h72" stroke="${accent}" stroke-width="3"/><path d="M44 66l10 10 22-22" fill="none" stroke="${accent}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>`
+    : `<path d="M60 20l34 18v44L60 100 26 82V38l34-18z" fill="${accent}" stroke="${strokeDark}" stroke-width="2.5"/><path d="M60 20l34 18-34 18-34-18 34-18z" fill="#34d399"/>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="${bg}"/>${shape}</svg>`)}`;
+}
+
 function buildSsrItemCardsHtml(origin: string, items: SeoItem[], currency: string, categories: SeoCategory[]): string {
   const catNameById = new Map<string, string>(categories.map((c) => [c.id, c.name]));
   return items.slice(0, 60).map((item) => {
     const isService = item.itemType === "SERVICE";
     const href = `/item/${encodeURIComponent(item.slug)}`;
-    const primaryImg =
-      (Array.isArray(item.images) && toAbsoluteUrl(item.images[0], origin)) ||
-      (isService
-        ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80"
-        : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80");
     const categoryLabel =
       (item.attributes && typeof item.attributes.brand === "string" && item.attributes.brand) ||
       (item.categoryId && catNameById.get(item.categoryId)) ||
       (isService ? "Service" : "Featured");
+    const primaryImg =
+      (Array.isArray(item.images) && toAbsoluteUrl(item.images[0], origin)) ||
+      buildSsrFallbackArtworkUri(item, categoryLabel);
     const desc = item.description ? `<p class="product-card-desc">${escapeHtml(truncateSeoText(item.description, 120))}</p>` : "";
     return `
       <article class="product-card${isService ? " product-card--service" : ""} flex flex-col group relative">
@@ -1414,9 +1437,7 @@ function buildSsrItemDetailHtml(
   const isService = item.itemType === "SERVICE";
   const primaryImg =
     (Array.isArray(item.images) && toAbsoluteUrl(item.images[0], origin)) ||
-    (isService
-      ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80"
-      : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80");
+    buildSsrFallbackArtworkUri(item, category?.name, tenant);
   const attrs = item.attributes && typeof item.attributes === "object" ? Object.entries(item.attributes).filter(([, v]) => v !== null && v !== undefined && String(v).trim()) : [];
   const hasCompare = item.compareAtPrice && Number(item.compareAtPrice) > Number(item.basePrice);
 

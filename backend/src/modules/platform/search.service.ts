@@ -700,6 +700,7 @@ interface RawItemCandidate {
   stockQuantity: number;
   images: string[] | null;
   attributes: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: Date | number;
   categoryName: string | null;
   storeName: string;
@@ -742,6 +743,7 @@ async function fetchCandidatesByFts(
       stockQuantity: items.stockQuantity,
       images: items.images,
       attributes: items.attributes,
+      metadata: items.metadata,
       createdAt: items.createdAt,
       categoryName: categories.name,
       storeName: tenants.name,
@@ -820,6 +822,7 @@ async function fetchPublishedCatalogPool(
         stockQuantity: items.stockQuantity,
         images: items.images,
         attributes: items.attributes,
+        metadata: items.metadata,
         createdAt: items.createdAt,
         categoryName: categories.name,
         storeName: tenants.name,
@@ -863,6 +866,7 @@ async function fetchPublishedCatalogPool(
           stockQuantity: items.stockQuantity,
           images: items.images,
           attributes: items.attributes,
+          metadata: items.metadata,
           createdAt: items.createdAt,
           categoryName: categories.name,
           storeName: tenants.name,
@@ -994,10 +998,11 @@ export async function searchMarketplaceWithRipple(
       candidate.storePopulation
     );
 
-    const inStock =
-      candidate.itemType === "SERVICE" ||
-      !candidate.trackInventory ||
-      candidate.stockQuantity > 0;
+    const isServiceCandidate = candidate.itemType === "SERVICE";
+    const serviceCfg = (candidate.metadata as Record<string, any> | null)?.serviceConfig;
+    const inStock = isServiceCandidate
+      ? serviceCfg?.available !== false
+      : !candidate.trackInventory || candidate.stockQuantity > 0;
     const hasImages = Array.isArray(candidate.images) && candidate.images.length > 0;
     const hasDiscount =
       typeof candidate.compareAtPrice === "number" &&
@@ -1020,10 +1025,12 @@ export async function searchMarketplaceWithRipple(
       ).toFixed(2)
     );
 
-    let rippleLabel = "Nationwide Shipping";
+    let rippleLabel = isServiceCandidate ? "Available Nationwide" : "Nationwide Shipping";
     if (!originCtx.origin) {
       rippleLabel = candidate.storeLocationName
         ? `${candidate.storeLocationName}${candidate.storeCountyName ? `, ${candidate.storeCountyName}` : ""}`
+        : isServiceCandidate
+        ? "Bookable Service"
         : "Nationwide Shipping";
     } else if (ringInfo.ring === 0) {
       rippleLabel = `In ${originCtx.origin.name}`;
@@ -1036,7 +1043,7 @@ export async function searchMarketplaceWithRipple(
     } else if (ringInfo.ring === 4) {
       rippleLabel = `Major Hub · ${candidate.storeLocationName}, ${candidate.storeCountyName || ""} · ${ringInfo.distanceKm} km`;
     } else {
-      rippleLabel = "Nationwide Courier Delivery";
+      rippleLabel = isServiceCandidate ? "Book Online / Nationwide" : "Nationwide Courier Delivery";
     }
 
     allScored.push({
@@ -1233,6 +1240,8 @@ export async function searchMarketplaceWithRipple(
       inStock: entry.inStock,
       stockQuantity: c.stockQuantity,
       images: Array.isArray(c.images) ? c.images : [],
+      attributes: c.attributes || {},
+      metadata: c.metadata || {},
       categoryName: c.categoryName || c.storeBusinessType,
       variantCount: vInfo?.count ?? 0,
       startingPrice: vInfo ? Math.min(c.basePrice, vInfo.minPrice) : c.basePrice,

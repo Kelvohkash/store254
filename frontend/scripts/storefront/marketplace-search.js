@@ -597,11 +597,19 @@
 
       gridEl.innerHTML = itemsList
         .map((item) => {
-          const fallbackImg =
-            item.itemType === "SERVICE"
-              ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=500&auto=format&fit=crop&q=80"
-              : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500&auto=format&fit=crop&q=80";
-          const imgUrl = Array.isArray(item.images) && item.images[0] ? item.images[0] : fallbackImg;
+          const isService = item.itemType === "SERVICE";
+          const artwork = typeof window !== "undefined" && window.Store254ItemArtwork
+            ? window.Store254ItemArtwork
+            : null;
+          const artCtx = {
+            categoryName: item.categoryName,
+            businessType: item.store?.businessType,
+            storeName: item.store?.name,
+          };
+          const hasPhoto = Array.isArray(item.images) && Boolean(item.images[0]);
+          const fallbackDataUri = artwork ? artwork.buildDataUri(item, artCtx) : "/assets/store254Icon.webp";
+          const fallbackStageHtml = artwork ? artwork.renderStageHtml(item, artCtx) : "";
+          const imgUrl = hasPhoto ? item.images[0] : fallbackDataUri;
           const hasDisc = item.compareAtPrice && item.compareAtPrice > item.basePrice;
           const locBadge = item.store.locationLabel ? escapeHtml(item.store.locationLabel) : "";
           const quickCartPayload = escapeHtml(
@@ -619,14 +627,25 @@
               itemType: item.itemType,
             })
           );
+          const mediaHtml = hasPhoto
+            ? `<img src="${escapeHtml(item.images[0])}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="replaceBrokenItemMediaWithArtwork(this)" />
+               <div class="item-artwork-onerror hidden w-full h-full">${fallbackStageHtml}</div>`
+            : fallbackStageHtml || `<img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" loading="lazy" />`;
+          const availabilityLabel = isService
+            ? (item.inStock ? "Bookable" : "Paused")
+            : (item.inStock ? "Available" : "Out of stock");
+          const availabilityClass = isService
+            ? (item.inStock ? "text-indigo-700" : "text-amber-700")
+            : (item.inStock ? "text-emerald-700" : "text-amber-700");
+          const actionLabel = isService ? "Book" : "+ Cart";
           return `
             <article class="marketplace-product-card" role="button" tabindex="0" onclick="openMarketplaceQuickView('${escapeHtml(item.id)}', '')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceQuickView('${escapeHtml(item.id)}', '');}">
               <div class="marketplace-product-media">
-                <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.src='${fallbackImg}'" />
+                ${mediaHtml}
                 ${locBadge ? `<span class="marketplace-ring-badge ring-local">${locBadge}</span>` : ""}
               </div>
               <div class="marketplace-product-body">
-                <span class="marketplace-product-cat">${escapeHtml(item.categoryName || item.itemType)}</span>
+                <span class="marketplace-product-cat">${escapeHtml(item.categoryName || (isService ? "Service" : item.itemType))}</span>
                 <h3 class="marketplace-product-title">${escapeHtml(item.title)}</h3>
                 <div class="marketplace-product-price-row">
                   <strong>${formatKesPrice(item.startingPrice ?? item.basePrice, item.currency)}</strong>
@@ -634,13 +653,13 @@
                 </div>
                 <div class="marketplace-product-store-row">
                   <span class="truncate">${escapeHtml(item.store.name)}</span>
-                  <span class="shrink-0 font-semibold ${item.inStock ? "text-emerald-700" : "text-amber-700"}">${item.inStock ? "Available" : "Out of stock"}</span>
+                  <span class="shrink-0 font-semibold ${availabilityClass}">${availabilityLabel}</span>
                 </div>
                 <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                   <span class="text-[11px] font-bold text-slate-500">Quick View</span>
                   ${
                     item.inStock
-                      ? `<button type="button" data-item="${quickCartPayload}" onclick="event.stopPropagation(); quickAddMarketplaceItem(JSON.parse(this.dataset.item))" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-700 text-emerald-800 hover:text-white text-[11px] font-extrabold border border-emerald-200 transition-colors">+ Cart</button>`
+                      ? `<button type="button" data-item="${quickCartPayload}" onclick="event.stopPropagation(); quickAddMarketplaceItem(JSON.parse(this.dataset.item))" class="px-2.5 py-1 rounded-lg ${isService ? "bg-indigo-50 hover:bg-indigo-700 text-indigo-800 border-indigo-200" : "bg-emerald-50 hover:bg-emerald-700 text-emerald-800 border-emerald-200"} hover:text-white text-[11px] font-extrabold border transition-colors">${actionLabel}</button>`
                       : ""
                   }
                 </div>

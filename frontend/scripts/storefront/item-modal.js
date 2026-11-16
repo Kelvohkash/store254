@@ -38,16 +38,38 @@ function changeItemModalImage(offset) {
   setItemModalImage(state.currentItemImageIndex + offset);
 }
 
-function renderItemImageGallery(images, title) {
+function renderItemImageGallery(images, title, itemObj = null) {
   const stage = document.getElementById("item-modal-gallery-stage");
+  const imageEl = document.getElementById("item-modal-image");
+  const artworkStage = document.getElementById("item-modal-artwork-stage");
   const thumbnailContainer = document.getElementById("item-modal-image-thumbnails");
   const count = document.getElementById("item-modal-image-count");
   const previous = document.getElementById("item-modal-image-prev");
   const next = document.getElementById("item-modal-image-next");
 
-  state.currentItemImages = images.slice(0, 5);
+  const uploadedPhotos = Array.isArray(images) ? images.filter(Boolean).slice(0, 5) : [];
+  const hasRealPhotos = uploadedPhotos.length > 0;
+  const fallbackArt = typeof getItemFallbackArtwork === "function" ? getItemFallbackArtwork(itemObj || { title }) : { dataUri: "", stageHtml: "" };
+
+  state.currentItemImages = hasRealPhotos ? uploadedPhotos : [fallbackArt.dataUri].filter(Boolean);
   state.currentItemImageIndex = 0;
   if (stage) stage.style.aspectRatio = "4 / 3";
+
+  if (!hasRealPhotos && artworkStage && imageEl) {
+    imageEl.classList.add("hidden");
+    artworkStage.innerHTML = fallbackArt.stageHtml;
+    artworkStage.classList.remove("hidden");
+  } else if (imageEl && artworkStage) {
+    artworkStage.innerHTML = "";
+    artworkStage.classList.add("hidden");
+    imageEl.classList.remove("hidden");
+    imageEl.onerror = () => {
+      imageEl.classList.add("hidden");
+      artworkStage.innerHTML = fallbackArt.stageHtml;
+      artworkStage.classList.remove("hidden");
+    };
+  }
+
   if (previous) {
     previous.onclick = (e) => {
       e?.stopPropagation();
@@ -84,7 +106,7 @@ function renderItemImageGallery(images, title) {
       { passive: true }
     );
   }
-  const hasMultipleImages = state.currentItemImages.length > 1;
+  const hasMultipleImages = hasRealPhotos && uploadedPhotos.length > 1;
   thumbnailContainer.replaceChildren();
   thumbnailContainer.classList.toggle("hidden", !hasMultipleImages);
   count.classList.toggle("hidden", !hasMultipleImages);
@@ -110,7 +132,9 @@ function renderItemImageGallery(images, title) {
     });
   }
 
-  setItemModalImage(0);
+  if (hasRealPhotos) {
+    setItemModalImage(0);
+  }
 }
 
 async function viewItemDetails(itemId, options = { updateHistory: true }) {
@@ -145,19 +169,22 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
     );
   }
   const isService = item.itemType === "SERVICE";
+  const isDigital = item.itemType === "DIGITAL";
   const attrs = item.attributes || {};
-  const fallbackImage =
-    item.images && item.images.length > 0
-      ? item.images[0]
-      : isService
-      ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80"
-      : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80";
-  const images = item.images?.length ? item.images : [fallbackImage];
+  const serviceConfig = item.metadata?.serviceConfig || {};
+  const serviceAvailable = !isService || serviceConfig.available !== false;
+  const serviceModeLabels = {
+    IN_PERSON_SHOP: "At Provider Location",
+    ON_SITE_CLIENT: "Mobile / On-Site Visit",
+    VIRTUAL_ONLINE: "Online / Remote Session",
+    FLEXIBLE: "Flexible Venue",
+  };
+  const serviceModeLabel = serviceModeLabels[String(serviceConfig.deliveryMode || "").toUpperCase()] || "";
 
   document.getElementById("item-modal-title").textContent = item.title;
-  renderItemImageGallery(images, item.title);
+  renderItemImageGallery(item.images || [], item.title, item);
   document.getElementById("item-modal-price").textContent = `KES ${Number(item.basePrice).toLocaleString()}`;
-  document.getElementById("item-modal-description").textContent = item.description || "Available from this store.";
+  document.getElementById("item-modal-description").textContent = item.description || (isService ? "Bookable service available from this store." : "Available from this store.");
 
   const comparePriceEl = document.getElementById("item-modal-compare-price");
   if (item.compareAtPrice && item.compareAtPrice > item.basePrice) {
@@ -167,13 +194,31 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
     comparePriceEl.classList.add("hidden");
   }
 
-  // Badges
+  // Separate Product Stock Badges vs Service Booking Badges
   const badgesEl = document.getElementById("item-modal-badges");
+  let statusBadgeHtml = "";
+  if (isService) {
+    statusBadgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded ${serviceAvailable ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-amber-50 text-amber-800 border border-amber-200"}">${serviceAvailable ? "Bookable Service" : "Bookings Paused"}</span>`;
+    if (serviceConfig.duration) {
+      statusBadgeHtml += `<span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">${escapeHtml(serviceConfig.duration)}</span>`;
+    }
+    if (serviceModeLabel) {
+      statusBadgeHtml += `<span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">${escapeHtml(serviceModeLabel)}</span>`;
+    }
+  } else if (!isDigital && item.trackInventory) {
+    const qtyAvail = Number(item.stockQuantity || 0);
+    statusBadgeHtml = qtyAvail <= 0
+      ? `<span class="text-[10px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded">Out of stock</span>`
+      : qtyAvail <= 8
+      ? `<span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">Only ${qtyAvail} left</span>`
+      : `<span class="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded">${qtyAvail} in stock</span>`;
+  }
   badgesEl.innerHTML = `
     <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-      isService ? "bg-indigo-100 text-indigo-700" : "bg-emerald-100 text-emerald-700"
-    }">${isService ? "Service" : "Product"}</span>
+      isService ? "bg-indigo-100 text-indigo-700" : isDigital ? "bg-cyan-100 text-cyan-700" : "bg-emerald-100 text-emerald-700"
+    }">${isService ? "Service" : isDigital ? "Digital" : "Product"}</span>
     ${attrs.brand ? `<span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">${escapeHtml(attrs.brand)}</span>` : ""}
+    ${statusBadgeHtml}
   `;
 
   // Attributes table
@@ -187,19 +232,35 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
   }
   attrsEl.innerHTML = attrsHtml;
 
-  // Variants selector & Quantity stepper
+  // Variants / Service Packages selector & Quantity / Sessions stepper
   const variantsEl = document.getElementById("item-modal-variants");
   const qtyInput = document.getElementById("item-modal-qty");
   if (qtyInput) qtyInput.value = "1";
 
   let selectedVariant = null;
   const variants = Array.isArray(item.variants) ? item.variants : [];
+  const btnCart = document.getElementById("item-modal-btn-cart");
+
+  const syncCartButtonState = () => {
+    const activeStock = selectedVariant ? selectedVariant.stockQuantity : item.stockQuantity;
+    const isPhysicalOutOfStock = !isService && !isDigital && Boolean(item.trackInventory) && Number(activeStock || 0) <= 0;
+    const blocked = isService ? !serviceAvailable : isPhysicalOutOfStock;
+    btnCart.disabled = blocked;
+    if (isService) {
+      btnCart.innerHTML = `<i data-lucide="calendar" class="w-4 h-4"></i> <span>${serviceAvailable ? "Book Session" : "Bookings Paused"}</span>`;
+      btnCart.className = `flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2`;
+    } else {
+      btnCart.innerHTML = `<i data-lucide="shopping-bag" class="w-4 h-4"></i> <span>${isPhysicalOutOfStock ? "Out of Stock" : "Add to Cart"}</span>`;
+      btnCart.className = `flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2`;
+    }
+  };
+
   if (variantsEl) {
     if (variants.length > 0) {
       selectedVariant = variants[0];
       document.getElementById("item-modal-price").textContent = `KES ${Number(selectedVariant.price).toLocaleString()}`;
       variantsEl.innerHTML = `
-        <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Choose Option</label>
+        <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">${isService ? "Choose Package" : isDigital ? "Choose Edition" : "Choose Option"}</label>
         <div class="flex flex-wrap gap-2" id="item-modal-variant-buttons">
           ${variants.map((v, idx) => `
             <button type="button" data-variant-idx="${idx}" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
@@ -218,6 +279,8 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
               i === idx ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-700 border-slate-200 hover:border-emerald-400"
             }`;
           });
+          syncCartButtonState();
+          renderIcons();
         });
       });
     } else {
@@ -226,15 +289,10 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
     }
   }
 
-  // Add to Cart Button
-  const btnCart = document.getElementById("item-modal-btn-cart");
-  btnCart.innerHTML = `<i data-lucide="${isService ? "calendar" : "shopping-bag"}" class="w-4 h-4"></i> <span>${
-    isService ? "Book Appointment" : "Add to Cart"
-  }</span>`;
-  btnCart.className = `flex-1 py-3 ${
-    isService ? "bg-indigo-600 hover:bg-indigo-700" : "bg-emerald-600 hover:bg-emerald-700"
-  } text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2`;
+  // Action Button (Book Session for services vs Add to Cart for products)
+  syncCartButtonState();
   btnCart.onclick = () => {
+    if (btnCart.disabled) return;
     const qty = Math.max(1, parseInt(document.getElementById("item-modal-qty")?.value || "1", 10) || 1);
     const displayTitle = selectedVariant ? `${item.title} (${selectedVariant.title})` : item.title;
     const unitPrice = selectedVariant ? selectedVariant.price : item.basePrice;

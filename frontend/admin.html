@@ -829,13 +829,15 @@
     </div>
     <form onsubmit="handleSaveProduct(event)" class="p-6 space-y-4">
       <input type="hidden" id="product-id" />
+      <input type="hidden" id="product-artwork-icon" />
+      <input type="hidden" id="product-artwork-mode" value="auto" />
       <div>
-        <label class="label">Product Title *</label>
-        <input id="product-title" type="text" required class="input" />
+        <label id="product-title-label" class="label">Product Title *</label>
+        <input id="product-title" type="text" required class="input" oninput="handleItemArtworkPreviewInput()" />
       </div>
       <div>
         <label class="label">Description</label>
-        <textarea id="product-description" class="input" rows="3"></textarea>
+        <textarea id="product-description" class="input" rows="3" oninput="handleItemArtworkPreviewInput()"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
@@ -850,35 +852,73 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="label">Category</label>
-          <select id="product-category" class="input" onchange="loadProductAttributeFields(this.value)">
+          <select id="product-category" class="input" onchange="loadProductAttributeFields(this.value); handleItemArtworkPreviewInput();">
             <option value="">No Category</option>
           </select>
         </div>
         <div>
           <label class="label">Item Type</label>
-          <select id="product-type" class="input">
-            <option value="PHYSICAL">Physical</option>
-            <option value="SERVICE">Service</option>
-            <option value="DIGITAL">Digital</option>
+          <select id="product-type" class="input" onchange="syncItemEditorTypeUI(this.value); handleItemArtworkPreviewInput();">
+            <option value="PHYSICAL">Physical Product</option>
+            <option value="SERVICE">Bookable Service</option>
+            <option value="DIGITAL">Digital Product</option>
           </select>
         </div>
       </div>
       <section id="product-attributes-section" class="hidden rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4 space-y-3" aria-live="polite">
         <div>
-          <p class="text-xs font-black text-slate-800 uppercase tracking-wide">Product Details</p>
-          <p class="text-[11px] text-slate-500">Add any extra details for this product.</p>
+          <p id="product-attributes-heading" class="text-xs font-black text-slate-800 uppercase tracking-wide">Product Details</p>
+          <p id="product-attributes-help" class="text-[11px] text-slate-500">Add any extra details for this product.</p>
         </div>
         <div id="product-attributes-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
       </section>
-      <div class="grid grid-cols-1 gap-3">
+      <div id="product-inventory-section" class="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <p class="text-xs font-black text-slate-800 uppercase tracking-wide">Product Inventory &amp; Stock</p>
+            <p class="text-[11px] text-slate-500">Set available stock units for shipping &amp; pickup</p>
+          </div>
+        </div>
         <div>
-          <label class="label">Stock Quantity</label>
+          <label class="label" for="product-stock">Stock Quantity</label>
           <input id="product-stock" type="number" min="0" class="input" placeholder="0" value="0" />
         </div>
       </div>
+      <div id="service-setup-section" class="hidden rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-3">
+        <div>
+          <p class="text-xs font-black text-indigo-950 uppercase tracking-wide">Service Booking &amp; Session Setup</p>
+          <p class="text-[11px] text-indigo-700/80">Services use appointment slots &amp; venue options instead of physical warehouse stock</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="label" for="service-booking-status">Booking Status</label>
+            <select id="service-booking-status" class="input">
+              <option value="available">Open for Bookings</option>
+              <option value="paused">Temporarily Paused</option>
+            </select>
+          </div>
+          <div>
+            <label class="label" for="service-delivery-mode">Where Service Happens</label>
+            <select id="service-delivery-mode" class="input">
+              <option value="FLEXIBLE">Flexible (Client Chooses)</option>
+              <option value="IN_PERSON_SHOP">At Provider Location / Studio</option>
+              <option value="ON_SITE_CLIENT">Mobile / Visit Client Location</option>
+              <option value="VIRTUAL_ONLINE">Online / Remote Session</option>
+            </select>
+          </div>
+          <div>
+            <label class="label" for="service-duration-label">Typical Duration</label>
+            <input id="service-duration-label" type="text" class="input" placeholder="e.g. 60 mins, 2 hrs" />
+          </div>
+        </div>
+      </div>
+      <div id="digital-setup-section" class="hidden rounded-2xl border border-cyan-200 bg-cyan-50/50 p-3.5">
+        <p class="text-xs font-black text-cyan-950 uppercase tracking-wide">Digital Delivery</p>
+        <p class="text-[11px] text-cyan-800/80">Delivered digitally with unlimited availability — no warehouse stock count needed.</p>
+      </div>
       <div>
         <div class="flex items-center justify-between gap-3 mb-1.5">
-          <label class="label mb-0">Product Photos <span class="text-slate-400 font-normal">(up to 5)</span></label>
+          <label id="product-photos-label" class="label mb-0">Product Photos <span class="text-slate-400 font-normal">(up to 5)</span></label>
           <div class="flex items-center gap-3">
             <label class="text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer flex items-center gap-1">
               <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i> Upload Photos
@@ -889,16 +929,35 @@
         </div>
         <div id="product-image-previews" class="grid grid-cols-5 gap-2 mb-2 empty:hidden"></div>
         <input type="hidden" id="product-images" />
-        <p class="mt-1 text-[11px] text-slate-500">Upload up to 5 photos. The first photo is used as the main product image.</p>
+        <p id="product-photos-help" class="mt-1 text-[11px] text-slate-500">Upload up to 5 photos. When no photo is uploaded, a detailed icon illustration matching your item is shown automatically.</p>
       </div>
-      <!-- Product Variants Builder -->
+      <div id="product-artwork-section" class="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div id="product-artwork-preview" class="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 bg-white shrink-0"></div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-black text-slate-800">No-Photo Icon Artwork</span>
+                <span id="product-artwork-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Auto</span>
+              </div>
+              <p id="product-artwork-label" class="text-[11px] text-slate-500 truncate">Matched from item title &amp; category</p>
+            </div>
+          </div>
+          <button type="button" id="product-artwork-reset" onclick="resetItemArtworkToAuto()" class="hidden text-[11px] font-bold text-emerald-700 hover:underline shrink-0">Reset to Auto</button>
+        </div>
+        <div>
+          <input id="product-artwork-search" type="search" class="input text-xs py-1.5" placeholder="Search 60+ detailed icons (e.g. sneakers, rocket, drone, goat, magic, tax...)" oninput="renderItemArtworkPicker(this.value)" />
+        </div>
+        <div id="product-artwork-grid" class="grid grid-cols-6 sm:grid-cols-8 gap-1.5 max-h-44 overflow-y-auto p-1 bg-white rounded-xl border border-slate-200"></div>
+      </div>
+      <!-- Product Variants / Service Packages Builder -->
       <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/60 space-y-3">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs font-black text-slate-800 uppercase tracking-wide">Product Variants <span class="text-slate-400 font-normal lowercase">(optional)</span></p>
-            <p class="text-[11px] text-slate-500">Add sizes, colours, or options with specific prices and stock</p>
+            <p id="product-variants-heading" class="text-xs font-black text-slate-800 uppercase tracking-wide">Product Variants <span class="text-slate-400 font-normal lowercase">(optional)</span></p>
+            <p id="product-variants-help" class="text-[11px] text-slate-500">Add sizes, colours, or options with specific prices and stock</p>
           </div>
-          <button type="button" onclick="addProductVariantRow()" class="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-colors">
+          <button id="product-add-variant-btn" type="button" onclick="addProductVariantRow()" class="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-colors">
             + Add Variant
           </button>
         </div>
@@ -1133,10 +1192,11 @@
 <script src="./scripts/admin/dashboard.js?v=20261115"></script>
 <script src="./scripts/admin/subscription.js"></script>
 <script src="./scripts/shared/category-icon-classifier.js"></script>
+<script src="./scripts/shared/item-artwork-classifier.js?v=20261116c"></script>
 <script src="./scripts/admin/categories.js?v=20261116b"></script>
-<script src="./scripts/admin/product-editor.js"></script>
-<script src="./scripts/admin/catalog.js"></script>
-<script src="./scripts/admin/orders.js?v=20261115"></script>
+<script src="./scripts/admin/product-editor.js?v=20261116c"></script>
+<script src="./scripts/admin/catalog.js?v=20261116c"></script>
+<script src="./scripts/admin/orders.js?v=20261116c"></script>
 <script src="./scripts/admin/design-branding.js?v=20261116"></script>
 <script src="./scripts/admin/design.js?v=20261116"></script>
 <script src="./scripts/admin/payments.js?v=20261115"></script>

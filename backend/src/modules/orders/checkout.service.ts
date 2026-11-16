@@ -24,31 +24,22 @@ export const checkoutItemSchema = z.object({
 export const serviceBookingDetailsSchema = z.object({
   bookingDate: z.string().optional(),
   timeSlot: z.string().optional(),
-  serviceLocation: z.string().optional(),
+  serviceMode: z.enum(["IN_PERSON_SHOP", "ON_SITE_CLIENT", "VIRTUAL_ONLINE", "FLEXIBLE"]).optional(),
+  serviceLocation: z.string().max(300).optional(),
   specialInstructions: z.string().max(500).optional(),
 });
 
-export const checkoutSchema = z
-  .object({
-    customerName: z.string().min(2).max(100),
-    customerEmail: z.string().email(),
-    customerPhone: z.string().min(9).max(15),
-    paymentMethod: z.enum(["MPESA", "CASH_ON_DELIVERY"]).default("MPESA"),
-    deliveryAddress: z.string().trim().min(5).max(300).optional(),
-    shippingAddress: z.record(z.unknown()).default({}),
-    bookingDetails: serviceBookingDetailsSchema.optional(),
-    items: z.array(checkoutItemSchema).min(1, "Cart cannot be empty"),
-    notes: z.string().max(500).optional(),
-  })
-  .superRefine((checkout, context) => {
-    if (checkout.paymentMethod === "CASH_ON_DELIVERY" && !checkout.deliveryAddress) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["deliveryAddress"],
-        message: "A delivery address is required for cash on delivery.",
-      });
-    }
-  });
+export const checkoutSchema = z.object({
+  customerName: z.string().min(2).max(100),
+  customerEmail: z.string().email(),
+  customerPhone: z.string().min(9).max(15),
+  paymentMethod: z.enum(["MPESA", "CASH_ON_DELIVERY"]).default("MPESA"),
+  deliveryAddress: z.string().trim().min(5).max(300).optional(),
+  shippingAddress: z.record(z.unknown()).default({}),
+  bookingDetails: serviceBookingDetailsSchema.optional(),
+  items: z.array(checkoutItemSchema).min(1, "Cart cannot be empty"),
+  notes: z.string().max(500).optional(),
+});
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
@@ -159,11 +150,15 @@ export async function createOrderForTenant(
       : [];
   const variantMap = new Map(dbVariants.map((v) => [v.id, v]));
 
-  // 5. Validate stock & calculate subtotal
+  // 5. Separate Product vs Service rules, validate stock (products only) & delivery/booking rules
   let subtotal = 0;
+  let hasPhysical = false;
+  let hasService = false;
   const orderLineItemsToInsert: {
     id: string;
     itemId: string;
+    itemType: string;
+    trackInventory: boolean;
     variantId?: string;
     title: string;
     sku?: string;
@@ -179,29 +174,48 @@ export async function createOrderForTenant(
       throw new AppError(`Item "${cartItem.itemId}" is unavailable.`, 400, "ITEM_UNAVAILABLE");
     }
 
+    const isService = dbItem.itemType === "SERVICE";
+    const isPhysical = dbItem.itemType === "PHYSICAL";
+    if (isService) {
+      hasService = true;
+      const serviceMeta = (dbItem.metadata as Record<string, any> | null)?.serviceConfig;
+      if (serviceMeta && serviceMeta.available === false) {
+        throw new AppError(`Service "${dbItem.title}" is currently paused for bookings.`, 400, "SERVICE_PAUSED");
+      }
+    } else if (isPhysical) {
+      hasPhysical = true;
+    }
+
     let unitPrice = dbItem.basePrice;
     let itemTitle = dbItem.title;
     let sku = dbItem.sku || undefined;
-    let options: Record<string, unknown> = (dbItem.attributes as Record<string, unknown>) || {};
+    let options: Record<string, unknown> = {
+      ...((dbItem.attributes as Record<string, unknown>) || {}),
+      itemType: dbItem.itemType,
+    };
 
     if (cartItem.variantId) {
       const variant = variantMap.get(cartItem.variantId);
       if (!variant || variant.itemId !== dbItem.id) {
-        throw new AppError("Selected product variant not found.", 400, "VARIANT_NOT_FOUND");
+        throw new AppError(isService ? "Selected service package not found." : "Selected product variant not found.", 400, "VARIANT_NOT_FOUND");
       }
       unitPrice = variant.price;
       itemTitle = `${dbItem.title} - ${variant.title}`;
       sku = variant.sku || sku;
-      options = variant.options as Record<string, unknown>;
+      options = {
+        ...((variant.options as Record<string, unknown>) || {}),
+        itemType: dbItem.itemType,
+      };
 
-      if (dbItem.trackInventory && variant.stockQuantity < cartItem.quantity) {
+      // Stock only applies to physical inventory — services never track stock
+      if (isPhysical && dbItem.trackInventory && variant.stockQuantity < cartItem.quantity) {
         throw new AppError(
           `Insufficient stock for "${itemTitle}". Available: ${variant.stockQuantity}`,
           400,
           "INSUFFICIENT_STOCK"
         );
       }
-    } else if (dbItem.trackInventory && dbItem.stockQuantity < cartItem.quantity) {
+    } else if (isPhysical && dbItem.trackInventory && dbItem.stockQuantity < cartItem.quantity) {
       throw new AppError(
         `Insufficient stock for "${itemTitle}". Available: ${dbItem.stockQuantity}`,
         400,
@@ -215,6 +229,8 @@ export async function createOrderForTenant(
     orderLineItemsToInsert.push({
       id: generateUUID(),
       itemId: dbItem.id,
+      itemType: dbItem.itemType,
+      trackInventory: isPhysical && Boolean(dbItem.trackInventory),
       variantId: cartItem.variantId,
       title: itemTitle,
       sku,
@@ -225,13 +241,37 @@ export async function createOrderForTenant(
     });
   }
 
+  const isServiceOnly = hasService && !hasPhysical;
+
+  if (hasPhysical && body.paymentMethod === "CASH_ON_DELIVERY" && !body.deliveryAddress) {
+    throw new AppError(
+      "A delivery address is required for pay on delivery.",
+      400,
+      "DELIVERY_ADDRESS_REQUIRED"
+    );
+  }
+
+  if (
+    isServiceOnly &&
+    body.bookingDetails?.serviceMode === "ON_SITE_CLIENT" &&
+    !(body.bookingDetails?.serviceLocation || body.deliveryAddress || "").trim()
+  ) {
+    throw new AppError(
+      "Please provide a service location for your on-site appointment.",
+      400,
+      "SERVICE_LOCATION_REQUIRED"
+    );
+  }
+
   const shippingFee = 0;
   const totalAmount = Math.max(1, subtotal + shippingFee);
   const currency = tenant.currency || "KES";
+  const orderKind = isServiceOnly ? "SERVICE_BOOKING" : hasService ? "MIXED" : "PRODUCT_ORDER";
+  const shouldDeductInventoryNow = body.paymentMethod === "CASH_ON_DELIVERY" && orderLineItemsToInsert.some((l) => l.trackInventory);
 
   // 6. Insert Order
   const orderId = generateUUID();
-  const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
+  const orderNumber = `${isServiceOnly ? "BKG" : "ORD"}-${Date.now().toString().slice(-6)}`;
 
   await db.insert(orders).values({
     id: orderId,
@@ -241,7 +281,9 @@ export async function createOrderForTenant(
     customerName: body.customerName,
     customerEmail: body.customerEmail.toLowerCase().trim(),
     customerPhone,
-    shippingAddress: body.deliveryAddress
+    shippingAddress: isServiceOnly
+      ? {}
+      : body.deliveryAddress
       ? { ...body.shippingAddress, address: body.deliveryAddress }
       : body.shippingAddress,
     bookingDetails: body.bookingDetails || {},
@@ -252,12 +294,14 @@ export async function createOrderForTenant(
     status: body.paymentMethod === "CASH_ON_DELIVERY" ? "PROCESSING" : "PENDING_PAYMENT",
     paymentStatus: "PENDING",
     paymentMethod: body.paymentMethod,
-    fulfillmentDetails:
-      body.paymentMethod === "CASH_ON_DELIVERY" ? { inventoryDeducted: true } : {},
+    fulfillmentDetails: {
+      orderKind,
+      ...(shouldDeductInventoryNow ? { inventoryDeducted: true } : {}),
+    } as Record<string, unknown>,
     notes: body.notes || null,
   });
 
-  // 7. Insert Order Items & deduct inventory for COD orders
+  // 7. Insert Order Items & deduct inventory ONLY for tracked physical items on COD orders
   for (const item of orderLineItemsToInsert) {
     await db.insert(orderItems).values({
       id: item.id,
@@ -273,7 +317,7 @@ export async function createOrderForTenant(
       options: item.options,
     });
 
-    if (body.paymentMethod === "CASH_ON_DELIVERY") {
+    if (body.paymentMethod === "CASH_ON_DELIVERY" && item.trackInventory) {
       if (item.variantId) {
         await db
           .update(itemVariants)
@@ -306,17 +350,22 @@ export async function createOrderForTenant(
 
   if (body.paymentMethod === "CASH_ON_DELIVERY") {
     return {
-      message: "Order placed. Please pay the delivery person when your order arrives.",
+      message: isServiceOnly
+        ? "Service booking confirmed. Please pay in person when your appointment is delivered."
+        : "Order placed. Please pay the delivery person when your order arrives.",
       data: {
         orderId,
         orderNumber,
+        orderKind,
         subtotal,
         totalAmount,
         currency,
         paymentMethod: body.paymentMethod,
         paymentStatus: "PENDING",
         status: "PROCESSING",
-        customerMessage: `Your order is confirmed. Please pay ${currency} ${totalAmount.toLocaleString()} on delivery.`,
+        customerMessage: isServiceOnly
+          ? `Your booking is confirmed. Please pay ${currency} ${totalAmount.toLocaleString()} at your service appointment.`
+          : `Your order is confirmed. Please pay ${currency} ${totalAmount.toLocaleString()} on delivery.`,
       },
     };
   }

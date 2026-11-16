@@ -646,13 +646,19 @@
       .map((group) => {
         const itemsHtml = group.items
           .map(
-            (item) => `
+            (item) => {
+              const isSvc = item.itemType === "SERVICE";
+              const artUri = item.image || (typeof window !== "undefined" && window.Store254ItemArtwork ? window.Store254ItemArtwork.buildDataUri(item, {}) : "/assets/store254Icon.webp");
+              return `
           <div class="flex gap-3 py-3 border-t border-slate-100 first:border-t-0">
-            <img src="${escapeHtml(item.image || "/assets/store254Icon.webp")}" alt="${escapeHtml(item.title)}" class="w-14 h-14 rounded-xl object-cover bg-slate-100 shrink-0" />
+            <img src="${escapeHtml(artUri)}" alt="${escapeHtml(item.title)}" class="w-14 h-14 rounded-xl object-cover bg-slate-100 shrink-0" />
             <div class="min-w-0 flex-1">
-              <p class="text-xs font-bold text-slate-900 line-clamp-2">${escapeHtml(item.title)}</p>
+              <div class="flex items-center gap-1.5">
+                <p class="text-xs font-bold text-slate-900 line-clamp-2">${escapeHtml(item.title)}</p>
+                <span class="shrink-0 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${isSvc ? "bg-indigo-50 text-indigo-700" : "bg-emerald-50 text-emerald-700"}">${isSvc ? "Service" : "Product"}</span>
+              </div>
               ${item.variantTitle ? `<p class="text-[11px] text-slate-500">${escapeHtml(item.variantTitle)}</p>` : ""}
-              <p class="text-xs font-extrabold text-emerald-700 mt-1">${formatKes(item.unitPrice, item.currency)}</p>
+              <p class="text-xs font-extrabold text-emerald-700 mt-1">${formatKes(item.unitPrice, item.currency)}${isSvc ? " / session" : ""}</p>
               <div class="flex items-center justify-between mt-2">
                 <div class="inline-flex items-center border border-slate-200 rounded-lg bg-slate-50">
                   <button type="button" onclick="updateMarketplaceCartQty('${escapeHtml(item.itemId)}', '${escapeHtml(item.variantId || "")}', -1)" class="px-2 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded-l-lg">-</button>
@@ -662,7 +668,8 @@
                 <button type="button" onclick="removeMarketplaceCartItem('${escapeHtml(item.itemId)}', '${escapeHtml(item.variantId || "")}')" class="text-[11px] font-semibold text-rose-600 hover:underline">Remove</button>
               </div>
             </div>
-          </div>`
+          </div>`;
+            }
           )
           .join("");
 
@@ -800,32 +807,51 @@
     const { item, variants, store } = activeQuickViewData;
     const safeVariants = Array.isArray(variants) ? variants : [];
     const variant = safeVariants.find((v) => v.id === selectedVariantId) || null;
+    const isService = item.itemType === "SERVICE";
+    const isDigital = item.itemType === "DIGITAL";
+    const serviceConfig = item.metadata?.serviceConfig || {};
+    const serviceAvailable = !isService || serviceConfig.available !== false;
     const unitPrice = variant ? variant.price : item.basePrice;
     const stock = variant ? variant.stockQuantity : item.stockQuantity;
-    const inStock = !item.trackInventory || Number(stock || 0) > 0;
+    const inStock = isService ? serviceAvailable : isDigital ? true : !item.trackInventory || Number(stock || 0) > 0;
     const storeLoc = [store.locationLabel, store.countyName].filter(Boolean).join(", ");
+    const artCtx = {
+      categoryName: item.categoryName,
+      businessType: store?.businessType,
+      storeName: store?.name,
+    };
     const fallbackImg =
-      item.itemType === "SERVICE"
-        ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80"
-        : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80";
-    const images = getQuickViewImages(item, fallbackImg);
+      typeof window !== "undefined" && window.Store254ItemArtwork
+        ? window.Store254ItemArtwork.buildDataUri(item, artCtx)
+        : "/assets/store254Icon.webp";
+    const fallbackStageHtml =
+      typeof window !== "undefined" && window.Store254ItemArtwork
+        ? window.Store254ItemArtwork.renderStageHtml(item, artCtx)
+        : "";
+    const hasRealPhotos = Array.isArray(item.images) && item.images.filter(Boolean).length > 0;
+    const images = hasRealPhotos ? getQuickViewImages(item, fallbackImg) : [];
     if (quickViewImageIndex >= images.length || quickViewImageIndex < 0) {
       quickViewImageIndex = 0;
     }
-    const imgUrl = images[quickViewImageIndex] || fallbackImg;
+    const imgUrl = hasRealPhotos ? images[quickViewImageIndex] : fallbackImg;
 
     return {
       item,
       variant,
       variants: safeVariants,
       store,
+      isService,
+      isDigital,
+      serviceConfig,
       unitPrice,
       stock,
       inStock,
       storeLoc,
+      hasRealPhotos,
       images,
       imgUrl,
       fallbackImg,
+      fallbackStageHtml,
     };
   }
 
@@ -893,8 +919,15 @@
     const bodyEl = document.getElementById("marketplace-item-modal-body");
     const sel = getActiveQuickViewSelection();
     if (!bodyEl || !sel) return;
-    const { item, variants, store, unitPrice, inStock, stock, storeLoc, images, imgUrl, fallbackImg } = sel;
-    const hasMultipleImages = images.length > 1;
+    const { item, variants, store, isService, isDigital, serviceConfig, unitPrice, inStock, stock, storeLoc, hasRealPhotos, images, imgUrl, fallbackImg, fallbackStageHtml } = sel;
+    const hasMultipleImages = hasRealPhotos && images.length > 1;
+    const modeMap = { IN_PERSON_SHOP: "At Provider Location", ON_SITE_CLIENT: "Mobile / On-Site Visit", VIRTUAL_ONLINE: "Online / Remote Session", FLEXIBLE: "Flexible Venue" };
+    const serviceModeLabel = modeMap[String(serviceConfig?.deliveryMode || "").toUpperCase()] || "";
+    const statusPillHtml = isService
+      ? `<span class="ml-auto text-xs font-bold px-2.5 py-0.5 rounded-full ${inStock ? "bg-indigo-50 text-indigo-700" : "bg-amber-50 text-amber-800"}">${inStock ? "Bookable Service" : "Bookings Paused"}</span>`
+      : isDigital
+      ? `<span class="ml-auto text-xs font-bold px-2.5 py-0.5 rounded-full bg-cyan-50 text-cyan-700">Digital Delivery</span>`
+      : `<span class="ml-auto text-xs font-bold px-2.5 py-0.5 rounded-full ${inStock ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}">${inStock ? (item.trackInventory ? `${stock} in stock` : "Available") : "Out of stock"}</span>`;
     const ratingSummary = activeQuickViewData.ratingSummary || { count: 0, average: 0 };
     const reviewsList = Array.isArray(activeQuickViewData.reviews) ? activeQuickViewData.reviews : [];
     const attrs = item.attributes && typeof item.attributes === "object" ? Object.entries(item.attributes).slice(0, 6) : [];
@@ -908,11 +941,15 @@
       locationLabel: storeLoc || "",
     };
 
+    const qvMediaHtml = hasRealPhotos
+      ? `<img id="qv-main-image" src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover" onerror="this.src='${escapeHtml(fallbackImg)}'" />`
+      : (fallbackStageHtml || `<img id="qv-main-image" src="${escapeHtml(fallbackImg)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover" />`);
+
     bodyEl.innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 sm:p-6">
         <div>
           <div id="qv-gallery-stage" class="relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 aspect-square select-none">
-            <img id="qv-main-image" src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover" onerror="this.src='${fallbackImg}'" />
+            ${qvMediaHtml}
             ${
               hasMultipleImages
                 ? `<button type="button" onclick="stepQuickViewImage(-1, event)" aria-label="Previous product photo" class="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-900 hover:text-white border border-white/80 shadow-md flex items-center justify-center cursor-pointer transition-colors">
@@ -969,19 +1006,25 @@
                 </a>
               </div>
             </div>
-            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(item.categoryName || item.itemType)}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(item.categoryName || (isService ? "Service" : item.itemType))}</p>
             <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">${escapeHtml(item.title)}</h3>
-            <div class="flex items-baseline gap-2.5 mt-2">
+            <div class="flex items-baseline gap-2.5 mt-2 flex-wrap">
               <span class="text-2xl font-black text-emerald-700">${formatKes(unitPrice, store.currency)}</span>
               ${
                 item.compareAtPrice && item.compareAtPrice > unitPrice
                   ? `<del class="text-sm text-slate-400">${formatKes(item.compareAtPrice, store.currency)}</del>`
                   : ""
               }
-              <span class="ml-auto text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                inStock ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-              }">${inStock ? (item.trackInventory ? `${stock} in stock` : "Available") : "Out of stock"}</span>
+              ${statusPillHtml}
             </div>
+            ${
+              isService && (serviceConfig?.duration || serviceModeLabel)
+                ? `<div class="mt-2 flex flex-wrap gap-1.5">
+                    ${serviceConfig.duration ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700">${escapeHtml(serviceConfig.duration)}</span>` : ""}
+                    ${serviceModeLabel ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700">${escapeHtml(serviceModeLabel)}</span>` : ""}
+                  </div>`
+                : ""
+            }
             ${
               ratingSummary.count > 0
                 ? `<div class="mt-2 text-xs text-amber-600 font-bold">★ ${ratingSummary.average} (${ratingSummary.count} verified review${ratingSummary.count === 1 ? "" : "s"})</div>`
@@ -995,7 +1038,7 @@
             ${
               Array.isArray(variants) && variants.length > 0
                 ? `<div class="mt-4">
-                    <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">Choose Option</p>
+                    <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">${isService ? "Choose Service Package" : "Choose Option"}</p>
                     <div class="flex flex-wrap gap-2">${variants
                       .map((v) => {
                         const isSelected = v.id === selectedVariantId;
@@ -1028,13 +1071,13 @@
                 <span id="qv-qty-val" class="px-3.5 text-sm font-extrabold text-slate-900">${quickViewQty}</span>
                 <button type="button" onclick="changeQuickViewQty(1)" class="px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 rounded-r-xl">+</button>
               </div>
-              <button type="button" onclick="addQuickViewToCart()" ${!inStock ? "disabled" : ""} class="flex-1 py-2.5 px-4 rounded-xl border border-emerald-700 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 font-extrabold text-xs sm:text-sm disabled:opacity-50">
-                Add to Cart
+              <button type="button" onclick="addQuickViewToCart()" ${!inStock ? "disabled" : ""} class="flex-1 py-2.5 px-4 rounded-xl ${isService ? "border-indigo-700 text-indigo-800 bg-indigo-50 hover:bg-indigo-100" : "border-emerald-700 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"} border font-extrabold text-xs sm:text-sm disabled:opacity-50">
+                ${isService ? "Add to Booking" : "Add to Cart"}
               </button>
             </div>
-            <button type="button" onclick="buyQuickViewNow()" ${!inStock ? "disabled" : ""} class="w-full py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm shadow-lg shadow-emerald-700/20 disabled:opacity-50 flex items-center justify-center gap-2">
-              <i data-lucide="smartphone" class="w-4 h-4"></i>
-              <span>Buy Now Directly on Store254 (${store.mpesaEnabled ? "M-Pesa / COD" : "Cash on Delivery"})</span>
+            <button type="button" onclick="buyQuickViewNow()" ${!inStock ? "disabled" : ""} class="w-full py-3 px-4 rounded-xl ${isService ? "bg-indigo-700 hover:bg-indigo-800 shadow-indigo-700/20" : "bg-emerald-700 hover:bg-emerald-800 shadow-emerald-700/20"} text-white font-extrabold text-sm shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
+              <i data-lucide="${isService ? "calendar" : "smartphone"}" class="w-4 h-4"></i>
+              <span>${isService ? `Book Service Now (${store.mpesaEnabled ? "M-Pesa / Pay at Visit" : "Pay at Appointment"})` : `Buy Now Directly on Store254 (${store.mpesaEnabled ? "M-Pesa / COD" : "Cash on Delivery"})`}</span>
             </button>
           </div>
           ${
@@ -1137,6 +1180,10 @@
     const group = activeCheckoutQueue[activeCheckoutIndex];
     if (!bodyEl || !group) return;
 
+    const hasService = group.items.some((i) => i.itemType === "SERVICE");
+    const hasPhysical = group.items.some((i) => i.itemType === "PHYSICAL" || !i.itemType);
+    const isServiceOnly = hasService && !hasPhysical;
+
     const loc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
     const savedPhone = localStorage.getItem(PHONE_STORAGE_KEY) || "";
     const defaultName = platformUser?.fullName || "";
@@ -1144,6 +1191,7 @@
     const defaultAddr = loc?.locationName
       ? `${loc.locationName}${loc.countyName ? `, ${loc.countyName}` : ""}`
       : "";
+    const todayIso = new Date().toISOString().split("T")[0];
 
     const queuePill =
       activeCheckoutQueue.length > 1
@@ -1155,8 +1203,8 @@
         <div class="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
           <div>
             ${queuePill}
-            <h3 class="text-lg font-extrabold text-slate-900 mt-1">Checkout with ${escapeHtml(group.storeName)}</h3>
-            <p class="text-xs text-slate-500">Order goes straight to ${escapeHtml(group.storeName)} without leaving Store254.</p>
+            <h3 class="text-lg font-extrabold text-slate-900 mt-1">${isServiceOnly ? `Book Service with ${escapeHtml(group.storeName)}` : `Checkout with ${escapeHtml(group.storeName)}`}</h3>
+            <p class="text-xs text-slate-500">${isServiceOnly ? `Booking goes straight to ${escapeHtml(group.storeName)}.` : `Order goes straight to ${escapeHtml(group.storeName)} without leaving Store254.`}</p>
           </div>
           <div class="text-right">
             <span class="text-[11px] text-slate-400 font-semibold">Total</span>
@@ -1174,6 +1222,35 @@
         </div>
 
         <form id="mp-checkout-form" onsubmit="event.preventDefault(); submitMarketplaceCheckout();" class="space-y-3">
+          ${
+            hasService
+              ? `<div class="rounded-xl bg-indigo-50/70 border border-indigo-100 p-3 space-y-2.5">
+                  <p class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-900">Service Appointment Schedule</p>
+                  <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Preferred Date</label>
+                      <input id="mp-co-booking-date" type="date" value="${todayIso}" class="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-200 bg-white" />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Time Slot</label>
+                      <select id="mp-co-booking-time" class="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-200 bg-white">
+                        <option value="Morning (9am - 12pm)">Morning (9am - 12pm)</option>
+                        <option value="Afternoon (2pm - 5pm)">Afternoon (2pm - 5pm)</option>
+                        <option value="Evening (5pm - 8pm)">Evening (5pm - 8pm)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Service Location Mode</label>
+                    <select id="mp-co-booking-mode" onchange="var g=document.getElementById('mp-co-address-group'); if(g && ${isServiceOnly ? "true" : "false"}){ g.classList.toggle('hidden', this.value !== 'ON_SITE_CLIENT'); }" class="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-200 bg-white">
+                      <option value="IN_PERSON_SHOP">At Provider Location / Studio</option>
+                      <option value="ON_SITE_CLIENT">Come to My Location (On-Site)</option>
+                      <option value="VIRTUAL_ONLINE">Online / Remote Session</option>
+                    </select>
+                  </div>
+                </div>`
+              : ""
+          }
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Full Name</label>
@@ -1188,8 +1265,8 @@
             <label class="block text-[11px] font-bold text-slate-600 mb-1">Receipt Email</label>
             <input id="mp-co-email" type="email" required value="${escapeHtml(defaultEmail)}" placeholder="you@example.com" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-emerald-500 outline-none" />
           </div>
-          <div>
-            <label class="block text-[11px] font-bold text-slate-600 mb-1">Delivery Area / Estate / Landmark</label>
+          <div id="mp-co-address-group" class="${isServiceOnly ? "hidden" : ""}">
+            <label class="block text-[11px] font-bold text-slate-600 mb-1">${isServiceOnly ? "Service Visit Location / Estate / Landmark" : "Delivery Area / Estate / Landmark"}</label>
             <input id="mp-co-address" type="text" value="${escapeHtml(defaultAddr)}" placeholder="e.g. Kenol Stage, opposite TotalEnergies" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-emerald-500 outline-none" />
           </div>
           <div>
@@ -1201,13 +1278,13 @@
               </label>
               <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer hover:border-emerald-500 bg-white">
                 <input type="radio" name="mp_pay_method" value="CASH_ON_DELIVERY" ${group.mpesaEnabled === false ? "checked" : ""} />
-                <span class="text-xs font-extrabold text-slate-800">Cash on Delivery</span>
+                <span class="text-xs font-extrabold text-slate-800">${isServiceOnly ? "Pay at Appointment" : "Cash on Delivery"}</span>
               </label>
             </div>
           </div>
           <p id="mp-co-error" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2"></p>
           <button id="mp-co-submit-btn" type="submit" class="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm shadow-lg shadow-emerald-700/20">
-            Confirm &amp; Pay ${formatKes(group.subtotal, group.currency)}
+            ${isServiceOnly ? `Confirm Booking · ${formatKes(group.subtotal, group.currency)}` : `Confirm & Pay ${formatKes(group.subtotal, group.currency)}`}
           </button>
         </form>
       </div>`;
@@ -1227,7 +1304,12 @@
       document.querySelector('input[name="mp_pay_method"]:checked')?.value || "MPESA";
     const loc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
 
-    if (payMethod === "CASH_ON_DELIVERY" && address.length < 5) {
+    const hasService = group.items.some((i) => i.itemType === "SERVICE");
+    const hasPhysical = group.items.some((i) => i.itemType === "PHYSICAL" || !i.itemType);
+    const isServiceOnly = hasService && !hasPhysical;
+    const bookingMode = document.getElementById("mp-co-booking-mode")?.value || "IN_PERSON_SHOP";
+
+    if (hasPhysical && payMethod === "CASH_ON_DELIVERY" && address.length < 5) {
       if (errEl) {
         errEl.textContent = "Please enter a clear delivery address for Cash on Delivery.";
         errEl.classList.remove("hidden");
@@ -1235,13 +1317,30 @@
       return;
     }
 
+    if (isServiceOnly && bookingMode === "ON_SITE_CLIENT" && address.length < 5) {
+      if (errEl) {
+        errEl.textContent = "Please enter the location where your on-site service should happen.";
+        errEl.classList.remove("hidden");
+      }
+      return;
+    }
+
+    const bookingDetails = hasService
+      ? {
+          bookingDate: document.getElementById("mp-co-booking-date")?.value || new Date().toISOString().split("T")[0],
+          timeSlot: document.getElementById("mp-co-booking-time")?.value || "Morning (9am - 12pm)",
+          serviceMode: bookingMode,
+          serviceLocation: bookingMode === "ON_SITE_CLIENT" ? address : undefined,
+        }
+      : undefined;
+
     try {
       localStorage.setItem(PHONE_STORAGE_KEY, phone);
     } catch {}
 
     if (btn) {
       btn.disabled = true;
-      btn.textContent = "Placing order…";
+      btn.textContent = isServiceOnly ? "Confirming booking…" : "Placing order…";
     }
     if (errEl) errEl.classList.add("hidden");
 
@@ -1256,13 +1355,16 @@
           customerEmail: email,
           customerPhone: phone,
           paymentMethod: payMethod,
-          deliveryAddress: address || undefined,
-          shippingAddress: {
-            county: loc?.countyName || "",
-            subCounty: loc?.constituencyName || "",
-            town: loc?.locationName || "",
-            address,
-          },
+          deliveryAddress: !isServiceOnly && address ? address : undefined,
+          shippingAddress: isServiceOnly
+            ? {}
+            : {
+                county: loc?.countyName || "",
+                subCounty: loc?.constituencyName || "",
+                town: loc?.locationName || "",
+                address,
+              },
+          bookingDetails,
           items: group.items.map((i) => ({
             itemId: i.itemId,
             variantId: i.variantId || undefined,

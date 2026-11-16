@@ -703,7 +703,7 @@
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
           <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
             <i data-lucide="shopping-cart" class="w-4 h-4 text-emerald-600"></i>
-            <span>Shopping Cart & Checkout</span>
+            <span id="cart-drawer-title-text">Shopping Cart & Checkout</span>
           </h3>
           <button onclick="toggleDrawer('cart-drawer', false)" class="text-slate-400 hover:text-slate-600 p-1">
             <i data-lucide="x" class="w-5 h-5"></i>
@@ -714,38 +714,47 @@
         <div id="cart-items-container" class="space-y-1 mb-6"></div>
 
         <!-- Service Booking Details (Auto-visible if cart has a service) -->
-        <div id="service-booking-section" class="hidden mb-6 p-4 bg-indigo-50/70 border border-indigo-100 rounded-xl">
-          <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+        <div id="service-booking-section" class="hidden mb-6 p-4 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-3">
+          <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
             <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-600"></i>
             <span>Schedule Service Appointment</span>
           </h4>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-[11px] font-semibold text-slate-600 mb-1">Date</label>
-              <input type="date" id="booking-date" class="w-full text-xs p-2 rounded-lg border border-slate-300">
+              <input type="date" id="booking-date" class="w-full text-xs p-2 rounded-lg border border-slate-300 bg-white">
             </div>
             <div>
               <label class="block text-[11px] font-semibold text-slate-600 mb-1">Time Slot</label>
-              <select id="booking-time" class="w-full text-xs p-2 rounded-lg border border-slate-300">
+              <select id="booking-time" class="w-full text-xs p-2 rounded-lg border border-slate-300 bg-white">
                 <option value="Morning (9am - 12pm)">Morning (9am - 12pm)</option>
                 <option value="Afternoon (2pm - 5pm)">Afternoon (2pm - 5pm)</option>
+                <option value="Evening (5pm - 8pm)">Evening (5pm - 8pm)</option>
               </select>
             </div>
+          </div>
+          <div>
+            <label for="booking-mode" class="block text-[11px] font-semibold text-slate-600 mb-1">Service Location Mode</label>
+            <select id="booking-mode" onchange="if (typeof syncCheckoutDeliveryAndBookingUI === 'function') syncCheckoutDeliveryAndBookingUI();" class="w-full text-xs p-2 rounded-lg border border-slate-300 bg-white">
+              <option value="IN_PERSON_SHOP">Visit Provider Location / Studio</option>
+              <option value="ON_SITE_CLIENT">Come to My Location (On-Site Visit)</option>
+              <option value="VIRTUAL_ONLINE">Online / Remote Session</option>
+            </select>
           </div>
         </div>
 
         <!-- Customer Details -->
         <div class="space-y-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-          <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Customer & Delivery Details</h4>
-          <p class="text-[11px] text-slate-500">Your account name and email fill in automatically when you sign in. Enter your phone number and delivery address below.</p>
+          <h4 id="checkout-section-heading" class="text-xs font-bold text-slate-800 uppercase tracking-wider">Customer & Delivery Details</h4>
+          <p id="checkout-section-help" class="text-[11px] text-slate-500">Your account name and email fill in automatically when you sign in. Enter your phone number and delivery address below.</p>
           <input type="text" id="checkout-name" autocomplete="name" placeholder="Full Name" class="w-full text-xs p-2.5 rounded-lg border border-slate-300">
           <input type="email" id="checkout-email" autocomplete="email" placeholder="Email Address" class="w-full text-xs p-2.5 rounded-lg border border-slate-300">
           <div>
             <label class="block text-[11px] font-bold text-slate-700 mb-1">Phone Number</label>
             <input type="tel" id="checkout-phone" placeholder="0712345678" class="w-full text-xs font-mono font-bold p-2.5 rounded-lg border border-slate-300">
           </div>
-          <div>
-            <label for="checkout-address" class="block text-[11px] font-bold text-slate-700 mb-1">Delivery Address <span class="font-normal text-slate-500">(required for pay on delivery)</span></label>
+          <div id="checkout-address-group">
+            <label id="checkout-address-label" for="checkout-address" class="block text-[11px] font-bold text-slate-700 mb-1">Delivery Address <span class="font-normal text-slate-500">(required for pay on delivery)</span></label>
             <textarea id="checkout-address" rows="2" maxlength="300" placeholder="Estate, street, building, and nearby landmark" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 resize-y"></textarea>
           </div>
         </div>
@@ -753,8 +762,8 @@
 
       <!-- Checkout Footer Summary -->
       <div class="border-t border-slate-200 pt-4">
-        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Choose a payment option</h4>
-        <p class="text-[11px] text-slate-500 mb-3">Pay now with M-Pesa or pay the delivery person when your order arrives.</p>
+        <h4 id="checkout-payment-heading" class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Choose a payment option</h4>
+        <p id="checkout-payment-help" class="text-[11px] text-slate-500 mb-3">Pay now with M-Pesa or pay the delivery person when your order arrives.</p>
         <div class="flex justify-between text-xs text-slate-600 mb-1.5">
           <span>Subtotal</span>
           <span id="cart-subtotal" class="font-bold text-slate-900">KES 0</span>
@@ -799,6 +808,7 @@
                 <i data-lucide="chevron-left" class="w-5 h-5"></i>
               </button>
               <img id="item-modal-image" src="" alt="Product photo" class="item-modal-gallery-image">
+              <div id="item-modal-artwork-stage" class="hidden w-full h-full"></div>
               <button id="item-modal-image-next" type="button" class="item-modal-gallery-nav item-modal-gallery-next" aria-label="Next product photo">
                 <i data-lucide="chevron-right" class="w-5 h-5"></i>
               </button>
@@ -1418,19 +1428,20 @@
   <script src="/scripts/storefront/banner.js?v=20261116"></script>
   <script src="/scripts/storefront/navigation.js?v=20261115b"></script>
   <script src="/scripts/shared/category-icon-classifier.js"></script>
+  <script src="/scripts/shared/item-artwork-classifier.js?v=20261116c"></script>
   <script src="/scripts/storefront/categories.js"></script>
-  <script src="/scripts/storefront/catalog.js"></script>
+  <script src="/scripts/storefront/catalog.js?v=20261116c"></script>
   <script src="/scripts/storefront/wishlist.js"></script>
   <script src="/scripts/storefront/customer.js?v=20261115"></script>
   <script src="/scripts/storefront/reviews.js"></script>
-  <script src="/scripts/storefront/item-modal.js?v=20261116"></script>
-  <script src="/scripts/storefront/cart.js"></script>
-  <script src="/scripts/storefront/checkout.js"></script>
-  <script src="/scripts/storefront/orders.js?v=20261115"></script>
+  <script src="/scripts/storefront/item-modal.js?v=20261116c"></script>
+  <script src="/scripts/storefront/cart.js?v=20261116c"></script>
+  <script src="/scripts/storefront/checkout.js?v=20261116c"></script>
+  <script src="/scripts/storefront/orders.js?v=20261116c"></script>
   <script src="/scripts/storefront/storefront.js?v=20261116"></script>
   <script src="/scripts/storefront/platform.js?v=20261115c"></script>
-  <script src="/scripts/storefront/marketplace-search.js?v=20261114"></script>
-  <script src="/scripts/storefront/marketplace-cart.js?v=20261116b"></script>
+  <script src="/scripts/storefront/marketplace-search.js?v=20261116c"></script>
+  <script src="/scripts/storefront/marketplace-cart.js?v=20261116c"></script>
   <script src="/scripts/storefront/onboarding.js?v=20261116"></script>
   <script src="/scripts/storefront/pwa.js"></script>
 

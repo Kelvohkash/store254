@@ -94,23 +94,28 @@ async function loadMyOrders() {
 
     let html = "";
     for (const order of state.myOrders) {
+      const isServiceBooking = order.fulfillmentDetails?.orderKind === "SERVICE_BOOKING";
+      const canConfirmCompletion = isServiceBooking
+        ? order.status === "PROCESSING" || order.status === "SHIPPED"
+        : order.status === "SHIPPED";
       html += `
         <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 mb-2.5 text-xs">
           <div class="flex justify-between items-center mb-1.5">
             <span class="font-bold font-mono text-slate-900">#${escapeHtml(order.orderNumber)}</span>
             <span class="px-2 py-0.5 rounded font-bold text-[10px] ${
               order.status === "PAID" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"
-            }">${order.status === "COMPLETED" ? "DELIVERED" : escapeHtml(order.status)}</span>
+            }">${order.status === "COMPLETED" ? (isServiceBooking ? "SERVICE COMPLETED" : "DELIVERED") : escapeHtml(order.status)}</span>
           </div>
           <p class="text-slate-600">Total: <strong>KES ${Number(order.totalAmount).toLocaleString()}</strong></p>
+          ${order.bookingDetails?.bookingDate ? `<p class="text-indigo-700 mt-1">Appointment: <strong>${escapeHtml(order.bookingDetails.bookingDate)}</strong>${order.bookingDetails.timeSlot ? ` · ${escapeHtml(order.bookingDetails.timeSlot)}` : ""}</p>` : ""}
           <p class="text-slate-600 mt-1">
-            Payment: <strong>${order.paymentMethod === "CASH_ON_DELIVERY" ? "Cash on delivery" : "M-Pesa"} · ${order.paymentStatus === "PAID" ? "Paid" : "Payment due"}</strong>
+            Payment: <strong>${order.paymentMethod === "CASH_ON_DELIVERY" ? (isServiceBooking ? "Pay at appointment" : "Cash on delivery") : "M-Pesa"} · ${order.paymentStatus === "PAID" ? "Paid" : "Payment due"}</strong>
           </p>
           ${
-            order.status === "SHIPPED"
+            canConfirmCompletion
               ? `<button type="button" onclick="confirmOrderDelivered('${escapeHtml(order.id)}', '${escapeHtml(order.orderNumber)}', '${escapeHtml(order.customerPhone || "")}')" class="mt-3 w-full rounded-lg bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-700">
-                  <i data-lucide="package-check" class="mr-1 inline h-4 w-4 align-text-bottom"></i>
-                  I received this order · Confirm delivery
+                  <i data-lucide="${isServiceBooking ? "calendar-check" : "package-check"}" class="mr-1 inline h-4 w-4 align-text-bottom"></i>
+                  ${isServiceBooking ? "Confirm service completed" : "I received this order · Confirm delivery"}
                 </button>`
               : ""
           }

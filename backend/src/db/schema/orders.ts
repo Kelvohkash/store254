@@ -45,6 +45,7 @@ export const orders = sqliteTable(
         paymentInstructionsVisible?: boolean;
         paymentInstructionsShownAt?: string;
         inventoryDeducted?: boolean;
+        orderKind?: "PRODUCT_ORDER" | "SERVICE_BOOKING" | "MIXED";
         notes?: string;
       }>()
       .default({}),
@@ -53,6 +54,7 @@ export const orders = sqliteTable(
       .$type<{
         bookingDate?: string;
         timeSlot?: string;
+        serviceMode?: "IN_PERSON_SHOP" | "ON_SITE_CLIENT" | "VIRTUAL_ONLINE" | "FLEXIBLE";
         serviceLocation?: string;
         specialInstructions?: string;
       }>()

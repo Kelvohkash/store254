@@ -132,6 +132,7 @@ ordersRouter.patch(
         .from(orderItems)
         .where(and(eq(orderItems.orderId, order.id), eq(orderItems.tenantId, tenant.id)));
       for (const line of lines) {
+        if ((line.options as Record<string, unknown> | null)?.itemType === "SERVICE") continue;
         if (line.variantId) {
           await db
             .update(itemVariants)
@@ -141,7 +142,7 @@ ordersRouter.patch(
           await db
             .update(items)
             .set({ stockQuantity: sql`${items.stockQuantity} + ${line.quantity}` })
-            .where(and(eq(items.id, line.itemId), eq(items.tenantId, tenant.id)));
+            .where(and(eq(items.id, line.itemId), eq(items.tenantId, tenant.id), eq(items.trackInventory, true)));
         }
       }
     }
@@ -193,8 +194,16 @@ ordersRouter.post("/:id/confirm-delivery", authMiddleware(true), async (c) => {
   if (order.customerId !== user.id && order.customerEmail.toLowerCase() !== user.email.toLowerCase()) {
     throw new AppError("This order does not belong to your account.", 403, "ORDER_NOT_OWNED");
   }
-  if (order.status !== "SHIPPED") {
-    throw new AppError("Only shipped orders can be confirmed as delivered.", 400, "ORDER_NOT_SHIPPED");
+  const isServiceBookingOrder = order.fulfillmentDetails?.orderKind === "SERVICE_BOOKING";
+  const confirmableStatuses = isServiceBookingOrder ? ["PROCESSING", "SHIPPED"] : ["SHIPPED"];
+  if (!confirmableStatuses.includes(order.status)) {
+    throw new AppError(
+      isServiceBookingOrder
+        ? "Only active service bookings can be confirmed as completed."
+        : "Only shipped orders can be confirmed as delivered.",
+      400,
+      "ORDER_NOT_SHIPPED"
+    );
   }
 
   const deliveredAt = new Date().toISOString();
@@ -209,7 +218,7 @@ ordersRouter.post("/:id/confirm-delivery", authMiddleware(true), async (c) => {
       and(
         eq(orders.tenantId, tenant.id),
         eq(orders.id, orderId),
-        eq(orders.status, "SHIPPED")
+        eq(orders.status, order.status)
       )
     )
     .returning({ id: orders.id });
@@ -918,6 +927,7 @@ ordersRouter.delete(
         .from(orderItems)
         .where(and(eq(orderItems.orderId, order.id), eq(orderItems.tenantId, tenant.id)));
       for (const line of lines) {
+        if ((line.options as Record<string, unknown> | null)?.itemType === "SERVICE") continue;
         if (line.itemId) {
           if (line.variantId) {
             await db
@@ -934,7 +944,7 @@ ordersRouter.delete(
                 stockQuantity: sql`${items.stockQuantity} + ${line.quantity}`,
                 updatedAt: new Date(),
               })
-              .where(and(eq(items.id, line.itemId), eq(items.tenantId, tenant.id)));
+              .where(and(eq(items.id, line.itemId), eq(items.tenantId, tenant.id), eq(items.trackInventory, true)));
           }
         }
       }

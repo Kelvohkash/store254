@@ -103,7 +103,12 @@ function formatProductStatus(status) {
 }
 
 function formatMobileStockLabel(product) {
-  if (!product.trackInventory) return 'Unlimited stock';
+  if (product.itemType === 'SERVICE') {
+    const paused = product.metadata?.serviceConfig?.available === false;
+    return paused ? 'Bookings paused' : 'Bookable service';
+  }
+  if (product.itemType === 'DIGITAL') return 'Digital download';
+  if (!product.trackInventory) return 'Available';
   const qty = Number(product.stockQuantity || 0);
   if (qty <= 0) return 'Out of stock';
   if (qty < 5) return `${qty} left`;
@@ -154,7 +159,7 @@ function filterProducts() {
     if (!matchesSearch) return false;
     if (!activeProductStatusFilter) return true;
     if (activeProductStatusFilter === 'LOW_STOCK') {
-      return Boolean(p.trackInventory) && Number(p.stockQuantity || 0) < 5;
+      return p.itemType === 'PHYSICAL' && Boolean(p.trackInventory) && Number(p.stockQuantity || 0) < 5;
     }
     return p.status === activeProductStatusFilter;
   });
@@ -187,28 +192,57 @@ function renderProductsTable(products) {
   const pageProducts = products.slice(startIdx, startIdx + productsPerPage);
 
   tbody.innerHTML = pageProducts.map(p => {
-    const stockTone = !p.trackInventory
-      ? 'is-ok'
-      : p.stockQuantity <= 0
-        ? 'is-out'
-        : p.stockQuantity < 5
-          ? 'is-low'
-          : 'is-ok';
-    const desktopStockClass = p.stockQuantity <= 0 ? 'text-red-600' : p.stockQuantity < 5 ? 'text-amber-600' : 'text-slate-700';
+    const isService = p.itemType === 'SERVICE';
+    const isDigital = p.itemType === 'DIGITAL';
+    const servicePaused = isService && p.metadata?.serviceConfig?.available === false;
+    const stockTone = isService
+      ? (servicePaused ? 'is-low' : 'is-ok')
+      : !p.trackInventory
+        ? 'is-ok'
+        : p.stockQuantity <= 0
+          ? 'is-out'
+          : p.stockQuantity < 5
+            ? 'is-low'
+            : 'is-ok';
+    const desktopStockText = isService
+      ? (servicePaused ? 'Paused' : 'Bookable')
+      : isDigital
+        ? 'Digital'
+        : p.trackInventory
+          ? p.stockQuantity
+          : '∞';
+    const desktopStockClass = isService
+      ? (servicePaused ? 'text-amber-600 font-semibold' : 'text-indigo-700 font-semibold')
+      : isDigital
+        ? 'text-cyan-700 font-semibold'
+        : p.stockQuantity <= 0
+          ? 'text-red-600'
+          : p.stockQuantity < 5
+            ? 'text-amber-600'
+            : 'text-slate-700';
     const statusClass = p.status === 'PUBLISHED'
       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
       : p.status === 'DRAFT'
         ? 'bg-slate-50 text-slate-600 border-slate-200'
         : 'bg-red-50 text-red-600 border-red-200';
+    const storeCtx = typeof getAdminStoreInfo === 'function' ? getAdminStoreInfo() : null;
+    const thumbSvg = window.Store254ItemArtwork
+      ? window.Store254ItemArtwork.renderSvgString(p, { businessType: storeCtx?.businessType, storeName: storeCtx?.name, categoryName: p.categoryName })
+      : '<i data-lucide="image" class="w-4 h-4 text-slate-400"></i>';
+    const typePill = isService
+      ? '<span class="ml-1.5 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">Service</span>'
+      : isDigital
+        ? '<span class="ml-1.5 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200">Digital</span>'
+        : '';
     return `
     <tr class="admin-product-row hover:bg-slate-50 transition-colors cursor-pointer" onclick="openEditProductModal(${inlineJs(p.id)})">
       <td data-label="Product" class="px-5 py-3">
         <div class="admin-product-identity flex items-center gap-3">
           ${p.images?.[0]
-            ? `<img src="${escHtml(p.images[0])}" class="admin-product-thumb w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')"><div class="admin-product-thumb-fallback hidden w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"><i data-lucide="image" class="w-4 h-4 text-slate-400"></i></div>`
-            : `<div class="admin-product-thumb-fallback w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"><i data-lucide="image" class="w-4 h-4 text-slate-400"></i></div>`}
+            ? `<img src="${escHtml(p.images[0])}" class="admin-product-thumb w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')"><div class="admin-product-thumb-fallback hidden w-9 h-9 rounded-lg overflow-hidden border border-slate-200 shrink-0">${thumbSvg}</div>`
+            : `<div class="admin-product-thumb-fallback w-9 h-9 rounded-lg overflow-hidden border border-slate-200 shrink-0">${thumbSvg}</div>`}
           <div class="min-w-0">
-            <p class="admin-product-title font-normal text-slate-900 text-sm">${escHtml(p.title)}</p>
+            <p class="admin-product-title font-normal text-slate-900 text-sm">${escHtml(p.title)}${typePill}</p>
           </div>
         </div>
       </td>
@@ -222,7 +256,7 @@ function renderProductsTable(products) {
         </div>
       </td>
       <td data-label="Stock" class="px-5 py-3">
-        <span class="admin-stock-desktop text-sm font-normal ${desktopStockClass}">${p.trackInventory ? p.stockQuantity : '∞'}</span>
+        <span class="admin-stock-desktop text-sm font-normal ${desktopStockClass}">${desktopStockText}</span>
         <span class="admin-stock-mobile ${stockTone}">${escHtml(formatMobileStockLabel(p))}</span>
       </td>
       <td data-label="Status" class="px-5 py-3">
@@ -272,6 +306,19 @@ function openAddProductModal() {
   document.getElementById('product-price').value = '';
   document.getElementById('product-compare-price').value = '';
   document.getElementById('product-stock').value = '0';
+  const statusSel = document.getElementById('service-booking-status');
+  if (statusSel) statusSel.value = 'available';
+  const modeSel = document.getElementById('service-delivery-mode');
+  if (modeSel) modeSel.value = 'FLEXIBLE';
+  const durInput = document.getElementById('service-duration-label');
+  if (durInput) durInput.value = '';
+  const artModeEl = document.getElementById('product-artwork-mode');
+  if (artModeEl) artModeEl.value = 'auto';
+  const artIconEl = document.getElementById('product-artwork-icon');
+  if (artIconEl) artIconEl.value = '';
+  const artSearchEl = document.getElementById('product-artwork-search');
+  if (artSearchEl) artSearchEl.value = '';
+
   if (typeof setProductImages === 'function') {
     setProductImages([]);
   } else {
@@ -279,26 +326,42 @@ function openAddProductModal() {
     if (imgInput) imgInput.value = '';
     if (typeof updateProductImageCount === 'function') updateProductImageCount();
   }
-  if (typeof renderVariantRows === 'function') renderVariantRows([]);
   document.getElementById('product-status').value = 'PUBLISHED';
   document.getElementById('product-type').value = 'PHYSICAL';
+  if (typeof syncItemEditorTypeUI === 'function') syncItemEditorTypeUI('PHYSICAL');
+  if (typeof renderVariantRows === 'function') renderVariantRows([]);
   document.getElementById('product-category').value = '';
   loadProductAttributeFields('');
   document.getElementById('product-modal-error').classList.add('hidden');
   document.getElementById('product-modal').classList.remove('hidden');
+  if (typeof handleItemArtworkPreviewInput === 'function') handleItemArtworkPreviewInput();
   lucide.createIcons();
 }
 
 async function openEditProductModal(id) {
   const p = allProducts.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('product-modal-title').textContent = 'Edit Product';
   document.getElementById('product-id').value = p.id;
   document.getElementById('product-title').value = p.title;
   document.getElementById('product-description').value = p.description || '';
   document.getElementById('product-price').value = p.basePrice;
   document.getElementById('product-compare-price').value = p.compareAtPrice || '';
   document.getElementById('product-stock').value = p.stockQuantity || 0;
+
+  const serviceConfig = p.metadata?.serviceConfig || {};
+  const statusSel = document.getElementById('service-booking-status');
+  if (statusSel) statusSel.value = serviceConfig.available === false ? 'paused' : 'available';
+  const modeSel = document.getElementById('service-delivery-mode');
+  if (modeSel) modeSel.value = serviceConfig.deliveryMode || 'FLEXIBLE';
+  const durInput = document.getElementById('service-duration-label');
+  if (durInput) durInput.value = serviceConfig.duration || '';
+
+  const artSearchEl = document.getElementById('product-artwork-search');
+  if (artSearchEl) artSearchEl.value = '';
+  const explicitArtwork = p.metadata?.artworkIcon || '';
+  const artModeEl = document.getElementById('product-artwork-mode');
+  if (artModeEl) artModeEl.value = explicitArtwork ? 'manual' : 'auto';
+
   if (typeof setProductImages === 'function') {
     setProductImages(p.images || []);
   } else {
@@ -306,14 +369,20 @@ async function openEditProductModal(id) {
     if (imgInput) imgInput.value = (p.images || []).join('\n');
     if (typeof updateProductImageCount === 'function') updateProductImageCount();
   }
-  if (typeof renderVariantRows === 'function') renderVariantRows(p.variants || []);
   document.getElementById('product-status').value = p.status || 'PUBLISHED';
   document.getElementById('product-type').value = p.itemType || 'PHYSICAL';
+  if (typeof syncItemEditorTypeUI === 'function') syncItemEditorTypeUI(p.itemType || 'PHYSICAL');
+  if (typeof renderVariantRows === 'function') renderVariantRows(p.variants || []);
   document.getElementById('product-category').value = p.categoryId || '';
   productAttributeDraft = { ...(p.attributes || {}) };
   await loadProductAttributeFields(p.categoryId || '', p.attributes || {});
   document.getElementById('product-modal-error').classList.add('hidden');
   document.getElementById('product-modal').classList.remove('hidden');
+  if (explicitArtwork && typeof selectManualItemArtwork === 'function') {
+    selectManualItemArtwork(explicitArtwork);
+  } else if (typeof handleItemArtworkPreviewInput === 'function') {
+    handleItemArtworkPreviewInput();
+  }
   lucide.createIcons();
 }
 
@@ -332,6 +401,22 @@ async function handleSaveProduct(e) {
     return;
   }
 
+  const itemType = document.getElementById('product-type').value || 'PHYSICAL';
+  const isService = itemType === 'SERVICE';
+  const isDigital = itemType === 'DIGITAL';
+
+  const artworkMode = document.getElementById('product-artwork-mode')?.value || 'auto';
+  const artworkIconVal = artworkMode === 'manual' ? (document.getElementById('product-artwork-icon')?.value || '') : '';
+  const metadata = {};
+  if (artworkIconVal) metadata.artworkIcon = artworkIconVal;
+  if (isService) {
+    metadata.serviceConfig = {
+      available: (document.getElementById('service-booking-status')?.value || 'available') !== 'paused',
+      deliveryMode: document.getElementById('service-delivery-mode')?.value || 'FLEXIBLE',
+      duration: document.getElementById('service-duration-label')?.value?.trim() || '',
+    };
+  }
+
   btn.disabled = true;
   btn.innerHTML = 'Saving...';
   errEl.classList.add('hidden');
@@ -341,13 +426,14 @@ async function handleSaveProduct(e) {
     description: document.getElementById('product-description').value.trim() || undefined,
     basePrice: parseInt(document.getElementById('product-price').value) || 0,
     compareAtPrice: parseInt(document.getElementById('product-compare-price').value) || undefined,
-    stockQuantity: parseInt(document.getElementById('product-stock').value) || 0,
+    stockQuantity: isService || isDigital ? 0 : (parseInt(document.getElementById('product-stock').value) || 0),
     images,
     status: document.getElementById('product-status').value,
-    itemType: document.getElementById('product-type').value,
+    itemType,
     categoryId: document.getElementById('product-category').value || undefined,
     attributes: collectProductAttributeFields(),
-    trackInventory: true,
+    metadata,
+    trackInventory: !isService && !isDigital,
     variants: typeof collectProductVariants === 'function' ? collectProductVariants() : [],
   };
 
@@ -356,17 +442,17 @@ async function handleSaveProduct(e) {
     : await apiFetch('/items', { method: 'POST', body: JSON.stringify(body) });
 
   btn.disabled = false;
-  btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Save Product';
+  btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> Save ${isService ? 'Service' : 'Product'}`;
   lucide.createIcons();
 
   if (!r.ok) {
-    errEl.textContent = apiErrorMessage(r, 'Failed to save product.');
+    errEl.textContent = apiErrorMessage(r, `Failed to save ${isService ? 'service' : 'product'}.`);
     errEl.classList.remove('hidden');
     return;
   }
 
   closeModal('product-modal');
-  showToast(id ? 'Product updated!' : 'Product added!');
+  showToast(id ? `${isService ? 'Service' : 'Product'} updated!` : `${isService ? 'Service' : 'Product'} added!`);
   await loadProducts();
 }
 

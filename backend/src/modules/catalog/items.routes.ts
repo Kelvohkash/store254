@@ -102,6 +102,7 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
       stockQuantity: items.stockQuantity,
       images: items.images,
       attributes: items.attributes,
+      metadata: items.metadata,
       status: items.status,
       createdAt: items.createdAt,
     })
@@ -293,6 +294,9 @@ itemsRouter.post(
 
     const itemId = generateUUID();
     const sku = `SKU-${itemId.replace(/-/g, "").slice(0, 12).toUpperCase()}`;
+    const isServiceItem = body.itemType === "SERVICE";
+    const resolvedTrackInventory = isServiceItem ? false : body.trackInventory;
+    const resolvedStockQuantity = isServiceItem ? 0 : body.stockQuantity;
 
     await db.insert(items).values({
       id: itemId,
@@ -307,8 +311,8 @@ itemsRouter.post(
       costPrice: body.costPrice || null,
       sku,
       barcode: body.barcode || null,
-      trackInventory: body.trackInventory,
-      stockQuantity: body.stockQuantity,
+      trackInventory: resolvedTrackInventory,
+      stockQuantity: resolvedStockQuantity,
       status: body.status,
       images: body.images,
       attributes: body.attributes,
@@ -320,6 +324,7 @@ itemsRouter.post(
     for (const [index, v] of body.variants.entries()) {
       const variantId = generateUUID();
       const variantSku = `${sku}-${String(index + 1).padStart(2, "0")}`;
+      const variantStock = isServiceItem ? 0 : v.stockQuantity;
       await db.insert(itemVariants).values({
         id: variantId,
         tenantId: tenant.id,
@@ -328,7 +333,7 @@ itemsRouter.post(
         sku: variantSku,
         price: v.price,
         compareAtPrice: v.compareAtPrice || null,
-        stockQuantity: v.stockQuantity,
+        stockQuantity: variantStock,
         options: v.options,
       });
 
@@ -340,7 +345,7 @@ itemsRouter.post(
         sku: variantSku,
         price: v.price,
         compareAtPrice: v.compareAtPrice || null,
-        stockQuantity: v.stockQuantity,
+        stockQuantity: variantStock,
         options: v.options,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -386,7 +391,7 @@ itemsRouter.put(
 
     // Verify item belongs to this tenant
     const [existing] = await db
-      .select({ id: items.id, images: items.images, sku: items.sku })
+      .select({ id: items.id, images: items.images, sku: items.sku, itemType: items.itemType })
       .from(items)
       .where(and(eq(items.id, id), eq(items.tenantId, tenant.id)))
       .limit(1);
@@ -422,6 +427,8 @@ itemsRouter.put(
       }
     }
 
+    const effectiveItemType = body.itemType ?? existing.itemType;
+    const isServiceItem = effectiveItemType === "SERVICE";
     const sku = existing.sku || `SKU-${existing.id.replace(/-/g, "").slice(0, 12).toUpperCase()}`;
     const updateData: Record<string, unknown> = { updatedAt: new Date() };
     if (!existing.sku) updateData.sku = sku;
@@ -433,8 +440,13 @@ itemsRouter.put(
     if (body.compareAtPrice !== undefined) updateData.compareAtPrice = body.compareAtPrice;
     if (body.costPrice !== undefined) updateData.costPrice = body.costPrice;
     if (body.barcode !== undefined) updateData.barcode = body.barcode;
-    if (body.trackInventory !== undefined) updateData.trackInventory = body.trackInventory;
-    if (body.stockQuantity !== undefined) updateData.stockQuantity = body.stockQuantity;
+    if (isServiceItem) {
+      updateData.trackInventory = false;
+      updateData.stockQuantity = 0;
+    } else {
+      if (body.trackInventory !== undefined) updateData.trackInventory = body.trackInventory;
+      if (body.stockQuantity !== undefined) updateData.stockQuantity = body.stockQuantity;
+    }
     if (body.status !== undefined) updateData.status = body.status;
     if (body.images !== undefined) updateData.images = body.images;
     if (body.attributes !== undefined) updateData.attributes = body.attributes;
@@ -456,7 +468,7 @@ itemsRouter.put(
           sku: `${sku}-${String(index + 1).padStart(2, "0")}`,
           price: v.price,
           compareAtPrice: v.compareAtPrice || null,
-          stockQuantity: v.stockQuantity,
+          stockQuantity: isServiceItem ? 0 : v.stockQuantity,
           options: v.options,
         });
       }

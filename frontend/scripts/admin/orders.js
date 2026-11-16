@@ -236,7 +236,8 @@ window.setOrdersPage = function(page) {
         ${o.customerEmail ? `<p class="text-xs text-slate-500">${escHtml(o.customerEmail)}</p>` : ''}
         ${o.customerPhone ? `<p class="text-xs text-slate-500"><a href="tel:${escHtml(o.customerPhone)}" class="text-emerald-600 font-semibold hover:underline">${escHtml(o.customerPhone)}</a></p>` : ''}
         ${deliveryAddress ? `<p class="text-xs text-slate-600 mt-2"><strong>Delivery address:</strong> ${escHtml(deliveryAddress)}</p>` : ''}
-        <p class="text-xs text-slate-600 mt-2"><strong>Payment:</strong> ${o.paymentMethod === 'CASH_ON_DELIVERY' ? 'Cash on delivery' : 'M-Pesa'} · ${escHtml(o.paymentStatus || 'PENDING')}</p>
+        ${o.bookingDetails?.bookingDate ? `<p class="text-xs text-indigo-700 mt-2"><strong>Appointment:</strong> ${escHtml(o.bookingDetails.bookingDate)}${o.bookingDetails.timeSlot ? ` · ${escHtml(o.bookingDetails.timeSlot)}` : ''}${o.bookingDetails.serviceLocation ? ` (${escHtml(o.bookingDetails.serviceLocation)})` : ''}</p>` : ''}
+        <p class="text-xs text-slate-600 mt-2"><strong>Payment:</strong> ${o.paymentMethod === 'CASH_ON_DELIVERY' ? (o.fulfillmentDetails?.orderKind === 'SERVICE_BOOKING' ? 'Pay at appointment' : 'Cash on delivery') : 'M-Pesa'} · ${escHtml(o.paymentStatus || 'PENDING')}</p>
       </div>
 
       <div class="bg-white rounded-2xl border border-slate-200 p-4">

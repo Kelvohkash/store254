@@ -1,16 +1,69 @@
 // Cart Management & Checkout Drawer
 
+function getCartComposition() {
+  const list = Array.isArray(state.cart) ? state.cart : [];
+  const hasService = list.some((i) => i.itemType === "SERVICE");
+  const hasPhysical = list.some((i) => i.itemType === "PHYSICAL" || !i.itemType);
+  const isServiceOnly = hasService && !hasPhysical;
+  return { hasService, hasPhysical, isServiceOnly };
+}
+
+function syncCheckoutDeliveryAndBookingUI() {
+  const { hasService, hasPhysical, isServiceOnly } = getCartComposition();
+  const titleEl = document.getElementById("cart-drawer-title-text");
+  const bookingSection = document.getElementById("service-booking-section");
+  const bookingMode = document.getElementById("booking-mode")?.value || "IN_PERSON_SHOP";
+  const addrGroup = document.getElementById("checkout-address-group");
+  const addrLabel = document.getElementById("checkout-address-label");
+  const addrInput = document.getElementById("checkout-address");
+  const detailsHeading = document.getElementById("checkout-section-heading");
+  const detailsHelp = document.getElementById("checkout-section-help");
+  const payHelp = document.getElementById("checkout-payment-help");
+  const deliveryBtn = document.getElementById("btn-pay-delivery");
+
+  if (bookingSection) bookingSection.classList.toggle("hidden", !hasService);
+  if (titleEl) titleEl.textContent = isServiceOnly ? "Service Booking" : hasService ? "Cart & Service Booking" : "Shopping Cart & Checkout";
+
+  const needsVisitAddress = hasPhysical || (isServiceOnly && bookingMode === "ON_SITE_CLIENT");
+  if (addrGroup) addrGroup.classList.toggle("hidden", !needsVisitAddress);
+
+  if (isServiceOnly) {
+    if (detailsHeading) detailsHeading.textContent = "Booking Contact Details";
+    if (detailsHelp) detailsHelp.textContent = "Enter your contact details for appointment confirmation.";
+    if (addrLabel) {
+      addrLabel.innerHTML = 'Service Visit Location <span class="font-normal text-slate-500">(required for on-site visits)</span>';
+    }
+    if (addrInput) addrInput.placeholder = "Estate, building, floor, and landmark where the service will happen";
+    if (payHelp) payHelp.textContent = "Pay now with M-Pesa or pay in person when your service takes place.";
+    if (deliveryBtn && !deliveryBtn.disabled) {
+      deliveryBtn.innerHTML = '<i data-lucide="calendar-check" class="w-4 h-4"></i><span>Confirm Booking · Pay at Appointment</span>';
+    }
+  } else {
+    if (detailsHeading) detailsHeading.textContent = hasService ? "Customer, Delivery & Booking Details" : "Customer & Delivery Details";
+    if (detailsHelp) detailsHelp.textContent = "Your account name and email fill in automatically when you sign in. Enter your phone number and delivery address below.";
+    if (addrLabel) {
+      addrLabel.innerHTML = 'Delivery Address <span class="font-normal text-slate-500">(required for pay on delivery)</span>';
+    }
+    if (addrInput) addrInput.placeholder = "Estate, street, building, and nearby landmark";
+    if (payHelp) payHelp.textContent = "Pay now with M-Pesa or pay the delivery person when your order arrives.";
+    if (deliveryBtn && !deliveryBtn.disabled) {
+      deliveryBtn.innerHTML = '<i data-lucide="truck" class="w-4 h-4"></i><span>Place Order · Pay on Delivery</span>';
+    }
+  }
+}
+
 function addToCart(id, title, price, image, itemType = "PHYSICAL", variantId = undefined, qty = 1) {
   const quantityToAdd = Math.max(1, parseInt(qty, 10) || 1);
+  const safeImage = image || (typeof getItemFallbackArtwork === "function" ? getItemFallbackArtwork({ id, title, itemType }).dataUri : "");
   const existing = state.cart.find((i) => i.itemId === id && (i.variantId || undefined) === (variantId || undefined));
   if (existing) {
     existing.quantity += quantityToAdd;
   } else {
-    state.cart.push({ itemId: id, variantId: variantId || undefined, title, price, image, itemType, quantity: quantityToAdd });
+    state.cart.push({ itemId: id, variantId: variantId || undefined, title, price, image: safeImage, itemType, quantity: quantityToAdd });
   }
   saveCart();
   updateCartBadge();
-  showToast(`Added "${title}" to your cart!`);
+  showToast(itemType === "SERVICE" ? `Added "${title}" to your booking!` : `Added "${title}" to your cart!`);
   void maybePromptGuestSignIn("cart");
 }
 
@@ -61,24 +114,29 @@ function renderCartDrawer() {
     if (subtotalEl) subtotalEl.textContent = "KES 0";
     if (totalEl) totalEl.textContent = "KES 0";
     if (serviceBookingSection) serviceBookingSection.classList.add("hidden");
+    syncCheckoutDeliveryAndBookingUI();
     renderIcons();
     return;
   }
 
-  const hasService = state.cart.some((i) => i.itemType === "SERVICE");
-  if (serviceBookingSection) serviceBookingSection.classList.toggle("hidden", !hasService);
+  syncCheckoutDeliveryAndBookingUI();
 
   let subtotal = 0;
   let html = "";
   state.cart.forEach((item, index) => {
     const itemTotal = item.price * item.quantity;
     subtotal += itemTotal;
+    const isSvcLine = item.itemType === "SERVICE";
+    const lineImg = item.image || (typeof getItemFallbackArtwork === "function" ? getItemFallbackArtwork(item).dataUri : "");
     html += `
       <div class="flex items-center gap-3 py-3 border-b border-slate-100 text-xs">
-        <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" class="w-14 h-14 object-contain rounded-lg bg-slate-50 p-1 border border-slate-100">
+        <img src="${escapeHtml(lineImg)}" alt="${escapeHtml(item.title)}" class="w-14 h-14 object-contain rounded-lg bg-slate-50 p-1 border border-slate-100">
         <div class="flex-1 min-w-0">
-          <h4 class="font-bold text-slate-900 truncate">${escapeHtml(item.title)}</h4>
-          <span class="text-slate-500 font-mono">KES ${item.price.toLocaleString()}</span>
+          <div class="flex items-center gap-1.5">
+            <h4 class="font-bold text-slate-900 truncate">${escapeHtml(item.title)}</h4>
+            <span class="shrink-0 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${isSvcLine ? "bg-indigo-50 text-indigo-700" : "bg-emerald-50 text-emerald-700"}">${isSvcLine ? "Service" : "Product"}</span>
+          </div>
+          <span class="text-slate-500 font-mono">KES ${item.price.toLocaleString()}${isSvcLine ? " / session" : ""}</span>
         </div>
         <div class="flex items-center gap-2">
           <button onclick="updateCartQuantity(${index}, -1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-700">-</button>

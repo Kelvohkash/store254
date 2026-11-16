@@ -66,44 +66,96 @@ function getFilteredItems(items) {
   });
 }
 
+function formatServiceModeShort(mode) {
+  const map = {
+    IN_PERSON_SHOP: "In-Studio",
+    ON_SITE_CLIENT: "On-Site",
+    VIRTUAL_ONLINE: "Online",
+    FLEXIBLE: "Flexible",
+  };
+  return map[String(mode || "").toUpperCase()] || "";
+}
+
+function getItemFallbackArtwork(item) {
+  const ctx = {
+    categoryName: getCategoryLabelForItem(item?.categoryId),
+    businessType: state.activeTenant?.businessType,
+    storeName: state.activeTenant?.name,
+  };
+  if (typeof window !== "undefined" && window.Store254ItemArtwork) {
+    return {
+      dataUri: window.Store254ItemArtwork.buildDataUri(item, ctx),
+      stageHtml: window.Store254ItemArtwork.renderStageHtml(item, ctx),
+    };
+  }
+  return { dataUri: "", stageHtml: "" };
+}
+
+function replaceBrokenItemMediaWithArtwork(imgEl) {
+  const host = imgEl?.closest(".product-card-media, .marketplace-product-media");
+  if (!host) return;
+  const fallbackWrap = host.querySelector(".item-artwork-onerror");
+  if (fallbackWrap) {
+    imgEl.classList.add("hidden");
+    fallbackWrap.classList.remove("hidden");
+  }
+}
+if (typeof window !== "undefined") {
+  window.replaceBrokenItemMediaWithArtwork = replaceBrokenItemMediaWithArtwork;
+}
+
 function buildItemCardHtml(item, cardIndex = 99) {
   const isPriorityCard = cardIndex < 4;
   const isService = item.itemType === "SERVICE";
   const hasDisc = item.compareAtPrice && Number(item.compareAtPrice) > Number(item.basePrice);
-  const primaryImg = item.images?.[0] || (isService
-    ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80"
-    : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80");
+  const hasPhoto = Array.isArray(item.images) && Boolean(item.images[0]);
+  const artwork = getItemFallbackArtwork(item);
+  const primaryImg = hasPhoto ? item.images[0] : artwork.dataUri;
   const secImg = item.images?.[1];
   const isWish = state.wishlist.includes(item.id);
   const attrs = item.attributes || {};
+  const serviceConfig = item.metadata?.serviceConfig || {};
+  const serviceAvailable = !isService || serviceConfig.available !== false;
+  const isPhysicalOutOfStock = !isService && item.itemType !== "DIGITAL" && Boolean(item.trackInventory) && Number(item.stockQuantity || 0) <= 0;
   const brandOrCat = attrs.brand || getCategoryLabelForItem(item.categoryId) || (isService ? "Service" : "Featured");
 
-  // Extract up to 2 concise attribute specs for PC / List cards
-  const specChips = Object.entries(attrs)
-    .filter(([k, v]) => k !== "brand" && v !== null && v !== undefined && String(v).trim().length > 0 && String(v).trim().length <= 22)
-    .slice(0, 2)
-    .map(([k, v]) => {
+  // Concise attribute specs (services can also show configured duration & venue mode)
+  const specEntries = [];
+  if (isService) {
+    if (serviceConfig.duration) specEntries.push(String(serviceConfig.duration));
+    const modeLabel = formatServiceModeShort(serviceConfig.deliveryMode);
+    if (modeLabel) specEntries.push(modeLabel);
+  }
+  for (const [k, v] of Object.entries(attrs)) {
+    if (specEntries.length >= 2) break;
+    if (k !== "brand" && v !== null && v !== undefined && String(v).trim().length > 0 && String(v).trim().length <= 22) {
       const suffix = k === "screen_size" ? '"' : k === "duration_minutes" ? " mins" : "";
-      return `<span>${escapeHtml(String(v))}${suffix}</span>`;
-    })
-    .join("");
+      specEntries.push(`${String(v)}${suffix}`);
+    }
+  }
+  const specChips = specEntries.slice(0, 2).map((val) => `<span>${escapeHtml(val)}</span>`).join("");
 
   const itemHref = typeof getStorefrontRouteUrl === "function"
     ? getStorefrontRouteUrl({ itemSlug: item.slug || item.id })
     : `/item/${encodeURIComponent(item.slug || item.id)}`;
 
+  const mediaInnerHtml = hasPhoto
+    ? `<img src="${escapeHtml(item.images[0])}" alt="${escapeHtml(item.title)}" ${isPriorityCard ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async" width="400" height="400" class="w-full h-full object-cover" onerror="replaceBrokenItemMediaWithArtwork(this)">
+       <div class="item-artwork-onerror hidden w-full h-full">${artwork.stageHtml}</div>
+       ${secImg ? `<img class="product-card-secondary w-full h-full object-cover" src="${escapeHtml(secImg)}" alt="" loading="lazy" decoding="async" width="400" height="400">` : ""}`
+    : artwork.stageHtml;
+
   return `
     <article class="product-card${isService ? " product-card--service" : ""} flex flex-col group relative">
       <div class="product-card-media relative overflow-hidden flex items-center justify-center cursor-pointer" onclick="viewItemDetails(${inlineJs(item.id)})">
         <a href="${escapeHtml(itemHref)}" onclick="event.preventDefault(); event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" class="block w-full h-full no-underline" aria-label="${escapeHtml(item.title)}">
-          <img src="${escapeHtml(primaryImg)}" alt="${escapeHtml(item.title)}" ${isPriorityCard ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async" width="400" height="400" class="w-full h-full object-cover">
-          ${secImg ? `<img class="product-card-secondary w-full h-full object-cover" src="${escapeHtml(secImg)}" alt="" loading="lazy" decoding="async" width="400" height="400">` : ""}
+          ${mediaInnerHtml}
         </a>
         <div class="product-card-actions">
           <button type="button" data-wishlist-item="${escapeHtml(item.id)}" class="product-wishlist ${isWish ? "is-wishlisted" : ""}" onclick="event.stopPropagation(); toggleWishlist(${inlineJs(item.id)}, this)" aria-label="${isWish ? "Remove from" : "Add to"} wishlist" aria-pressed="${isWish}">
             <i data-lucide="heart" class="w-4 h-4"></i>
           </button>
-          ${!isService ? `<button type="button" class="product-cart-icon" onclick="event.stopPropagation(); addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" aria-label="Add ${escapeHtml(item.title)} to cart" title="Add to cart"><i data-lucide="plus" class="w-4 h-4"></i></button>` : ""}
+          ${!isService && !isPhysicalOutOfStock ? `<button type="button" class="product-cart-icon" onclick="event.stopPropagation(); addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" aria-label="Add ${escapeHtml(item.title)} to cart" title="Add to cart"><i data-lucide="plus" class="w-4 h-4"></i></button>` : ""}
         </div>
         <button type="button" class="product-quick-view-btn" onclick="event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" aria-label="Quick view ${escapeHtml(item.title)}" title="Quick view details">
           <i data-lucide="eye" class="w-3.5 h-3.5"></i>
@@ -111,7 +163,8 @@ function buildItemCardHtml(item, cardIndex = 99) {
         </button>
         <div class="product-badge-rail absolute top-2.5 inset-x-2.5 flex items-center justify-between pointer-events-none">
           <div class="flex items-center gap-1.5 flex-wrap">
-            ${isService ? `<span class="badge-service-pill">Service</span>` : ""}
+            ${isService ? `<span class="badge-service-pill">${serviceAvailable ? "Service" : "Paused"}</span>` : ""}
+            ${isPhysicalOutOfStock ? `<span class="product-out-of-stock-pill">Out of stock</span>` : ""}
           </div>
         </div>
       </div>
@@ -119,7 +172,7 @@ function buildItemCardHtml(item, cardIndex = 99) {
         <div>
           <div class="product-card-meta-row flex items-center justify-between gap-1.5 mb-1">
             <span class="product-tag-pill truncate">${escapeHtml(brandOrCat)}</span>
-            ${item.stockQuantity > 0 && item.stockQuantity <= 8 && !isService ? `<span class="product-stock-note">${item.stockQuantity} left</span>` : ""}
+            ${!isService && item.itemType !== "DIGITAL" && item.trackInventory && item.stockQuantity > 0 && item.stockQuantity <= 8 ? `<span class="product-stock-note">${item.stockQuantity} left</span>` : ""}
           </div>
           <h3 class="product-card-title cursor-pointer"><a href="${escapeHtml(itemHref)}" onclick="event.preventDefault(); viewItemDetails(${inlineJs(item.id)})" class="no-underline text-inherit">${escapeHtml(item.title)}</a></h3>
           ${item.description ? `<p class="product-card-desc">${escapeHtml(item.description)}</p>` : ""}
@@ -130,7 +183,7 @@ function buildItemCardHtml(item, cardIndex = 99) {
             <span class="product-card-price">KES ${Number(item.basePrice).toLocaleString()}</span>
             ${hasDisc ? `<span class="product-card-compare-price">KES ${Number(item.compareAtPrice).toLocaleString()}</span>` : ""}
           </div>
-          ${isService ? `<button type="button" onclick="addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" class="product-card-add w-full product-cart-service flex items-center justify-center gap-2"><i data-lucide="calendar" class="w-4 h-4"></i><span>Book Session</span></button>` : ""}
+          ${isService ? `<button type="button" ${serviceAvailable ? "" : "disabled"} onclick="addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" class="product-card-add w-full product-cart-service flex items-center justify-center gap-2 disabled:opacity-50"><i data-lucide="calendar" class="w-4 h-4"></i><span>${serviceAvailable ? "Book Session" : "Bookings Paused"}</span></button>` : ""}
         </div>
       </div>
     </article>`;

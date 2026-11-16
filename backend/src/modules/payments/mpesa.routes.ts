@@ -253,6 +253,18 @@ mpesaRouter.post("/callback", async (c) => {
       .where(and(eq(orderItems.orderId, paymentRecord.orderId), eq(orderItems.tenantId, paymentRecord.tenantId)));
 
     for (const line of orderLines) {
+      let itemMeta: { stock: number; itemType: string; trackInventory: boolean } | undefined;
+      if (line.itemId) {
+        const [found] = await db
+          .select({ stock: items.stockQuantity, itemType: items.itemType, trackInventory: items.trackInventory })
+          .from(items)
+          .where(and(eq(items.id, line.itemId), eq(items.tenantId, paymentRecord.tenantId)))
+          .limit(1);
+        itemMeta = found;
+      }
+      if (!itemMeta || itemMeta.itemType === "SERVICE" || !itemMeta.trackInventory) {
+        continue;
+      }
       if (line.variantId) {
         const [v] = await db
           .select({ stock: itemVariants.stockQuantity })
@@ -266,17 +278,10 @@ mpesaRouter.post("/callback", async (c) => {
             .where(and(eq(itemVariants.id, line.variantId), eq(itemVariants.tenantId, paymentRecord.tenantId)));
         }
       } else if (line.itemId) {
-        const [i] = await db
-          .select({ stock: items.stockQuantity })
-          .from(items)
-          .where(and(eq(items.id, line.itemId), eq(items.tenantId, paymentRecord.tenantId)))
-          .limit(1);
-        if (i) {
-          await db
-            .update(items)
-            .set({ stockQuantity: Math.max(0, i.stock - line.quantity) })
-            .where(and(eq(items.id, line.itemId), eq(items.tenantId, paymentRecord.tenantId)));
-        }
+        await db
+          .update(items)
+          .set({ stockQuantity: Math.max(0, itemMeta.stock - line.quantity) })
+          .where(and(eq(items.id, line.itemId), eq(items.tenantId, paymentRecord.tenantId)));
       }
     }
     }
