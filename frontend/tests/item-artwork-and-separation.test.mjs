@@ -9,7 +9,9 @@ const artwork = require("../scripts/shared/item-artwork-classifier.js");
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 test("item artwork classifier exposes a large catalog and matches everyday, Swahili, and absurd concepts", () => {
-  assert.ok(artwork.getCatalog().length >= 50, "expected at least 50 high-detail icon archetypes");
+  const catalog = artwork.getCatalog();
+  assert.ok(catalog.length >= 500, `expected at least 500 high-detail icon archetypes, got ${catalog.length}`);
+  assert.equal(new Set(catalog.map((d) => d.id)).size, catalog.length, "expected all icon archetype IDs to be unique");
 
   const cases = [
     { item: { title: "Air Max Running Kicks", itemType: "PHYSICAL" }, expected: "sneaker" },

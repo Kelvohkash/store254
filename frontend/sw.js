@@ -1,4 +1,4 @@
-const CACHE_VERSION = "store254-pwa-v19";
+const CACHE_VERSION = "store254-pwa-v20";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -32,7 +32,7 @@ const PRECACHE_URLS = [
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
   "/assets/apple-touch-icon.png",
-  "/scripts/shared/item-artwork-classifier.js?v=20261116e"
+  "/scripts/shared/item-artwork-classifier.js?v=20261116f"
 ];
 
 self.addEventListener("install", (event) => {

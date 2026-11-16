@@ -237,22 +237,41 @@ function resetItemArtworkToAuto() {
   handleItemArtworkPreviewInput();
 }
 
+let itemArtworkPickerQuery = '';
+let itemArtworkPickerLimit = 60;
+
+function showMoreItemArtworkIcons() {
+  itemArtworkPickerLimit += 60;
+  renderItemArtworkPicker(itemArtworkPickerQuery);
+}
+
 function renderItemArtworkPicker(queryText = '') {
   const grid = document.getElementById('product-artwork-grid');
   if (!grid || !window.Store254ItemArtwork) return;
+  const normalizedQuery = String(queryText || '').trim();
+  if (normalizedQuery !== itemArtworkPickerQuery) {
+    itemArtworkPickerQuery = normalizedQuery;
+    itemArtworkPickerLimit = 60;
+  }
   const activeId = document.getElementById('product-artwork-icon')?.value || '';
-  const list = window.Store254ItemArtwork.searchCatalog(queryText);
+  const list = window.Store254ItemArtwork.searchCatalog(normalizedQuery);
   if (!list.length) {
     grid.innerHTML = '<div class="col-span-full text-center text-[11px] text-slate-400 py-3">No matching icons — try another keyword</div>';
     return;
   }
-  grid.innerHTML = list.map((entry) => {
+  const visible = list.slice(0, itemArtworkPickerLimit);
+  const buttonsHtml = visible.map((entry) => {
     const selected = entry.id === activeId;
     const svg = window.Store254ItemArtwork.renderSvgString({ title: entry.label, artworkIcon: entry.id }, {});
     return `<button type="button" onclick="selectManualItemArtwork(${inlineJs(entry.id)})" title="${escHtml(entry.label)}" aria-label="${escHtml(entry.label)}" class="w-10 h-10 rounded-lg overflow-hidden border-2 transition-all p-0.5 bg-white ${
       selected ? 'border-emerald-600 ring-2 ring-emerald-200 scale-105' : 'border-slate-200 hover:border-emerald-400'
     }">${svg}</button>`;
   }).join('');
+  const remaining = list.length - visible.length;
+  const moreHtml = remaining > 0
+    ? `<button type="button" onclick="showMoreItemArtworkIcons()" class="col-span-full mt-1 py-1.5 px-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 text-[11px] font-semibold text-slate-600 transition-colors">Show more (${remaining} more of ${list.length} icons)</button>`
+    : '';
+  grid.innerHTML = buttonsHtml + moreHtml;
 }
 
 function renderVariantRows(variants = []) {
