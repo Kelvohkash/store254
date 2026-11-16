@@ -68,6 +68,14 @@
   object-fit: contain;
   object-position: center;
 }
+.item-modal-gallery-image.hidden,
+#item-modal-artwork-stage.hidden {
+  display: none !important;
+}
+#item-modal-artwork-stage {
+  width: 100%;
+  height: 100%;
+}
 .item-modal-gallery-nav {
   position: absolute;
   z-index: 10;

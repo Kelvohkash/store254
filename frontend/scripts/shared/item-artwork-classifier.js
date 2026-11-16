@@ -1093,8 +1093,9 @@
       .replace(/\{\{ink\}\}/g, pal.ink);
     const svgClass = opts.svgClass ? ` class="${escapeXml(opts.svgClass)}"` : "";
     const ariaLabel = escapeXml(opts.ariaLabel || `${item?.title || resolved.label} illustration`);
+    const aspectRatio = escapeXml(opts.preserveAspectRatio || "xMidYMid meet");
 
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%;display:block;"${svgClass} role="img" aria-label="${ariaLabel}">
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" preserveAspectRatio="${aspectRatio}" style="width:100%;height:100%;display:block;"${svgClass} role="img" aria-label="${ariaLabel}">
       <defs>
         <linearGradient id="${uid}_bg" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stop-color="${pal.bg1}"/>
@@ -1133,11 +1134,12 @@
 
   function renderStageHtml(item, context, options) {
     const resolved = resolveArtwork(item, context);
+    const pal = resolved.palette;
     const opts = options || {};
     const compact = Boolean(opts.compact);
-    const svgHtml = renderSvgString(item, context, { svgClass: "item-artwork-svg" });
+    const svgHtml = renderSvgString(item, context, { svgClass: "item-artwork-svg", preserveAspectRatio: "xMidYMid meet" });
     return `
-      <div class="item-artwork-fallback${compact ? " is-compact" : ""}" data-artwork-id="${escapeXml(resolved.id)}" style="width:100%;height:100%;display:block;position:relative;overflow:hidden;">
+      <div class="item-artwork-fallback${compact ? " is-compact" : ""}" data-artwork-id="${escapeXml(resolved.id)}" style="width:100%;height:100%;display:block;position:relative;overflow:hidden;background:linear-gradient(135deg,${pal.bg1},${pal.bg2});">
         ${svgHtml}
       </div>
     `;

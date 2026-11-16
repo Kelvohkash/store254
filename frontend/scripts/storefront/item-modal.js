@@ -8,6 +8,8 @@ function setItemModalImage(index) {
   if (!image || images.length === 0) return;
 
   state.currentItemImageIndex = (index + images.length) % images.length;
+  image.classList.remove("hidden");
+  image.style.display = "";
   image.decoding = "async";
   image.fetchPriority = "high";
   image.src = images[state.currentItemImageIndex];
@@ -56,17 +58,25 @@ function renderItemImageGallery(images, title, itemObj = null) {
   if (stage) stage.style.aspectRatio = "4 / 3";
 
   if (!hasRealPhotos && artworkStage && imageEl) {
+    imageEl.removeAttribute("src");
     imageEl.classList.add("hidden");
+    imageEl.style.display = "none";
     artworkStage.innerHTML = fallbackArt.stageHtml;
     artworkStage.classList.remove("hidden");
+    artworkStage.style.display = "block";
   } else if (imageEl && artworkStage) {
     artworkStage.innerHTML = "";
     artworkStage.classList.add("hidden");
+    artworkStage.style.display = "none";
     imageEl.classList.remove("hidden");
+    imageEl.style.display = "";
     imageEl.onerror = () => {
+      imageEl.removeAttribute("src");
       imageEl.classList.add("hidden");
+      imageEl.style.display = "none";
       artworkStage.innerHTML = fallbackArt.stageHtml;
       artworkStage.classList.remove("hidden");
+      artworkStage.style.display = "block";
     };
   }
 
