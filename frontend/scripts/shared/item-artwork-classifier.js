@@ -9,24 +9,24 @@
 })(typeof window !== "undefined" ? window : globalThis, function (root) {
   "use strict";
 
-  // Rich color palettes (gradient stage, highlight aura, primary fill, accent fill, ink stroke)
+  // Architectural studio color palettes: satin backdrop, soft spotlight, deep directional material gradient, titanium/champagne trim, hairline rim
   const PALETTES = {
-    cobalt: { bg1: "#eff6ff", bg2: "#dbeafe", orb: "#93c5fd", p1: "#2563eb", p2: "#60a5fa", accent: "#f59e0b", ink: "#1e3a8a" },
-    emerald: { bg1: "#ecfdf5", bg2: "#d1fae5", orb: "#6ee7b7", p1: "#059669", p2: "#34d399", accent: "#f59e0b", ink: "#064e3b" },
-    amber: { bg1: "#fffbeb", bg2: "#fef3c7", orb: "#fcd34d", p1: "#d97706", p2: "#fbbf24", accent: "#2563eb", ink: "#78350f" },
-    rose: { bg1: "#fff1f2", bg2: "#ffe4e6", orb: "#fda4af", p1: "#e11d48", p2: "#fb7185", accent: "#f59e0b", ink: "#881337" },
-    violet: { bg1: "#f5f3ff", bg2: "#ede9fe", orb: "#c4b5fd", p1: "#7c3aed", p2: "#a78bfa", accent: "#38bdf8", ink: "#4c1d95" },
-    cyan: { bg1: "#ecfeff", bg2: "#cffafe", orb: "#67e8f9", p1: "#0891b2", p2: "#22d3ee", accent: "#f59e0b", ink: "#164e63" },
-    terracotta: { bg1: "#fff7ed", bg2: "#ffedd5", orb: "#fdba74", p1: "#c2410c", p2: "#fb923c", accent: "#0d9488", ink: "#7c2d12" },
-    forest: { bg1: "#f0fdf4", bg2: "#dcfce7", orb: "#86efac", p1: "#15803d", p2: "#4ade80", accent: "#eab308", ink: "#14532d" },
-    indigo: { bg1: "#eef2ff", bg2: "#e0e7ff", orb: "#a5b4fc", p1: "#4f46e5", p2: "#818cf8", accent: "#f43f5e", ink: "#312e81" },
-    plum: { bg1: "#fdf4ff", bg2: "#fae8ff", orb: "#f0abfc", p1: "#a21caf", p2: "#e879f9", accent: "#f59e0b", ink: "#701a75" },
-    teal: { bg1: "#f0fdfa", bg2: "#ccfbf1", orb: "#5eead4", p1: "#0d9488", p2: "#2dd4bf", accent: "#fb7185", ink: "#134e4a" },
-    slate: { bg1: "#f8fafc", bg2: "#e2e8f0", orb: "#cbd5e1", p1: "#334155", p2: "#64748b", accent: "#3b82f6", ink: "#0f172a" },
-    gold: { bg1: "#fefce8", bg2: "#fef08a", orb: "#fde047", p1: "#ca8a04", p2: "#facc15", accent: "#7c3aed", ink: "#713f12" },
-    crimson: { bg1: "#fef2f2", bg2: "#fee2e2", orb: "#fca5a5", p1: "#dc2626", p2: "#f87171", accent: "#fbbf24", ink: "#7f1d1d" },
-    sky: { bg1: "#f0f9ff", bg2: "#e0f2fe", orb: "#7dd3fc", p1: "#0284c7", p2: "#38bdf8", accent: "#10b981", ink: "#0c4a6e" },
-    mint: { bg1: "#ecfdf5", bg2: "#ccfbf1", orb: "#99f6e4", p1: "#0f766e", p2: "#14b8a6", accent: "#f97316", ink: "#115e59" },
+    cobalt: { bg1: "#f6f8fc", bg2: "#e8eef8", orb: "#bfdbfe", p1: "#1e40af", p2: "#3b82f6", accent: "#f59e0b", rim: "#1e3a8a", ink: "#1e293b" },
+    emerald: { bg1: "#f4fbf8", bg2: "#e3f3ec", orb: "#a7f3d0", p1: "#065f46", p2: "#10b981", accent: "#d97706", rim: "#064e3b", ink: "#0f172a" },
+    amber: { bg1: "#faf8f4", bg2: "#f3ecdf", orb: "#fde68a", p1: "#b45309", p2: "#f59e0b", accent: "#334155", rim: "#78350f", ink: "#1e293b" },
+    rose: { bg1: "#fbf6f7", bg2: "#f3e5e9", orb: "#fecdd3", p1: "#9f1239", p2: "#e11d48", accent: "#d97706", rim: "#881337", ink: "#1e293b" },
+    violet: { bg1: "#f7f6fc", bg2: "#ebe7f7", orb: "#ddd6fe", p1: "#5b21b6", p2: "#7c3aed", accent: "#0284c7", rim: "#4c1d95", ink: "#1e293b" },
+    cyan: { bg1: "#f3fafb", bg2: "#e2f2f5", orb: "#a5f3fc", p1: "#155e75", p2: "#0891b2", accent: "#d97706", rim: "#164e63", ink: "#0f172a" },
+    terracotta: { bg1: "#faf6f3", bg2: "#f1e7df", orb: "#fed7aa", p1: "#9a3412", p2: "#ea580c", accent: "#0f766e", rim: "#7c2d12", ink: "#1e293b" },
+    forest: { bg1: "#f4f9f5", bg2: "#e3efe6", orb: "#bbf7d0", p1: "#166534", p2: "#22c55e", accent: "#ca8a04", rim: "#14532d", ink: "#0f172a" },
+    indigo: { bg1: "#f5f6fb", bg2: "#e6e9f5", orb: "#c7d2fe", p1: "#312e81", p2: "#4f46e5", accent: "#d97706", rim: "#1e1b4b", ink: "#1e293b" },
+    plum: { bg1: "#faf5fb", bg2: "#f0e4f4", orb: "#e9d5ff", p1: "#701a75", p2: "#a21caf", accent: "#d97706", rim: "#581c87", ink: "#1e293b" },
+    teal: { bg1: "#f3faf9", bg2: "#e1f2ef", orb: "#99f6e4", p1: "#115e59", p2: "#0d9488", accent: "#d97706", rim: "#134e4a", ink: "#0f172a" },
+    slate: { bg1: "#f8fafc", bg2: "#e6ebf2", orb: "#cbd5e1", p1: "#1e293b", p2: "#475569", accent: "#2563eb", rim: "#0f172a", ink: "#0f172a" },
+    gold: { bg1: "#faf8f2", bg2: "#f2ebd8", orb: "#fef08a", p1: "#854d0e", p2: "#ca8a04", accent: "#334155", rim: "#713f12", ink: "#1e293b" },
+    crimson: { bg1: "#fbf5f5", bg2: "#f3e4e4", orb: "#fecaca", p1: "#991b1b", p2: "#dc2626", accent: "#d97706", rim: "#7f1d1d", ink: "#1e293b" },
+    sky: { bg1: "#f4f9fc", bg2: "#e3eef7", orb: "#bae6fd", p1: "#075985", p2: "#0284c7", accent: "#059669", rim: "#0c4a6e", ink: "#0f172a" },
+    mint: { bg1: "#f3faf8", bg2: "#e1f1ec", orb: "#a7f3d0", p1: "#0f766e", p2: "#14b8a6", accent: "#c2410c", rim: "#115e59", ink: "#0f172a" },
   };
 
   // Multi-layer SVG vector scenes centered in viewBox 0 0 120 120
@@ -915,10 +915,12 @@
       phrases: ["tax filing", "business registration", "legal advice", "kra pin"],
       keywords: ["consulting", "consultant", "legal", "lawyer", "advocate", "accounting", "tax", "kra", "audit", "finance", "insurance", "contract", "notary", "hr", "marketing", "strategy"],
       svg: `
-        <path d="M44 34v-8a4 4 0 0 1 4-4h24a4 4 0 0 1 4 4v8" fill="none" stroke="{{ink}}" stroke-width="3.5"/>
-        <rect x="18" y="34" width="84" height="60" rx="10" fill="{{p1}}" stroke="{{ink}}" stroke-width="2.5"/>
-        <path d="M18 56c26 10 58 10 84 0" fill="{{p2}}" opacity="0.45" stroke="{{ink}}" stroke-width="2"/>
-        <rect x="52" y="54" width="16" height="12" rx="3" fill="{{accent}}" stroke="{{ink}}" stroke-width="2"/>
+        <path d="M46 33v-7a5 5 0 0 1 5-5h18a5 5 0 0 1 5 5v7" fill="none" stroke="{{ink}}" stroke-width="2.4" stroke-linecap="round"/>
+        <rect x="18" y="33" width="84" height="60" rx="10" fill="{{p1}}" stroke="rgba(255,255,255,0.28)" stroke-width="1.2"/>
+        <path d="M18 43a10 10 0 0 1 10-10h64a10 10 0 0 1 10 10v14c-26 9-58 9-84 0V43z" fill="{{p2}}" opacity="0.52"/>
+        <path d="M20 57c25 8 55 8 80 0" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+        <rect x="51" y="52" width="18" height="12" rx="3" fill="{{accent}}" stroke="rgba(255,255,255,0.65)" stroke-width="1"/>
+        <rect x="57" y="56" width="6" height="4" rx="1" fill="#ffffff" opacity="0.85"/>
       `,
     },
     {
@@ -1306,7 +1308,16 @@
     const pal = resolved.palette;
     const opts = options || {};
     const uid = `art_${hashTitle(`${resolved.id}_${item?.id || item?.title || ""}`)}`;
+    const matGrad = `url(#${uid}_mat)`;
+    const matLight = `url(#${uid}_hi)`;
+    // Upgrade heavy cartoon outlines & flat fills into satin gradient fills + refined architectural hairlines
     const hydratedBody = resolved.def.svg
+      .replace(/fill="\{\{p1\}\}"/g, `fill="${matGrad}"`)
+      .replace(/fill="\{\{p2\}\}"/g, `fill="${matLight}"`)
+      .replace(/stroke="\{\{ink\}\}" stroke-width="(?:2\.5|2)"/g, `stroke="${pal.rim}" stroke-opacity="0.34" stroke-width="1.2"`)
+      .replace(/stroke="\{\{ink\}\}" stroke-width="(?:4\.5|4|3\.5|3)"/g, `stroke="${pal.ink}" stroke-opacity="0.72" stroke-width="2.3"`)
+      .replace(/#ef4444|#f97316|#fb7185/gi, pal.accent)
+      .replace(/#34d399/gi, pal.p2)
       .replace(/\{\{p1\}\}/g, pal.p1)
       .replace(/\{\{p2\}\}/g, pal.p2)
       .replace(/\{\{accent\}\}/g, pal.accent)
@@ -1320,18 +1331,34 @@
           <stop offset="0%" stop-color="${pal.bg1}"/>
           <stop offset="100%" stop-color="${pal.bg2}"/>
         </linearGradient>
-        <radialGradient id="${uid}_orb" cx="50%" cy="46%" r="48%">
-          <stop offset="0%" stop-color="${pal.orb}" stop-opacity="0.48"/>
+        <linearGradient id="${uid}_mat" x1="0" y1="0" x2="0.85" y2="1">
+          <stop offset="0%" stop-color="${pal.p2}"/>
+          <stop offset="100%" stop-color="${pal.p1}"/>
+        </linearGradient>
+        <linearGradient id="${uid}_hi" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${pal.p2}" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="${pal.p1}" stop-opacity="0.85"/>
+        </linearGradient>
+        <radialGradient id="${uid}_orb" cx="50%" cy="48%" r="48%">
+          <stop offset="0%" stop-color="${pal.orb}" stop-opacity="0.42"/>
           <stop offset="100%" stop-color="${pal.orb}" stop-opacity="0"/>
         </radialGradient>
+        <linearGradient id="${uid}_sheen" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.65"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="${uid}_shadow" x="-15%" y="-15%" width="130%" height="135%">
+          <feDropShadow dx="0" dy="3.5" stdDeviation="3.2" flood-color="${pal.ink}" flood-opacity="0.16"/>
+        </filter>
       </defs>
       <rect width="120" height="120" fill="url(#${uid}_bg)"/>
-      <circle cx="60" cy="56" r="50" fill="url(#${uid}_orb)"/>
-      <circle cx="20" cy="22" r="2.2" fill="${pal.p2}" opacity="0.4"/>
-      <circle cx="98" cy="24" r="3" fill="${pal.accent}" opacity="0.35"/>
-      <circle cx="100" cy="96" r="2.2" fill="${pal.p1}" opacity="0.3"/>
-      <circle cx="22" cy="95" r="2.6" fill="${pal.p2}" opacity="0.35"/>
-      ${hydratedBody}
+      <circle cx="60" cy="58" r="46" fill="url(#${uid}_orb)"/>
+      <circle cx="60" cy="58" r="39" fill="none" stroke="${pal.ink}" stroke-opacity="0.06" stroke-width="0.9"/>
+      <circle cx="60" cy="58" r="28" fill="none" stroke="${pal.ink}" stroke-opacity="0.05" stroke-width="0.7" stroke-dasharray="3 3"/>
+      <g filter="url(#${uid}_shadow)">
+        ${hydratedBody}
+      </g>
+      <path d="M0 0h120v36Q60 54 0 38z" fill="url(#${uid}_sheen)" opacity="0.35"/>
     </svg>`;
   }
 
