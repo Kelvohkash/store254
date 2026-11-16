@@ -1314,7 +1314,7 @@
     const svgClass = opts.svgClass ? ` class="${escapeXml(opts.svgClass)}"` : "";
     const ariaLabel = escapeXml(opts.ariaLabel || `${item?.title || resolved.label} illustration`);
 
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"${svgClass} role="img" aria-label="${ariaLabel}">
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%;display:block;"${svgClass} role="img" aria-label="${ariaLabel}">
       <defs>
         <linearGradient id="${uid}_bg" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stop-color="${pal.bg1}"/>
@@ -1339,12 +1339,10 @@
     const resolved = resolveArtwork(item, context);
     const opts = options || {};
     const compact = Boolean(opts.compact);
-    const showBadge = opts.showBadge !== false && !compact;
     const svgHtml = renderSvgString(item, context, { svgClass: "item-artwork-svg" });
     return `
-      <div class="item-artwork-fallback${compact ? " is-compact" : ""}" data-artwork-id="${escapeXml(resolved.id)}" style="width:100%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <div class="item-artwork-fallback${compact ? " is-compact" : ""}" data-artwork-id="${escapeXml(resolved.id)}" style="width:100%;height:100%;display:block;position:relative;overflow:hidden;">
         ${svgHtml}
-        ${showBadge ? `<span class="item-artwork-caption">${escapeXml(resolved.label)}</span>` : ""}
       </div>
     `;
   }

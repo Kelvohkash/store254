@@ -1,4 +1,4 @@
-const CACHE_VERSION = "store254-pwa-v17";
+const CACHE_VERSION = "store254-pwa-v18";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -15,7 +15,7 @@ const PRECACHE_URLS = [
   "/styles/base/cards-catalog.css",
   "/styles/base/drawers-modals.css",
   "/styles/storefront-components.css",
-  "/styles/storefront-components.css?v=20261116b",
+  "/styles/storefront-components.css?v=20261116d",
   "/styles/components/tokens-variants.css",
   "/styles/components/archetypes-hero.css",
   "/styles/components/cards-interactions.css",
@@ -32,7 +32,7 @@ const PRECACHE_URLS = [
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
   "/assets/apple-touch-icon.png",
-  "/scripts/shared/item-artwork-classifier.js?v=20261116c"
+  "/scripts/shared/item-artwork-classifier.js?v=20261116d"
 ];
 
 self.addEventListener("install", (event) => {
