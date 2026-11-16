@@ -205,7 +205,7 @@ html[data-storefront="true"] #orders-drawer .bg-slate-50 { background-color: var
 html[data-storefront="true"] #cart-drawer input,
 html[data-storefront="true"] #cart-drawer textarea,
 html[data-storefront="true"] #cart-drawer select,
-html[data-storefront="true"] #item-details-modal input,
+html[data-storefront="true"] #item-details-modal input:not(#item-modal-qty),
 html[data-storefront="true"] #item-details-modal textarea,
 html[data-storefront="true"] #item-details-modal select {
   background-color: var(--store-paper) !important;
@@ -216,11 +216,32 @@ html[data-storefront="true"] #item-details-modal select {
 }
 html[data-storefront="true"] #cart-drawer input:focus,
 html[data-storefront="true"] #cart-drawer textarea:focus,
-html[data-storefront="true"] #item-details-modal input:focus,
+html[data-storefront="true"] #item-details-modal input:not(#item-modal-qty):focus,
 html[data-storefront="true"] #item-details-modal textarea:focus {
   border-color: var(--store-primary) !important;
   box-shadow: 0 0 0 3px var(--store-primary-glow);
   outline: none;
+}
+#item-modal-qty {
+  width: 2.5rem !important;
+  min-width: 2.5rem !important;
+  height: 1.75rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--store-ink, #0f172a) !important;
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+#item-modal-qty::-webkit-inner-spin-button,
+#item-modal-qty::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+  display: none !important;
 }
 
 /* Checkout buttons: clear hierarchy, M-Pesa first */

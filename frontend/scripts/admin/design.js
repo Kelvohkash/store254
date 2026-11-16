@@ -19,6 +19,10 @@ async function loadSettings() {
   setVal("settings-description", settings.description || "");
   setVal("settings-logo", settings.logoUrl || "");
   setVal("settings-banner", settings.bannerUrl || "");
+  if (typeof updateBrandingMediaPreview === "function") {
+    updateBrandingMediaPreview("settings-logo", settings.logoUrl || "");
+    updateBrandingMediaPreview("settings-banner", settings.bannerUrl || "");
+  }
   setVal("settings-phone", settings.contactPhone || "");
   setVal("settings-whatsapp", socials.whatsapp || "");
   setVal("settings-email", settings.contactEmail || "");
@@ -34,7 +38,7 @@ async function saveStoreSettings(event) {
   const status = document.getElementById("design-draft-status");
   const name = document.getElementById("settings-name")?.value.trim() || currentStoreDesign.name;
   const settings = {
-    primaryColor: document.getElementById("settings-primary-color")?.value || "#9a3412",
+    primaryColor: document.getElementById("settings-primary-color")?.value || "#2563eb",
     productCardStyle: document.getElementById("settings-product-card-style")?.value || "grid-card",
     tagline: document.getElementById("settings-tagline")?.value.trim() || undefined,
     description: document.getElementById("settings-description")?.value.trim() || undefined,

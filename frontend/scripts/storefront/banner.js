@@ -69,7 +69,7 @@ function renderStoreBanner() {
   document.getElementById("banner-store-desc").textContent =
     rawDesc && !isDuplicateDesc ? rawDesc : fallbackDesc;
 
-  setStoreBannerBackground(banner, settings.bannerUrl);
+  setStoreBannerBackground(banner, settings.bannerUrl, settings.logoUrl);
   renderArchetypeContent(settings);
 
   const callBtn = document.getElementById("banner-store-call-btn");
@@ -237,20 +237,55 @@ function buyFeaturedProduct() {
   toggleDrawer("cart-drawer", true);
 }
 
-function setStoreBannerBackground(banner, imageUrl) {
+function setStoreBannerBackground(banner, imageUrl, fallbackLogoUrl = "") {
+  const requestToken = String((Number(banner.dataset.bannerToken || 0)) + 1);
+  banner.dataset.bannerToken = requestToken;
   banner.style.removeProperty("--store-banner-image");
   banner.style.setProperty("--store-banner-position", ({ left: "28% center", right: "72% center", top: "center 28%", center: "center" })[state.activeTenant?.settings?.heroFocalPoint] || "center");
   banner.classList.remove("has-banner-image");
-  if (!imageUrl) return;
 
-  try {
-    const url = new URL(imageUrl, window.location.origin);
-    if (url.protocol !== "https:" && url.protocol !== "http:") {
-      throw new Error("Store banner image URL must use HTTP or HTTPS.");
+  const primaryUrl = String(imageUrl || "").trim();
+  const fallbackUrl = String(fallbackLogoUrl || "").trim();
+  const heroImageUrl = primaryUrl || fallbackUrl;
+  if (!heroImageUrl) return;
+
+  const applyUrl = (candidateUrl, onFailure) => {
+    try {
+      const url = new URL(candidateUrl, window.location.origin);
+      if (url.protocol !== "https:" && url.protocol !== "http:") {
+        throw new Error("Store banner image URL must use HTTP or HTTPS.");
+      }
+      const safeCssUrl = url.href.replace(/["\\()\r\n]/g, encodeURIComponent);
+      banner.style.setProperty("--store-banner-image", `url("${safeCssUrl}")`);
+      banner.classList.add("has-banner-image");
+
+      const probe = new Image();
+      probe.onload = () => {
+        if (banner.dataset.bannerToken !== requestToken) return;
+        banner.classList.add("has-banner-image");
+      };
+      probe.onerror = () => {
+        if (banner.dataset.bannerToken !== requestToken) return;
+        if (typeof onFailure === "function") {
+          onFailure();
+        } else {
+          banner.style.removeProperty("--store-banner-image");
+          banner.classList.remove("has-banner-image");
+        }
+      };
+      probe.src = url.href;
+    } catch (error) {
+      console.error("[Store branding] Invalid banner image URL:", error);
+      if (typeof onFailure === "function") onFailure();
     }
-    banner.style.setProperty("--store-banner-image", `url("${url.href}")`);
-    banner.classList.add("has-banner-image");
-  } catch (error) {
-    console.error("[Store branding] Invalid banner image URL:", error);
-  }
+  };
+
+  applyUrl(heroImageUrl, () => {
+    if (primaryUrl && fallbackUrl && fallbackUrl !== primaryUrl) {
+      applyUrl(fallbackUrl);
+    } else {
+      banner.style.removeProperty("--store-banner-image");
+      banner.classList.remove("has-banner-image");
+    }
+  });
 }

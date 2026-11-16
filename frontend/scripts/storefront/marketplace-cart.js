@@ -751,9 +751,8 @@
   function getActiveQuickViewSelection() {
     if (!activeQuickViewData) return null;
     const { item, variants, store } = activeQuickViewData;
-    const variant = Array.isArray(variants)
-      ? variants.find((v) => v.id === selectedVariantId) || null
-      : null;
+    const safeVariants = Array.isArray(variants) ? variants : [];
+    const variant = safeVariants.find((v) => v.id === selectedVariantId) || null;
     const unitPrice = variant ? variant.price : item.basePrice;
     const stock = variant ? variant.stockQuantity : item.stockQuantity;
     const inStock = !item.trackInventory || Number(stock || 0) > 0;
@@ -767,6 +766,7 @@
     return {
       item,
       variant,
+      variants: safeVariants,
       store,
       unitPrice,
       stock,
@@ -926,7 +926,7 @@
                 : ""
             }
             ${
-              variants.length > 0
+              Array.isArray(variants) && variants.length > 0
                 ? `<div class="mt-4">
                     <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">Choose Option</p>
                     <div class="flex flex-wrap gap-2">${variants

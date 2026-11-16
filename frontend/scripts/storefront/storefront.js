@@ -73,7 +73,7 @@ async function loadStoreProfile() {
     renderSkeletonCards();
   }
   const [res] = await Promise.all([
-    apiFetch("/api/store"),
+    apiFetch("/api/store", { cache: "no-store" }),
     loadCategories(),
     loadDynamicFilters(),
     loadItems(),

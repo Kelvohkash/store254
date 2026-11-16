@@ -22,6 +22,8 @@ export function enterpriseSecurityHeaders(): MiddlewareHandler {
     },
     // Referrer policy
     referrerPolicy: "strict-origin-when-cross-origin",
+    // Allow cross-origin loading of public media assets across store subdomains & root marketplace
+    crossOriginResourcePolicy: "cross-origin",
     // Cross-Domain Policies
     xPermittedCrossDomainPolicies: "none",
     // Download options for IE

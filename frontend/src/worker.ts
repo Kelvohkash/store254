@@ -14,6 +14,7 @@ import {
   parseStorefrontRoute,
   resolveTenantCanonicalOrigin,
   sanitizeSlug,
+  toAbsoluteUrl,
   type PlatformStoreSeo,
   type SeoItemDetailPayload,
   type SeoStorefrontPayload,
@@ -137,20 +138,23 @@ export default {
       const edgeCache = isPublicMediaRead
         ? (caches as unknown as { default?: Cache }).default
         : undefined;
-      const cacheKey = isPublicMediaRead ? new Request(url.toString(), { method: "GET" }) : undefined;
+      const cacheKey = isPublicMediaRead
+        ? new Request(`https://media-cache.internal/v2${url.pathname}`, { method: "GET" })
+        : undefined;
 
       if (edgeCache && cacheKey) {
         const cached = await edgeCache.match(cacheKey);
-        if (cached) {
+        if (cached && cached.status === 200 && cached.headers.get("content-length") !== "0") {
           const ifNoneMatch = request.headers.get("if-none-match");
           const cachedEtag = cached.headers.get("etag");
           if (ifNoneMatch && cachedEtag && ifNoneMatch === cachedEtag) {
-            return new Response(null, { status: 304, headers: cached.headers });
+            return new Response(null, { status: 304, headers: new Headers(cached.headers) });
           }
-          if (request.method === "HEAD") {
-            return new Response(null, { status: cached.status, headers: cached.headers });
-          }
-          return cached;
+          return new Response(request.method === "HEAD" ? null : cached.body, {
+            status: cached.status,
+            statusText: cached.statusText,
+            headers: new Headers(cached.headers),
+          });
         }
       }
 
@@ -185,8 +189,8 @@ export default {
       }
       // Allow Googlebot-Image on public product photos (/api/media/*) & cache immutable responses at edge.
       if (url.pathname.startsWith("/api/media/")) {
-        if (isPublicMediaRead && apiResponse.status === 200 && edgeCache && cacheKey) {
-          ctx.waitUntil(edgeCache.put(cacheKey, apiResponse.clone()));
+        if (request.method === "GET" && apiResponse.status === 200 && edgeCache && cacheKey) {
+          ctx?.waitUntil(edgeCache.put(cacheKey, apiResponse.clone()));
         }
         return apiResponse;
       }
@@ -588,6 +592,23 @@ export default {
         isPreview: hostInfo.isPreviewHost,
       });
 
+      const rawSettings = storefrontPayload.tenant.settings;
+      const tenantSettings =
+        typeof rawSettings === "string"
+          ? (() => {
+              try {
+                const parsed = JSON.parse(rawSettings);
+                return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+              } catch {
+                return {};
+              }
+            })()
+          : rawSettings && typeof rawSettings === "object"
+            ? (rawSettings as Record<string, unknown>)
+            : {};
+      const ssrLogoUrl = toAbsoluteUrl(tenantSettings.logoUrl, url.origin);
+      const ssrBannerUrl = toAbsoluteUrl(tenantSettings.bannerUrl || tenantSettings.logoUrl, url.origin);
+
       const directoryHub = getDirectoryHubForBusinessType(storefrontPayload.tenant.businessType);
       const rewriter = new HTMLRewriter()
         .on('#platform-hero, .platform-nav-links, #platform-mobile-menu, #footer-about-link, link[rel="manifest"]', {
@@ -625,6 +646,31 @@ export default {
         .on("#store-info-banner", {
           element(el) {
             removeHiddenClass(el);
+            if (ssrBannerUrl) {
+              const cls = el.getAttribute("class") || "store-banner";
+              if (!cls.split(/\s+/).includes("has-banner-image")) {
+                el.setAttribute("class", `${cls} has-banner-image`.trim());
+              }
+              const safeCssUrl = ssrBannerUrl.replace(/["\\()\r\n]/g, encodeURIComponent);
+              el.setAttribute("style", `--store-banner-image: url("${safeCssUrl}");`);
+            }
+          },
+        })
+        .on("#banner-store-avatar", {
+          element(el) {
+            if (ssrLogoUrl) {
+              const cls = el.getAttribute("class") || "store-hero-avatar";
+              if (!cls.split(/\s+/).includes("has-logo")) {
+                el.setAttribute("class", `${cls} has-logo`.trim());
+              }
+              el.setInnerContent(
+                `<img src="${escapeHtml(ssrLogoUrl)}" alt="${escapeHtml(storefrontPayload.tenant.name)}" class="store-hero-avatar-img" loading="eager" decoding="async">`,
+                { html: true }
+              );
+            } else {
+              const initial = (String(storefrontPayload.tenant.name || storefrontPayload.tenant.subdomain || "S").trim().slice(0, 1) || "S").toUpperCase();
+              el.setInnerContent(escapeHtml(initial));
+            }
           },
         })
         .on("#storefront-view", {

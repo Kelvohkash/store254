@@ -230,32 +230,36 @@ html[data-storefront="true"] #store-info-banner {
   position: relative;
   overflow: hidden;
   padding: clamp(1.35rem, 3vw, 2.5rem) 0 !important;
-  border-bottom: 1px solid var(--store-line) !important;
+  background-color: #071126 !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--store-primary) 30%, #0f172a) !important;
 }
 
-/* Dynamic Theme-Driven Hero Gradient */
+/* Dynamic Theme-Driven Oba Navy Cinema Hero Gradient */
 html[data-storefront="true"] .store-banner:not(.has-banner-image),
 html[data-storefront="true"] #store-info-banner:not(.has-banner-image) {
-  background:
-    radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--store-primary) 26%, transparent) 0%, transparent 48%),
-    radial-gradient(circle at 12% 85%, color-mix(in srgb, var(--store-primary) 18%, transparent) 0%, transparent 44%),
+  background-color: #071126 !important;
+  background-image:
+    radial-gradient(circle at 86% 18%, color-mix(in srgb, var(--store-primary) 42%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 12% 85%, color-mix(in srgb, var(--store-primary) 28%, #1d4ed8) 0%, transparent 46%),
     linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--store-primary) 14%, var(--store-white)) 0%,
-      var(--store-paper) 54%,
-      color-mix(in srgb, var(--store-primary) 10%, var(--store-white)) 100%
+      140deg,
+      #050c1c 0%,
+      color-mix(in srgb, var(--store-primary) 22%, #081533) 54%,
+      #061024 100%
     ) !important;
 }
 
-/* When Merchant Has Uploaded a Custom Banner Photo */
+/* When Merchant Has Uploaded a Custom Banner Photo (or Logo Backdrop) */
 html[data-storefront="true"] .store-banner.has-banner-image,
 html[data-storefront="true"] #store-info-banner.has-banner-image {
+  background-color: #071126 !important;
   background-image:
     linear-gradient(
       180deg,
-      rgba(10, 15, 28, 0.12) 0%,
-      rgba(10, 15, 28, 0.05) 50%,
-      rgba(10, 15, 28, 0.16) 100%
+      rgba(7, 17, 38, 0.48) 0%,
+      rgba(10, 22, 50, 0.34) 50%,
+      rgba(7, 17, 38, 0.58) 100%
     ),
     var(--store-banner-image) !important;
   background-position: var(--store-banner-position, center) !important;
@@ -275,9 +279,9 @@ html[data-storefront="true"] .store-hero-ambient {
 html[data-storefront="true"] .hero-mesh-grid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(color-mix(in srgb, var(--store-primary) 26%, transparent) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(147, 197, 253, 0.28) 1px, transparent 1px);
   background-size: 20px 20px;
-  opacity: 0.4;
+  opacity: 0.35;
   mask-image: radial-gradient(ellipse at 50% 45%, black 35%, transparent 82%);
   -webkit-mask-image: radial-gradient(ellipse at 50% 45%, black 35%, transparent 82%);
 }
@@ -325,7 +329,7 @@ html[data-storefront="true"] .hero-aurora-orb.orb-3 {
 
 html[data-storefront="true"] .hero-sparkle {
   position: absolute;
-  color: color-mix(in srgb, var(--store-primary) 65%, #ffffff);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 0.95rem;
   line-height: 1;
   opacity: 0.65;
@@ -407,44 +411,31 @@ html[data-storefront="true"] .store-banner-inner {
 }
 
 html[data-storefront="true"] .store-banner-copy,
-html[data-storefront="true"] #store-info-banner .store-banner-copy {
+html[data-storefront="true"] #store-info-banner .store-banner-copy,
+html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy,
+html[data-storefront="true"] #store-info-banner.has-banner-image .store-banner-copy {
   position: relative;
   overflow: hidden;
   width: 100% !important;
   max-width: none !important;
   text-align: left !important;
   background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.82) 0%,
-    rgba(255, 255, 255, 0.68) 100%
-  ) !important;
-  border: 1px solid rgba(255, 255, 255, 0.78) !important;
-  box-shadow:
-    0 20px 44px -16px rgba(15, 23, 42, 0.2),
-    0 0 0 1px color-mix(in srgb, var(--store-primary) 12%, transparent) !important;
-  border-radius: 1.35rem !important;
-  padding: clamp(1.35rem, 2.6vw, 2.2rem) !important;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  -webkit-backdrop-filter: blur(12px) saturate(145%) !important;
-  backdrop-filter: blur(12px) saturate(145%) !important;
-}
-
-html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy,
-html[data-storefront="true"] #store-info-banner.has-banner-image .store-banner-copy {
-  background: linear-gradient(
     155deg,
-    rgba(8, 13, 26, 0.44) 0%,
-    rgba(8, 13, 26, 0.18) 52%,
-    rgba(8, 13, 26, 0.48) 100%
+    rgba(8, 15, 34, 0.72) 0%,
+    rgba(12, 24, 54, 0.48) 52%,
+    rgba(8, 15, 34, 0.76) 100%
   ) !important;
   border: 1px solid rgba(255, 255, 255, 0.26) !important;
   box-shadow:
     0 24px 48px -16px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
-  -webkit-backdrop-filter: blur(1.5px) saturate(115%) !important;
-  backdrop-filter: blur(1.5px) saturate(115%) !important;
+  border-radius: 1.35rem !important;
+  padding: clamp(1.35rem, 2.6vw, 2.2rem) !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  -webkit-backdrop-filter: blur(2px) saturate(120%) !important;
+  backdrop-filter: blur(2px) saturate(120%) !important;
 }
 
 html[data-storefront="true"] .store-banner-copy::before {
@@ -580,7 +571,9 @@ html[data-storefront="true"] .store-hero-identity-meta {
 
 /* Subdomain pill badge */
 html[data-storefront="true"] .store-banner-copy .store-address,
-html[data-storefront="true"] #banner-store-subdomain {
+html[data-storefront="true"] #banner-store-subdomain,
+html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy .store-address,
+html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-subdomain {
   display: inline-flex !important;
   align-items: center;
   gap: 0.4rem;
@@ -588,9 +581,11 @@ html[data-storefront="true"] #banner-store-subdomain {
   max-width: 100%;
   padding: 0.24rem 0.68rem !important;
   border-radius: 9999px !important;
-  background: var(--store-primary-subtle) !important;
-  color: var(--store-primary) !important;
-  border: 1px solid color-mix(in srgb, var(--store-primary) 26%, transparent) !important;
+  background: rgba(15, 23, 42, 0.58) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
   font-weight: 800 !important;
   letter-spacing: 0.06em !important;
   text-transform: uppercase !important;
@@ -600,30 +595,20 @@ html[data-storefront="true"] #banner-store-subdomain {
 }
 
 html[data-storefront="true"] .store-banner-copy .store-address::before,
-html[data-storefront="true"] #banner-store-subdomain::before {
+html[data-storefront="true"] #banner-store-subdomain::before,
+html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy .store-address::before,
+html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-subdomain::before {
   content: "";
   width: 0.38rem;
   height: 0.38rem;
   border-radius: 9999px;
-  background: var(--store-primary);
+  background: #60a5fa !important;
   flex: 0 0 auto;
 }
 
-html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy .store-address,
-html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-subdomain {
-  background: rgba(15, 23, 42, 0.52) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.28) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  backdrop-filter: blur(8px) !important;
-}
-
-html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy .store-address::before,
-html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-subdomain::before {
-  background: #60a5fa !important;
-}
-
-html[data-storefront="true"] .store-hero-verified-pill {
+html[data-storefront="true"] .store-hero-verified-pill,
+html[data-storefront="true"] .store-banner.has-banner-image .store-hero-verified-pill,
+html[data-storefront="true"] #store-info-banner.has-banner-image .store-hero-verified-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.28rem;
@@ -634,28 +619,23 @@ html[data-storefront="true"] .store-hero-verified-pill {
   backdrop-filter: none;
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--store-muted);
-  text-shadow: none !important;
-}
-
-html[data-storefront="true"] .store-banner.has-banner-image .store-hero-verified-pill,
-html[data-storefront="true"] #store-info-banner.has-banner-image .store-hero-verified-pill {
   color: rgba(241, 245, 249, 0.92) !important;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85) !important;
 }
 
 html[data-storefront="true"] .store-hero-verified-pill svg,
-html[data-storefront="true"] .store-hero-verified-pill i {
-  color: #10b981;
-}
-
+html[data-storefront="true"] .store-hero-verified-pill i,
 html[data-storefront="true"] .store-banner.has-banner-image .store-hero-verified-pill svg,
 html[data-storefront="true"] .store-banner.has-banner-image .store-hero-verified-pill i {
   color: #34d399;
 }
 
 html[data-storefront="true"] .store-banner-copy h1,
-html[data-storefront="true"] #banner-store-name {
+html[data-storefront="true"] #banner-store-name,
+html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy h1,
+html[data-storefront="true"] .store-banner.has-banner-image #banner-store-name,
+html[data-storefront="true"] #store-info-banner.has-banner-image .store-banner-copy h1,
+html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-name {
   display: block;
   width: auto !important;
   max-width: 24ch;
@@ -671,22 +651,18 @@ html[data-storefront="true"] #banner-store-name {
   line-height: 1.08 !important;
   font-weight: 800 !important;
   letter-spacing: -0.028em !important;
-  color: var(--store-ink) !important;
-  margin: 0 0 0.45rem 0 !important;
-  text-shadow: none !important;
-}
-
-html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy h1,
-html[data-storefront="true"] .store-banner.has-banner-image #banner-store-name,
-html[data-storefront="true"] #store-info-banner.has-banner-image .store-banner-copy h1,
-html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-name {
   color: #ffffff !important;
+  margin: 0 0 0.45rem 0 !important;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85), 0 1px 3px rgba(0, 0, 0, 0.92) !important;
 }
 
 /* Expressive accent motto (never a pill box) */
 html[data-storefront="true"] .store-banner-copy .store-tagline:not(.hidden),
-html[data-storefront="true"] #banner-store-tagline:not(.hidden) {
+html[data-storefront="true"] #banner-store-tagline:not(.hidden),
+html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy .store-tagline:not(.hidden),
+html[data-storefront="true"] .store-banner.has-banner-image #banner-store-tagline:not(.hidden),
+html[data-storefront="true"] #store-info-banner.has-banner-image .store-banner-copy .store-tagline:not(.hidden),
+html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-tagline:not(.hidden) {
   display: inline-flex !important;
   align-items: center;
   width: fit-content !important;
@@ -694,30 +670,23 @@ html[data-storefront="true"] #banner-store-tagline:not(.hidden) {
   margin: 0.05rem 0 0.5rem 0 !important;
   padding: 0.1rem 0 0.1rem 0.65rem !important;
   border: 0 !important;
-  border-left: 3px solid var(--store-primary) !important;
+  border-left: 3px solid #60a5fa !important;
   border-radius: 0 !important;
   background: transparent !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   box-shadow: none !important;
-  color: color-mix(in srgb, var(--store-primary) 90%, #0f172a) !important;
+  color: #93c5fd !important;
   font-size: clamp(0.9rem, 1.5vw, 1.06rem) !important;
   font-weight: 750 !important;
   line-height: 1.3 !important;
   letter-spacing: -0.01em !important;
-  text-shadow: none !important;
-}
-
-html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy .store-tagline:not(.hidden),
-html[data-storefront="true"] .store-banner.has-banner-image #banner-store-tagline:not(.hidden),
-html[data-storefront="true"] #store-info-banner.has-banner-image .store-banner-copy .store-tagline:not(.hidden),
-html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-tagline:not(.hidden) {
-  border-left-color: #60a5fa !important;
-  color: #93c5fd !important;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85), 0 1px 3px rgba(0, 0, 0, 0.92) !important;
 }
 
-html[data-storefront="true"] #banner-store-desc {
+html[data-storefront="true"] #banner-store-desc,
+html[data-storefront="true"] .store-banner.has-banner-image #banner-store-desc,
+html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-desc {
   display: block;
   width: auto !important;
   max-width: 44rem;
@@ -728,20 +697,13 @@ html[data-storefront="true"] #banner-store-desc {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   box-shadow: none !important;
-  color: var(--store-muted) !important;
+  color: rgba(248, 250, 252, 0.95) !important;
   font-size: 0.92rem !important;
   font-weight: 500 !important;
   line-height: 1.55 !important;
   margin: 0 !important;
-  text-shadow: none !important;
-  opacity: 1 !important;
-}
-
-html[data-storefront="true"] .store-banner.has-banner-image #banner-store-desc,
-html[data-storefront="true"] #store-info-banner.has-banner-image #banner-store-desc {
-  color: rgba(248, 250, 252, 0.95) !important;
-  font-weight: 500 !important;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.88), 0 1px 3px rgba(0, 0, 0, 0.94) !important;
+  opacity: 1 !important;
 }
 
 /* Mobile & Tablet Trust Highlights Rail */
@@ -759,35 +721,27 @@ html[data-storefront="true"] .store-hero-trust-rail::-webkit-scrollbar {
   display: none;
 }
 
-html[data-storefront="true"] .store-hero-trust-chip {
+html[data-storefront="true"] .store-hero-trust-chip,
+html[data-storefront="true"] .store-banner.has-banner-image .store-hero-trust-chip,
+html[data-storefront="true"] #store-info-banner.has-banner-image .store-hero-trust-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   flex: 0 0 auto;
   padding: 0.28rem 0.62rem;
   border-radius: 9999px;
-  background: color-mix(in srgb, var(--store-white) 85%, var(--store-primary-soft));
-  border: 1px solid color-mix(in srgb, var(--store-primary) 20%, var(--store-line));
-  color: var(--store-ink);
+  background: rgba(15, 23, 42, 0.48) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  color: #f8fafc !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
   font-size: 0.68rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
-html[data-storefront="true"] .store-banner.has-banner-image .store-hero-trust-chip,
-html[data-storefront="true"] #store-info-banner.has-banner-image .store-hero-trust-chip {
-  background: rgba(15, 23, 42, 0.42) !important;
-  border: 1px solid rgba(255, 255, 255, 0.24) !important;
-  color: #f8fafc !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  backdrop-filter: blur(8px) !important;
-}
-
 html[data-storefront="true"] .store-hero-trust-chip svg,
-html[data-storefront="true"] .store-hero-trust-chip i {
-  color: var(--store-primary);
-}
-
+html[data-storefront="true"] .store-hero-trust-chip i,
 html[data-storefront="true"] .store-banner.has-banner-image .store-hero-trust-chip svg,
 html[data-storefront="true"] .store-banner.has-banner-image .store-hero-trust-chip i {
   color: #60a5fa !important;
@@ -1004,40 +958,27 @@ html[data-storefront="true"] .store-follow-btn.is-following {
     flex-direction: column;
     animation: heroStaggerIn 600ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
   }
-  html[data-storefront="true"] .store-showcase-card {
+  html[data-storefront="true"] .store-showcase-card,
+  html[data-storefront="true"] .store-banner.has-banner-image .store-showcase-card,
+  html[data-storefront="true"] #store-info-banner.has-banner-image .store-showcase-card {
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.82) 0%,
-      rgba(255, 255, 255, 0.68) 100%
+      155deg,
+      rgba(8, 15, 34, 0.72) 0%,
+      rgba(12, 24, 54, 0.48) 52%,
+      rgba(8, 15, 34, 0.76) 100%
     ) !important;
-    border: 1px solid rgba(255, 255, 255, 0.78) !important;
+    border: 1px solid rgba(255, 255, 255, 0.26) !important;
     border-radius: 1.35rem !important;
     padding: 1.35rem 1.5rem !important;
     box-shadow:
-      0 20px 44px -16px rgba(15, 23, 42, 0.2),
-      0 0 0 1px color-mix(in srgb, var(--store-primary) 12%, transparent) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(145%) !important;
-    backdrop-filter: blur(12px) saturate(145%) !important;
-  }
-
-  html[data-storefront="true"] .store-banner.has-banner-image .store-showcase-card,
-  html[data-storefront="true"] #store-info-banner.has-banner-image .store-showcase-card {
-    background: linear-gradient(
-      155deg,
-      rgba(8, 13, 26, 0.44) 0%,
-      rgba(8, 13, 26, 0.18) 52%,
-      rgba(8, 13, 26, 0.48) 100%
-    ) !important;
-    border: 1px solid rgba(255, 255, 255, 0.26) !important;
-    box-shadow:
       0 24px 48px -16px rgba(0, 0, 0, 0.45),
       inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
-    -webkit-backdrop-filter: blur(1.5px) saturate(115%) !important;
-    backdrop-filter: blur(1.5px) saturate(115%) !important;
+    -webkit-backdrop-filter: blur(2px) saturate(120%) !important;
+    backdrop-filter: blur(2px) saturate(120%) !important;
   }
 }
 
@@ -2643,114 +2584,77 @@ html[data-storefront="true"] .product-card-add:hover {
   }
 }
 
-/* Frosted light glass by default; cinema smoked glass when merchant has a custom hero photo. */
+/* Smoked dark navy cinema glass for hero card and merchant showcase across every storefront. */
 html[data-storefront="true"] .store-banner-copy,
-html[data-storefront="true"] #store-info-banner .store-banner-copy {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.82) 0%,
-    rgba(255, 255, 255, 0.68) 100%
-  ) !important;
-  border-color: rgba(255, 255, 255, 0.78) !important;
-  box-shadow:
-    0 20px 44px -16px rgba(15, 23, 42, 0.2),
-    0 0 0 1px color-mix(in srgb, var(--store-primary) 12%, transparent) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(145%) !important;
-  backdrop-filter: blur(12px) saturate(145%) !important;
-}
-
+html[data-storefront="true"] #store-info-banner .store-banner-copy,
 html[data-storefront="true"] .store-banner.has-banner-image .store-banner-copy,
 html[data-storefront="true"] #store-info-banner.has-banner-image .store-banner-copy {
   background: linear-gradient(
     155deg,
-    rgba(8, 13, 26, 0.44) 0%,
-    rgba(8, 13, 26, 0.18) 52%,
-    rgba(8, 13, 26, 0.48) 100%
+    rgba(8, 15, 34, 0.72) 0%,
+    rgba(12, 24, 54, 0.48) 52%,
+    rgba(8, 15, 34, 0.76) 100%
   ) !important;
   border-color: rgba(255, 255, 255, 0.26) !important;
   box-shadow:
     0 24px 48px -16px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
-  -webkit-backdrop-filter: blur(1.5px) saturate(115%) !important;
-  backdrop-filter: blur(1.5px) saturate(115%) !important;
+  -webkit-backdrop-filter: blur(2px) saturate(120%) !important;
+  backdrop-filter: blur(2px) saturate(120%) !important;
 }
 
-html[data-storefront="true"] .store-showcase-card {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.82) 0%,
-    rgba(255, 255, 255, 0.68) 100%
-  ) !important;
-  border-color: rgba(255, 255, 255, 0.78) !important;
-  box-shadow:
-    0 20px 44px -16px rgba(15, 23, 42, 0.2),
-    0 0 0 1px color-mix(in srgb, var(--store-primary) 12%, transparent) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(145%) !important;
-  backdrop-filter: blur(12px) saturate(145%) !important;
-}
-
+html[data-storefront="true"] .store-showcase-card,
 html[data-storefront="true"] .store-banner.has-banner-image .store-showcase-card,
 html[data-storefront="true"] #store-info-banner.has-banner-image .store-showcase-card {
   background: linear-gradient(
     155deg,
-    rgba(8, 13, 26, 0.44) 0%,
-    rgba(8, 13, 26, 0.18) 52%,
-    rgba(8, 13, 26, 0.48) 100%
+    rgba(8, 15, 34, 0.72) 0%,
+    rgba(12, 24, 54, 0.48) 52%,
+    rgba(8, 15, 34, 0.76) 100%
   ) !important;
   border-color: rgba(255, 255, 255, 0.26) !important;
   box-shadow:
     0 24px 48px -16px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
-  -webkit-backdrop-filter: blur(1.5px) saturate(115%) !important;
-  backdrop-filter: blur(1.5px) saturate(115%) !important;
+  -webkit-backdrop-filter: blur(2px) saturate(120%) !important;
+  backdrop-filter: blur(2px) saturate(120%) !important;
 }
 
+html[data-storefront="true"] .store-showcase-badge,
 html[data-storefront="true"] .store-banner.has-banner-image .store-showcase-badge,
 html[data-storefront="true"] #store-info-banner.has-banner-image .store-showcase-badge {
-  background: rgba(15, 23, 42, 0.48) !important;
+  background: rgba(15, 23, 42, 0.56) !important;
   border-color: rgba(255, 255, 255, 0.26) !important;
   color: #ffffff !important;
 }
 
-html[data-storefront="true"] .store-showcase-metric {
-  background: color-mix(in srgb, var(--store-white, #fff) 65%, transparent) !important;
-  border-color: color-mix(in srgb, var(--store-ink, #0f172a) 10%, transparent) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  backdrop-filter: blur(10px) !important;
-}
-
+html[data-storefront="true"] .store-showcase-metric,
 html[data-storefront="true"] .store-banner.has-banner-image .store-showcase-metric,
 html[data-storefront="true"] #store-info-banner.has-banner-image .store-showcase-metric {
-  background: rgba(15, 23, 42, 0.38) !important;
+  background: rgba(15, 23, 42, 0.44) !important;
   border-color: rgba(255, 255, 255, 0.22) !important;
   -webkit-backdrop-filter: blur(6px) !important;
   backdrop-filter: blur(6px) !important;
 }
 
-html[data-storefront="true"] .store-showcase-metric strong {
-  color: var(--store-ink) !important;
-  font-weight: 800 !important;
-  text-shadow: none !important;
-}
-
-html[data-storefront="true"] .store-showcase-metric small {
-  color: var(--store-muted) !important;
-  font-weight: 600 !important;
-  text-shadow: none !important;
-}
-
+html[data-storefront="true"] .store-showcase-metric strong,
 html[data-storefront="true"] .store-banner.has-banner-image .store-showcase-metric strong,
 html[data-storefront="true"] #store-info-banner.has-banner-image .store-showcase-metric strong {
   color: #ffffff !important;
+  font-weight: 800 !important;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8) !important;
 }
 
+html[data-storefront="true"] .store-showcase-metric small,
 html[data-storefront="true"] .store-banner.has-banner-image .store-showcase-metric small,
 html[data-storefront="true"] #store-info-banner.has-banner-image .store-showcase-metric small {
   color: rgba(226, 232, 240, 0.9) !important;
+  font-weight: 600 !important;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8) !important;
 }
 
+html[data-storefront="true"] .store-showcase-metric svg,
+html[data-storefront="true"] .store-showcase-metric i,
 html[data-storefront="true"] .store-banner.has-banner-image .store-showcase-metric svg,
 html[data-storefront="true"] .store-banner.has-banner-image .store-showcase-metric i,
 html[data-storefront="true"] #store-info-banner.has-banner-image .store-showcase-metric svg,
@@ -2973,4 +2877,30 @@ html[data-storefront="true"] #store-info-banner.has-banner-image .store-showcase
   html[data-storefront="true"] .store-banner-showcase {
     animation: none !important;
   }
+}
+
+/* Ensure the quantity stepper number stays sharp and centered across every colour theme. */
+html[data-storefront="true"] #item-modal-qty,
+#item-modal-qty {
+  width: 2.5rem !important;
+  min-width: 2.5rem !important;
+  height: 1.75rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--store-ink, #0f172a) !important;
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+html[data-storefront="true"] #item-modal-qty::-webkit-inner-spin-button,
+html[data-storefront="true"] #item-modal-qty::-webkit-outer-spin-button,
+#item-modal-qty::-webkit-inner-spin-button,
+#item-modal-qty::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+  display: none !important;
 }

@@ -478,10 +478,14 @@
                             Upload Logo
                             <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-logo', this)" />
                           </label>
-                          <button type="button" onclick="document.getElementById('settings-logo').value='';" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
+                          <button type="button" onclick="clearStoreBrandingImage('settings-logo')" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
                         </div>
                       </div>
                       <input id="settings-logo" type="text" readonly class="input text-xs bg-slate-50 cursor-not-allowed text-slate-600" placeholder="Upload logo using button above" />
+                      <div id="settings-logo-preview-wrap" class="hidden mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                        <img id="settings-logo-preview" src="" alt="Store logo preview" class="w-12 h-12 rounded-lg object-cover border border-slate-200 bg-white shrink-0" />
+                        <span class="text-[11px] font-semibold text-slate-600 truncate">Live store logo</span>
+                      </div>
                     </div>
                     <div>
                       <div class="flex items-center justify-between mb-1">
@@ -491,10 +495,14 @@
                             Upload Banner
                             <input type="file" accept="image/*" class="hidden" onchange="uploadStoreBrandingImage('settings-banner', this)" />
                           </label>
-                          <button type="button" onclick="document.getElementById('settings-banner').value='';" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
+                          <button type="button" onclick="clearStoreBrandingImage('settings-banner')" class="text-[11px] font-semibold text-slate-400 hover:text-red-500">Clear</button>
                         </div>
                       </div>
                       <input id="settings-banner" type="text" readonly class="input text-xs bg-slate-50 cursor-not-allowed text-slate-600" placeholder="Upload banner using button above" />
+                      <div id="settings-banner-preview-wrap" class="hidden mt-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                        <img id="settings-banner-preview" src="" alt="Hero banner preview" class="w-20 h-12 rounded-lg object-cover border border-slate-200 bg-white shrink-0" />
+                        <span class="text-[11px] font-semibold text-slate-600 truncate">Live hero background</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1129,8 +1137,8 @@
 <script src="./scripts/admin/product-editor.js"></script>
 <script src="./scripts/admin/catalog.js"></script>
 <script src="./scripts/admin/orders.js?v=20261115"></script>
-<script src="./scripts/admin/design-branding.js"></script>
-<script src="./scripts/admin/design.js?v=20261115"></script>
+<script src="./scripts/admin/design-branding.js?v=20261116"></script>
+<script src="./scripts/admin/design.js?v=20261116"></script>
 <script src="./scripts/admin/payments.js?v=20261115"></script>
 <script src="/scripts/storefront/pwa.js"></script>
 </body>

@@ -713,7 +713,7 @@ async function handleOnboardSubmit(e) {
     storeName,
     subdomain,
     businessType: document.getElementById("onboard-type")?.value || "GENERAL",
-    primaryColor: "#9a3412",
+    primaryColor: "#2563eb",
     ownerFullName,
     ownerEmail,
     ownerPassword,

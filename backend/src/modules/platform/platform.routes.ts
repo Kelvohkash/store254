@@ -317,7 +317,7 @@ platformRouter.post(
       locationLabel: resolvedLocation.locationLabel,
       settings: {
         theme: "default",
-        primaryColor: "#9a3412",
+        primaryColor: "#2563eb",
         contactEmail: verifiedOwnerEmail,
         contactPhone: body.ownerPhone || null,
         location: {

@@ -87,16 +87,20 @@ app.get("/api/media/:tenantId/:fileName", async (c) => {
   const key = `${c.req.param("tenantId")}/${c.req.param("fileName")}`;
   const ifNoneMatch = c.req.header("if-none-match");
   const edgeCache = (caches as unknown as { default?: Cache }).default;
-  const cacheKey = new Request(c.req.url, { method: "GET" });
+  const cacheKey = new Request(`https://media-cache.internal/v2/${key}`, { method: "GET" });
 
   if (edgeCache) {
     const cached = await edgeCache.match(cacheKey);
-    if (cached) {
+    if (cached && cached.status === 200 && cached.headers.get("content-length") !== "0") {
       const cachedEtag = cached.headers.get("etag");
       if (ifNoneMatch && cachedEtag && ifNoneMatch === cachedEtag) {
-        return new Response(null, { status: 304, headers: cached.headers });
+        return new Response(null, { status: 304, headers: new Headers(cached.headers) });
       }
-      return cached;
+      return new Response(c.req.method === "HEAD" ? null : cached.body, {
+        status: cached.status,
+        statusText: cached.statusText,
+        headers: new Headers(cached.headers),
+      });
     }
   }
 
@@ -122,8 +126,11 @@ app.get("/api/media/:tenantId/:fileName", async (c) => {
   }
 
   const response = new Response(object.body, { headers });
-  if (edgeCache) {
+  if (edgeCache && c.req.method === "GET") {
     c.executionCtx?.waitUntil?.(edgeCache.put(cacheKey, response.clone()));
+  }
+  if (c.req.method === "HEAD") {
+    return new Response(null, { status: 200, headers });
   }
   return response;
 });
@@ -137,7 +144,7 @@ tenantScope.use("*", tenantMiddleware({ required: true }));
 // Storefront public metadata
 tenantScope.get("/store", (c) => {
   const tenant = c.get("tenant")!;
-  c.header("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+  c.header("Cache-Control", "no-cache, no-store, must-revalidate");
   return c.json({
     success: true,
     data: tenant,
