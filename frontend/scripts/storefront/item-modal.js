@@ -39,6 +39,7 @@ function changeItemModalImage(offset) {
 }
 
 function renderItemImageGallery(images, title) {
+  const stage = document.getElementById("item-modal-gallery-stage");
   const thumbnailContainer = document.getElementById("item-modal-image-thumbnails");
   const count = document.getElementById("item-modal-image-count");
   const previous = document.getElementById("item-modal-image-prev");
@@ -46,15 +47,49 @@ function renderItemImageGallery(images, title) {
 
   state.currentItemImages = images.slice(0, 5);
   state.currentItemImageIndex = 0;
-  document.getElementById("item-modal-gallery-stage").style.aspectRatio = "4 / 3";
-  previous.onclick = () => changeItemModalImage(-1);
-  next.onclick = () => changeItemModalImage(1);
+  if (stage) stage.style.aspectRatio = "4 / 3";
+  if (previous) {
+    previous.onclick = (e) => {
+      e?.stopPropagation();
+      changeItemModalImage(-1);
+    };
+  }
+  if (next) {
+    next.onclick = (e) => {
+      e?.stopPropagation();
+      changeItemModalImage(1);
+    };
+  }
+  if (stage && stage.dataset.swipeBound !== "true") {
+    stage.dataset.swipeBound = "true";
+    let touchStartX = null;
+    stage.addEventListener(
+      "touchstart",
+      (e) => {
+        touchStartX = e.touches?.[0]?.clientX ?? null;
+      },
+      { passive: true }
+    );
+    stage.addEventListener(
+      "touchend",
+      (e) => {
+        if (touchStartX === null) return;
+        const touchEndX = e.changedTouches?.[0]?.clientX ?? touchStartX;
+        const dx = touchEndX - touchStartX;
+        touchStartX = null;
+        if (Math.abs(dx) >= 40 && state.currentItemImages.length > 1) {
+          changeItemModalImage(dx < 0 ? 1 : -1);
+        }
+      },
+      { passive: true }
+    );
+  }
   const hasMultipleImages = state.currentItemImages.length > 1;
   thumbnailContainer.replaceChildren();
   thumbnailContainer.classList.toggle("hidden", !hasMultipleImages);
   count.classList.toggle("hidden", !hasMultipleImages);
-  previous.classList.toggle("hidden", !hasMultipleImages);
-  next.classList.toggle("hidden", !hasMultipleImages);
+  if (previous) previous.classList.toggle("hidden", !hasMultipleImages);
+  if (next) next.classList.toggle("hidden", !hasMultipleImages);
 
   if (hasMultipleImages) {
     state.currentItemImages.forEach((src, index) => {
@@ -219,4 +254,14 @@ function stepItemModalQty(delta) {
   if (!input) return;
   const current = parseInt(input.value || "1", 10) || 1;
   input.value = String(Math.min(99, Math.max(1, current + delta)));
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const modal = document.getElementById("item-details-modal");
+    if (!modal || modal.classList.contains("hidden")) return;
+    if (!Array.isArray(state?.currentItemImages) || state.currentItemImages.length <= 1) return;
+    changeItemModalImage(e.key === "ArrowRight" ? 1 : -1);
+  });
 }

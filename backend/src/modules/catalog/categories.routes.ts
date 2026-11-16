@@ -63,7 +63,13 @@ categoriesRouter.get("/", async (c) => {
 
   const tree = buildCategoryTree(flatCategories);
 
-  c.header("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
+  const isAdminOrNoCache =
+    Boolean(c.req.header("Authorization")) ||
+    Boolean(c.req.header("Cache-Control")?.includes("no-cache"));
+  c.header(
+    "Cache-Control",
+    isAdminOrNoCache ? "no-cache, no-store, must-revalidate" : "public, max-age=120, stale-while-revalidate=600"
+  );
   return c.json({
     success: true,
     data: tree,

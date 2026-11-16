@@ -14,6 +14,7 @@
   let activeQuickViewData = null;
   let selectedVariantId = null;
   let quickViewQty = 1;
+  let quickViewImageIndex = 0;
   let activeCheckoutQueue = [];
   let activeCheckoutIndex = 0;
   let activePollTimer = null;
@@ -719,6 +720,7 @@
       const variants = Array.isArray(json.data.variants) ? json.data.variants : [];
       selectedVariantId = variants.length > 0 ? variants[0].id : null;
       quickViewQty = 1;
+      quickViewImageIndex = 0;
       renderQuickViewModal();
     } catch (err) {
       bodyEl.innerHTML = `<div class="p-8 text-center">
@@ -735,6 +737,51 @@
       modal.setAttribute("aria-hidden", "true");
     }
     activeQuickViewData = null;
+    quickViewImageIndex = 0;
+  };
+
+  function getQuickViewImages(item, fallbackImg) {
+    const raw = Array.isArray(item?.images) ? item.images.filter(Boolean).slice(0, 5) : [];
+    return raw.length > 0 ? raw : [fallbackImg];
+  }
+
+  window.selectQuickViewImage = function selectQuickViewImage(index, event) {
+    if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+    const sel = getActiveQuickViewSelection();
+    if (!sel || !sel.images.length) return;
+    const total = sel.images.length;
+    quickViewImageIndex = ((Number(index) || 0) % total + total) % total;
+    const mainImg = document.getElementById("qv-main-image");
+    if (mainImg) {
+      mainImg.src = sel.images[quickViewImageIndex];
+      mainImg.alt = `${sel.item.title || "Product"} photo ${quickViewImageIndex + 1}`;
+    }
+    const countEl = document.getElementById("qv-image-count");
+    if (countEl) {
+      countEl.textContent = `${quickViewImageIndex + 1} / ${total}`;
+    }
+    document.querySelectorAll("#qv-image-thumbnails .qv-thumb-btn").forEach((btn, idx) => {
+      const active = idx === quickViewImageIndex;
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+      btn.classList.toggle("border-emerald-600", active);
+      btn.classList.toggle("ring-2", active);
+      btn.classList.toggle("ring-emerald-200", active);
+      btn.classList.toggle("opacity-100", active);
+      btn.classList.toggle("border-slate-200", !active);
+      btn.classList.toggle("opacity-75", !active);
+    });
+    if (total > 1) {
+      const nextUrl = sel.images[(quickViewImageIndex + 1) % total];
+      if (nextUrl) {
+        const preload = new Image();
+        preload.decoding = "async";
+        preload.src = nextUrl;
+      }
+    }
+  };
+
+  window.stepQuickViewImage = function stepQuickViewImage(delta, event) {
+    window.selectQuickViewImage(quickViewImageIndex + delta, event);
   };
 
   window.selectQuickViewVariant = function selectQuickViewVariant(variantId) {
@@ -761,7 +808,11 @@
       item.itemType === "SERVICE"
         ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80"
         : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80";
-    const imgUrl = Array.isArray(item.images) && item.images[0] ? item.images[0] : fallbackImg;
+    const images = getQuickViewImages(item, fallbackImg);
+    if (quickViewImageIndex >= images.length || quickViewImageIndex < 0) {
+      quickViewImageIndex = 0;
+    }
+    const imgUrl = images[quickViewImageIndex] || fallbackImg;
 
     return {
       item,
@@ -772,6 +823,7 @@
       stock,
       inStock,
       storeLoc,
+      images,
       imgUrl,
       fallbackImg,
     };
@@ -841,7 +893,8 @@
     const bodyEl = document.getElementById("marketplace-item-modal-body");
     const sel = getActiveQuickViewSelection();
     if (!bodyEl || !sel) return;
-    const { item, variants, store, unitPrice, inStock, stock, storeLoc, imgUrl, fallbackImg } = sel;
+    const { item, variants, store, unitPrice, inStock, stock, storeLoc, images, imgUrl, fallbackImg } = sel;
+    const hasMultipleImages = images.length > 1;
     const ratingSummary = activeQuickViewData.ratingSummary || { count: 0, average: 0 };
     const reviewsList = Array.isArray(activeQuickViewData.reviews) ? activeQuickViewData.reviews : [];
     const attrs = item.attributes && typeof item.attributes === "object" ? Object.entries(item.attributes).slice(0, 6) : [];
@@ -858,8 +911,19 @@
     bodyEl.innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 sm:p-6">
         <div>
-          <div class="relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 aspect-square">
-            <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover" onerror="this.src='${fallbackImg}'" />
+          <div id="qv-gallery-stage" class="relative rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 aspect-square select-none">
+            <img id="qv-main-image" src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover" onerror="this.src='${fallbackImg}'" />
+            ${
+              hasMultipleImages
+                ? `<button type="button" onclick="stepQuickViewImage(-1, event)" aria-label="Previous product photo" class="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-900 hover:text-white border border-white/80 shadow-md flex items-center justify-center cursor-pointer transition-colors">
+                    <svg class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <button type="button" onclick="stepQuickViewImage(1, event)" aria-label="Next product photo" class="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-900 hover:text-white border border-white/80 shadow-md flex items-center justify-center cursor-pointer transition-colors">
+                    <svg class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  </button>
+                  <span id="qv-image-count" class="absolute right-3 bottom-3 z-10 px-2.5 py-0.5 rounded-full bg-slate-900/75 text-white text-[11px] font-bold">${quickViewImageIndex + 1} / ${images.length}</span>`
+                : ""
+            }
             ${
               activeQuickViewData.rippleLabel
                 ? `<span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-slate-900/80 text-white text-[11px] font-bold backdrop-blur">${escapeHtml(activeQuickViewData.rippleLabel)}</span>`
@@ -867,12 +931,15 @@
             }
           </div>
           ${
-            Array.isArray(item.images) && item.images.length > 1
-              ? `<div class="flex gap-2 mt-2.5 overflow-x-auto pb-1">${item.images
-                  .slice(0, 5)
+            hasMultipleImages
+              ? `<div id="qv-image-thumbnails" class="flex gap-2 mt-2.5 overflow-x-auto pb-1">${images
                   .map(
-                    (src) =>
-                      `<img src="${escapeHtml(src)}" alt="" class="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0" />`
+                    (src, idx) =>
+                      `<button type="button" onclick="selectQuickViewImage(${idx}, event)" aria-label="View photo ${idx + 1}" aria-pressed="${idx === quickViewImageIndex ? "true" : "false"}" class="qv-thumb-btn w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 cursor-pointer transition-all ${
+                        idx === quickViewImageIndex
+                          ? "border-emerald-600 ring-2 ring-emerald-200 opacity-100"
+                          : "border-slate-200 opacity-75 hover:opacity-100"
+                      }"><img src="${escapeHtml(src)}" alt="" class="w-full h-full object-cover pointer-events-none" /></button>`
                   )
                   .join("")}</div>`
               : ""
@@ -987,7 +1054,45 @@
         </div>
       </div>`;
 
+    if (hasMultipleImages) {
+      const stageEl = document.getElementById("qv-gallery-stage");
+      if (stageEl) {
+        let touchStartX = null;
+        stageEl.addEventListener(
+          "touchstart",
+          (e) => {
+            touchStartX = e.touches?.[0]?.clientX ?? null;
+          },
+          { passive: true }
+        );
+        stageEl.addEventListener(
+          "touchend",
+          (e) => {
+            if (touchStartX === null) return;
+            const touchEndX = e.changedTouches?.[0]?.clientX ?? touchStartX;
+            const dx = touchEndX - touchStartX;
+            touchStartX = null;
+            if (Math.abs(dx) >= 40) {
+              window.stepQuickViewImage(dx < 0 ? 1 : -1);
+            }
+          },
+          { passive: true }
+        );
+      }
+    }
+
     if (typeof window.renderIcons === "function") window.renderIcons();
+  }
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const modal = document.getElementById("marketplace-item-modal");
+      if (!modal || modal.classList.contains("hidden")) return;
+      const sel = getActiveQuickViewSelection();
+      if (!sel || !Array.isArray(sel.images) || sel.images.length <= 1) return;
+      window.stepQuickViewImage(e.key === "ArrowRight" ? 1 : -1);
+    });
   }
 
   // --- Unified Direct Platform Checkout (M-Pesa STK Push & COD, No Subdomain Hop) ---

@@ -196,7 +196,7 @@ async function apiFetch(path, opts = {}) {
     headers.Authorization = `Bearer ${adminAccessToken}`;
   }
   try {
-    const r = await fetch(API + path, { ...opts, headers, credentials: 'include' });
+    const r = await fetch(API + path, { cache: opts.cache || 'no-store', ...opts, headers, credentials: 'include' });
     const data = await r.json().catch(() => ({}));
     if (r.status === 401 && hasSession && path !== '/auth/login' && path !== '/auth/logout') {
       handleLogout('Your session expired. Sign in again to continue.');

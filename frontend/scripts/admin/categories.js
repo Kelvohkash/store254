@@ -79,8 +79,10 @@ async function loadAttributeDefinitions() {
 async function deleteAttributeDefinition(id, name) {
   if (!confirm(`Delete product filter "${name}"? This cannot be undone.`)) return;
   const r = await apiFetch(`/attributes/${id}`, { method: 'DELETE' });
-  if (r.ok) {
-    showToast('Product filter deleted.');
+  if (r.ok || r.status === 404) {
+    attributeDefinitionsCache = attributeDefinitionsCache.filter(item => item.id !== id);
+    renderCategoriesTable(flatCategories);
+    showToast(r.ok ? 'Product filter deleted.' : 'Product filter was already deleted.');
     await loadAttributeDefinitions();
   } else {
     showToast(apiErrorMessage(r, 'Could not delete product filter.'), false);
@@ -710,9 +712,23 @@ async function handleSaveCategory(e) {
 async function deleteCategory(id, name) {
   if (!confirm(`Delete category "${name}"?`)) return;
   const r = await apiFetch(`/categories/${id}`, { method: 'DELETE' });
-  if (r.ok) {
-    showToast('Category deleted.');
-    loadCategories();
+  if (r.ok || r.status === 404) {
+    const removedIds = new Set([id]);
+    let expanded = true;
+    while (expanded) {
+      expanded = false;
+      for (const cat of flatCategories) {
+        if (cat.parentId && removedIds.has(cat.parentId) && !removedIds.has(cat.id)) {
+          removedIds.add(cat.id);
+          expanded = true;
+        }
+      }
+    }
+    flatCategories = flatCategories.filter(cat => !removedIds.has(cat.id));
+    renderCategoriesTable(flatCategories);
+    showToast(r.ok ? 'Category deleted.' : 'Category was already deleted.');
+    await loadCategories();
+    await loadCategoriesForDropdown();
   } else {
     showToast(apiErrorMessage(r, 'Cannot delete.'), false);
   }

@@ -56,7 +56,7 @@
 }
 .item-modal-gallery-nav {
   position: absolute;
-  z-index: 1;
+  z-index: 10;
   top: 50%;
   display: flex;
   width: 2.25rem;
@@ -68,9 +68,13 @@
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.9);
   color: var(--store-ink);
+  cursor: pointer;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
   transition: background-color 140ms ease, color 140ms ease;
 }
+.item-modal-gallery-nav.hidden { display: none !important; }
+.item-modal-gallery-nav svg,
+.item-modal-gallery-nav i { pointer-events: none; }
 .item-modal-gallery-nav:hover { background: var(--store-primary); color: #ffffff; }
 .item-modal-gallery-prev { left: 0.65rem; }
 .item-modal-gallery-next { right: 0.65rem; }
