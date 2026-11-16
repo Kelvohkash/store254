@@ -18,6 +18,12 @@ import { rateLimiter } from "../../security/rate-limiter";
 import { requireSecret } from "../../security/secrets";
 import { encryptPaymentConfig } from "../../security/payment-credentials";
 import { platformBillingSettings } from "../../db/schema/platform-billing";
+import { copyrightReports } from "../../db/schema/copyright-reports";
+import {
+  executeImageTakedown,
+  extractMediaReference,
+  matchesReportedImage,
+} from "../../services/copyright-takedown.service";
 
 export const platformAdminRouter = new Hono<AppEnv>();
 
@@ -809,5 +815,230 @@ platformAdminRouter.post("/maintenance/encrypt-payment-configs", async (c) => {
     updated++;
   }
 
-  return c.json({ success: true, data: { encryptedConfigurations: updated } });
+  return c.json({
+    success: true,
+    data: { encryptedConfigurations: updated },
+  });
 });
+
+const takedownActionSchema = z.object({
+  suspendStore: z.boolean().optional().default(false),
+  resolutionNotes: z.string().trim().max(500).optional(),
+});
+
+const dismissReportSchema = z.object({
+  resolutionNotes: z.string().trim().max(500).optional(),
+});
+
+const directMediaTakedownSchema = z.object({
+  reportedImageUrl: z.string().trim().min(3, "Image URL is required").max(1000),
+  storeSubdomain: z.string().trim().max(64).optional(),
+  suspendStore: z.boolean().optional().default(false),
+  resolutionNotes: z.string().trim().max(500).optional(),
+});
+
+// 7. Copyright Reports & Image Takedowns (Super Admin Moderation)
+platformAdminRouter.get("/copyright-reports", async (c) => {
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const db = createDb(c.env.DB);
+  const statusFilter = (c.req.query("status") || "ALL").toUpperCase();
+
+  const allReports = await db
+    .select()
+    .from(copyrightReports)
+    .orderBy(desc(copyrightReports.createdAt))
+    .limit(500);
+
+  const counts = {
+    all: allReports.length,
+    open: allReports.filter((r) => r.status === "OPEN").length,
+    takenDown: allReports.filter((r) => r.status === "TAKEN_DOWN").length,
+    dismissed: allReports.filter((r) => r.status === "DISMISSED").length,
+  };
+
+  const filtered =
+    statusFilter === "OPEN" || statusFilter === "TAKEN_DOWN" || statusFilter === "DISMISSED"
+      ? allReports.filter((r) => r.status === statusFilter)
+      : allReports;
+
+  const tenantIds = Array.from(
+    new Set(filtered.map((r) => r.tenantId).filter((id): id is string => Boolean(id)))
+  );
+  const tenantRows =
+    tenantIds.length > 0
+      ? await db
+          .select({
+            id: tenants.id,
+            name: tenants.name,
+            subdomain: tenants.subdomain,
+            status: tenants.status,
+          })
+          .from(tenants)
+          .where(inArray(tenants.id, tenantIds))
+      : [];
+  const tenantMap = new Map(tenantRows.map((t) => [t.id, t]));
+
+  const data = filtered.map((r) => {
+    const store = r.tenantId ? tenantMap.get(r.tenantId) : null;
+    return {
+      ...r,
+      storeName: store?.name || null,
+      storeSubdomain: r.storeSubdomain || store?.subdomain || null,
+      storeStatus: store?.status || null,
+    };
+  });
+
+  return c.json({
+    success: true,
+    data,
+    counts,
+  });
+});
+
+platformAdminRouter.post(
+  "/copyright-reports/:id/takedown",
+  zValidator("json", takedownActionSchema),
+  async (c) => {
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const reportId = c.req.param("id");
+    const body = c.req.valid("json");
+    const db = createDb(c.env.DB);
+
+    const [report] = await db
+      .select()
+      .from(copyrightReports)
+      .where(eq(copyrightReports.id, reportId))
+      .limit(1);
+
+    if (!report) {
+      throw new AppError("Copyright report not found.", 404, "REPORT_NOT_FOUND");
+    }
+
+    const result = await executeImageTakedown(db, c.env.MEDIA_BUCKET, {
+      reportedImageUrl: report.reportedImageUrl,
+      tenantIdHint: report.tenantId,
+      itemIdHint: report.itemId,
+      suspendStore: body.suspendStore,
+      reasonNote: body.resolutionNotes || report.reason,
+      reportId: report.id,
+    });
+
+    const now = new Date();
+    const note =
+      body.resolutionNotes ||
+      `Removed image from ${result.itemsUpdated} item(s) and ${result.settingsCleared} store branding field(s)${
+        result.r2Deleted ? " + purged R2 file" : ""
+      }${result.storeSuspended ? " + suspended store" : ""}.`;
+
+    await db
+      .update(copyrightReports)
+      .set({
+        status: "TAKEN_DOWN",
+        resolutionNotes: note,
+        resolvedBy: "SUPER_ADMIN",
+        resolvedAt: now,
+      })
+      .where(eq(copyrightReports.id, reportId));
+
+    return c.json({
+      success: true,
+      message: note,
+      data: { reportId, ...result },
+    });
+  }
+);
+
+platformAdminRouter.post(
+  "/copyright-reports/:id/dismiss",
+  zValidator("json", dismissReportSchema),
+  async (c) => {
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const reportId = c.req.param("id");
+    const body = c.req.valid("json");
+    const db = createDb(c.env.DB);
+
+    const [report] = await db
+      .select({ id: copyrightReports.id })
+      .from(copyrightReports)
+      .where(eq(copyrightReports.id, reportId))
+      .limit(1);
+
+    if (!report) {
+      throw new AppError("Copyright report not found.", 404, "REPORT_NOT_FOUND");
+    }
+
+    await db
+      .update(copyrightReports)
+      .set({
+        status: "DISMISSED",
+        resolutionNotes: body.resolutionNotes || "Dismissed after Super Admin review.",
+        resolvedBy: "SUPER_ADMIN",
+        resolvedAt: new Date(),
+      })
+      .where(eq(copyrightReports.id, reportId));
+
+    return c.json({
+      success: true,
+      message: "Copyright report marked as dismissed.",
+    });
+  }
+);
+
+platformAdminRouter.post(
+  "/media/takedown",
+  zValidator("json", directMediaTakedownSchema),
+  async (c) => {
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const body = c.req.valid("json");
+    const db = createDb(c.env.DB);
+
+    let tenantIdHint: string | null = null;
+    if (body.storeSubdomain) {
+      const cleaned = sanitizeSubdomain(body.storeSubdomain);
+      if (cleaned) {
+        const [tenantRow] = await db
+          .select({ id: tenants.id })
+          .from(tenants)
+          .where(eq(tenants.subdomain, cleaned))
+          .limit(1);
+        tenantIdHint = tenantRow?.id || null;
+      }
+    }
+
+    const result = await executeImageTakedown(db, c.env.MEDIA_BUCKET, {
+      reportedImageUrl: body.reportedImageUrl,
+      tenantIdHint,
+      suspendStore: body.suspendStore,
+      reasonNote: body.resolutionNotes || "Direct Super Admin copyright takedown.",
+    });
+
+    const mediaRef = extractMediaReference(body.reportedImageUrl);
+    const openReports = await db
+      .select()
+      .from(copyrightReports)
+      .where(eq(copyrightReports.status, "OPEN"));
+
+    const now = new Date();
+    for (const openRep of openReports) {
+      if (matchesReportedImage(openRep.reportedImageUrl, body.reportedImageUrl, mediaRef)) {
+        await db
+          .update(copyrightReports)
+          .set({
+            status: "TAKEN_DOWN",
+            resolutionNotes: body.resolutionNotes || "Resolved via direct Super Admin image takedown.",
+            resolvedBy: "SUPER_ADMIN",
+            resolvedAt: now,
+          })
+          .where(eq(copyrightReports.id, openRep.id));
+      }
+    }
+
+    return c.json({
+      success: true,
+      message: `Image takedown executed (${result.itemsUpdated} item(s) updated, ${result.settingsCleared} branding field(s) cleared${
+        result.r2Deleted ? ", R2 object deleted" : ""
+      }${result.storeSuspended ? ", store suspended" : ""}).`,
+      data: result,
+    });
+  }
+);

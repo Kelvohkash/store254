@@ -879,6 +879,20 @@
     });
   };
 
+  window.reportQuickViewCopyright = function reportQuickViewCopyright() {
+    const sel = getActiveQuickViewSelection();
+    if (!sel || typeof window.openCopyrightReportModal !== "function") return;
+    window.openCopyrightReportModal({
+      itemId: sel.item.id,
+      itemTitle: sel.item.title,
+      storeSubdomain: sel.store.subdomain,
+      images: sel.hasRealPhotos ? sel.images : [],
+      imageUrl: sel.hasRealPhotos ? sel.imgUrl : "",
+      pageUrl: `https://${sel.store.subdomain}.store254.co.ke/item/${encodeURIComponent(sel.item.slug || sel.item.id)}`,
+      targetType: "ITEM_IMAGE",
+    });
+  };
+
   window.buyQuickViewNow = function buyQuickViewNow() {
     const sel = getActiveQuickViewSelection();
     if (!sel) return;
@@ -1079,6 +1093,12 @@
               <i data-lucide="${isService ? "calendar" : "smartphone"}" class="w-4 h-4"></i>
               <span>${isService ? `Book Service Now (${store.mpesaEnabled ? "M-Pesa / Pay at Visit" : "Pay at Appointment"})` : `Buy Now Directly on Store254 (${store.mpesaEnabled ? "M-Pesa / COD" : "Cash on Delivery"})`}</span>
             </button>
+            <div class="flex justify-end">
+              <button type="button" onclick="reportQuickViewCopyright()" class="text-[11px] font-semibold text-slate-400 hover:text-rose-600 inline-flex items-center gap-1 transition-colors">
+                <i data-lucide="flag" class="w-3 h-3"></i>
+                <span>Report copyrighted image</span>
+              </button>
+            </div>
           </div>
           ${
             reviewsList.length > 0

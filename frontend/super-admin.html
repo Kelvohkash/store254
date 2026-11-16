@@ -27,6 +27,7 @@
       <nav class="sidebar-nav" aria-label="Workspace navigation">
         <a class="sidebar-link is-current" href="#overview" data-nav-section="overview"><span class="nav-icon"><i data-lucide="layout-dashboard"></i></span> Overview</a>
         <a class="sidebar-link" href="#businesses" data-nav-section="businesses"><span class="nav-icon"><i data-lucide="store"></i></span> Businesses <span id="sidebar-store-count" class="sidebar-count">—</span></a>
+        <a class="sidebar-link" href="#copyright-takedowns" data-nav-section="copyright-takedowns"><span class="nav-icon"><i data-lucide="shield-alert"></i></span> Takedowns <span id="sidebar-copyright-count" class="sidebar-count">0</span></a>
         <a class="sidebar-link" href="#billing-settings" data-nav-section="billing-settings"><span class="nav-icon"><i data-lucide="smartphone"></i></span> Billing &amp; Daraja</a>
         <a class="sidebar-link" href="./" target="_blank" rel="noopener"><span class="nav-icon"><i data-lucide="external-link"></i></span> Marketplace</a>
       </nav>
@@ -65,6 +66,7 @@
       <nav class="mobile-nav-strip" aria-label="Mobile quick navigation">
         <a class="mobile-nav-chip" href="#overview">Overview</a>
         <a class="mobile-nav-chip" href="#businesses">Businesses</a>
+        <a class="mobile-nav-chip" href="#copyright-takedowns">Takedowns</a>
         <a class="mobile-nav-chip" href="#billing-settings">Billing &amp; Daraja</a>
         <button id="mobile-logout-button" class="mobile-nav-chip is-danger" type="button">Sign out</button>
       </nav>
@@ -220,6 +222,54 @@
           <p class="table-footnote"><span class="secure-dot"></span> Subdomain edits take effect immediately across Cloudflare edge routing. Permanent deletions remove database records and uploaded R2 media.</p>
         </section>
 
+        <section id="copyright-takedowns" class="business-section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">IP &amp; COPYRIGHT COMPLIANCE</p>
+              <h2>Copyrighted Image Takedowns</h2>
+              <p class="section-subtitle">Review copyright reports from users and rights holders, remove infringing images from listings/R2 storage, or suspend repeat-offender stores.</p>
+            </div>
+            <span id="copyright-result-count" class="result-count">Loading reports…</span>
+          </div>
+
+          <form id="direct-takedown-form" class="takedown-direct-card">
+            <div class="takedown-direct-fields">
+              <label>
+                <span>Direct image URL to take down</span>
+                <input id="direct-takedown-url" type="text" required placeholder="https://store254.co.ke/api/media/... or /api/media/..." />
+              </label>
+              <label>
+                <span>Store subdomain (optional)</span>
+                <input id="direct-takedown-subdomain" type="text" placeholder="e.g. alicebabycare" />
+              </label>
+              <label>
+                <span>Takedown note (optional)</span>
+                <input id="direct-takedown-note" type="text" placeholder="e.g. Verified DMCA / Kenya Copyright Act claim" />
+              </label>
+            </div>
+            <div class="takedown-direct-footer">
+              <label class="takedown-suspend-check">
+                <input id="direct-takedown-suspend" type="checkbox" />
+                <span>Also suspend store immediately</span>
+              </label>
+              <button id="direct-takedown-submit" type="submit" class="modal-btn danger">Take Down Image Now</button>
+            </div>
+          </form>
+
+          <div class="toolbar">
+            <div class="filter-tabs" role="group" aria-label="Filter copyright reports by status">
+              <button type="button" class="filter-tab is-selected" data-report-status="OPEN">Open <span id="report-count-open">0</span></button>
+              <button type="button" class="filter-tab" data-report-status="TAKEN_DOWN">Taken Down <span id="report-count-taken-down">0</span></button>
+              <button type="button" class="filter-tab" data-report-status="DISMISSED">Dismissed <span id="report-count-dismissed">0</span></button>
+              <button type="button" class="filter-tab" data-report-status="ALL">All <span id="report-count-all">0</span></button>
+            </div>
+          </div>
+
+          <div id="copyright-reports-list" class="takedown-report-list">
+            <div class="table-message">Loading copyright takedown reports…</div>
+          </div>
+        </section>
+
         <section id="billing-settings" class="business-section platform-billing-section">
           <div class="section-heading">
             <div>
@@ -334,6 +384,7 @@
   </main>
   <script src="./scripts/admin/super-admin-api.js" defer></script>
   <script src="./scripts/admin/super-admin-table.js" defer></script>
+  <script src="./scripts/admin/super-admin-takedowns.js" defer></script>
   <script src="./scripts/admin/super-admin.js" defer></script>
 </body>
 </html>

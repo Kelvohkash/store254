@@ -98,7 +98,11 @@
   }
 
   async function loadDashboard() {
-    const [statsResult] = await Promise.all([platformApiFetch("/stats"), loadStores()]);
+    const [statsResult] = await Promise.all([
+      platformApiFetch("/stats"),
+      loadStores(),
+      typeof window.loadCopyrightReports === "function" ? window.loadCopyrightReports() : Promise.resolve(),
+    ]);
     if (!statsResult.ok || !statsResult.data.success) {
       if (statsResult.status === 401) window.location.replace("./super-admin-login.html");
       throw new Error(statsResult.data.error?.message || "Could not load marketplace overview.");
@@ -107,6 +111,7 @@
     setAdminNotice("");
     if (window.lucide?.createIcons) window.lucide.createIcons();
   }
+  window.reloadSuperAdminDashboard = loadDashboard;
 
   function openPriceModal(store) {
     const modal = document.getElementById("price-modal");

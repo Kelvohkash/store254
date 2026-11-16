@@ -304,3 +304,171 @@ tbody tr:last-child td { border-bottom: 0; }
   gap: .26rem;
   white-space: nowrap;
 }
+
+/* Copyright Takedowns */
+.takedown-direct-card {
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 1rem;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 10px rgba(16, 40, 28, 0.04);
+}
+.takedown-direct-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: .75rem;
+}
+.takedown-direct-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: .32rem;
+}
+.takedown-direct-fields span {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.takedown-direct-fields input {
+  width: 100%;
+  padding: .55rem .72rem;
+  border: 1px solid var(--border-light);
+  border-radius: .65rem;
+  font-size: .78rem;
+  color: var(--text-main);
+  background: #f8fbf9;
+}
+.takedown-direct-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-top: .85rem;
+  padding-top: .75rem;
+  border-top: 1px solid #eef3ef;
+}
+.takedown-suspend-check {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .76rem;
+  font-weight: 650;
+  color: var(--text-main);
+  cursor: pointer;
+}
+.takedown-report-list {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.takedown-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 1rem;
+  color: var(--text-muted);
+  font-size: .82rem;
+}
+.takedown-report-card {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 1rem;
+  padding: .95rem 1.05rem;
+  box-shadow: 0 2px 8px rgba(16, 40, 28, 0.03);
+}
+.takedown-thumb-wrap {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: .75rem;
+  border: 1px solid var(--border-light);
+  background: #f3f7f4;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+.takedown-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.takedown-thumb-fallback {
+  padding: .35rem;
+  text-align: center;
+  font-size: .65rem;
+  font-weight: 650;
+  color: var(--text-subtle);
+}
+.takedown-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.takedown-top-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .4rem;
+}
+.takedown-status-pill {
+  padding: .18rem .55rem;
+  border-radius: 999px;
+  font-size: .66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.takedown-status-pill.is-open { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.takedown-status-pill.is-taken-down { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.takedown-status-pill.is-dismissed { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.takedown-date { font-size: .72rem; color: var(--text-subtle); }
+.takedown-item-title { font-size: .82rem; color: var(--text-main); }
+.takedown-proof-link { font-size: .74rem; font-weight: 700; color: var(--brand-green); text-decoration: none; }
+.takedown-proof-link:hover { text-decoration: underline; }
+.takedown-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: .28rem .85rem;
+  font-size: .75rem;
+  color: var(--text-muted);
+  margin-bottom: .45rem;
+}
+.takedown-url-row { grid-column: 1 / -1; word-break: break-all; }
+.takedown-url-row code {
+  padding: .1rem .32rem;
+  border-radius: .3rem;
+  background: #f1f5f3;
+  font-size: .7rem;
+  color: var(--text-main);
+}
+.takedown-reason {
+  margin: 0 0 .65rem;
+  font-size: .79rem;
+  color: var(--text-main);
+  line-height: 1.48;
+  background: #f8fbf9;
+  border: 1px solid #e7efe9;
+  border-radius: .6rem;
+  padding: .5rem .68rem;
+}
+.takedown-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+.takedown-resolution-note {
+  margin: 0;
+  font-size: .74rem;
+  font-weight: 650;
+  color: #065f46;
+}
+@media (max-width: 640px) {
+  .takedown-report-card { flex-direction: column; }
+  .takedown-thumb-wrap { width: 100%; height: 8rem; }
+}

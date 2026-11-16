@@ -35,6 +35,9 @@ import {
   resolveOrCreateStoreLocation,
 } from "./locations.service";
 import { findMerchantStoresByEmail } from "../../services/user-stores.service";
+import { copyrightReports } from "../../db/schema/copyright-reports";
+import { items } from "../../db/schema/items";
+import { extractMediaReference } from "../../services/copyright-takedown.service";
 
 export const platformRouter = new Hono<AppEnv>();
 
@@ -119,6 +122,12 @@ const registerStoreSchema = z
     locationId: z.string().optional(),
     googlePlaceId: z.string().optional(),
     customLocationName: z.string().trim().min(2).max(80).optional(),
+    acceptedTerms: z
+      .boolean()
+      .optional()
+      .refine((v) => v !== false, {
+        message: "You must accept the Store254 Terms & Conditions and Copyright Policy.",
+      }),
   })
   .refine(
     (v) => Boolean(v.locationId || v.googlePlaceId || v.customLocationName),
@@ -549,5 +558,107 @@ platformRouter.post(
       success: true,
       message: "Password reset successfully. You may now log in with your new password.",
     });
+  }
+);
+
+const copyrightReportSchema = z.object({
+  reporterName: z.string().trim().min(2, "Your full name is required").max(120),
+  reporterEmail: z.string().trim().email("Valid email address is required").max(160),
+  reportedImageUrl: z.string().trim().min(3, "Image URL is required").max(1000),
+  targetType: z.enum(["ITEM_IMAGE", "STORE_LOGO", "STORE_BANNER", "OTHER"]).optional(),
+  pageUrl: z.string().trim().max(1000).optional(),
+  storeSubdomain: z.string().trim().max(64).optional(),
+  itemId: z.string().trim().max(100).optional(),
+  itemTitle: z.string().trim().max(200).optional(),
+  originalWorkUrl: z.string().trim().max(1000).optional(),
+  reason: z.string().trim().min(10, "Please describe the copyright claim (at least 10 characters)").max(2000),
+  goodFaithConfirmed: z.literal(true, {
+    errorMap: () => ({ message: "You must confirm good-faith ownership or authorization." }),
+  }),
+});
+
+// Public Copyright & Image Infringement Reporting Endpoint
+platformRouter.post(
+  "/copyright-reports",
+  rateLimiter({ max: 10, windowMs: 10 * 60 * 1000 }),
+  zValidator("json", copyrightReportSchema),
+  async (c) => {
+    if (!c.env?.DB) {
+      throw new AppError("Database binding not initialized.", 500, "DB_NOT_INITIALIZED");
+    }
+    const body = c.req.valid("json");
+    const db = createDb(c.env.DB);
+
+    const mediaRef = extractMediaReference(body.reportedImageUrl);
+    let resolvedTenantId: string | null = null;
+    let resolvedSubdomain = body.storeSubdomain ? sanitizeSubdomain(body.storeSubdomain) || body.storeSubdomain.toLowerCase() : null;
+    let resolvedItemId: string | null = null;
+    let resolvedItemTitle = body.itemTitle || null;
+
+    if (mediaRef.tenantIdFromUrl) {
+      const [tenantByMedia] = await db
+        .select({ id: tenants.id, subdomain: tenants.subdomain })
+        .from(tenants)
+        .where(eq(tenants.id, mediaRef.tenantIdFromUrl))
+        .limit(1);
+      if (tenantByMedia) {
+        resolvedTenantId = tenantByMedia.id;
+        resolvedSubdomain = resolvedSubdomain || tenantByMedia.subdomain;
+      }
+    }
+
+    if (!resolvedTenantId && resolvedSubdomain) {
+      const [tenantBySub] = await db
+        .select({ id: tenants.id, subdomain: tenants.subdomain })
+        .from(tenants)
+        .where(eq(tenants.subdomain, resolvedSubdomain))
+        .limit(1);
+      if (tenantBySub) {
+        resolvedTenantId = tenantBySub.id;
+        resolvedSubdomain = tenantBySub.subdomain;
+      }
+    }
+
+    if (body.itemId) {
+      const [matchedItem] = await db
+        .select({ id: items.id, tenantId: items.tenantId, title: items.title })
+        .from(items)
+        .where(eq(items.id, body.itemId))
+        .limit(1);
+      if (matchedItem) {
+        resolvedItemId = matchedItem.id;
+        resolvedItemTitle = resolvedItemTitle || matchedItem.title;
+        if (!resolvedTenantId) {
+          resolvedTenantId = matchedItem.tenantId;
+        }
+      }
+    }
+
+    const reportId = generateUUID();
+    await db.insert(copyrightReports).values({
+      id: reportId,
+      tenantId: resolvedTenantId,
+      storeSubdomain: resolvedSubdomain,
+      itemId: resolvedItemId,
+      itemTitle: resolvedItemTitle,
+      reportedImageUrl: body.reportedImageUrl,
+      targetType: body.targetType || "ITEM_IMAGE",
+      pageUrl: body.pageUrl || null,
+      reporterName: body.reporterName,
+      reporterEmail: body.reporterEmail.toLowerCase(),
+      originalWorkUrl: body.originalWorkUrl || null,
+      reason: body.reason,
+      goodFaithConfirmed: true,
+      status: "OPEN",
+    });
+
+    return c.json(
+      {
+        success: true,
+        message: "Copyright report received. Store254 compliance will review it in Super Admin and take down infringing media promptly.",
+        data: { reportId },
+      },
+      201
+    );
   }
 );

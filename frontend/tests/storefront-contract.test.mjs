@@ -322,3 +322,27 @@ test("shoppers can subscribe to stores and keep them pinned at the top of Store2
   assert.match(bannerJs, /syncStorefrontFollowButton/);
   assert.match(cartJs, /qv-follow-btn/);
 });
+
+test("terms, copyright reporting, onboarding consent, and Super Admin image takedowns are wired end-to-end", async () => {
+  const [indexHtml, superAdminHtml, reportJs, takedownJs, onboardingJs, workerTs] = await Promise.all([
+    read("../index.html"),
+    read("../super-admin.html"),
+    read("../scripts/storefront/copyright-report.js"),
+    read("../scripts/admin/super-admin-takedowns.js"),
+    read("../scripts/storefront/onboarding.js"),
+    read("../src/worker.ts"),
+  ]);
+
+  assert.match(indexHtml, /id="copyright-report-modal"/);
+  assert.match(indexHtml, /id="onboard-accept-terms"/);
+  assert.match(indexHtml, /https:\/\/store254\.co\.ke\/terms/);
+  assert.match(indexHtml, /https:\/\/store254\.co\.ke\/privacy/);
+  assert.match(onboardingJs, /acceptedTerms:\s*true/);
+  assert.match(reportJs, /\/api\/platform\/copyright-reports/);
+  assert.match(superAdminHtml, /id="copyright-takedowns"/);
+  assert.match(superAdminHtml, /id="direct-takedown-form"/);
+  assert.match(takedownJs, /\/copyright-reports/);
+  assert.match(takedownJs, /\/media\/takedown/);
+  assert.match(workerTs, /buildPlatformTermsHtml/);
+  assert.match(workerTs, /buildPlatformPrivacyHtml/);
+});

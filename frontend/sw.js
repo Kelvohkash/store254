@@ -1,4 +1,4 @@
-const CACHE_VERSION = "store254-pwa-v22";
+const CACHE_VERSION = "store254-pwa-v23";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [
   "/",

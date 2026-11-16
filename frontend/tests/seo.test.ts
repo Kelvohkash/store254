@@ -3,9 +3,11 @@ import test from "node:test";
 import {
   buildPlatformAboutHtml,
   buildPlatformDirectoryHtml,
+  buildPlatformPrivacyHtml,
   buildPlatformSeoData,
   buildPlatformSitemapIndexXml,
   buildPlatformSitemapXml,
+  buildPlatformTermsHtml,
   buildRobotsTxt,
   buildStorefrontSeoData,
   buildStorefrontSitemapXml,
@@ -341,4 +343,24 @@ test("about page and platform schema identify Kelvin Kamau, Kayzen Labs Software
   const platformSeo = buildPlatformSeoData(sampleStores, false);
   assert.match(platformSeo.headTagsHtml, /Kelvin Kamau/);
   assert.match(platformSeo.headTagsHtml, /Kayzen Labs Software Company Limited/);
+});
+
+test("terms and privacy pages cover copyright takedowns, Kenya law compliance, and payment liability protections", () => {
+  const terms = buildPlatformTermsHtml(false);
+  assert.equal(terms.status, 200);
+  assert.match(terms.robots, /^index, follow/);
+  assert.match(terms.html, /<link rel="canonical" href="https:\/\/store254\.co\.ke\/terms">/);
+  assert.match(terms.html, /Kenya Copyright Act/);
+  assert.match(terms.html, /must not upload, display, copy, or distribute any copyrighted photographs/i);
+  assert.match(terms.html, /Protection Against User &amp; Merchant Mistakes/i);
+  assert.match(terms.html, /Limitation of Liability/i);
+
+  const privacy = buildPlatformPrivacyHtml(false);
+  assert.equal(privacy.status, 200);
+  assert.match(privacy.html, /<link rel="canonical" href="https:\/\/store254\.co\.ke\/privacy">/);
+  assert.match(privacy.html, /Kenya Data Protection Act, 2019/);
+
+  const rootSitemap = buildPlatformSitemapXml(sampleStores);
+  assert.match(rootSitemap, /<loc>https:\/\/store254\.co\.ke\/terms<\/loc>/);
+  assert.match(rootSitemap, /<loc>https:\/\/store254\.co\.ke\/privacy<\/loc>/);
 });

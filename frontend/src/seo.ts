@@ -534,6 +534,20 @@ export function buildPlatformSitemapXml(stores: PlatformStoreSeo[] = []): string
       "    <priority>0.7</priority>",
       "  </url>",
     ].join("\n"),
+    [
+      "  <url>",
+      `    <loc>${escapeXml(origin)}/terms</loc>`,
+      "    <changefreq>monthly</changefreq>",
+      "    <priority>0.6</priority>",
+      "  </url>",
+    ].join("\n"),
+    [
+      "  <url>",
+      `    <loc>${escapeXml(origin)}/privacy</loc>`,
+      "    <changefreq>monthly</changefreq>",
+      "    <priority>0.6</priority>",
+      "  </url>",
+    ].join("\n"),
   ];
 
   const totalDirPages = Math.max(1, Math.ceil(indexableStores.length / DIRECTORY_PAGE_SIZE));
@@ -1533,10 +1547,296 @@ export function buildPlatformAboutHtml(isPreview = false): {
   </main>
 
   <footer style="border-top:1px solid #e2e8f0;background:#fff;padding:18px 20px;text-align:center;font-size:13px;color:#64748b;">
-    &copy; 2026 Store254.co.ke &bull; Kayzen Labs Software Company Limited &bull; Nairobi, Kenya
+    &copy; 2026 Store254.co.ke &bull; Kayzen Labs Software Company Limited &bull; Nairobi, Kenya &bull;
+    <a href="/terms" style="color:#059669;text-decoration:none;font-weight:600;">Terms &amp; Conditions</a> &bull;
+    <a href="/privacy" style="color:#059669;text-decoration:none;font-weight:600;">Privacy Policy</a>
   </footer>
 </body>
 </html>`;
+
+  return { status: 200, html, robots };
+}
+
+function renderLegalDocumentShell(options: {
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  robots: string;
+  badge: string;
+  heading: string;
+  intro: string;
+  updatedDate: string;
+  sectionsHtml: string;
+}): string {
+  const origin = `https://${PRIMARY_DOMAIN}`;
+  const ogImage = `${origin}/assets/store254Logo.webp`;
+  const graph = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": `${options.canonicalUrl}#webpage`,
+        url: options.canonicalUrl,
+        name: options.title,
+        description: options.description,
+        inLanguage: "en-KE",
+        isPartOf: { "@id": `${origin}/#website` },
+        about: { "@id": `${origin}/#organization` },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Store254", item: `${origin}/` },
+          { "@type": "ListItem", position: 2, name: options.heading, item: options.canonicalUrl },
+        ],
+      },
+    ],
+  };
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escapeHtml(options.title)}</title>
+  <meta name="description" content="${escapeHtml(options.description)}">
+  <link rel="canonical" href="${escapeHtml(options.canonicalUrl)}">
+  <meta name="robots" content="${escapeHtml(options.robots)}">
+  <link rel="icon" type="image/webp" href="${escapeHtml(origin)}/assets/store254Icon.webp">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Store254">
+  <meta property="og:locale" content="en_KE">
+  <meta property="og:title" content="${escapeHtml(options.title)}">
+  <meta property="og:description" content="${escapeHtml(options.description)}">
+  <meta property="og:url" content="${escapeHtml(options.canonicalUrl)}">
+  <meta property="og:image" content="${escapeHtml(ogImage)}">
+  <script type="application/ld+json">${safeJsonLd(graph)}</script>
+</head>
+<body style="margin:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,sans-serif;line-height:1.68;">
+  <header style="background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 20px;">
+    <div style="max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <a href="/" style="font-weight:800;font-size:18px;color:#059669;text-decoration:none;">Store254</a>
+      <nav aria-label="Legal navigation" style="display:flex;gap:16px;font-size:13px;font-weight:600;flex-wrap:wrap;">
+        <a href="/terms" style="color:#334155;text-decoration:none;">Terms</a>
+        <a href="/privacy" style="color:#334155;text-decoration:none;">Privacy</a>
+        <a href="/?report=copyright" style="color:#b91c1c;text-decoration:none;">Report Copyright</a>
+        <a href="/stores" style="color:#059669;text-decoration:none;">Browse Stores &rarr;</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:960px;margin:0 auto;padding:32px 20px 56px;">
+    <section style="background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:30px;margin-bottom:20px;">
+      <span style="display:inline-block;padding:4px 12px;border-radius:999px;background:#ecfdf5;color:#047857;font-size:12px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;">${escapeHtml(options.badge)}</span>
+      <h1 style="margin:12px 0 8px;font-size:30px;line-height:1.2;font-weight:800;color:#0f172a;">${escapeHtml(options.heading)}</h1>
+      <p style="margin:0 0 8px;color:#64748b;font-size:13px;font-weight:600;">Effective Date: ${escapeHtml(options.updatedDate)} &bull; Operated by Kayzen Labs Software Company Limited (Nairobi, Kenya)</p>
+      <p style="margin:0;color:#475569;font-size:15px;">${options.intro}</p>
+    </section>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      ${options.sectionsHtml}
+    </div>
+  </main>
+
+  <footer style="border-top:1px solid #e2e8f0;background:#fff;padding:18px 20px;text-align:center;font-size:13px;color:#64748b;">
+    &copy; 2026 Store254.co.ke &bull; Kayzen Labs Software Company Limited &bull;
+    <a href="/terms" style="color:#059669;text-decoration:none;">Terms</a> &bull;
+    <a href="/privacy" style="color:#059669;text-decoration:none;">Privacy</a> &bull;
+    <a href="/?report=copyright" style="color:#b91c1c;text-decoration:none;">Report Copyrighted Image</a> &bull;
+    <a href="/about" style="color:#059669;text-decoration:none;">About</a>
+  </footer>
+</body>
+</html>`;
+}
+
+export function buildPlatformTermsHtml(isPreview = false): {
+  status: number;
+  html: string;
+  robots: string;
+} {
+  const origin = `https://${PRIMARY_DOMAIN}`;
+  const canonicalUrl = `${origin}/terms`;
+  const robots = isPreview
+    ? "noindex, nofollow"
+    : "index, follow, max-image-preview:large, max-snippet:-1";
+  const title = "Terms & Conditions & Copyright Policy | Store254";
+  const description =
+    "Read Store254 Terms & Conditions, Copyright & Image Takedown Policy (Kenya Copyright Act Cap. 130), M-Pesa Payment Terms, Merchant Responsibilities, and Limitation of Liability.";
+
+  const cardStyle = "background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;";
+  const h2Style = "margin:0 0 10px;font-size:18px;font-weight:800;color:#0f172a;";
+  const pStyle = "margin:0 0 10px;color:#334155;font-size:14px;";
+  const ulStyle = "margin:0;padding-left:20px;color:#334155;font-size:14px;display:flex;flex-direction:column;gap:6px;";
+
+  const sectionsHtml = `
+    <article id="copyright" style="${cardStyle}border-left:4px solid #dc2626;">
+      <h2 style="${h2Style}">1. Copyright, Trademarks &amp; Media Takedown Policy (Mandatory)</h2>
+      <p style="${pStyle}">
+        Store254 strictly respects intellectual property rights under the <strong>Kenya Copyright Act (Cap. 130)</strong>, the <strong>Trademarks Act (Cap. 506)</strong>, the <strong>Anti-Counterfeit Act</strong>, and applicable international copyright frameworks (including DMCA notice-and-takedown standards).
+      </p>
+      <ul style="${ulStyle}">
+        <li><strong>No Copyrighted Images or Unauthorized Media:</strong> Merchants and users <strong>must not upload, display, copy, or distribute any copyrighted photographs, watermarked stock images, brand logos, product graphics, or third-party media</strong> unless they own the copyright or hold a valid commercial license or written permission from the rights holder.</li>
+        <li><strong>Merchant Warranty:</strong> By uploading any image, logo, banner, or listing media to Store254, the merchant warrants that the content is original or properly licensed and does not infringe any copyright, trademark, publicity, or privacy right.</li>
+        <li><strong>Store254's Right to Take Down Content Immediately:</strong> Store254 reserves the absolute, unilateral right to <strong>remove, strip, or permanently delete any reported or suspected copyrighted image or listing from storefronts and cloud storage immediately without prior notice</strong>, and to suspend or permanently terminate repeat offenders.</li>
+        <li><strong>How to Report Copyrighted Images:</strong> Rights holders or any user can report an infringing image directly via our <a href="/?report=copyright" style="color:#b91c1c;font-weight:700;text-decoration:none;">Report Copyrighted Image form</a> (also available on every product page) or by emailing <a href="mailto:kelvin@store254.co.ke" style="color:#059669;font-weight:700;text-decoration:none;">kelvin@store254.co.ke</a> with the image URL, store link, proof of ownership, and a good-faith declaration.</li>
+      </ul>
+    </article>
+
+    <article style="${cardStyle}">
+      <h2 style="${h2Style}">2. Platform Role &amp; Independent Merchants</h2>
+      <p style="${pStyle}">
+        Store254 (<a href="https://store254.co.ke/" style="color:#059669;text-decoration:none;">store254.co.ke</a>), operated by <strong>Kayzen Labs Software Company Limited</strong>, provides e-commerce software, hosting, and storefront infrastructure (<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">*.store254.co.ke</code>).
+      </p>
+      <ul style="${ulStyle}">
+        <li><strong>Not the Seller of Record:</strong> Store254 is not the manufacturer, seller, owner, custodian, or delivery agent of any products or services listed by independent merchants.</li>
+        <li><strong>Merchant Legal &amp; Regulatory Compliance:</strong> Each merchant is solely responsible for product authenticity, safety, accurate descriptions, pricing, stock availability, warranties, delivery, refunds, returns, local county permits, professional/sector licenses (e.g. Pharmacy &amp; Poisons Board for health/pharmacy goods), and Kenya Revenue Authority (KRA) tax obligations (VAT, Turnover Tax, eTIMS/receipts).</li>
+        <li><strong>Consumer Protection:</strong> Merchants must comply with the <strong>Kenya Consumer Protection Act (Cap. 501)</strong> and <strong>Sale of Goods Act (Cap. 31)</strong>, including honest pricing and transparent refund/delivery policies.</li>
+      </ul>
+    </article>
+
+    <article id="payments" style="${cardStyle}">
+      <h2 style="${h2Style}">3. Payments, M-Pesa, Cash on Delivery &amp; Money Disputes</h2>
+      <p style="${pStyle}">
+        Customer purchases on Store254 settle directly with the merchant via the merchant's own configured Safaricom M-Pesa Till/Paybill (Daraja STK Push or manual Paybill/Till instructions) or Cash on Delivery.
+      </p>
+      <ul style="${ulStyle}">
+        <li><strong>No Escrow or Banking Role:</strong> Store254 is a technology provider, not a bank, payment service provider, or escrow holder. Order funds do not pass through Store254 accounts when customers pay a merchant's Till or Paybill directly.</li>
+        <li><strong>Protection Against User &amp; Merchant Mistakes:</strong> Store254 and Kayzen Labs Software Company Limited are <strong>not responsible or liable for any financial loss, misdirected funds, or failed orders</strong> resulting from: (a) a merchant configuring an incorrect M-Pesa Till, Paybill, Account Number, or Daraja API credential; (b) a customer entering a wrong phone number, wrong Till/Paybill reference, wrong M-Pesa PIN, or making duplicate payments; (c) pricing typos, incorrect stock quantities, or accidental deletion of items/data by a merchant or their staff; or (d) incorrect delivery addresses provided by buyers.</li>
+        <li><strong>Third-Party Network Outages:</strong> Store254 is not liable for delays, timeouts, or missed callbacks caused by Safaricom M-Pesa Daraja, mobile network operators, Google OAuth, or external courier providers.</li>
+        <li><strong>Refunds &amp; Order Disputes:</strong> All order cancellations, exchanges, and refunds are strictly between the customer and the selling merchant.</li>
+        <li><strong>Merchant Platform Subscriptions:</strong> Where a monthly platform fee applies to a merchant's storefront, failure to renew by the due date may suspend public storefront access. Subscription fees are for software access and are non-refundable once the active billing period begins, except where required by Kenyan law.</li>
+      </ul>
+    </article>
+
+    <article style="${cardStyle}">
+      <h2 style="${h2Style}">4. Prohibited Content, Acceptable Use &amp; Cybercrime Compliance</h2>
+      <p style="${pStyle}">
+        Users and merchants must comply with the <strong>Computer Misuse and Cybercrimes Act, 2018</strong> and all laws of the Republic of Kenya. You may not list or transmit:
+      </p>
+      <ul style="${ulStyle}">
+        <li>Counterfeit, pirated, stolen, or illegal goods, narcotics, weapons, hazardous materials, or regulated prescription drugs without valid statutory licensing.</li>
+        <li>Fraudulent listings, phishing storefronts, impersonation of financial/mobile-money brands (including M-Pesa or Safaricom), malware, or automated scraping/abuse.</li>
+        <li>Defamatory, abusive, obscene, or deceptive content. Store254 may suspend or delete violating accounts immediately and cooperate with lawful authorities.</li>
+      </ul>
+    </article>
+
+    <article style="${cardStyle}">
+      <h2 style="${h2Style}">5. Account Security, Staff Access &amp; Backups</h2>
+      <p style="${pStyle}">
+        Merchants are fully responsible for safeguarding their Google Sign-In sessions, store admin passwords, staff accounts, and M-Pesa credentials. Actions performed by any invited staff account or using valid credentials are the responsibility of the store owner. Store254 does not guarantee permanent retention of deleted items or suspended storefronts.
+      </p>
+    </article>
+
+    <article style="${cardStyle}">
+      <h2 style="${h2Style}">6. Disclaimer, Limitation of Liability &amp; Indemnification</h2>
+      <p style="${pStyle}">
+        <strong>As-Is Service:</strong> Store254 is provided on an &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; basis without warranties of uninterrupted availability or merchant performance.
+      </p>
+      <p style="${pStyle}">
+        <strong>Limitation of Liability:</strong> To the maximum extent permitted by Kenyan law, Kayzen Labs Software Company Limited and Store254 shall not be liable for any indirect, incidental, consequential, or punitive damages, lost profits, lost data, misdirected payments, or merchant-buyer disputes. Our total aggregate liability for any claim shall not exceed the total platform subscription fees actually paid by you to Store254 in the three (3) months preceding the claim (or KES 5,000 if no fees were paid).
+      </p>
+      <p style="margin:0;color:#334155;font-size:14px;">
+        <strong>Indemnification:</strong> You agree to indemnify and hold harmless Kayzen Labs Software Company Limited, Store254, and its officers and engineers from any claims, damages, fines, legal fees, copyright infringement actions, tax assessments, or consumer disputes arising from your uploaded images, listings, M-Pesa configuration, or breach of these Terms.
+      </p>
+    </article>
+
+    <article style="${cardStyle}">
+      <h2 style="${h2Style}">7. Data Protection, Governing Law &amp; Contact</h2>
+      <p style="${pStyle}">
+        Personal data is processed in accordance with our <a href="/privacy" style="color:#059669;font-weight:700;text-decoration:none;">Privacy &amp; Data Protection Policy</a> and the <strong>Kenya Data Protection Act, 2019</strong>.
+      </p>
+      <p style="margin:0;color:#334155;font-size:14px;">
+        These Terms are governed by the laws of the <strong>Republic of Kenya</strong>, with exclusive jurisdiction in the courts of Nairobi, Kenya. Legal &amp; takedown inquiries: <a href="mailto:kelvin@store254.co.ke" style="color:#059669;font-weight:700;text-decoration:none;">kelvin@store254.co.ke</a>.
+      </p>
+    </article>
+  `;
+
+  const html = renderLegalDocumentShell({
+    title,
+    description,
+    canonicalUrl,
+    robots,
+    badge: "Legal & Compliance",
+    heading: "Terms & Conditions",
+    intro:
+      "By accessing Store254, creating a storefront, uploading images, or placing an order, you agree to these Terms & Conditions, including our strict prohibition on copyrighted images and our payment/liability protections.",
+    updatedDate: "November 16, 2026",
+    sectionsHtml,
+  });
+
+  return { status: 200, html, robots };
+}
+
+export function buildPlatformPrivacyHtml(isPreview = false): {
+  status: number;
+  html: string;
+  robots: string;
+} {
+  const origin = `https://${PRIMARY_DOMAIN}`;
+  const canonicalUrl = `${origin}/privacy`;
+  const robots = isPreview
+    ? "noindex, nofollow"
+    : "index, follow, max-image-preview:large, max-snippet:-1";
+  const title = "Privacy & Data Protection Policy | Store254";
+  const description =
+    "Store254 Privacy Policy compliant with the Kenya Data Protection Act, 2019 (ODPC). Learn how Store254 collects, protects, and processes merchant, buyer, and copyright report data.";
+
+  const cardStyle = "background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;";
+  const h2Style = "margin:0 0 10px;font-size:18px;font-weight:800;color:#0f172a;";
+  const pStyle = "margin:0 0 10px;color:#334155;font-size:14px;";
+  const ulStyle = "margin:0;padding-left:20px;color:#334155;font-size:14px;display:flex;flex-direction:column;gap:6px;";
+
+  const sectionsHtml = `
+    <article style="${cardStyle}">
+      <h2 style="${h2Style}">1. Data Controller &amp; Scope (Kenya Data Protection Act, 2019)</h2>
+      <p style="margin:0;color:#334155;font-size:14px;">
+        <strong>Store254</strong> (<a href="https://store254.co.ke/" style="color:#059669;text-decoration:none;">store254.co.ke</a>) is operated by <strong>Kayzen Labs Software Company Limited</strong> (Nairobi, Kenya) in compliance with the <strong>Kenya Data Protection Act, 2019</strong> and regulations of the Office of the Data Protection Commissioner (ODPC). Each independent merchant acts as a separate data controller for customer orders fulfilled by their individual store.
+      </p>
+    </article>
+
+    <article style="${cardStyle}">
+      <h2 style="${h2Style}">2. Information We Collect</h2>
+      <ul style="${ulStyle}">
+        <li><strong>Account &amp; Authentication Data:</strong> Name, email address, and Google account identifier when signing in with Google OAuth, plus hashed store admin/staff passwords (PBKDF2-HMAC-SHA512).</li>
+        <li><strong>Merchant Storefront Data:</strong> Business name, subdomain, county/town location, contact phone/email, uploaded logos/banners/product photos, and encrypted M-Pesa Daraja/Paybill/Till settings.</li>
+        <li><strong>Order &amp; Checkout Data:</strong> Customer name, phone number, delivery address, order items, and M-Pesa transaction references (we never store your M-Pesa PIN).</li>
+        <li><strong>Copyright &amp; Abuse Reports:</strong> Reporter name, email, claimed original work URL, reported image URL, and audit logs.</li>
+        <li><strong>Technical &amp; Local Storage Data:</strong> Essential session cookies (HttpOnly), cart/wishlist preferences in browser storage, and IP/geo headers used strictly for rate limiting, fraud prevention, and location search.</li>
+      </ul>
+    </article>
+
+    <article style="${cardStyle}">
+      <h2 style="${h2Style}">3. How &amp; Why We Process Data</h2>
+      <ul style="${ulStyle}">
+        <li>To operate storefronts, authenticate users, display local Kenyan stores/products, and route customer orders and M-Pesa payment requests.</li>
+        <li>To enforce our <a href="/terms" style="color:#059669;font-weight:700;text-decoration:none;">Terms &amp; Conditions</a>, investigate copyright takedown requests, prevent fraud/spam, and comply with Kenyan legal obligations.</li>
+        <li><strong>Infrastructure &amp; Sub-processors:</strong> Data is processed using trusted infrastructure providers including Cloudflare (edge hosting, D1 database, R2 media storage), Google (OAuth sign-in &amp; optional Maps location lookup), Safaricom Daraja (M-Pesa STK Push), and Resend (transactional OTP and notification emails).</li>
+      </ul>
+    </article>
+
+    <article style="${cardStyle}">
+      <h2 style="${h2Style}">4. Security, Retention &amp; Your Data Rights</h2>
+      <p style="${pStyle}">
+        We protect data in transit via HTTPS/TLS, encrypt sensitive M-Pesa merchant secrets at rest, and isolate tenant records per store. Data is retained only as long as necessary to provide the service, resolve disputes/takedowns, or satisfy statutory tax/audit requirements.
+      </p>
+      <p style="margin:0;color:#334155;font-size:14px;">
+        Under the <strong>Kenya Data Protection Act, 2019</strong>, you have the right to request access, correction, or deletion of your personal data, or object to processing. Contact our Data Protection Contact at <a href="mailto:kelvin@store254.co.ke" style="color:#059669;font-weight:700;text-decoration:none;">kelvin@store254.co.ke</a>.
+      </p>
+    </article>
+  `;
+
+  const html = renderLegalDocumentShell({
+    title,
+    description,
+    canonicalUrl,
+    robots,
+    badge: "Data Protection (Kenya DPA 2019)",
+    heading: "Privacy & Data Protection Policy",
+    intro:
+      "How Store254 and Kayzen Labs Software Company Limited collect, use, secure, and protect personal data across store254.co.ke and independent merchant storefronts.",
+    updatedDate: "November 16, 2026",
+    sectionsHtml,
+  });
 
   return { status: 200, html, robots };
 }

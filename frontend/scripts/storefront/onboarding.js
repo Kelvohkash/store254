@@ -702,6 +702,13 @@ async function handleOnboardSubmit(e) {
   if (ownerPassword.length < 8) {
     return failValidation("Password must be at least 8 characters long.", passwordEl);
   }
+  const acceptTermsEl = document.getElementById("onboard-accept-terms");
+  if (acceptTermsEl && !acceptTermsEl.checked) {
+    return failValidation(
+      "Please agree to the Store254 Terms & Conditions, Privacy Policy, and Copyright Policy.",
+      acceptTermsEl
+    );
+  }
 
   const btn = document.getElementById("btn-onboard");
   const originalBtnHtml = btn ? btn.innerHTML : "";
@@ -719,6 +726,7 @@ async function handleOnboardSubmit(e) {
     ownerEmail,
     ownerPassword,
     countyId,
+    acceptedTerms: true,
   };
 
   if (selected?.id) {

@@ -2,9 +2,11 @@ import {
   PRIMARY_DOMAIN,
   buildPlatformAboutHtml,
   buildPlatformDirectoryHtml,
+  buildPlatformPrivacyHtml,
   buildPlatformSeoData,
   buildPlatformSitemapIndexXml,
   buildPlatformSitemapXml,
+  buildPlatformTermsHtml,
   buildRobotsTxt,
   buildStorefrontSeoData,
   buildStorefrontSitemapXml,
@@ -407,6 +409,32 @@ export default {
       return new Response(request.method === "HEAD" ? null : staticManifest.body, {
         status: staticManifest.status,
         headers,
+      });
+    }
+
+    // Legal Pages (/terms and /privacy): serve on root domain, redirect tenant subdomains to canonical root
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      (url.pathname === "/terms" ||
+        url.pathname === "/terms/" ||
+        url.pathname === "/privacy" ||
+        url.pathname === "/privacy/")
+    ) {
+      const targetPath = url.pathname.startsWith("/privacy") ? "/privacy" : "/terms";
+      if (isTenantContext) {
+        return Response.redirect(`https://${PRIMARY_DOMAIN}${targetPath}`, 302);
+      }
+      const legalPage =
+        targetPath === "/privacy"
+          ? buildPlatformPrivacyHtml(hostInfo.isPreviewHost)
+          : buildPlatformTermsHtml(hostInfo.isPreviewHost);
+      return new Response(request.method === "HEAD" ? null : legalPage.html, {
+        status: legalPage.status,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "X-Robots-Tag": legalPage.robots,
+          "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+        },
       });
     }
 

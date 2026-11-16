@@ -10,3 +10,4 @@ export * from "./reviews";
 export * from "./audit";
 export * from "./platform-billing";
 export * from "./kenya-locations";
+export * from "./copyright-reports";
