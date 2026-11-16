@@ -11,6 +11,32 @@ import { AppError } from "../../security/error-handler";
 export const seoPlatformRouter = new Hono<AppEnv>();
 export const seoTenantRouter = new Hono<AppEnv>();
 
+export function buildSeoStoresQuery(db: ReturnType<typeof createDb>) {
+  return db
+    .select({
+      id: tenants.id,
+      name: tenants.name,
+      subdomain: tenants.subdomain,
+      customDomain: tenants.customDomain,
+      businessType: tenants.businessType,
+      currency: tenants.currency,
+      settings: tenants.settings,
+      itemCount: sql<number>`cast((select count(*) from items where items.tenant_id = tenants.id and items.status = 'PUBLISHED') as integer)`,
+      updatedAt: tenants.updatedAt,
+      createdAt: tenants.createdAt,
+    })
+    .from(tenants)
+    .where(
+      and(
+        eq(tenants.status, "ACTIVE"),
+        notLike(tenants.id, "tenant-demo-%"),
+        sql`exists (select 1 from items where items.tenant_id = tenants.id and items.status = 'PUBLISHED')`
+      )
+    )
+    .orderBy(desc(tenants.updatedAt), desc(tenants.createdAt))
+    .limit(10000);
+}
+
 /**
  * Public SEO metadata listing active merchant storefronts for root sitemap,
  * robots.txt discovery links, and platform homepage SSR directory links.
@@ -21,29 +47,7 @@ seoPlatformRouter.get("/seo-stores", async (c) => {
   }
 
   const db = createDb(c.env.DB);
-  const activeStores = await db
-    .select({
-      id: tenants.id,
-      name: tenants.name,
-      subdomain: tenants.subdomain,
-      customDomain: tenants.customDomain,
-      businessType: tenants.businessType,
-      currency: tenants.currency,
-      settings: tenants.settings,
-      itemCount: sql<number>`(select count(*) from items where items.tenant_id = ${tenants.id} and items.status = 'PUBLISHED')`,
-      updatedAt: tenants.updatedAt,
-      createdAt: tenants.createdAt,
-    })
-    .from(tenants)
-    .where(
-      and(
-        eq(tenants.status, "ACTIVE"),
-        notLike(tenants.id, "tenant-demo-%"),
-        sql`exists (select 1 from items where items.tenant_id = ${tenants.id} and items.status = 'PUBLISHED')`
-      )
-    )
-    .orderBy(desc(tenants.updatedAt), desc(tenants.createdAt))
-    .limit(10000);
+  const activeStores = await buildSeoStoresQuery(db);
 
   c.header("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
   return c.json({
