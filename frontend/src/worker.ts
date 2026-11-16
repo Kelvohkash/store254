@@ -125,6 +125,17 @@ export default {
     const hostInfo = classifyHost(url.hostname);
     const clientIp = getClientIp(request);
 
+    // Consolidate www.store254.co.ke -> store254.co.ke and /index.html -> / via 301 canonical redirects.
+    if (request.method === "GET" || request.method === "HEAD") {
+      if (hostInfo.hostname === `www.${PRIMARY_DOMAIN}`) {
+        const cleanPath = url.pathname === "/index.html" ? "/" : url.pathname;
+        return Response.redirect(`https://${PRIMARY_DOMAIN}${cleanPath}${url.search}`, 301);
+      }
+      if (url.pathname === "/index.html") {
+        return Response.redirect(`${url.origin}/${url.search}`, 301);
+      }
+    }
+
     // Proxy API and OAuth endpoints directly to the backend worker.
     if (
       url.pathname === "/api" ||
@@ -355,7 +366,8 @@ export default {
     }
 
     if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/offline.html") {
-      return env.ASSETS.fetch(request);
+      const offlineRes = await env.ASSETS.fetch(request);
+      return withRobotsHeader(offlineRes, "noindex, nofollow");
     }
 
     // Web App Manifest: always install the main Store254 platform app (never subdomain-scoped PWAs).
@@ -478,13 +490,29 @@ export default {
       !contentType.includes("text/html") ||
       typeof HTMLRewriter === "undefined"
     ) {
-      return hostInfo.isPreviewHost ? withRobotsHeader(assetResponse, "noindex, nofollow") : assetResponse;
+      let outResponse = assetResponse;
+      const isCacheableStatic =
+        (request.method === "GET" || request.method === "HEAD") &&
+        assetResponse.ok &&
+        (url.pathname.startsWith("/assets/") ||
+          ((url.pathname.startsWith("/styles/") || url.pathname.startsWith("/scripts/")) && url.searchParams.has("v")));
+      if (isCacheableStatic) {
+        const headers = new Headers(assetResponse.headers);
+        headers.set("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+        outResponse = new Response(request.method === "HEAD" ? null : assetResponse.body, {
+          status: assetResponse.status,
+          statusText: assetResponse.statusText,
+          headers,
+        });
+      }
+      return hostInfo.isPreviewHost ? withRobotsHeader(outResponse, "noindex, nofollow") : outResponse;
     }
 
     // 1. Platform Marketplace Home & Stores Directory SSR & SEO (store254.co.ke, store254.co.ke/stores)
     if (!isTenantContext && (route.kind === "home" || isPlatformStoresPage)) {
+      let stores: PlatformStoreSeo[] = [];
       try {
-        const { data: stores } = await fetchCachedSeoJson<PlatformStoreSeo[]>(
+        const res = await fetchCachedSeoJson<PlatformStoreSeo[]>(
           env.API,
           "/api/platform/seo-stores",
           "platform-stores",
@@ -493,47 +521,81 @@ export default {
           ctx,
           120
         );
-        const seo = buildPlatformSeoData(stores || [], hostInfo.isPreviewHost);
-        const pageTitle = isPlatformStoresPage ? "Active Kenyan Storefronts | Store254" : seo.title;
-        const pageDescription = isPlatformStoresPage
-          ? "Browse verified independent Kenyan online stores across counties and towns on Store254."
-          : seo.description;
-        let rewriter = new HTMLRewriter()
-          .on("title", {
-            element(el) {
-              el.setInnerContent(pageTitle);
-            },
-          })
-          .on('meta[name="description"]', {
-            element(el) {
-              el.setAttribute("content", pageDescription);
-            },
-          })
-          .on("head", {
-            element(el) {
-              el.append(seo.headTagsHtml, { html: true });
-            },
-          })
-          .on("#platform-stores-grid", {
-            element(el) {
-              if (seo.ssrStoresHtml) {
-                el.setInnerContent(seo.ssrStoresHtml, { html: true });
-              }
-            },
-          });
-        if (isPlatformStoresPage) {
-          rewriter = rewriter.on("html", {
+        if (Array.isArray(res.data)) {
+          stores = res.data;
+        }
+      } catch {
+        stores = [];
+      }
+
+      const seo = buildPlatformSeoData(stores, hostInfo.isPreviewHost, {
+        view: isPlatformStoresPage ? "stores" : "home",
+      });
+      let rewriter = new HTMLRewriter()
+        .on("title", {
+          element(el) {
+            el.setInnerContent(seo.title);
+          },
+        })
+        .on('meta[name="description"]', {
+          element(el) {
+            el.setAttribute("content", seo.description);
+          },
+        })
+        .on("head", {
+          element(el) {
+            el.append(seo.headTagsHtml, { html: true });
+          },
+        })
+        .on("#banner-store-name", {
+          element(el) {
+            el.tagName = "p";
+          },
+        })
+        .on("#platform-stores-grid", {
+          element(el) {
+            if (seo.ssrStoresHtml) {
+              el.setInnerContent(seo.ssrStoresHtml, { html: true });
+            }
+          },
+        });
+
+      if (isPlatformStoresPage) {
+        rewriter = rewriter
+          .on("html", {
             element(el) {
               el.setAttribute("data-platform-view", "stores");
             },
+          })
+          .on(".coverage-mini-hero-title", {
+            element(el) {
+              el.tagName = "h2";
+            },
+          })
+          .on("#platform-seo-hubs", {
+            element(el) {
+              el.remove();
+            },
           });
-        }
-        const transformed = rewriter.transform(assetResponse);
-
-        return hostInfo.isPreviewHost ? withRobotsHeader(transformed, "noindex, nofollow") : transformed;
-      } catch {
-        return hostInfo.isPreviewHost ? withRobotsHeader(assetResponse, "noindex, nofollow") : assetResponse;
+      } else {
+        rewriter = rewriter
+          .on("#platform-stores-title", {
+            element(el) {
+              el.tagName = "h2";
+            },
+          })
+          .on("#platform-seo-hubs", {
+            element(el) {
+              if (seo.ssrHomeHubsHtml) {
+                removeHiddenClass(el);
+                el.setInnerContent(seo.ssrHomeHubsHtml, { html: true });
+              }
+            },
+          });
       }
+
+      const transformed = rewriter.transform(assetResponse);
+      return withRobotsHeader(transformed, hostInfo.isPreviewHost ? "noindex, nofollow" : seo.robots);
     }
 
     // 2. Tenant Storefront / Category / Item Edge SSR & SEO (*.store254.co.ke or custom domain)
@@ -555,7 +617,7 @@ export default {
 
       if (!storefrontPayload?.tenant) {
         const transformed = new HTMLRewriter()
-          .on('#platform-hero, .platform-nav-links, #platform-mobile-menu, link[rel="manifest"]', {
+          .on('#platform-hero, .platform-nav-links, #platform-mobile-menu, #footer-platform-links, link[rel="manifest"]', {
             element(el) {
               el.remove();
             },
@@ -611,7 +673,7 @@ export default {
 
       const directoryHub = getDirectoryHubForBusinessType(storefrontPayload.tenant.businessType);
       const rewriter = new HTMLRewriter()
-        .on('#platform-hero, .platform-nav-links, #platform-mobile-menu, #footer-about-link, link[rel="manifest"]', {
+        .on('#platform-hero, .platform-nav-links, #platform-mobile-menu, #footer-platform-links, link[rel="manifest"]', {
           element(el) {
             el.remove();
           },
@@ -734,13 +796,9 @@ export default {
         return withRobotsHeader(transformed, robotsHeader, seo.status);
       }
       if (seo.status !== 200) {
-        return new Response(transformed.body, {
-          status: seo.status,
-          statusText: transformed.statusText,
-          headers: transformed.headers,
-        });
+        return withRobotsHeader(transformed, seo.robots, seo.status);
       }
-      return transformed;
+      return withRobotsHeader(transformed, seo.robots);
     } catch {
       return hostInfo.isPreviewHost ? withRobotsHeader(assetResponse, "noindex, nofollow") : assetResponse;
     }

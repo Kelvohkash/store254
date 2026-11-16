@@ -131,9 +131,14 @@ test("robots.txt allows uploaded product media, blocks admin/API JSON, and block
     includePlatformIndex: true,
   });
   assert.match(rootRobots, /Allow: \/api\/media\//);
+  assert.match(rootRobots, /Allow: \/api\/platform\/search\//);
+  assert.match(rootRobots, /Allow: \/api\/platform\/stores/);
+  assert.match(rootRobots, /Allow: \/api\/items/);
   assert.match(rootRobots, /Disallow: \/api\//);
   assert.match(rootRobots, /Disallow: \/admin/);
+  assert.match(rootRobots, /Disallow: \/offline\.html/);
   assert.match(rootRobots, /Sitemap: https:\/\/store254\.co\.ke\/sitemap-index\.xml/);
+  assert.match(rootRobots, /Sitemap: https:\/\/store254\.co\.ke\/sitemap\.xml/);
   assert.match(rootRobots, /Sitemap: https:\/\/alicebabycare\.store254\.co\.ke\/sitemap\.xml/);
 
   const storeRobots = buildRobotsTxt({
@@ -149,9 +154,10 @@ test("robots.txt allows uploaded product media, blocks admin/API JSON, and block
   assert.equal(previewRobots, "User-agent: *\nDisallow: /\n");
 });
 
-test("sitemaps include root marketplace index plus store homepage, categories, products, and services", () => {
+test("sitemaps include root marketplace index, /stores, plus store homepage, categories, products, and services", () => {
   const rootSitemap = buildPlatformSitemapXml(sampleStores);
   assert.match(rootSitemap, /<loc>https:\/\/store254\.co\.ke\/<\/loc>/);
+  assert.match(rootSitemap, /<loc>https:\/\/store254\.co\.ke\/stores<\/loc>/);
 
   const indexXml = buildPlatformSitemapIndexXml(sampleStores);
   assert.match(indexXml, /<loc>https:\/\/alicebabycare\.store254\.co\.ke\/sitemap\.xml<\/loc>/);
@@ -164,11 +170,20 @@ test("sitemaps include root marketplace index plus store homepage, categories, p
   assert.match(storeXml, /<image:loc>https:\/\/alicebabycare\.store254\.co\.ke\/api\/media\/tenant-alice-babycare-101\/carrier\.webp<\/image:loc>/);
 });
 
-test("platform root SSR injects followable direct subdomain links and ItemList JSON-LD", () => {
-  const platformSeo = buildPlatformSeoData(sampleStores, false);
+test("platform root SSR injects followable direct subdomain links, /stores canonical, and Store254 brand authority schema", () => {
+  const platformSeo = buildPlatformSeoData(sampleStores, false, { view: "home" });
   assert.match(platformSeo.headTagsHtml, /rel="canonical" href="https:\/\/store254\.co\.ke\/"/);
+  assert.match(platformSeo.headTagsHtml, /"alternateName":\["Store254\.co\.ke","Store 254"\]/);
+  assert.match(platformSeo.headTagsHtml, /"@type":"SearchAction"/);
   assert.match(platformSeo.headTagsHtml, /Alice Baby Care/);
   assert.match(platformSeo.ssrStoresHtml, /href="https:\/\/alicebabycare\.store254\.co\.ke\/"/);
+  assert.match(platformSeo.ssrHomeHubsHtml, /href="\/stores"/);
+  assert.match(platformSeo.ssrHomeHubsHtml, /href="\/directory"/);
+  assert.match(platformSeo.ssrHomeHubsHtml, /href="https:\/\/alicebabycare\.store254\.co\.ke\/"/);
+
+  const storesSeo = buildPlatformSeoData(sampleStores, false, { view: "stores" });
+  assert.match(storesSeo.headTagsHtml, /rel="canonical" href="https:\/\/store254\.co\.ke\/stores"/);
+  assert.match(storesSeo.headTagsHtml, /"@type":"CollectionPage"/);
 
   const previewSeo = buildPlatformSeoData(sampleStores, true);
   assert.equal(previewSeo.robots, "noindex, nofollow");
@@ -186,6 +201,7 @@ test("storefront home SEO targets exact brand & subdomain searches with OfferCat
   assert.ok(seo.title.startsWith("Alice Baby Care"));
   assert.match(seo.headTagsHtml, /rel="canonical" href="https:\/\/alicebabycare\.store254\.co\.ke\/"/);
   assert.match(seo.headTagsHtml, /"alternateName":\["alicebabycare","alicebabycare\.store254\.co\.ke"\]/);
+  assert.match(seo.headTagsHtml, /"memberOf":\{"@type":"Organization","@id":"https:\/\/store254\.co\.ke\/#organization"/);
   assert.match(seo.headTagsHtml, /"@type":"OfferCatalog"/);
   assert.match(seo.ssrItemsHtml, /href="\/item\/ergobaby-omni-360-carrier"/);
   assert.match(seo.ssrCategoryHtml, /href="\/category\/baby-carriers"/);

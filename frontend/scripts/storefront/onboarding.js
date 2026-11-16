@@ -602,6 +602,7 @@ function syncOnboardModalAuthState() {
 }
 
 async function prepareOnboardModal() {
+  void ensureOnboardLocationsLoaded();
   if (!getSignedInPlatformUserForOnboard() && typeof window.refreshStore254PlatformSession === "function") {
     await window.refreshStore254PlatformSession();
   }
@@ -794,7 +795,6 @@ document.addEventListener("click", (ev) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  ensureOnboardLocationsLoaded();
   syncOnboardModalAuthState();
   const onboardEmailEl = document.getElementById("onboard-email");
   if (onboardEmailEl) {

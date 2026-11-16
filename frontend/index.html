@@ -55,16 +55,17 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
 
   <link rel="stylesheet" href="/styles/tailwind.generated.css?v=20261116">
   <link rel="stylesheet" href="/styles/base.css?v=20261116">
   <link rel="stylesheet" href="/styles/storefront-components.css?v=20261116g">
   <link rel="stylesheet" href="/styles/storefront-quality.css?v=20261116">
-  <link rel="stylesheet" href="/styles/platform-home.css?v=20261115c">
+  <link rel="stylesheet" href="/styles/platform-home.css?v=20261116">
   <link rel="stylesheet" href="/styles/ui-polish.css?v=20261116">
   <style>
-    html[data-storefront="true"] #platform-hero { display: none !important; }
+    html[data-storefront="true"] #platform-hero,
+    html[data-storefront="true"] #footer-platform-links { display: none !important; }
     html[data-storefront="true"] .platform-nav-links,
     html[data-storefront="true"] #platform-mobile-menu,
     html[data-storefront="true"] #platform-mobile-bottom-nav { display: none !important; }
@@ -336,7 +337,7 @@
               <span class="coverage-mini-hero-dot" aria-hidden="true"></span>
               <span>Kenya Coverage · All 47 Counties Connected</span>
             </span>
-            <h1 class="coverage-mini-hero-title">Shop Local Across Every Town &amp; Shopping Centre in Kenya</h1>
+            <h1 class="coverage-mini-hero-title">Store254 — Shop Local Across Every Town &amp; Shopping Centre in Kenya</h1>
           </div>
           <div class="coverage-mini-hero-stats" aria-label="Kenya coverage summary">
             <div class="coverage-mini-stat">
@@ -447,6 +448,8 @@
       </div>
       <div id="platform-stores-grid" class="platform-stores-grid" aria-live="polite"></div>
     </section>
+
+    <nav id="platform-seo-hubs" aria-label="Explore Store254 Directory" class="hidden mt-6 pt-5 border-t border-slate-200/80 space-y-3 text-xs text-slate-600"></nav>
 
   </section>
 
@@ -1237,7 +1240,7 @@
         <span class="footer-logo-frame">
           <img src="/assets/store254Logo.webp" alt="Store254 — Your Digital Market Place" class="object-contain">
         </span>
-        <span id="footer-platform-copy">Independent Kenyan storefronts</span>
+        <span id="footer-platform-copy"><a href="https://store254.co.ke/" class="font-bold text-slate-700 hover:text-emerald-600 transition-colors no-underline">Store254</a> &middot; Independent Kenyan storefronts</span>
         <span id="footer-store-name" class="hidden"></span>
         <a id="footer-powered-by" href="https://store254.co.ke/" class="hidden hover:text-emerald-600 transition-colors">Powered by <strong>Store254</strong></a>
         <a id="footer-directory-link" href="https://store254.co.ke/directory" class="hidden hover:text-emerald-600 transition-colors">Store254 Directory</a>
@@ -1246,9 +1249,13 @@
         <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
         <span>Store Admin</span>
       </a>
-      <div>
-        &copy; 2026 Store254.co.ke &bull; All Rights Reserved &bull; Nairobi, Kenya
-        <a id="footer-about-link" href="/about" class="ml-2 hover:text-emerald-600 transition-colors">About</a>
+      <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+        <span>&copy; 2026 <a href="https://store254.co.ke/" class="hover:text-emerald-600 transition-colors no-underline">Store254.co.ke</a> &bull; Nairobi, Kenya</span>
+        <span id="footer-platform-links" class="inline-flex items-center gap-2">
+          <a href="/stores" class="hover:text-emerald-600 transition-colors">Stores</a>
+          <a href="/directory" class="hover:text-emerald-600 transition-colors">Directory</a>
+          <a id="footer-about-link" href="/about" class="hover:text-emerald-600 transition-colors">About</a>
+        </span>
       </div>
     </div>
   </footer>

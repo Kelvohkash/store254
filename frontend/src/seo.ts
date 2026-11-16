@@ -249,10 +249,13 @@ export function parseStorefrontRoute(pathname: string): StorefrontRoute {
 
   if (
     normalized === "/admin" ||
+    normalized === "/admin/" ||
     normalized === "/admin.html" ||
     normalized === "/super-admin" ||
+    normalized === "/super-admin/" ||
     normalized === "/super-admin.html" ||
     normalized === "/super-admin-login" ||
+    normalized === "/super-admin-login/" ||
     normalized === "/super-admin-login.html"
   ) {
     return { kind: "admin" };
@@ -449,6 +452,15 @@ export function buildRobotsTxt(options: {
     "User-agent: *",
     "Allow: /",
     "Allow: /api/media/",
+    "Allow: /api/platform/stores",
+    "Allow: /api/platform/search/",
+    "Allow: /api/platform/locations/",
+    "Allow: /api/platform/google-config",
+    "Allow: /api/platform/me",
+    "Allow: /api/store",
+    "Allow: /api/categories",
+    "Allow: /api/filters",
+    "Allow: /api/items",
     "Disallow: /api/",
     "Disallow: /auth/",
     "Disallow: /admin",
@@ -457,14 +469,19 @@ export function buildRobotsTxt(options: {
     "Disallow: /super-admin.html",
     "Disallow: /super-admin-login",
     "Disallow: /super-admin-login.html",
+    "Disallow: /offline.html",
+    "Disallow: /cdn-cgi/",
     "",
-    `Sitemap: ${options.canonicalOrigin}/sitemap.xml`,
   ];
 
   if (options.includePlatformIndex) {
     lines.push(`Sitemap: ${options.canonicalOrigin}/sitemap-index.xml`);
+    lines.push(`Sitemap: ${options.canonicalOrigin}/sitemap.xml`);
     const seen = new Set<string>();
+    // Keep robots.txt comfortably below Google's 500 KiB limit; sitemap-index.xml holds up to 50,000 sitemaps.
+    const MAX_ROBOTS_STORE_SITEMAPS = 2000;
     for (const store of filterIndexableStores(options.stores || [])) {
+      if (seen.size >= MAX_ROBOTS_STORE_SITEMAPS) break;
       const storeOrigin = resolveStoreOriginForPlatform(store);
       const sitemapUrl = `${storeOrigin}/sitemap.xml`;
       if (!seen.has(sitemapUrl)) {
@@ -472,6 +489,8 @@ export function buildRobotsTxt(options: {
         lines.push(`Sitemap: ${sitemapUrl}`);
       }
     }
+  } else {
+    lines.push(`Sitemap: ${options.canonicalOrigin}/sitemap.xml`);
   }
 
   return `${lines.join("\n")}\n`;
@@ -493,6 +512,17 @@ export function buildPlatformSitemapXml(stores: PlatformStoreSeo[] = []): string
       latestTimestamp ? `    <lastmod>${escapeXml(latestTimestamp)}</lastmod>` : "",
       "    <changefreq>daily</changefreq>",
       "    <priority>1.0</priority>",
+      `    <image:image><image:loc>${escapeXml(origin)}/assets/store254Logo.webp</image:loc></image:image>`,
+      "  </url>",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    [
+      "  <url>",
+      `    <loc>${escapeXml(origin)}/stores</loc>`,
+      latestTimestamp ? `    <lastmod>${escapeXml(latestTimestamp)}</lastmod>` : "",
+      "    <changefreq>daily</changefreq>",
+      "    <priority>0.9</priority>",
       "  </url>",
     ]
       .filter(Boolean)
@@ -548,7 +578,7 @@ export function buildPlatformSitemapXml(stores: PlatformStoreSeo[] = []): string
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">',
     ...urls,
     "</urlset>",
   ].join("\n");
@@ -557,16 +587,26 @@ export function buildPlatformSitemapXml(stores: PlatformStoreSeo[] = []): string
 export function buildPlatformSitemapIndexXml(stores: PlatformStoreSeo[] = []): string {
   const indexableStores = filterIndexableStores(stores);
   const rootOrigin = `https://${PRIMARY_DOMAIN}`;
+  const latestTimestamp = indexableStores
+    .map((s) => formatIsoDate(s.updatedAt || s.createdAt))
+    .filter((d): d is string => Boolean(d))
+    .sort()
+    .pop();
   const entries = [
     [
       "  <sitemap>",
       `    <loc>${escapeXml(rootOrigin)}/sitemap.xml</loc>`,
+      latestTimestamp ? `    <lastmod>${escapeXml(latestTimestamp)}</lastmod>` : "",
       "  </sitemap>",
-    ].join("\n"),
+    ]
+      .filter(Boolean)
+      .join("\n"),
   ];
 
   const seenOrigins = new Set<string>();
+  const MAX_SITEMAP_INDEX_ENTRIES = 49999;
   for (const store of indexableStores) {
+    if (seenOrigins.size >= MAX_SITEMAP_INDEX_ENTRIES) break;
     if (!store?.subdomain) continue;
     const storeOrigin = resolveStoreOriginForPlatform(store);
     if (seenOrigins.has(storeOrigin)) continue;
@@ -603,12 +643,18 @@ export function buildStorefrontSitemapXml(origin: string, payload: SeoStorefront
   }
   const settings = parseSettings(tenant.settings);
   const storeImage = toAbsoluteUrl(settings.bannerUrl || settings.logoUrl, origin);
+  const latestStoreMod = items
+    .map((it) => formatIsoDate(it.updatedAt || it.createdAt))
+    .filter((d): d is string => Boolean(d))
+    .sort()
+    .pop();
   const urls: string[] = [];
 
   urls.push(
     [
       "  <url>",
       `    <loc>${escapeXml(origin)}/</loc>`,
+      latestStoreMod ? `    <lastmod>${escapeXml(latestStoreMod)}</lastmod>` : "",
       "    <changefreq>daily</changefreq>",
       "    <priority>1.0</priority>",
       storeImage
@@ -620,16 +666,35 @@ export function buildStorefrontSitemapXml(origin: string, payload: SeoStorefront
       .join("\n")
   );
 
+  const childCategoryMap = new Map<string, Set<string>>();
+  for (const cat of categories) {
+    if (cat.parentId) {
+      const set = childCategoryMap.get(cat.parentId) || new Set<string>();
+      set.add(cat.id);
+      childCategoryMap.set(cat.parentId, set);
+    }
+  }
+
   for (const cat of categories) {
     if (!cat.slug) continue;
+    const childIds = childCategoryMap.get(cat.id);
+    const catLastMod = items
+      .filter((it) => it.categoryId === cat.id || (it.categoryId && childIds?.has(it.categoryId)))
+      .map((it) => formatIsoDate(it.updatedAt || it.createdAt))
+      .filter((d): d is string => Boolean(d))
+      .sort()
+      .pop();
     urls.push(
       [
         "  <url>",
         `    <loc>${escapeXml(`${origin}/category/${encodeURIComponent(cat.slug)}`)}</loc>`,
+        catLastMod ? `    <lastmod>${escapeXml(catLastMod)}</lastmod>` : "",
         "    <changefreq>weekly</changefreq>",
         "    <priority>0.8</priority>",
         "  </url>",
-      ].join("\n")
+      ]
+        .filter(Boolean)
+        .join("\n")
     );
   }
 
@@ -724,6 +789,12 @@ function buildStoreSchemaNode(origin: string, tenant: TenantSeo): Record<string,
     logo,
     paymentAccepted: "M-Pesa",
     currenciesAccepted: tenant.currency || "KES",
+    memberOf: {
+      "@type": "Organization",
+      "@id": `https://${PRIMARY_DOMAIN}/#organization`,
+      name: "Store254",
+      url: `https://${PRIMARY_DOMAIN}/`,
+    },
   };
 
   if (phone) node.telephone = String(phone);
@@ -924,7 +995,8 @@ function buildStoreDirectoryCardHtml(store: PlatformStoreSeo, origin: string): s
 
 export function buildPlatformSeoData(
   stores: PlatformStoreSeo[],
-  isPreview: boolean
+  isPreview: boolean,
+  options: { view?: "home" | "stores" } = {}
 ): {
   title: string;
   description: string;
@@ -932,69 +1004,132 @@ export function buildPlatformSeoData(
   robots: string;
   headTagsHtml: string;
   ssrStoresHtml: string;
+  ssrHomeHubsHtml: string;
 } {
+  const view = options.view === "stores" ? "stores" : "home";
   const indexableStores = filterIndexableStores(stores);
   const origin = `https://${PRIMARY_DOMAIN}`;
-  const title = "Store254 | Kenyan Online Stores & M-Pesa Storefronts";
-  const description =
-    "Browse independent Kenyan online stores on Store254, shop products and services directly with M-Pesa, or launch your own .store254.co.ke storefront.";
-  const canonicalUrl = `${origin}/`;
+  const isStoresView = view === "stores";
+  const title = isStoresView
+    ? "Active Kenyan Storefronts | Store254"
+    : "Store254 | Kenyan Online Stores, Local Search & M-Pesa Storefronts";
+  const description = isStoresView
+    ? "Browse verified independent Kenyan online stores across counties and towns on Store254."
+    : "Store254 is Kenya's marketplace to search local products and services, discover independent Kenyan online stores, and launch your own .store254.co.ke storefront with M-Pesa.";
+  const canonicalUrl = isStoresView ? `${origin}/stores` : `${origin}/`;
   const robots = isPreview
     ? "noindex, nofollow"
     : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
   const ogImage = `${origin}/assets/store254Logo.webp`;
 
+  const itemListNode =
+    indexableStores.length > 0
+      ? [
+          {
+            "@type": "ItemList",
+            name: "Active Storefronts on Store254",
+            numberOfItems: Math.min(indexableStores.length, 50),
+            itemListElement: indexableStores.slice(0, 50).map((s, idx) => {
+              const settings = parseSettings(s.settings);
+              const storeUrl = `${resolveStoreOriginForPlatform(s)}/`;
+              return {
+                "@type": "ListItem",
+                position: idx + 1,
+                url: storeUrl,
+                name: s.name,
+                description: settings.description || settings.tagline || `Online store on ${s.subdomain}.${PRIMARY_DOMAIN}`,
+              };
+            }),
+          },
+        ]
+      : [];
+
   const graph = {
     "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "@id": `${origin}/#organization`,
-        name: "Store254",
-        url: `${origin}/`,
-        logo: ogImage,
-        email: "kelvin@store254.co.ke",
-        founder: {
-          "@type": "Person",
-          "@id": `${origin}/about#founder`,
-          name: "Kelvin Kamau",
-          jobTitle: "Software Developer, Owner & CEO",
-          email: "kelvin@store254.co.ke",
-          url: `${origin}/about`,
-          sameAs: ["https://github.com/Kelvohkash"],
-        },
-        parentOrganization: {
-          "@type": "Organization",
-          name: "Kayzen Labs Software Company Limited",
-        },
-      },
-      {
-        "@type": "WebSite",
-        "@id": `${origin}/#website`,
-        name: "Store254",
-        url: `${origin}/`,
-        description,
-      },
-      ...(indexableStores.length > 0
-        ? [
-            {
-              "@type": "ItemList",
-              name: "Active Storefronts on Store254",
-              itemListElement: indexableStores.slice(0, 50).map((s, idx) => {
-                const settings = parseSettings(s.settings);
-                const storeUrl = `${resolveStoreOriginForPlatform(s)}/`;
-                return {
-                  "@type": "ListItem",
-                  position: idx + 1,
-                  url: storeUrl,
-                  name: s.name,
-                  description: settings.description || settings.tagline || `Online store on ${s.subdomain}.${PRIMARY_DOMAIN}`,
-                };
-              }),
+    "@graph": isStoresView
+      ? [
+          {
+            "@type": "CollectionPage",
+            "@id": `${canonicalUrl}#webpage`,
+            url: canonicalUrl,
+            name: title,
+            description,
+            inLanguage: "en-KE",
+            isPartOf: { "@id": `${origin}/#website` },
+            about: { "@id": `${origin}/#organization` },
+          },
+          {
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Store254", item: `${origin}/` },
+              { "@type": "ListItem", position: 2, name: "Active Storefronts", item: canonicalUrl },
+            ],
+          },
+          ...itemListNode,
+        ]
+      : [
+          {
+            "@type": "Organization",
+            "@id": `${origin}/#organization`,
+            name: "Store254",
+            alternateName: ["Store254.co.ke", "Store 254"],
+            url: `${origin}/`,
+            description,
+            logo: {
+              "@type": "ImageObject",
+              url: ogImage,
             },
-          ]
-        : []),
-    ],
+            image: ogImage,
+            email: "kelvin@store254.co.ke",
+            areaServed: {
+              "@type": "Country",
+              name: "Kenya",
+            },
+            founder: {
+              "@type": "Person",
+              "@id": `${origin}/about#founder`,
+              name: "Kelvin Kamau",
+              jobTitle: "Software Developer, Owner & CEO",
+              email: "kelvin@store254.co.ke",
+              url: `${origin}/about`,
+              sameAs: ["https://github.com/Kelvohkash"],
+            },
+            parentOrganization: {
+              "@type": "Organization",
+              name: "Kayzen Labs Software Company Limited",
+            },
+          },
+          {
+            "@type": "WebSite",
+            "@id": `${origin}/#website`,
+            name: "Store254",
+            alternateName: ["Store254.co.ke", "Store 254"],
+            url: `${origin}/`,
+            description,
+            inLanguage: "en-KE",
+            publisher: { "@id": `${origin}/#organization` },
+            potentialAction: {
+              "@type": "SearchAction",
+              target: {
+                "@type": "EntryPoint",
+                urlTemplate: `${origin}/?q={search_term_string}`,
+              },
+              "query-input": "required name=search_term_string",
+            },
+          },
+          {
+            "@type": "WebPage",
+            "@id": `${origin}/#webpage`,
+            url: `${origin}/`,
+            name: title,
+            description,
+            inLanguage: "en-KE",
+            isPartOf: { "@id": `${origin}/#website` },
+            about: { "@id": `${origin}/#organization` },
+            primaryImageOfPage: ogImage,
+          },
+          ...itemListNode,
+        ],
   };
 
   const headTagsHtml = [
@@ -1007,6 +1142,7 @@ export function buildPlatformSeoData(
     `<meta property="og:description" content="${escapeHtml(description)}">`,
     `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
     `<meta property="og:image" content="${escapeHtml(ogImage)}">`,
+    `<meta property="og:image:alt" content="Store254 — Kenyan Online Stores & M-Pesa Storefronts">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="twitter:title" content="${escapeHtml(title)}">`,
     `<meta name="twitter:description" content="${escapeHtml(description)}">`,
@@ -1046,6 +1182,29 @@ export function buildPlatformSeoData(
 
   const ssrStoresHtml = `${featuredCardsHtml}${directoryFooterHtml}`;
 
+  const topStoreTextLinks = indexableStores
+    .slice(0, 12)
+    .map((s) => {
+      const href = `${resolveStoreOriginForPlatform(s)}/`;
+      return `<a href="${escapeHtml(href)}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 transition-colors no-underline">${escapeHtml(s.name)}</a>`;
+    })
+    .join("");
+
+  const ssrHomeHubsHtml = [
+    `<div class="flex flex-wrap items-center justify-between gap-2">`,
+    `  <p class="m-0 font-bold text-slate-800">Explore Store254 Kenya</p>`,
+    `  <div class="flex flex-wrap items-center gap-2">`,
+    `    <a href="/stores" class="px-3 py-1 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 no-underline">Browse Active Stores${indexableStores.length > 0 ? ` (${indexableStores.length})` : ""}</a>`,
+    `    <a href="/directory" class="px-3 py-1 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 no-underline">Business Directory</a>`,
+    `    <a href="/about" class="px-3 py-1 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 no-underline">About Store254</a>`,
+    `  </div>`,
+    `</div>`,
+    categoryHubLinks ? `<div class="flex flex-wrap items-center gap-1.5">${categoryHubLinks}</div>` : "",
+    topStoreTextLinks ? `<div class="flex flex-wrap items-center gap-1.5"><span class="text-[11px] font-bold text-slate-500 mr-1">Featured shops:</span>${topStoreTextLinks}</div>` : "",
+  ]
+    .filter(Boolean)
+    .join("");
+
   return {
     title,
     description,
@@ -1053,6 +1212,7 @@ export function buildPlatformSeoData(
     robots,
     headTagsHtml,
     ssrStoresHtml,
+    ssrHomeHubsHtml,
   };
 }
 
@@ -1107,6 +1267,15 @@ export function buildPlatformDirectoryHtml(
     `Browse ${filtered.length} verified ${matchedCategory ? `${matchedCategory.label.toLowerCase()} ` : ""}Kenyan businesses selling on Store254 with M-Pesa checkout.`
   );
 
+  const ogImage = `${origin}/assets/store254Logo.webp`;
+  const breadcrumbs = [
+    { "@type": "ListItem", position: 1, name: "Store254", item: `${origin}/` },
+    { "@type": "ListItem", position: 2, name: "Directory", item: `${origin}/directory` },
+    ...(matchedCategory
+      ? [{ "@type": "ListItem", position: 3, name: matchedCategory.label, item: `${origin}/directory/${matchedCategory.slug}` }]
+      : []),
+  ];
+
   const graph = {
     "@context": "https://schema.org",
     "@graph": [
@@ -1116,7 +1285,12 @@ export function buildPlatformDirectoryHtml(
         url: canonicalUrl,
         name: title,
         description,
+        inLanguage: "en-KE",
         isPartOf: { "@id": `${origin}/#website` },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: breadcrumbs,
       },
       {
         "@type": "ItemList",
@@ -1177,13 +1351,29 @@ export function buildPlatformDirectoryHtml(
   ${prevUrl ? `<link rel="prev" href="${escapeHtml(prevUrl)}">` : ""}
   ${nextUrl ? `<link rel="next" href="${escapeHtml(nextUrl)}">` : ""}
   <meta name="robots" content="${escapeHtml(robots)}">
+  <link rel="icon" type="image/webp" href="${escapeHtml(origin)}/assets/store254Icon.webp">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Store254">
+  <meta property="og:locale" content="en_KE">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+  <meta property="og:image" content="${escapeHtml(ogImage)}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <script type="application/ld+json">${safeJsonLd(graph)}</script>
 </head>
 <body style="margin:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,sans-serif;">
   <header style="background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 20px;">
     <div style="max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <a href="/" style="font-weight:800;font-size:18px;color:#059669;text-decoration:none;">Store254.co.ke</a>
-      <a href="/" style="font-size:13px;font-weight:600;color:#334155;text-decoration:none;">Launch Your Free Store &rarr;</a>
+      <a href="/" style="font-weight:800;font-size:18px;color:#059669;text-decoration:none;">Store254</a>
+      <nav aria-label="Primary" style="display:flex;align-items:center;gap:16px;font-size:13px;font-weight:600;">
+        <a href="/stores" style="color:#334155;text-decoration:none;">Active Storefronts</a>
+        <a href="/about" style="color:#334155;text-decoration:none;">About Store254</a>
+        <a href="/" style="color:#059669;text-decoration:none;">Search Products &rarr;</a>
+      </nav>
     </div>
   </header>
   <main style="max-width:1180px;margin:0 auto;padding:28px 20px;">

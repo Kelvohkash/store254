@@ -130,6 +130,8 @@ test("buyer-first platform homepage supports Google invite, location selector, a
   assert.match(cartJs, /\/api\/platform\/me/);
   assert.match(cartJs, /\/api\/platform\/marketplace\/checkout/);
   assert.match(cartJs, /\/api\/platform\/marketplace\/my-orders/);
+  assert.doesNotMatch(cartJs, /openBuyerWelcomeModal\(platformUser \? 2 : 1\)/);
+  assert.match(html, /<h1 class="coverage-mini-hero-title">Store254/);
 });
 
 test("platform stores directory lives on dedicated /stores route accessible from desktop and mobile menus", async () => {

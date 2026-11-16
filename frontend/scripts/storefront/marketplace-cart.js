@@ -1657,7 +1657,6 @@
     await refreshPlatformSession();
 
     const savedLoc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
-    const dismissed = localStorage.getItem(WELCOME_DISMISSED_KEY) === "1";
     const isStoresPage = document.documentElement.dataset.platformView === "stores";
 
     if (loginResult === "success") {
@@ -1685,8 +1684,6 @@
       } catch {}
       window.closeBuyerWelcomeModal(false);
       showToast("Google sign-in was cancelled or failed. Please try again.", "error");
-    } else if (!savedLoc && !dismissed && !isStoresPage) {
-      window.openBuyerWelcomeModal(platformUser ? 2 : 1);
     }
   });
 })();

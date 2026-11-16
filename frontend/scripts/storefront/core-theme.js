@@ -78,6 +78,9 @@ function setHeaderLogo(src = DEFAULT_STORE_LOGO, alt = "Store254", fallbackSrc =
     logo.src = fallbackSrc;
     logo.alt = "Store254";
   };
-  logo.src = src || DEFAULT_STORE_LOGO;
+  const nextSrc = src || DEFAULT_STORE_LOGO;
+  if (logo.getAttribute("src") !== nextSrc) {
+    logo.src = nextSrc;
+  }
   logo.alt = alt;
 }
