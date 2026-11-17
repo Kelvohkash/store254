@@ -12,6 +12,7 @@ import {
   buildStorefrontSeoData,
   buildStorefrontSitemapXml,
   classifyHost,
+  extractTenantSubdomain,
   filterIndexableStores,
   getDirectoryHubForBusinessType,
   parseStorefrontRoute,
@@ -101,6 +102,14 @@ test("host classification and canonical resolution keep subdomains independent",
   assert.equal(classifyHost("store254.co.ke").isPlatformRoot, true);
   assert.equal(classifyHost("alicebabycare.store254.co.ke").isPlatformRoot, false);
   assert.equal(classifyHost("store254-frontend.workers.dev").isPreviewHost, true);
+
+  assert.equal(extractTenantSubdomain("faithfashionshoes.store254.co.ke"), "faithfashionshoes");
+  assert.equal(extractTenantSubdomain("fand.store254.co.ke"), "fand");
+  assert.equal(extractTenantSubdomain("store254.co.ke"), null);
+  assert.equal(extractTenantSubdomain("www.store254.co.ke"), null);
+  assert.equal(extractTenantSubdomain("api.store254.co.ke"), null);
+  assert.equal(extractTenantSubdomain("alicebabycare.localhost"), "alicebabycare");
+  assert.equal(extractTenantSubdomain("customdomain.com"), null);
 
   assert.equal(
     resolveTenantCanonicalOrigin(new URL("https://store254.co.ke/?store=alicebabycare"), samplePayload.tenant),

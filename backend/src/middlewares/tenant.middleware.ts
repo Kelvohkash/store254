@@ -91,9 +91,17 @@ export function tenantMiddleware(
   return async (c, next) => {
     const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
     const isDevelopment = c.env?.ENVIRONMENT === "development";
-    // Resolve host strictly from Host header (never trust spoofable X-Forwarded-Host)
-    const hostHeader = c.req.header("host") || new URL(c.req.url).host || "";
-    const hostname = hostHeader.split(":")[0].toLowerCase();
+    // Resolve host: for internal worker-to-worker service binding calls (api.internal),
+    // trust X-Forwarded-Host forwarded by our frontend edge worker.
+    // For direct external calls, resolve strictly from Host to prevent header spoofing.
+    const rawHostHeader = c.req.header("host") || new URL(c.req.url).host || "";
+    const rawHostname = rawHostHeader.split(":")[0].toLowerCase();
+    const isInternalServiceHost = rawHostname === "api.internal";
+    const forwardedHost = c.req.header("x-forwarded-host");
+    const hostname =
+      isInternalServiceHost && forwardedHost
+        ? forwardedHost.split(":")[0].toLowerCase()
+        : rawHostname;
 
     const { resolvedSubdomain, resolvedCustomDomain } = resolveTenantLookup(
       hostname,

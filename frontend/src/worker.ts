@@ -12,6 +12,7 @@ import {
   buildStorefrontSitemapXml,
   classifyHost,
   escapeHtml,
+  extractTenantSubdomain,
   getDirectoryHubForBusinessType,
   parseStorefrontRoute,
   resolveTenantCanonicalOrigin,
@@ -34,6 +35,15 @@ function getClientIp(request: Request): string {
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     ""
   );
+}
+
+function buildTenantHeaders(host: string, explicitSlug?: string | null): Record<string, string> {
+  const headers: Record<string, string> = { "X-Forwarded-Host": host };
+  const slug = explicitSlug || extractTenantSubdomain(host);
+  if (slug) {
+    headers["X-Tenant-Slug"] = slug;
+  }
+  return headers;
 }
 
 async function fetchCachedSeoJson<T>(
@@ -213,6 +223,10 @@ export default {
       const apiUrl = new URL(`${url.pathname}${url.search}`, "https://api.internal");
       const headers = new Headers(request.headers);
       headers.set("X-Forwarded-Host", url.host);
+      const sub = extractTenantSubdomain(url.host);
+      if (sub && !headers.has("X-Tenant-Slug")) {
+        headers.set("X-Tenant-Slug", sub);
+      }
       headers.delete("X-CF-Latitude");
       headers.delete("X-CF-Longitude");
       headers.delete("X-CF-City");
@@ -292,17 +306,27 @@ export default {
         );
       }
 
-      const { data: storefrontPayload } = await fetchCachedSeoJson<SeoStorefrontPayload>(
+      const tenantHeaders = buildTenantHeaders(url.host);
+      const { status, data: storefrontPayload } = await fetchCachedSeoJson<SeoStorefrontPayload>(
         env.API,
         "/api/seo/storefront",
         hostInfo.hostname,
-        { "X-Forwarded-Host": url.host },
+        tenantHeaders,
         clientIp,
         ctx,
         120
       );
 
       if (!storefrontPayload?.tenant) {
+        if (status !== 404 && status !== 200) {
+          return withSecurityHeaders(
+            new Response("User-agent: *\nDisallow:\n", {
+              status: 503,
+              headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "30" },
+            }),
+            { isLocalHost: hostInfo.isLocalHost }
+          );
+        }
         return withSecurityHeaders(
           new Response("User-agent: *\nDisallow: /\n", {
             status: 404,
@@ -385,11 +409,12 @@ export default {
         );
       }
 
+      const tenantHeaders = buildTenantHeaders(url.host);
       const { status, data: storefrontPayload } = await fetchCachedSeoJson<SeoStorefrontPayload>(
         env.API,
         "/api/seo/storefront",
         hostInfo.hostname,
-        { "X-Forwarded-Host": url.host },
+        tenantHeaders,
         clientIp,
         ctx,
         60
@@ -399,7 +424,10 @@ export default {
         return withSecurityHeaders(
           new Response("Storefront sitemap not found", {
             status: status === 404 ? 404 : 503,
-            headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8",
+              ...(status === 404 ? { "X-Robots-Tag": "noindex, nofollow" } : { "Retry-After": "30" }),
+            },
           }),
           { isLocalHost: hostInfo.isLocalHost }
         );
@@ -721,12 +749,10 @@ export default {
 
     // 2. Tenant Storefront / Category / Item Edge SSR & SEO (*.store254.co.ke or custom domain)
     try {
-      const tenantHeaders: Record<string, string> = explicitStoreSlug
-        ? { "X-Forwarded-Host": "api.internal", "X-Tenant-Slug": explicitStoreSlug }
-        : { "X-Forwarded-Host": url.host };
+      const tenantHeaders = buildTenantHeaders(url.host, explicitStoreSlug);
       const cacheScope = explicitStoreSlug || hostInfo.hostname;
 
-      const { data: storefrontPayload } = await fetchCachedSeoJson<SeoStorefrontPayload>(
+      const { status, data: storefrontPayload } = await fetchCachedSeoJson<SeoStorefrontPayload>(
         env.API,
         "/api/seo/storefront",
         cacheScope,
@@ -737,6 +763,20 @@ export default {
       );
 
       if (!storefrontPayload?.tenant) {
+        if (status !== 404 && status !== 200) {
+          // If the backend threw 500, 502, 503, or 429, do NOT tell Googlebot the store doesn't exist (404)!
+          // Return a 503 Service Unavailable with Retry-After so Google retries without deindexing the store.
+          return withSecurityHeaders(
+            new Response("Storefront temporarily unavailable. Please try again shortly.", {
+              status: 503,
+              headers: {
+                "Content-Type": "text/plain; charset=utf-8",
+                "Retry-After": "30",
+              },
+            }),
+            { isLocalHost: hostInfo.isLocalHost }
+          );
+        }
         const transformed = new HTMLRewriter()
           .on('#platform-hero, .platform-nav-links, #platform-mobile-menu, #footer-platform-links, link[rel="manifest"]', {
             element(el) {

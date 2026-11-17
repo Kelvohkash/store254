@@ -221,6 +221,26 @@ export function sanitizeSlug(raw: string | null | undefined): string {
   return cleaned;
 }
 
+export function extractTenantSubdomain(
+  rawHostname: string,
+  primaryDomain = PRIMARY_DOMAIN
+): string | null {
+  const hostname = rawHostname.toLowerCase().trim();
+  const normalizedDomain = primaryDomain.toLowerCase().trim();
+  const suffix = `.${normalizedDomain}`;
+  if (hostname.endsWith(suffix)) {
+    const sub = hostname.slice(0, -suffix.length);
+    const sanitized = sanitizeSlug(sub);
+    return sanitized || null;
+  }
+  if (hostname.endsWith(".localhost")) {
+    const sub = hostname.slice(0, -".localhost".length);
+    const sanitized = sanitizeSlug(sub);
+    return sanitized || null;
+  }
+  return null;
+}
+
 export function classifyHost(rawHostname: string): HostClassification {
   const hostname = rawHostname.toLowerCase().trim();
   const isPreviewHost = hostname.endsWith(".workers.dev") || hostname.endsWith(".pages.dev");

@@ -557,6 +557,37 @@ describe("Security Fix Batch 2 (Edge Middleware, Admin Auth, Tenant Isolation, M
     );
     expect(pendingLoginRes.status).toBe(403);
     expect(((await pendingLoginRes.json()) as any).error.code).toBe("STORE_PENDING_ACTIVATION");
+
+    // 4. Internal worker service binding (api.internal) resolves tenant from X-Forwarded-Host and X-Tenant-Slug
+    const serviceForwardedRes = await app.request(
+      "https://api.internal/api/store",
+      {
+        headers: {
+          Host: "api.internal",
+          "X-Forwarded-Host": "alice.store254.co.ke",
+          "CF-Connecting-IP": nextIp(),
+        },
+      },
+      env as any
+    );
+    expect(serviceForwardedRes.status).toBe(200);
+    const serviceForwardedBody = (await serviceForwardedRes.json()) as any;
+    expect(serviceForwardedBody.data.subdomain).toBe("alice");
+
+    const serviceSlugRes = await app.request(
+      "https://api.internal/api/store",
+      {
+        headers: {
+          Host: "api.internal",
+          "X-Tenant-Slug": "bob",
+          "CF-Connecting-IP": nextIp(),
+        },
+      },
+      env as any
+    );
+    expect(serviceSlugRes.status).toBe(200);
+    const serviceSlugBody = (await serviceSlugRes.json()) as any;
+    expect(serviceSlugBody.data.subdomain).toBe("bob");
   });
 
   it("SEC-14: protects google-autocomplete and resolve-location with Google SSO auth, Origin check, and rate limits", async () => {
