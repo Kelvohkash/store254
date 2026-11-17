@@ -11,6 +11,7 @@ import { authMiddleware, hasPermission, requirePermission } from "../../middlewa
 import { generateUUID } from "../../security/crypto";
 import { slugify } from "../../security/sanitize";
 import { AppError } from "../../security/error-handler";
+import { categoryPath, itemPath, notifyIndexNow } from "../../services/indexnow.service";
 
 export const itemsRouter = new Hono<AppEnv>();
 
@@ -386,9 +387,10 @@ itemsRouter.post(
       }
     }
 
+    let createdCategorySlug: string | null = null;
     if (body.categoryId) {
       const [category] = await db
-        .select({ id: categories.id })
+        .select({ id: categories.id, slug: categories.slug })
         .from(categories)
         .where(and(eq(categories.id, body.categoryId), eq(categories.tenantId, tenant.id)))
         .limit(1);
@@ -396,6 +398,7 @@ itemsRouter.post(
       if (!category) {
         throw new AppError("Specified category does not exist in this store.", 404, "CATEGORY_NOT_FOUND");
       }
+      createdCategorySlug = category.slug;
     }
 
     const slug = body.slug ? slugify(body.slug) : slugify(body.title);
@@ -477,6 +480,7 @@ itemsRouter.post(
       .where(eq(items.id, itemId))
       .limit(1);
 
+    notifyIndexNow(c, tenant, [itemPath(slug), createdCategorySlug ? categoryPath(createdCategorySlug) : null]);
     return c.json(
       {
         success: true,
@@ -510,7 +514,7 @@ itemsRouter.put(
 
     // Verify item belongs to this tenant
     const [existing] = await db
-      .select({ id: items.id, images: items.images, sku: items.sku, itemType: items.itemType })
+      .select({ id: items.id, images: items.images, sku: items.sku, itemType: items.itemType, slug: items.slug })
       .from(items)
       .where(and(eq(items.id, id), eq(items.tenantId, tenant.id)))
       .limit(1);
@@ -534,9 +538,10 @@ itemsRouter.put(
       }
     }
 
+    let createdCategorySlug: string | null = null;
     if (body.categoryId) {
       const [category] = await db
-        .select({ id: categories.id })
+        .select({ id: categories.id, slug: categories.slug })
         .from(categories)
         .where(and(eq(categories.id, body.categoryId), eq(categories.tenantId, tenant.id)))
         .limit(1);
@@ -544,6 +549,7 @@ itemsRouter.put(
       if (!category) {
         throw new AppError("Specified category does not exist in this store.", 404, "CATEGORY_NOT_FOUND");
       }
+      createdCategorySlug = category.slug;
     }
 
     const effectiveItemType = body.itemType ?? existing.itemType;
@@ -624,6 +630,12 @@ itemsRouter.put(
       .from(itemVariants)
       .where(and(eq(itemVariants.itemId, id), eq(itemVariants.tenantId, tenant.id)));
 
+    notifyIndexNow(c, tenant, [
+      itemPath(existing.slug),
+      updated?.slug && updated.slug !== existing.slug ? itemPath(updated.slug) : null,
+      createdCategorySlug ? categoryPath(createdCategorySlug) : null,
+    ]);
+
     return c.json({
       success: true,
       message: "Product updated successfully.",
@@ -646,7 +658,7 @@ itemsRouter.delete(
     const db = createDb(c.env.DB);
 
     const [existing] = await db
-      .select({ id: items.id, title: items.title })
+      .select({ id: items.id, title: items.title, slug: items.slug })
       .from(items)
       .where(and(eq(items.id, id), eq(items.tenantId, tenant.id)))
       .limit(1);
@@ -658,6 +670,8 @@ itemsRouter.delete(
     // Delete variants first (FK constraint)
     await db.delete(itemVariants).where(eq(itemVariants.itemId, id));
     await db.delete(items).where(and(eq(items.id, id), eq(items.tenantId, tenant.id)));
+
+    notifyIndexNow(c, tenant, [itemPath(existing.slug)]);
 
     return c.json({ success: true, message: "Product deleted successfully." });
   }

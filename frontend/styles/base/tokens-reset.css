@@ -27,7 +27,18 @@ html, body {
   animation: spinSlow 3s linear infinite;
 }
 
-/* Custom scrollbars */
+/* Custom scrollbars (Firefox + Chromium/WebKit) */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

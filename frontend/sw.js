@@ -80,6 +80,9 @@ function isBypassPath(pathname) {
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/sitemap") ||
     pathname === "/robots.txt" ||
+    pathname === "/BingSiteAuth.xml" ||
+    pathname === "/opensearch.xml" ||
+    pathname === "/favicon.ico" ||
     pathname === "/sw.js"
   );
 }

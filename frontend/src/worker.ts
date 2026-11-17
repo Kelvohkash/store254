@@ -1,5 +1,9 @@
 import {
+  INDEXNOW_KEY,
   PRIMARY_DOMAIN,
+  buildBingSiteAuthXml,
+  buildIndexNowKeyFile,
+  buildOpenSearchXml,
   buildPlatformAboutHtml,
   buildPlatformDirectoryHtml,
   buildPlatformPrivacyHtml,
@@ -170,11 +174,34 @@ function removeHiddenClass(el: Element): void {
   }
 }
 
+function parseTenantSettings(rawSettings: unknown): Record<string, unknown> {
+  if (typeof rawSettings === "string") {
+    try {
+      const parsed = JSON.parse(rawSettings);
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      return {};
+    }
+  }
+  return rawSettings && typeof rawSettings === "object" ? (rawSettings as Record<string, unknown>) : {};
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const hostInfo = classifyHost(url.hostname);
     const clientIp = getClientIp(request);
+
+    // Force HTTPS: any plain-HTTP request to a production host gets a 301 so only one (https) version is indexable.
+    if (url.protocol === "http:" && !hostInfo.isLocalHost) {
+      const secureUrl = new URL(request.url);
+      secureUrl.protocol = "https:";
+      secureUrl.port = "";
+      if (request.method === "GET" || request.method === "HEAD") {
+        return Response.redirect(secureUrl.toString(), 301);
+      }
+      return Response.redirect(secureUrl.toString(), 308);
+    }
 
     // Consolidate www.store254.co.ke -> store254.co.ke and /index.html -> / via 301 canonical redirects.
     if (request.method === "GET" || request.method === "HEAD") {
@@ -445,6 +472,128 @@ export default {
       );
     }
 
+    // Bing Webmaster Tools ownership verification (store254.co.ke & *.store254.co.ke).
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/BingSiteAuth.xml") {
+      const isOwnedDomain =
+        !hostInfo.isPreviewHost &&
+        hostInfo.hostname !== `api.${PRIMARY_DOMAIN}` &&
+        (hostInfo.hostname === PRIMARY_DOMAIN ||
+          hostInfo.hostname.endsWith(`.${PRIMARY_DOMAIN}`) ||
+          hostInfo.isLocalHost);
+      if (!isOwnedDomain) {
+        return withSecurityHeaders(withRobotsHeader(new Response("Not Found", { status: 404 }), "noindex, nofollow"), {
+          isLocalHost: hostInfo.isLocalHost,
+        });
+      }
+      return withSecurityHeaders(
+        new Response(request.method === "HEAD" ? null : buildBingSiteAuthXml(), {
+          headers: {
+            "Content-Type": "application/xml; charset=utf-8",
+            "Cache-Control": "public, max-age=300",
+          },
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
+    }
+
+    // IndexNow ownership key file (served on every platform and storefront host).
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      url.pathname === `/${INDEXNOW_KEY}.txt` &&
+      !hostInfo.isPreviewHost &&
+      hostInfo.hostname !== `api.${PRIMARY_DOMAIN}`
+    ) {
+      return withSecurityHeaders(
+        new Response(request.method === "HEAD" ? null : buildIndexNowKeyFile(), {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "public, max-age=86400",
+            "X-Robots-Tag": "noindex",
+          },
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
+    }
+
+    // OpenSearch descriptor for Firefox, Edge, Chrome, and search engine discovery.
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/opensearch.xml") {
+      if (hostInfo.isPreviewHost || hostInfo.hostname === `api.${PRIMARY_DOMAIN}`) {
+        return withSecurityHeaders(withRobotsHeader(new Response("Not Found", { status: 404 }), "noindex, nofollow"), {
+          isLocalHost: hostInfo.isLocalHost,
+        });
+      }
+
+      const explicitSlug = sanitizeSlug(url.searchParams.get("store") || url.searchParams.get("subdomain"));
+      if (hostInfo.isPlatformRoot && !explicitSlug) {
+        const origin = hostInfo.isLocalHost ? url.origin : `https://${PRIMARY_DOMAIN}`;
+        const xml = buildOpenSearchXml({
+          origin,
+          shortName: "Store254",
+          description: "Search Kenyan online stores, products, and services on Store254.",
+          iconUrl: `${origin}/assets/pwa-icon-192.png`,
+        });
+        return withSecurityHeaders(
+          new Response(request.method === "HEAD" ? null : xml, {
+            headers: {
+              "Content-Type": "application/opensearchdescription+xml; charset=utf-8",
+              "Cache-Control": "public, max-age=3600",
+            },
+          }),
+          { isLocalHost: hostInfo.isLocalHost }
+        );
+      }
+
+      const tenantHeaders = buildTenantHeaders(url.host, explicitSlug);
+      const { data: storefrontPayload } = await fetchCachedSeoJson<SeoStorefrontPayload>(
+        env.API,
+        "/api/seo/storefront",
+        explicitSlug || hostInfo.hostname,
+        tenantHeaders,
+        clientIp,
+        ctx,
+        120
+      );
+      if (!storefrontPayload?.tenant) {
+        return withSecurityHeaders(new Response("Not Found", { status: 404 }), {
+          isLocalHost: hostInfo.isLocalHost,
+        });
+      }
+      const canonicalOrigin = resolveTenantCanonicalOrigin(url, storefrontPayload.tenant);
+      const tenantSettings = parseTenantSettings(storefrontPayload.tenant.settings);
+      const iconUrl =
+        toAbsoluteUrl(tenantSettings.logoUrl, canonicalOrigin) || `${canonicalOrigin}/assets/pwa-icon-192.png`;
+      const xml = buildOpenSearchXml({
+        origin: canonicalOrigin,
+        shortName: storefrontPayload.tenant.name,
+        description: `Search products and services from ${storefrontPayload.tenant.name} on Store254.`,
+        iconUrl,
+      });
+      return withSecurityHeaders(
+        new Response(request.method === "HEAD" ? null : xml, {
+          headers: {
+            "Content-Type": "application/opensearchdescription+xml; charset=utf-8",
+            "Cache-Control": "public, max-age=3600",
+          },
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
+    }
+
+    // Serve /favicon.ico cleanly for Firefox, Safari, Bing, DuckDuckGo, and Yandex crawlers.
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/favicon.ico") {
+      const icoAsset = await env.ASSETS.fetch(new Request(new URL("/favicon.ico", url.origin), { method: request.method }));
+      const headers = new Headers(icoAsset.headers);
+      headers.set("Content-Type", "image/x-icon");
+      headers.set("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+      return withSecurityHeaders(
+        new Response(request.method === "HEAD" ? null : icoAsset.body, {
+          status: icoAsset.status,
+          headers,
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
+    }
+
     const route = parseStorefrontRoute(url.pathname);
     const explicitStoreSlug = sanitizeSlug(url.searchParams.get("store") || url.searchParams.get("subdomain"));
     const isTenantContext = !hostInfo.isPlatformRoot || Boolean(explicitStoreSlug);
@@ -688,6 +837,12 @@ export default {
             el.setAttribute("content", seo.description);
           },
         })
+        .on('link[rel="search"]', {
+          element(el) {
+            el.setAttribute("title", "Store254");
+            el.setAttribute("href", `https://${PRIMARY_DOMAIN}/opensearch.xml`);
+          },
+        })
         .on("head", {
           element(el) {
             el.append(seo.headTagsHtml, { html: true });
@@ -817,20 +972,7 @@ export default {
         isPreview: hostInfo.isPreviewHost,
       });
 
-      const rawSettings = storefrontPayload.tenant.settings;
-      const tenantSettings =
-        typeof rawSettings === "string"
-          ? (() => {
-              try {
-                const parsed = JSON.parse(rawSettings);
-                return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
-              } catch {
-                return {};
-              }
-            })()
-          : rawSettings && typeof rawSettings === "object"
-            ? (rawSettings as Record<string, unknown>)
-            : {};
+      const tenantSettings = parseTenantSettings(storefrontPayload.tenant.settings);
       const ssrLogoUrl = toAbsoluteUrl(tenantSettings.logoUrl, canonicalOrigin);
       const ssrBannerUrl = toAbsoluteUrl(
         tenantSettings.bannerUrl || tenantSettings.heroBannerUrl || tenantSettings.logoUrl,
@@ -882,6 +1024,12 @@ export default {
         .on('meta[name="description"]', {
           element(el) {
             el.setAttribute("content", seo.description);
+          },
+        })
+        .on('link[rel="search"]', {
+          element(el) {
+            el.setAttribute("title", `Search ${storefrontPayload.tenant.name}`);
+            el.setAttribute("href", `${canonicalOrigin}/opensearch.xml`);
           },
         })
         .on("head", {

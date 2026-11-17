@@ -10,6 +10,7 @@ import { generateUUID } from "../../security/crypto";
 import { slugify } from "../../security/sanitize";
 import { AppError } from "../../security/error-handler";
 import { classifyCategoryIcon } from "../../catalog/category-classifier";
+import { categoryPath, notifyIndexNow } from "../../services/indexnow.service";
 
 export const categoriesRouter = new Hono<AppEnv>();
 
@@ -235,6 +236,10 @@ categoriesRouter.put(
       displayOrder: body.displayOrder,
     }).where(and(eq(categories.id, id), eq(categories.tenantId, tenant.id)));
     const [updated] = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
+    notifyIndexNow(c, tenant, [
+      categoryPath(existing.slug),
+      updated?.slug && updated.slug !== existing.slug ? categoryPath(updated.slug) : null,
+    ]);
     return c.json({ success: true, message: "Category updated successfully.", data: updated });
   }
 );
@@ -250,7 +255,7 @@ categoriesRouter.delete(
     const db = createDb(c.env.DB);
 
     const [existing] = await db
-      .select({ id: categories.id })
+      .select({ id: categories.id, slug: categories.slug })
       .from(categories)
       .where(and(eq(categories.id, id), eq(categories.tenantId, tenant.id)))
       .limit(1);
@@ -260,6 +265,8 @@ categoriesRouter.delete(
     }
 
     await db.delete(categories).where(and(eq(categories.id, id), eq(categories.tenantId, tenant.id)));
+
+    notifyIndexNow(c, tenant, [categoryPath(existing.slug)]);
 
     return c.json({ success: true, message: "Category deleted successfully." });
   }

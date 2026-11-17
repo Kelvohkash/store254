@@ -781,6 +781,9 @@ window.addEventListener("DOMContentLoaded", () => {
   loadPlatformLocationMetrics();
   loadStoreProfile().then(() => {
     const url = new URL(window.location.href);
+    if (!state.activeTenantSlug && url.hash === "#open-store" && typeof toggleDrawer === "function") {
+      toggleDrawer("onboard-modal", true);
+    }
     const loginResult = url.searchParams.get("_customer_login");
     if (!loginResult || !state.activeTenantSlug) return;
     url.searchParams.delete("_customer_login");

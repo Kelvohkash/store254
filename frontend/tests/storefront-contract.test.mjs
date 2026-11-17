@@ -346,3 +346,26 @@ test("terms, copyright reporting, onboarding consent, and Super Admin image take
   assert.match(workerTs, /buildPlatformTermsHtml/);
   assert.match(workerTs, /buildPlatformPrivacyHtml/);
 });
+
+test("Bing verification, Firefox OpenSearch, scrollbar-width, and ?q= search routing are wired", async () => {
+  const [indexHtml, workerTs, swJs, searchJs, resetCss] = await Promise.all([
+    read("../index.html"),
+    read("../src/worker.ts"),
+    read("../sw.js"),
+    read("../scripts/storefront/marketplace-search.js"),
+    read("../styles/base/tokens-reset.css"),
+  ]);
+
+  assert.match(indexHtml, /<link rel="search" type="application\/opensearchdescription\+xml"[^>]+href="\/opensearch\.xml"/);
+  assert.match(indexHtml, /<link rel="icon" type="image\/x-icon" href="\/favicon\.ico"/);
+  assert.match(workerTs, /url\.pathname === "\/BingSiteAuth\.xml"/);
+  assert.match(workerTs, /url\.pathname === "\/opensearch\.xml"/);
+  assert.match(workerTs, /url\.pathname === "\/favicon\.ico"/);
+  assert.match(workerTs, /url\.protocol === "http:" && !hostInfo\.isLocalHost/);
+  assert.match(workerTs, /url\.pathname === `\/\$\{INDEXNOW_KEY\}\.txt`/);
+  assert.match(swJs, /\/BingSiteAuth\.xml/);
+  assert.match(swJs, /\/opensearch\.xml/);
+  assert.match(swJs, /\/favicon\.ico/);
+  assert.match(searchJs, /new URLSearchParams\(window\.location\.search\)\.get\("q"\)/);
+  assert.match(resetCss, /\.scrollbar-none\s*\{[\s\S]*scrollbar-width:\s*none/);
+});

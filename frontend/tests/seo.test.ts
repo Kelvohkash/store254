@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
+  BING_SITE_AUTH_TOKEN,
+  INDEXNOW_KEY,
+  buildBingSiteAuthXml,
+  buildIndexNowKeyFile,
+  buildItemSeoTitle,
+  buildOpenSearchXml,
   buildPlatformAboutHtml,
   buildPlatformDirectoryHtml,
   buildPlatformPrivacyHtml,
@@ -347,16 +354,26 @@ test("sanitizeSlug blocks fintech and auth phishing subdomains", () => {
   assert.equal(sanitizeSlug("alice-baby-shop"), "alice-baby-shop");
 });
 
-test("about page and platform schema identify Kelvin Kamau, Kayzen Labs Software Company Limited, and kelvin@store254.co.ke", () => {
+test("about page and platform schema identify Why Store254, founder Kelvin Kamau, Kayzen Labs, and rich onboarding guides", () => {
   const about = buildPlatformAboutHtml(false);
   assert.equal(about.status, 200);
   assert.match(about.robots, /^index, follow/);
+  assert.match(about.html, /<title>Why Store254/);
   assert.match(about.html, /<link rel="canonical" href="https:\/\/store254\.co\.ke\/about">/);
   assert.match(about.html, /"@type":"AboutPage"/);
   assert.match(about.html, /"@type":"Person"/);
+  assert.match(about.html, /"@type":"HowTo"/);
+  assert.match(about.html, /"@type":"FAQPage"/);
   assert.match(about.html, /Kelvin Kamau/);
   assert.match(about.html, /Kayzen Labs Software Company Limited/);
   assert.match(about.html, /kelvin@store254\.co\.ke/);
+  assert.match(about.html, /\/assets\/guide\/onboard-google\.webp/);
+  assert.match(about.html, /\/assets\/guide\/onboard-store\.webp/);
+  assert.match(about.html, /\/assets\/guide\/create-category\.webp/);
+  assert.match(about.html, /\/assets\/guide\/add-product\.webp/);
+  assert.match(about.html, /\/assets\/guide\/store-branding\.webp/);
+  assert.match(about.html, /\/assets\/guide\/mpesa-settings\.webp/);
+  assert.match(about.html, /How to Create Categories, Subcategories &amp; Product Filters/i);
 
   const rootSitemap = buildPlatformSitemapXml(sampleStores);
   assert.match(rootSitemap, /<loc>https:\/\/store254\.co\.ke\/about<\/loc>/);
@@ -384,4 +401,109 @@ test("terms and privacy pages cover copyright takedowns, Kenya law compliance, a
   const rootSitemap = buildPlatformSitemapXml(sampleStores);
   assert.match(rootSitemap, /<loc>https:\/\/store254\.co\.ke\/terms<\/loc>/);
   assert.match(rootSitemap, /<loc>https:\/\/store254\.co\.ke\/privacy<\/loc>/);
+});
+
+test("Bing verification, Firefox OpenSearch, favicon.ico, and cross-engine meta tags are ready", () => {
+  const bingXml = buildBingSiteAuthXml();
+  assert.match(bingXml, /<user>AC7BD4DB427A63D2264DB121A7803908<\/user>/);
+
+  const staticBingFile = readFileSync(new URL("../BingSiteAuth.xml", import.meta.url), "utf8");
+  assert.match(staticBingFile, new RegExp(`<user>${BING_SITE_AUTH_TOKEN}</user>`));
+
+  const faviconBuf = readFileSync(new URL("../favicon.ico", import.meta.url));
+  assert.equal(faviconBuf.readUInt16LE(0), 0);
+  assert.equal(faviconBuf.readUInt16LE(2), 1);
+  assert.equal(faviconBuf.readUInt16LE(4), 1);
+
+  const openSearchXml = buildOpenSearchXml({
+    origin: "https://store254.co.ke",
+    shortName: "Store254",
+    description: "Search Kenyan online stores on Store254.",
+  });
+  assert.match(openSearchXml, /xmlns:moz="http:\/\/www\.mozilla\.org\/2006\/browser\/search\/"/);
+  assert.match(openSearchXml, /<Url type="text\/html" method="get" template="https:\/\/store254\.co\.ke\/\?q=\{searchTerms\}"\/>/);
+  assert.match(openSearchXml, /<moz:SearchForm>https:\/\/store254\.co\.ke\/<\/moz:SearchForm>/);
+
+  const platformSeo = buildPlatformSeoData(sampleStores, false);
+  assert.match(platformSeo.headTagsHtml, new RegExp(`<meta name="msvalidate\\.01" content="${BING_SITE_AUTH_TOKEN}">`));
+
+  const previewSeo = buildPlatformSeoData(sampleStores, true);
+  assert.doesNotMatch(previewSeo.headTagsHtml, /msvalidate\.01/);
+
+  const subdomainSeo = buildStorefrontSeoData({
+    origin: "https://alicebabycare.store254.co.ke",
+    route: { kind: "home" },
+    payload: samplePayload,
+    isPreview: false,
+  });
+  assert.match(subdomainSeo.headTagsHtml, new RegExp(`msvalidate\\.01.*${BING_SITE_AUTH_TOKEN}`));
+
+  const customDomainSeo = buildStorefrontSeoData({
+    origin: "https://shop.alicebabycare.co.ke",
+    route: { kind: "home" },
+    payload: samplePayload,
+    isPreview: false,
+  });
+  assert.doesNotMatch(customDomainSeo.headTagsHtml, /msvalidate\.01/);
+
+  const about = buildPlatformAboutHtml(false);
+  assert.match(about.html, /<link rel="search" type="application\/opensearchdescription\+xml"/);
+  assert.match(about.html, /<link rel="icon" type="image\/x-icon" href="https:\/\/store254\.co\.ke\/favicon\.ico">/);
+  assert.match(about.html, /<link rel="icon" type="image\/png" sizes="192x192"/);
+  assert.match(about.html, new RegExp(`msvalidate\\.01.*${BING_SITE_AUTH_TOKEN}`));
+
+  const terms = buildPlatformTermsHtml(false);
+  assert.match(terms.html, /<meta name="twitter:card" content="summary_large_image">/);
+  assert.match(terms.html, /<link rel="search" type="application\/opensearchdescription\+xml"/);
+});
+
+test("empty categories are excluded from sitemap and marked noindex, IndexNow key is consistent, and titles/descriptions stay concise", () => {
+  assert.equal(buildIndexNowKeyFile(), INDEXNOW_KEY);
+  assert.match(INDEXNOW_KEY, /^[a-f0-9]{32}$/);
+
+  const longTitle = buildItemSeoTitle(
+    "Kitenge Shirts For Men Custom Tailored African Print",
+    "KES 500",
+    "FANICE BEAUTY AND DESIGN"
+  );
+  assert.ok(Array.from(longTitle).length <= 60, `Expected <= 60 chars, got ${Array.from(longTitle).length}: ${longTitle}`);
+  assert.ok(longTitle.endsWith("(KES 500) | FANICE BEAUTY AND DESIGN"));
+
+  const payloadWithEmptyCat = {
+    ...samplePayload,
+    categories: [
+      ...samplePayload.categories,
+      { id: "cat-empty", name: "Empty Shoes", slug: "empty-shoes", parentId: null, description: null },
+    ],
+  };
+
+  const sitemap = buildStorefrontSitemapXml("https://alicebabycare.store254.co.ke", payloadWithEmptyCat);
+  assert.match(sitemap, /\/category\/baby-carriers/);
+  assert.doesNotMatch(sitemap, /\/category\/empty-shoes/);
+
+  const emptyCatSeo = buildStorefrontSeoData({
+    origin: "https://alicebabycare.store254.co.ke",
+    route: { kind: "category", slug: "empty-shoes" },
+    payload: payloadWithEmptyCat,
+    isPreview: false,
+  });
+  assert.equal(emptyCatSeo.status, 200);
+  assert.equal(emptyCatSeo.robots, "noindex, follow");
+  assert.match(emptyCatSeo.headTagsHtml, /<meta name="robots" content="noindex, follow">/);
+  assert.doesNotMatch(emptyCatSeo.headTagsHtml, /msvalidate\.01/);
+
+  const homeSeo = buildPlatformSeoData(sampleStores, false);
+  assert.ok(homeSeo.description.length <= 160, `Home description too long: ${homeSeo.description.length}`);
+
+  const aboutPage = buildPlatformAboutHtml(false);
+  const aboutDesc = aboutPage.html.match(/<meta name="description" content="([^"]*)">/)?.[1] || "";
+  assert.ok(aboutDesc.length <= 160, `About description too long: ${aboutDesc.length}`);
+
+  const termsPage = buildPlatformTermsHtml(false);
+  const termsDesc = termsPage.html.match(/<meta name="description" content="([^"]*)">/)?.[1] || "";
+  assert.ok(termsDesc.length <= 160, `Terms description too long: ${termsDesc.length}`);
+
+  const privacyPage = buildPlatformPrivacyHtml(false);
+  const privacyDesc = privacyPage.html.match(/<meta name="description" content="([^"]*)">/)?.[1] || "";
+  assert.ok(privacyDesc.length <= 160, `Privacy description too long: ${privacyDesc.length}`);
 });

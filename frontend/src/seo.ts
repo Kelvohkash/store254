@@ -1,4 +1,87 @@
 export const PRIMARY_DOMAIN = "store254.co.ke";
+export const BING_SITE_AUTH_TOKEN = "AC7BD4DB427A63D2264DB121A7803908";
+// IndexNow key (https://www.indexnow.org). Served at /<key>.txt on every host so Bing can verify ownership.
+export const INDEXNOW_KEY = "a284a0cb988332f295c2b21ab44ae220";
+
+export function buildIndexNowKeyFile(): string {
+  return INDEXNOW_KEY;
+}
+
+const SEO_TITLE_MAX = 60;
+
+export function buildItemSeoTitle(itemTitle: string, priceLabel: string, storeName: string, maxLength = SEO_TITLE_MAX): string {
+  const suffix = ` (${priceLabel}) | ${storeName}`;
+  const full = `${itemTitle}${suffix}`;
+  if (Array.from(full).length <= maxLength) return full;
+  const room = Math.max(12, maxLength - Array.from(suffix).length - 1);
+  const chars = Array.from(String(itemTitle).replace(/\s+/g, " ").trim());
+  if (chars.length <= room) return full;
+  const cut = chars.slice(0, room).join("");
+  const lastSpace = cut.lastIndexOf(" ");
+  const trimmed = (lastSpace > 12 ? cut.slice(0, lastSpace) : cut).trim();
+  return `${trimmed}…${suffix}`;
+}
+
+function categoryItemCount(cat: SeoCategory, categories: SeoCategory[], items: SeoItem[]): number {
+  const childIds = new Set(categories.filter((c) => c.parentId === cat.id).map((c) => c.id));
+  return items.filter((it) => it.categoryId === cat.id || (it.categoryId && childIds.has(it.categoryId))).length;
+}
+
+export function buildBingSiteAuthXml(token = BING_SITE_AUTH_TOKEN): string {
+  return `<?xml version="1.0"?>\n<users>\n\t<user>${escapeXml(token)}</user>\n</users>\n`;
+}
+
+export function buildOpenSearchXml(options: {
+  origin: string;
+  shortName: string;
+  description: string;
+  iconUrl?: string;
+}): string {
+  const cleanOrigin = options.origin.replace(/\/+$/, "");
+  const shortName = String(options.shortName || "Store254").trim().slice(0, 16) || "Store254";
+  const description = truncateSeoText(options.description || `Search ${shortName} products and services`, 1024);
+  const iconUrl = options.iconUrl || `${cleanOrigin}/assets/pwa-icon-192.png`;
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">',
+    `  <ShortName>${escapeXml(shortName)}</ShortName>`,
+    `  <Description>${escapeXml(description)}</Description>`,
+    "  <InputEncoding>UTF-8</InputEncoding>",
+    "  <OutputEncoding>UTF-8</OutputEncoding>",
+    `  <Image width="192" height="192" type="image/png">${escapeXml(iconUrl)}</Image>`,
+    `  <Url type="text/html" method="get" template="${escapeXml(cleanOrigin)}/?q={searchTerms}"/>`,
+    `  <moz:SearchForm>${escapeXml(cleanOrigin)}/</moz:SearchForm>`,
+    "</OpenSearchDescription>",
+    "",
+  ].join("\n");
+}
+
+function buildSearchEngineAndIconTags(options: {
+  origin: string;
+  includeBingMeta?: boolean;
+  includeIcons?: boolean;
+  includeOpenSearch?: boolean;
+  openSearchTitle?: string;
+}): string {
+  const tags: string[] = [];
+  if (options.includeBingMeta) {
+    tags.push(`<meta name="msvalidate.01" content="${escapeHtml(BING_SITE_AUTH_TOKEN)}">`);
+  }
+  if (options.includeOpenSearch) {
+    tags.push(
+      `<link rel="search" type="application/opensearchdescription+xml" title="${escapeHtml(options.openSearchTitle || "Store254")}" href="${escapeHtml(options.origin)}/opensearch.xml">`
+    );
+  }
+  if (options.includeIcons) {
+    tags.push(
+      `<link rel="icon" type="image/x-icon" href="${escapeHtml(options.origin)}/favicon.ico">`,
+      `<link rel="icon" type="image/png" sizes="192x192" href="${escapeHtml(options.origin)}/assets/pwa-icon-192.png">`,
+      `<link rel="icon" type="image/webp" href="${escapeHtml(options.origin)}/assets/store254Icon.webp">`,
+      `<link rel="apple-touch-icon" sizes="180x180" href="${escapeHtml(options.origin)}/assets/apple-touch-icon.png">`
+    );
+  }
+  return tags.join("\n  ");
+}
 
 export interface PlatformStoreSeo {
   id: string;
@@ -733,6 +816,8 @@ export function buildStorefrontSitemapXml(origin: string, payload: SeoStorefront
 
   for (const cat of categories) {
     if (!cat.slug) continue;
+    // Empty categories are thin pages (noindexed in SSR), so keep them out of the sitemap.
+    if (categoryItemCount(cat, categories, items) === 0) continue;
     const childIds = childCategoryMap.get(cat.id);
     const catLastMod = items
       .filter((it) => it.categoryId === cat.id || (it.categoryId && childIds?.has(it.categoryId)))
@@ -1071,7 +1156,7 @@ export function buildPlatformSeoData(
     : "Store254 | Kenyan Online Stores, Every hustle has a home here";
   const description = isStoresView
     ? "Browse verified independent Kenyan online stores across counties and towns on Store254."
-    : "Store254 is Kenya's marketplace to search local products and services, discover independent Kenyan online stores, and launch your own .store254.co.ke storefront with M-Pesa.";
+    : "Search local products and services, discover independent Kenyan online stores, and launch your own .store254.co.ke storefront with M-Pesa.";
   const canonicalUrl = isStoresView ? `${origin}/stores` : `${origin}/`;
   const robots = isPreview
     ? "noindex, nofollow"
@@ -1191,6 +1276,7 @@ export function buildPlatformSeoData(
   const headTagsHtml = [
     `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`,
     `<meta name="robots" content="${escapeHtml(robots)}">`,
+    ...(!isPreview ? [`<meta name="msvalidate.01" content="${escapeHtml(BING_SITE_AUTH_TOKEN)}">`] : []),
     `<meta property="og:type" content="website">`,
     `<meta property="og:site_name" content="Store254">`,
     `<meta property="og:locale" content="en_KE">`,
@@ -1252,7 +1338,7 @@ export function buildPlatformSeoData(
     `  <div class="flex flex-wrap items-center gap-2">`,
     `    <a href="/stores" class="px-3 py-1 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 no-underline">Browse Active Stores${indexableStores.length > 0 ? ` (${indexableStores.length})` : ""}</a>`,
     `    <a href="/directory" class="px-3 py-1 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 no-underline">Business Directory</a>`,
-    `    <a href="/about" class="px-3 py-1 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 no-underline">About Store254</a>`,
+    `    <a href="/about" class="px-3 py-1 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 no-underline">Why Store254</a>`,
     `  </div>`,
     `</div>`,
     categoryHubLinks ? `<div class="flex flex-wrap items-center gap-1.5">${categoryHubLinks}</div>` : "",
@@ -1407,7 +1493,13 @@ export function buildPlatformDirectoryHtml(
   ${prevUrl ? `<link rel="prev" href="${escapeHtml(prevUrl)}">` : ""}
   ${nextUrl ? `<link rel="next" href="${escapeHtml(nextUrl)}">` : ""}
   <meta name="robots" content="${escapeHtml(robots)}">
-  <link rel="icon" type="image/webp" href="${escapeHtml(origin)}/assets/store254Icon.webp">
+  ${buildSearchEngineAndIconTags({
+    origin,
+    includeBingMeta: !options.isPreview,
+    includeIcons: true,
+    includeOpenSearch: true,
+    openSearchTitle: "Store254",
+  })}
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Store254">
   <meta property="og:locale" content="en_KE">
@@ -1427,7 +1519,7 @@ export function buildPlatformDirectoryHtml(
       <a href="/" style="font-weight:800;font-size:18px;color:#059669;text-decoration:none;">Store254</a>
       <nav aria-label="Primary" style="display:flex;align-items:center;gap:16px;font-size:13px;font-weight:600;">
         <a href="/stores" style="color:#334155;text-decoration:none;">Active Storefronts</a>
-        <a href="/about" style="color:#334155;text-decoration:none;">About Store254</a>
+        <a href="/about" style="color:#334155;text-decoration:none;">Why Store254</a>
         <a href="/" style="color:#059669;text-decoration:none;">Search Products &rarr;</a>
       </nav>
     </div>
@@ -1461,9 +1553,9 @@ export function buildPlatformAboutHtml(isPreview = false): {
   const robots = isPreview
     ? "noindex, nofollow"
     : "index, follow, max-image-preview:large, max-snippet:-1";
-  const title = "About Store254 — Founded by Kelvin Kamau | Kayzen Labs Software Company Limited";
+  const title = "Why Store254 — Launch Your Kenyan Online Store with M-Pesa";
   const description =
-    "Learn about Store254, Kenya's storefront and M-Pesa e-commerce platform created by Kelvin Kamau (Software Developer, Owner & CEO) under Kayzen Labs Software Company Limited.";
+    "Launch a Kenyan M-Pesa online store in minutes. Meet founder Kelvin Kamau (Kayzen Labs) and follow our step-by-step store setup guide.";
   const ogImage = `${origin}/assets/store254Logo.webp`;
 
   const graph = {
@@ -1475,6 +1567,7 @@ export function buildPlatformAboutHtml(isPreview = false): {
         url: canonicalUrl,
         name: title,
         description,
+        inLanguage: "en-KE",
         isPartOf: { "@id": `${origin}/#website` },
         mainEntity: { "@id": `${origin}/#organization` },
       },
@@ -1509,8 +1602,83 @@ export function buildPlatformAboutHtml(isPreview = false): {
         owns: { "@id": `${origin}/#organization` },
         sameAs: ["https://github.com/Kelvohkash"],
       },
+      {
+        "@type": "HowTo",
+        name: "How to Launch and Set Up Your Online Store on Store254",
+        description:
+          "Step-by-step onboarding guide to register your Kenyan business on Store254, create categories and subcategories, add products or bookable services, customize branding, and connect M-Pesa.",
+        step: [
+          {
+            "@type": "HowToStep",
+            position: 1,
+            name: "Sign in with Google and submit your store application",
+            text: "Click Open your store on store254.co.ke, sign in with your Google account, pick your .store254.co.ke subdomain, select your business type, and pin your Kenyan county and town or shopping centre.",
+            image: `${origin}/assets/guide/onboard-store.webp`,
+          },
+          {
+            "@type": "HowToStep",
+            position: 2,
+            name: "Create categories, subcategories, and product filters",
+            text: "Open Store Admin, go to Categories, click New Category, choose an optional Parent Category for subcategories, let the auto icon classifier pick an icon, and add custom product filters.",
+            image: `${origin}/assets/guide/create-category.webp`,
+          },
+          {
+            "@type": "HowToStep",
+            position: 3,
+            name: "Add physical products, bookable services, or digital goods",
+            text: "Click Add Product, set your KES price, pick Physical Product, Bookable Service, or Digital Product, upload up to 5 photos or use automatic studio icon artwork, and save.",
+            image: `${origin}/assets/guide/add-product.webp`,
+          },
+          {
+            "@type": "HowToStep",
+            position: 4,
+            name: "Customize your branding and enable M-Pesa STK Push",
+            text: "In Store Settings pick your brand colour, logo, banner, WhatsApp link, or custom domain, then enter your M-Pesa Till or Paybill details under M-Pesa / Payments.",
+            image: `${origin}/assets/guide/mpesa-settings.webp`,
+          },
+        ],
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "Why choose Store254 over selling only on WhatsApp or Instagram?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Social feeds bury old posts and make pricing hard to browse. Store254 gives you a permanent, Google-indexed storefront link, organized categories and filters, automated M-Pesa STK Push checkout, and local county-level discovery across Kenya.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Do I need photos for every item before launching?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "No. You can upload up to 5 original photos per item (automatically compressed to fast 720px WebP), and any item without a photo automatically receives a sleek studio icon illustration matched from 779+ icons.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Can service businesses like salons, clinics, or repair shops use Store254?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. When adding an item, select Bookable Service to configure booking availability, typical duration, and whether the service happens at your studio, on-site at the client location, or online.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "How do M-Pesa payments work on Store254?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "In Store Admin under M-Pesa / Payments, enable M-Pesa prompts, choose Paybill or Till (Buy Goods), and add your shortcode and Safaricom Daraja credentials so customers pay directly to your business via STK Push.",
+            },
+          },
+        ],
+      },
     ],
   };
+
+  const guideImgUrl = (name: string) => `${escapeHtml(origin)}/assets/guide/${name}`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1521,6 +1689,13 @@ export function buildPlatformAboutHtml(isPreview = false): {
   <meta name="description" content="${escapeHtml(description)}">
   <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
   <meta name="robots" content="${escapeHtml(robots)}">
+  ${buildSearchEngineAndIconTags({
+    origin,
+    includeBingMeta: !isPreview,
+    includeIcons: true,
+    includeOpenSearch: true,
+    openSearchTitle: "Store254",
+  })}
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Store254">
   <meta property="og:locale" content="en_KE">
@@ -1533,63 +1708,376 @@ export function buildPlatformAboutHtml(isPreview = false): {
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <script type="application/ld+json">${safeJsonLd(graph)}</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.65; }
+    a { color: #059669; }
+    .container { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 28px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+    .jump-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .jump-nav a { display: inline-flex; align-items: center; padding: 7px 14px; border-radius: 999px; background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155; font-size: 13px; font-weight: 600; text-decoration: none; transition: background .15s, border-color .15s; }
+    .jump-nav a:hover { background: #ecfdf5; border-color: #6ee7b7; color: #047857; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 22px; }
+    .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 16px; }
+    .stat-num { font-size: 20px; font-weight: 800; color: #047857; line-height: 1.2; }
+    .stat-label { font-size: 12px; color: #475569; font-weight: 600; margin-top: 4px; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .step-grid { display: grid; grid-template-columns: 1fr; gap: 22px; align-items: start; }
+    .two-col { display: grid; grid-template-columns: 1fr; gap: 22px; }
+    @media (min-width: 820px) {
+      .step-grid { grid-template-columns: 1.05fr 1fr; }
+      .step-grid.reverse .step-media { order: -1; }
+      .two-col { grid-template-columns: 1fr 1fr; }
+    }
+    .step-badge { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px; background: #0f172a; color: #fff; font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+    .step-badge span { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: #10b981; color: #fff; font-size: 11px; font-weight: 800; }
+    .shot-frame { margin: 0; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px -12px rgba(15, 23, 42, 0.18); }
+    .shot-bar { display: flex; align-items: center; gap: 6px; padding: 9px 12px; background: #e2e8f0; border-bottom: 1px solid #cbd5e1; }
+    .shot-dot { width: 9px; height: 9px; border-radius: 999px; background: #94a3b8; }
+    .shot-url { margin-left: 8px; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #475569; background: #fff; padding: 2px 10px; border-radius: 999px; border: 1px solid #cbd5e1; }
+    .shot-frame img { display: block; width: 100%; height: auto; }
+    .shot-caption { padding: 10px 14px; background: #fff; border-top: 1px solid #e2e8f0; font-size: 12px; color: #475569; font-weight: 500; }
+    .checklist { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    .checklist li { position: relative; padding-left: 24px; font-size: 14px; color: #334155; }
+    .checklist li::before { content: "✓"; position: absolute; left: 0; top: 0; color: #059669; font-weight: 800; }
+    .story-card { background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; }
+    .faq-item { border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px 20px; background: #fff; }
+    .faq-item h3 { margin: 0 0 6px; font-size: 16px; font-weight: 700; color: #0f172a; }
+    .faq-item p { margin: 0; font-size: 14px; color: #475569; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 12px; background: #059669; color: #fff; font-weight: 700; font-size: 14px; text-decoration: none; }
+    .btn-primary:hover { background: #047857; }
+    .btn-secondary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 12px; background: #fff; color: #0f172a; border: 1px solid #cbd5e1; font-weight: 700; font-size: 14px; text-decoration: none; }
+    .btn-secondary:hover { background: #f1f5f9; }
+    code.inline { background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 13px; color: #0f172a; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
 </head>
-<body style="margin:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,sans-serif;line-height:1.65;">
-  <header style="background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 20px;">
-    <div style="max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <a href="/" style="font-weight:800;font-size:18px;color:#059669;text-decoration:none;">Store254.co.ke</a>
-      <div style="display:flex;gap:16px;font-size:13px;font-weight:600;">
-        <a href="/directory" style="color:#334155;text-decoration:none;">Store Directory</a>
-        <a href="/" style="color:#059669;text-decoration:none;">Launch Your Store &rarr;</a>
-      </div>
+<body>
+  <header style="background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 0;position:sticky;top:0;z-index:20;">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+      <a href="/" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:#0f172a;font-weight:800;font-size:18px;">
+        <img src="${escapeHtml(origin)}/assets/store254Icon.webp" alt="Store254" width="30" height="30" style="border-radius:8px;display:block;">
+        <span>Store254<span style="color:#059669;">.co.ke</span></span>
+      </a>
+      <nav aria-label="Primary" style="display:flex;align-items:center;gap:16px;font-size:13px;font-weight:600;flex-wrap:wrap;">
+        <a href="/stores" style="color:#334155;text-decoration:none;">Active Stores</a>
+        <a href="/directory" style="color:#334155;text-decoration:none;">Directory</a>
+        <a href="/#open-store" style="color:#fff;background:#059669;padding:8px 14px;border-radius:10px;text-decoration:none;font-weight:700;">Launch Your Store &rarr;</a>
+      </nav>
     </div>
   </header>
 
-  <main style="max-width:960px;margin:0 auto;padding:36px 20px 56px;">
-    <section style="background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:32px;margin-bottom:24px;">
-      <span style="display:inline-block;padding:4px 12px;border-radius:999px;background:#ecfdf5;color:#047857;font-size:12px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;">About Store254</span>
-      <h1 style="margin:12px 0 12px;font-size:32px;line-height:1.2;font-weight:800;color:#0f172a;">Empowering Kenyan Businesses to Sell Online</h1>
-      <p style="margin:0 0 14px;color:#475569;font-size:16px;">
-        <strong>Store254</strong> (<a href="https://store254.co.ke/" style="color:#059669;text-decoration:none;">store254.co.ke</a>) is a Kenyan e-commerce and digital storefront platform built to help local retailers, boutiques, electronics shops, furniture makers, and service providers launch professional online stores in minutes.
+  <main class="container" style="padding-top:32px;padding-bottom:64px;display:flex;flex-direction:column;gap:26px;">
+    <!-- HERO -->
+    <section class="card" style="background:linear-gradient(135deg,#ffffff 0%,#ecfdf5 100%);border-color:#d1fae5;">
+      <span class="pill">Why Store254</span>
+      <h1 style="margin:14px 0 12px;font-size:clamp(28px,4vw,40px);line-height:1.15;font-weight:800;color:#0f172a;letter-spacing:-0.02em;">
+        Why Kenyan Businesses Choose Store254 to Sell Online
+      </h1>
+      <p style="margin:0 0 12px;color:#334155;font-size:16px;max-width:78ch;">
+        <strong>Store254</strong> (<a href="https://store254.co.ke/" style="font-weight:700;text-decoration:none;">store254.co.ke</a>) turns any Kenyan retail shop, boutique, hardware, electronics dealer, salon, clinic, or service provider into a fast, Google-indexed online store in minutes — complete with your own <code class="inline">yourshop.store254.co.ke</code> web address, M-Pesa STK Push checkout, and local county discovery.
       </p>
-      <p style="margin:0;color:#475569;font-size:15px;">
-        Every business on Store254 receives an independent branded web address (such as <code style="background:#f1f5f9;padding:2px 6px;border-radius:6px;font-size:13px;">yourbusiness.store254.co.ke</code>) or custom domain mapping, integrated M-Pesa checkout, automatic WebP image optimization, and full Google Search indexing for every storefront, category, product, and service.
+      <p style="margin:0;color:#475569;font-size:15px;max-width:78ch;">
+        Below, learn why Store254 was built, read the founder story behind <strong>Kayzen Labs Software Company Limited</strong>, and walk through the exact onboarding screenshots for opening your store, creating categories, adding products or services, and accepting M-Pesa payments.
       </p>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-num">47 Counties</div>
+          <div class="stat-label">22,794+ Kenyan towns, wards &amp; shopping centres indexed</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">M-Pesa Direct</div>
+          <div class="stat-label">STK Push to your own Safaricom Till or Paybill</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">779+ Icons</div>
+          <div class="stat-label">Auto-matched studio artwork even before you upload photos</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">Google SEO Ready</div>
+          <div class="stat-label">Dedicated store sitemaps, Product &amp; Service schema</div>
+        </div>
+      </div>
+
+      <nav class="jump-nav" aria-label="Guide sections">
+        <a href="#why-store254">Why Store254</a>
+        <a href="#founder-story">Founder Story &amp; Merchant Journeys</a>
+        <a href="#onboarding-guide">1. Store Onboarding</a>
+        <a href="#categories-guide">2. Creating Categories &amp; Filters</a>
+        <a href="#products-services">3. Products, Services &amp; Artwork</a>
+        <a href="#mpesa-branding">4. Branding &amp; M-Pesa Setup</a>
+        <a href="#faq">FAQ</a>
+      </nav>
     </section>
 
-    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:24px;">
-      <article style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px;">
-        <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">Built for Local Commerce</h2>
-        <p style="margin:0;color:#475569;font-size:14px;">Designed around Kenyan shopping habits with fast mobile loading, WhatsApp-friendly sharing links, and seamless M-Pesa payments.</p>
-      </article>
-      <article style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px;">
-        <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">Search-Engine Ready</h2>
-        <p style="margin:0;color:#475569;font-size:14px;">Every active merchant store gets dedicated sitemaps, structured Product and Service schema, and clean URLs so customers find local businesses directly on Google.</p>
-      </article>
-      <article style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:22px;">
-        <h2 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">Edge Speed &amp; Reliability</h2>
-        <p style="margin:0;color:#475569;font-size:14px;">Powered by global edge caching and automated media compression so storefronts open quickly even on mobile data connections.</p>
-      </article>
+    <!-- WHY STORE254 -->
+    <section id="why-store254" class="card">
+      <span class="pill">Platform Advantages</span>
+      <h2 style="margin:12px 0 8px;font-size:26px;font-weight:800;color:#0f172a;">Built for Real Kenyan Commerce — Not Generic Templates</h2>
+      <p style="margin:0 0 20px;color:#475569;font-size:15px;">
+        Most Kenyan businesses start by posting photos in WhatsApp statuses, Instagram, or TikTok. Buyers ask <em>"How much?"</em> in DMs, lose old posts, and cannot search your catalog or pay cleanly. Store254 fixes every part of that loop.
+      </p>
+      <div class="feature-grid">
+        <article style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:20px;">
+          <h3 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">1. Your Own Branded Link &amp; Custom Domain</h3>
+          <p style="margin:0;color:#475569;font-size:14px;">Launch immediately on <code class="inline">yourshop.store254.co.ke</code> or connect your own <code class="inline">.co.ke</code> / <code class="inline">.com</code> domain. Share one clean link in your bio, WhatsApp status, or business card.</p>
+        </article>
+        <article style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:20px;">
+          <h3 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">2. Found on Google &amp; Nearby Kenyan Towns</h3>
+          <p style="margin:0;color:#475569;font-size:14px;">Every active store receives automatic XML sitemaps, canonical URLs, and structured <code class="inline">Product</code> / <code class="inline">Service</code> schema — plus 6-ring ripple search linking shoppers in nearby centres to your catalog.</p>
+        </article>
+        <article style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:20px;">
+          <h3 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">3. Direct M-Pesa Till &amp; Paybill Checkout</h3>
+          <p style="margin:0;color:#475569;font-size:14px;">Customers check out with their phone number and receive an M-Pesa STK Push prompt directly to your Safaricom Till (Buy Goods) or Paybill — no middleman holding your payouts.</p>
+        </article>
+        <article style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:20px;">
+          <h3 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">4. Edge Speed on Mobile Data</h3>
+          <p style="margin:0;color:#475569;font-size:14px;">Uploaded photos are automatically converted to crisp 720px WebP and cached at the edge, so shoppers open your catalog fast even on 3G/4G bundles anywhere in Kenya.</p>
+        </article>
+        <article style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:20px;">
+          <h3 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">5. Products, Services &amp; Digital Items</h3>
+          <p style="margin:0;color:#475569;font-size:14px;">Sell physical stock with sizes &amp; colours, accept appointments for bookable services (salons, kinyozis, clinics, repairs), or sell digital downloads in one dashboard.</p>
+        </article>
+        <article style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:20px;">
+          <h3 style="margin:0 0 8px;font-size:17px;font-weight:700;color:#0f172a;">6. Separate Staff Accounts &amp; Rights</h3>
+          <p style="margin:0;color:#475569;font-size:14px;">Give shop attendants their own login with specific permissions — e.g. adding products or fulfilling orders — while keeping M-Pesa credentials and store settings locked to the owner.</p>
+        </article>
+      </div>
     </section>
 
-    <section style="background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:30px;">
-      <h2 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#0f172a;">Founder &amp; Operating Company</h2>
-      <p style="margin:0 0 12px;color:#334155;font-size:15px;">
-        Store254 was created by <strong>Kelvin Kamau</strong>, a Kenyan <strong>Software Developer</strong> and the <strong>Owner &amp; CEO</strong> of the platform.
+    <!-- FOUNDER STORY & MERCHANT JOURNEYS -->
+    <section id="founder-story" class="card">
+      <span class="pill">Founder Story</span>
+      <h2 style="margin:12px 0 12px;font-size:26px;font-weight:800;color:#0f172a;">The Story Behind Store254 &amp; Kayzen Labs</h2>
+      <div class="two-col" style="align-items:start;">
+        <div>
+          <p style="margin:0 0 14px;color:#334155;font-size:15px;">
+            Store254 was created by <strong>Kelvin Kamau</strong>, a Kenyan <strong>Software Developer</strong> and the <strong>Owner &amp; CEO</strong> of the platform, developed and operated under <strong>Kayzen Labs Software Company Limited</strong> in Nairobi, Kenya.
+          </p>
+          <p style="margin:0 0 14px;color:#475569;font-size:15px;">
+            The idea started from watching thousands of energetic Kenyan business owners hustle daily across Nairobi, Kiambu, Mombasa, Nakuru, Kisumu, and Eldoret — spending hours repeating prices in WhatsApp chats, losing track of orders, or paying hefty agency fees for slow websites that never showed up on Google and broke whenever M-Pesa needed integration.
+          </p>
+          <p style="margin:0 0 16px;color:#475569;font-size:15px;">
+            Instead of forcing local businesses into foreign templates priced in dollars, Kayzen Labs engineered Store254 from the ground up around Kenyan realities: all <strong>47 counties, 290 constituencies, and 22,794+ towns and shopping centres</strong>, native <strong>M-Pesa STK Push</strong>, automatic image optimization, and search-ready storefronts that a merchant can manage right from their phone.
+          </p>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px;font-size:14px;color:#334155;">
+            <div><strong>Founder &amp; CEO:</strong> Kelvin Kamau (Software Developer)</div>
+            <div><strong>Operating Company:</strong> Kayzen Labs Software Company Limited</div>
+            <div><strong>Headquarters:</strong> Nairobi, Kenya</div>
+            <div><strong>Direct Contact:</strong> <a href="mailto:kelvin@store254.co.ke" style="font-weight:700;text-decoration:none;">kelvin@store254.co.ke</a> &bull; <a href="https://github.com/Kelvohkash" target="_blank" rel="noopener" style="font-weight:600;text-decoration:none;">GitHub</a></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <h3 style="margin:0;font-size:17px;font-weight:800;color:#0f172a;">How Kenyan Founders Use Store254 Every Day</h3>
+          <article class="story-card">
+            <div style="font-size:12px;font-weight:800;color:#059669;text-transform:uppercase;margin-bottom:4px;">Retail &amp; Electronics Founders</div>
+            <p style="margin:0;font-size:14px;color:#334155;">
+              Instead of sending 20 separate photos per customer on WhatsApp, electronics and phone shops organize stock under <em>Smartphones &rarr; Android Phones</em> with storage filters (<code class="inline">128GB</code> / <code class="inline">256GB</code>) and instant M-Pesa Till checkout.
+            </p>
+          </article>
+          <article class="story-card">
+            <div style="font-size:12px;font-weight:800;color:#059669;text-transform:uppercase;margin-bottom:4px;">Salon, Barber &amp; Service Founders</div>
+            <p style="margin:0;font-size:14px;color:#334155;">
+              Service entrepreneurs list <strong>Bookable Services</strong> with session duration (<code class="inline">45 mins</code>, <code class="inline">2 hrs</code>) and venue mode (<em>At Studio</em>, <em>Mobile / On-Site</em>, or <em>Online</em>), letting clients browse clear prices and book without back-and-forth calls.
+            </p>
+          </article>
+          <article class="story-card">
+            <div style="font-size:12px;font-weight:800;color:#059669;text-transform:uppercase;margin-bottom:4px;">County Dukas, Hardware &amp; Agrovet Founders</div>
+            <p style="margin:0;font-size:14px;color:#334155;">
+              By pinning their exact county and local shopping centre during onboarding, county merchants appear in Store254's nearby-town ripple search so buyers in surrounding estates and wards find local stock first.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP-BY-STEP ONBOARDING GUIDE -->
+    <section id="onboarding-guide" class="card">
+      <span class="pill">Merchant Onboarding Guide</span>
+      <h2 style="margin:12px 0 8px;font-size:26px;font-weight:800;color:#0f172a;">Step 1 &amp; 2: Opening Your Store on Store254</h2>
+      <p style="margin:0 0 24px;color:#475569;font-size:15px;">
+        Anyone with a Kenyan business can apply for a storefront in under 3 minutes from <a href="https://store254.co.ke/" style="font-weight:700;text-decoration:none;">store254.co.ke</a> by clicking <strong>Open your store</strong>.
       </p>
-      <p style="margin:0 0 18px;color:#475569;font-size:15px;">
-        The platform is developed and operated under <strong>Kayzen Labs Software Company Limited</strong>, focused on building reliable, scalable digital infrastructure for African businesses.
+
+      <div class="step-grid" style="margin-bottom:32px;">
+        <div>
+          <div class="step-badge"><span>1</span> Verify Owner Identity with Google</div>
+          <h3 style="margin:0 0 8px;font-size:20px;font-weight:800;color:#0f172a;">Sign In with Google to Protect Ownership</h3>
+          <p style="margin:0 0 10px;color:#475569;font-size:14px;">
+            Before creating a store, click <strong>Continue with Google to Open Store</strong>. Your Google account email is permanently bound as the store owner email so nobody else can claim or alter your business ownership.
+          </p>
+          <ul class="checklist">
+            <li>Takes one tap with your existing Gmail / Google Workspace account.</li>
+            <li>Protects your admin recovery and store ownership permanently.</li>
+            <li>Keeps store owner access separate from staff accounts you add later.</li>
+          </ul>
+        </div>
+        <figure class="shot-frame step-media">
+          <div class="shot-bar"><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-url">store254.co.ke &middot; Open your store</span></div>
+          <img src="${guideImgUrl("onboard-google.webp")}" alt="Store254 Google Sign-In verification step inside the Onboard Your Store modal" loading="lazy">
+          <figcaption class="shot-caption">Step 1: Verify your owner email via Google before entering store details.</figcaption>
+        </figure>
+      </div>
+
+      <div class="step-grid reverse">
+        <div>
+          <div class="step-badge"><span>2</span> Pick Your Subdomain, Type &amp; Kenya Location</div>
+          <h3 style="margin:0 0 8px;font-size:20px;font-weight:800;color:#0f172a;">Claim Your <code class="inline">.store254.co.ke</code> Address &amp; Pin Your Town</h3>
+          <p style="margin:0 0 10px;color:#475569;font-size:14px;">
+            Once signed in, complete the onboarding form to configure how buyers find and recognize your business:
+          </p>
+          <ul class="checklist">
+            <li><strong>Business / Store Name &amp; Subdomain:</strong> Type your desired handle (for example <code class="inline">nairobitech.store254.co.ke</code>) — availability is checked live as you type.</li>
+            <li><strong>20 Business Types:</strong> Choose from General Retail &amp; Duka, Fashion/Mtumba, Electronics, Beauty/Salon, Food &amp; Groceries, Hardware, Pharmacy, Agrovet, Real Estate, Services, and more.</li>
+            <li><strong>County &amp; Shopping Centre:</strong> Pick your County, then type your town, estate, ward, or market. Store254 automatically links your constituency and <strong>Smart Connected Nearby Centres</strong> (or lets you add an unlisted shopping centre).</li>
+            <li><strong>Password &amp; Terms:</strong> Set your Store Admin password, accept the Terms &amp; original-media policy, and click <strong>Submit Store Application</strong>.</li>
+          </ul>
+        </div>
+        <figure class="shot-frame step-media">
+          <div class="shot-bar"><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-url">store254.co.ke &middot; Store Onboarding Form</span></div>
+          <img src="${guideImgUrl("onboard-store.webp")}" alt="Store254 onboarding form showing live subdomain availability check, business type selector, and Kenya county and shopping centre location picker" loading="lazy">
+          <figcaption class="shot-caption">Step 2: Choose your live subdomain, business category, county, and town or shopping centre.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- HOW TO CREATE CATEGORIES & FILTERS -->
+    <section id="categories-guide" class="card">
+      <span class="pill">Store Admin Guide</span>
+      <h2 style="margin:12px 0 8px;font-size:26px;font-weight:800;color:#0f172a;">How to Create Categories, Subcategories &amp; Product Filters</h2>
+      <p style="margin:0 0 22px;color:#475569;font-size:15px;">
+        Well-organized categories turn casual visitors into buyers and help Google index your storefront cleanly. Inside your Store Admin (<code class="inline">yourshop.store254.co.ke/admin.html</code>), open <strong>Categories</strong> from the sidebar.
       </p>
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;flex-wrap:wrap;gap:18px;font-size:14px;color:#334155;">
-        <div><strong>Founder &amp; CEO:</strong> Kelvin Kamau (Software Developer)</div>
-        <div><strong>Company:</strong> Kayzen Labs Software Company Limited</div>
-        <div><strong>Email:</strong> <a href="mailto:kelvin@store254.co.ke" style="color:#059669;font-weight:600;text-decoration:none;">kelvin@store254.co.ke</a></div>
+
+      <div class="step-grid">
+        <div>
+          <div class="step-badge"><span>3</span> Organize Top-Level Categories &amp; Subcategories</div>
+          <h3 style="margin:0 0 8px;font-size:20px;font-weight:800;color:#0f172a;">Step-by-Step: Creating a Category or Subcategory</h3>
+          <ul class="checklist">
+            <li>Click <strong>+ New Category</strong> in the Categories toolbar.</li>
+            <li>Enter a clear <strong>Category Name</strong> (e.g. <em>Smartphones &amp; Tablets</em>, <em>Baby Clothes</em>, or <em>Solar Inverters &amp; Batteries</em>).</li>
+            <li><strong>Top-Level vs. Subcategory:</strong> Leave <strong>Parent Category</strong> as <em>None (top-level)</em> for a main aisle, or select an existing category (such as <em>Smartphones &amp; Tablets</em>) to nest a subcategory underneath it.</li>
+            <li>Add a short <strong>Description</strong> — Store254's built-in <strong>Card Icon Classifier</strong> automatically picks a matching vector icon in real time, or you can search and pick any icon manually from the grid.</li>
+            <li><strong>Add Product Filters:</strong> Click <strong>+ Add Product Filter</strong> to attach custom storefront filters like <em>Storage Capacity</em>, <em>Size</em>, <em>Warranty</em>, or <em>Brand</em> (Choice list, Number, Yes/No, or Multiple choices) to one category or all categories.</li>
+          </ul>
+        </div>
+        <figure class="shot-frame step-media">
+          <div class="shot-bar"><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-url">yourshop.store254.co.ke/admin.html &middot; Categories</span></div>
+          <img src="${guideImgUrl("create-category.webp")}" alt="Store254 Store Admin New Category modal showing Category Name, Parent Category dropdown for subcategories, Description, and automatic Card Icon Classifier" loading="lazy">
+          <figcaption class="shot-caption">Creating a subcategory in Store Admin with automatic icon matching and custom icon picker.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- PRODUCTS, SERVICES & STUDIO ARTWORK -->
+    <section id="products-services" class="card">
+      <span class="pill">Catalog &amp; Services</span>
+      <h2 style="margin:12px 0 8px;font-size:26px;font-weight:800;color:#0f172a;">Adding Products, Bookable Services, Photos &amp; Studio Artwork</h2>
+      <p style="margin:0 0 22px;color:#475569;font-size:15px;">
+        Click <strong>+ Add Product</strong> from the top bar of Store Admin to publish physical products, bookable services, or digital downloads.
+      </p>
+
+      <div class="step-grid reverse">
+        <div>
+          <div class="step-badge"><span>4</span> Publish Items with Photos or Auto Studio Artwork</div>
+          <h3 style="margin:0 0 8px;font-size:20px;font-weight:800;color:#0f172a;">Everything Inside the Product &amp; Service Editor</h3>
+          <ul class="checklist">
+            <li><strong>Title, Description &amp; KES Price:</strong> Enter your item title, clear description, <strong>Price (KES)</strong>, and an optional <strong>Compare-at Price</strong> to highlight discounts.</li>
+            <li><strong>Choose Item Type:</strong> Pick <strong>Physical Product</strong> (tracks stock quantity), <strong>Bookable Service</strong> (unlocks Booking Status, Studio/On-site/Virtual venue &amp; duration), or <strong>Digital Product</strong> (unlimited availability).</li>
+            <li><strong>Category &amp; Custom Details:</strong> Assign the item to a category/subcategory and fill in any category filters (like <em>Warranty</em> or <em>Storage</em>).</li>
+            <li><strong>Product Variants:</strong> Add optional sizes, colours, or service packages, each with its own price and stock count.</li>
+            <li><strong>Up to 5 Photos or No-Photo Studio Artwork:</strong> Upload up to 5 original photos (automatically optimized to fast WebP). Don't have a photo yet? Store254 automatically generates crisp <strong>Studio Icon Artwork</strong> from 779+ icons matched to your title and category.</li>
+          </ul>
+        </div>
+        <figure class="shot-frame step-media">
+          <div class="shot-bar"><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-url">yourshop.store254.co.ke/admin.html &middot; Add Product</span></div>
+          <img src="${guideImgUrl("add-product.webp")}" alt="Store254 Add Product modal showing KES price, Category, Item Type, Product Details, Stock Quantity, Photo Upload, and No-Photo Studio Icon Artwork picker" loading="lazy">
+          <figcaption class="shot-caption">Adding a product in Store Admin with category filters, stock tracking, photo uploads, and auto-matched studio icon artwork.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- STORE APPEARANCE & M-PESA -->
+    <section id="mpesa-branding" class="card">
+      <span class="pill">Branding &amp; Checkout</span>
+      <h2 style="margin:12px 0 8px;font-size:26px;font-weight:800;color:#0f172a;">Customizing Your Storefront &amp; Connecting M-Pesa STK Push</h2>
+      <p style="margin:0 0 22px;color:#475569;font-size:15px;">
+        Finish setting up your shop identity under <strong>Store Settings</strong> and turn on instant mobile money checkout under <strong>M-Pesa / Payments</strong>.
+      </p>
+
+      <div class="two-col">
+        <div>
+          <div class="step-badge"><span>5</span> Store Appearance, Domain &amp; Staff</div>
+          <h3 style="margin:0 0 8px;font-size:18px;font-weight:800;color:#0f172a;">Make the Storefront Unmistakably Yours</h3>
+          <p style="margin:0 0 12px;color:#475569;font-size:14px;">
+            Choose from 9 accent colours, upload your <strong>Logo</strong> and <strong>Hero Banner</strong>, add your <strong>WhatsApp</strong>, phone, pickup address, and social links, map a <strong>Custom Domain</strong>, and create <strong>Staff Accounts</strong> with granular permissions.
+          </p>
+          <figure class="shot-frame">
+            <div class="shot-bar"><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-url">admin.html &middot; Store Settings</span></div>
+            <img src="${guideImgUrl("store-branding.webp")}" alt="Store254 Store Settings screen showing accent colour, product display mode, logo and hero banner upload, and contact links" loading="lazy">
+            <figcaption class="shot-caption">Store Settings: accent colour, logo, hero banner, WhatsApp &amp; pickup address.</figcaption>
+          </figure>
+        </div>
+
+        <div>
+          <div class="step-badge"><span>6</span> M-Pesa Till / Paybill STK Push</div>
+          <h3 style="margin:0 0 8px;font-size:18px;font-weight:800;color:#0f172a;">Accept Direct M-Pesa Payments</h3>
+          <p style="margin:0 0 12px;color:#475569;font-size:14px;">
+            Enable M-Pesa prompts for orders, pick <strong>Paybill</strong> or <strong>Till (Buy Goods)</strong>, enter your Shortcode and Safaricom Daraja Consumer Key, Consumer Secret, and Passkey (stored encrypted and never exposed to customers).
+          </p>
+          <figure class="shot-frame">
+            <div class="shot-bar"><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-dot"></span><span class="shot-url">admin.html &middot; M-Pesa / Payments</span></div>
+            <img src="${guideImgUrl("mpesa-settings.webp")}" alt="Store254 M-Pesa Payment Settings screen showing Paybill or Till Buy Goods selector, Shortcode, and encrypted Daraja API credentials" loading="lazy">
+            <figcaption class="shot-caption">M-Pesa Settings: connect your own Till or Paybill for instant STK Push prompts.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="card">
+      <span class="pill">Common Questions</span>
+      <h2 style="margin:12px 0 16px;font-size:26px;font-weight:800;color:#0f172a;">Frequently Asked Questions</h2>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <article class="faq-item">
+          <h3>Why choose Store254 over selling only on WhatsApp or Instagram?</h3>
+          <p>Social feeds bury older posts and force buyers to ask for prices in DMs. Store254 gives your business a permanent, Google-searchable catalog with categories, filters, instant cart/checkout, and M-Pesa STK Push.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Do I need product photos before I launch?</h3>
+          <p>No. You can upload up to 5 photos per item (automatically converted to fast 720px WebP), and if a product has no photo yet, Store254 automatically displays crisp studio icon artwork matched from 779+ icons.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Can I sell services like salon bookings, plumbing, or phone repairs?</h3>
+          <p>Yes. Select <strong>Bookable Service</strong> as the Item Type when adding an item to set booking availability, session duration, and whether the service is in-shop, mobile at the client's location, or virtual.</p>
+        </article>
+        <article class="faq-item">
+          <h3>How quickly will my store appear on Google?</h3>
+          <p>Once your store is active and has published items, Store254 automatically adds your storefront, categories, and products/services to dynamic XML sitemaps and emits structured JSON-LD schema for search engines.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="card" style="background:linear-gradient(135deg,#064e3b 0%,#0f172a 100%);color:#fff;border-color:#065f46;text-align:center;padding:36px 24px;">
+      <h2 style="margin:0 0 10px;font-size:28px;font-weight:800;color:#fff;">Ready to Put Your Business Online?</h2>
+      <p style="margin:0 auto 22px;max-width:60ch;color:#d1fae5;font-size:15px;">
+        Join Kenyan merchants across all 47 counties selling smarter with Store254. Launch your storefront today or explore active Kenyan shops in the directory.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;">
+        <a href="/#open-store" class="btn-primary" style="background:#10b981;color:#022c22;">Open Your Store on Store254 &rarr;</a>
+        <a href="/directory" class="btn-secondary" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.25);">Browse Kenyan Store Directory</a>
       </div>
     </section>
   </main>
 
-  <footer style="border-top:1px solid #e2e8f0;background:#fff;padding:18px 20px;text-align:center;font-size:13px;color:#64748b;">
+  <footer style="border-top:1px solid #e2e8f0;background:#fff;padding:20px;text-align:center;font-size:13px;color:#64748b;">
     &copy; 2026 Store254.co.ke &bull; Kayzen Labs Software Company Limited &bull; Nairobi, Kenya &bull;
+    <a href="/stores" style="color:#059669;text-decoration:none;font-weight:600;">Stores</a> &bull;
+    <a href="/directory" style="color:#059669;text-decoration:none;font-weight:600;">Directory</a> &bull;
     <a href="/terms" style="color:#059669;text-decoration:none;font-weight:600;">Terms &amp; Conditions</a> &bull;
     <a href="/privacy" style="color:#059669;text-decoration:none;font-weight:600;">Privacy Policy</a>
   </footer>
@@ -1644,7 +2132,13 @@ function renderLegalDocumentShell(options: {
   <meta name="description" content="${escapeHtml(options.description)}">
   <link rel="canonical" href="${escapeHtml(options.canonicalUrl)}">
   <meta name="robots" content="${escapeHtml(options.robots)}">
-  <link rel="icon" type="image/webp" href="${escapeHtml(origin)}/assets/store254Icon.webp">
+  ${buildSearchEngineAndIconTags({
+    origin,
+    includeBingMeta: !options.robots.startsWith("noindex"),
+    includeIcons: true,
+    includeOpenSearch: true,
+    openSearchTitle: "Store254",
+  })}
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Store254">
   <meta property="og:locale" content="en_KE">
@@ -1652,6 +2146,10 @@ function renderLegalDocumentShell(options: {
   <meta property="og:description" content="${escapeHtml(options.description)}">
   <meta property="og:url" content="${escapeHtml(options.canonicalUrl)}">
   <meta property="og:image" content="${escapeHtml(ogImage)}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escapeHtml(options.title)}">
+  <meta name="twitter:description" content="${escapeHtml(options.description)}">
+  <meta name="twitter:image" content="${escapeHtml(ogImage)}">
   <script type="application/ld+json">${safeJsonLd(graph)}</script>
 </head>
 <body style="margin:0;background:#f8fafc;color:#0f172a;font-family:system-ui,-apple-system,sans-serif;line-height:1.68;">
@@ -1685,7 +2183,7 @@ function renderLegalDocumentShell(options: {
     <a href="/terms" style="color:#059669;text-decoration:none;">Terms</a> &bull;
     <a href="/privacy" style="color:#059669;text-decoration:none;">Privacy</a> &bull;
     <a href="/?report=copyright" style="color:#b91c1c;text-decoration:none;">Report Copyrighted Image</a> &bull;
-    <a href="/about" style="color:#059669;text-decoration:none;">About</a>
+    <a href="/about" style="color:#059669;text-decoration:none;">Why Store254</a>
   </footer>
 </body>
 </html>`;
@@ -1703,7 +2201,7 @@ export function buildPlatformTermsHtml(isPreview = false): {
     : "index, follow, max-image-preview:large, max-snippet:-1";
   const title = "Terms & Conditions & Copyright Policy | Store254";
   const description =
-    "Read Store254 Terms & Conditions, Copyright & Image Takedown Policy (Kenya Copyright Act Cap. 130), M-Pesa Payment Terms, Merchant Responsibilities, and Limitation of Liability.";
+    "Store254 Terms & Conditions: copyright and image takedown (Kenya Copyright Act), M-Pesa payment terms, merchant responsibilities and liability limits.";
 
   const cardStyle = "background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;";
   const h2Style = "margin:0 0 10px;font-size:18px;font-weight:800;color:#0f172a;";
@@ -1821,7 +2319,7 @@ export function buildPlatformPrivacyHtml(isPreview = false): {
     : "index, follow, max-image-preview:large, max-snippet:-1";
   const title = "Privacy & Data Protection Policy | Store254";
   const description =
-    "Store254 Privacy Policy compliant with the Kenya Data Protection Act, 2019 (ODPC). Learn how Store254 collects, protects, and processes merchant, buyer, and copyright report data.";
+    "Store254 Privacy Policy under the Kenya Data Protection Act, 2019 (ODPC): how we collect, protect and process merchant, buyer and copyright report data.";
 
   const cardStyle = "background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px;";
   const h2Style = "margin:0 0 10px;font-size:18px;font-weight:800;color:#0f172a;";
@@ -2050,6 +2548,10 @@ export function buildStorefrontSeoData(options: {
     : items.length === 0
       ? "noindex, follow"
       : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+  const includeBingMeta = !isPreview && origin.toLowerCase().endsWith(`.${PRIMARY_DOMAIN}`);
+  const bingMetaTag = includeBingMeta
+    ? `<meta name="msvalidate.01" content="${escapeHtml(BING_SITE_AUTH_TOKEN)}">`
+    : "";
 
   const categoryById = new Map<string, SeoCategory>(categories.map((c) => [c.id, c]));
   const storeNode = buildStoreSchemaNode(origin, tenant);
@@ -2079,7 +2581,7 @@ export function buildStorefrontSeoData(options: {
     const cat = itemDetail?.category || (matchedItem.categoryId ? categoryById.get(matchedItem.categoryId) || null : null);
     const isService = matchedItem.itemType === "SERVICE";
     const priceLabel = `${currency} ${Number(matchedItem.basePrice).toLocaleString()}`;
-    const title = `${matchedItem.title} (${priceLabel}) | ${tenant.name}`;
+    const title = buildItemSeoTitle(matchedItem.title, priceLabel, tenant.name);
     const description = truncateSeoText(
       matchedItem.description
         ? `${matchedItem.description} ${isService ? "Book" : "Order"} from ${tenant.name} for ${priceLabel} with M-Pesa checkout.`
@@ -2114,6 +2616,7 @@ export function buildStorefrontSeoData(options: {
     const headTagsHtml = [
       `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`,
       `<meta name="robots" content="${escapeHtml(robotsBase)}">`,
+      ...(bingMetaTag ? [bingMetaTag] : []),
       `<meta property="og:type" content="${isService ? "website" : "product"}">`,
       `<meta property="og:site_name" content="${escapeHtml(tenant.name)}">`,
       `<meta property="og:locale" content="en_KE">`,
@@ -2174,6 +2677,11 @@ export function buildStorefrontSeoData(options: {
 
     const childIds = new Set(categories.filter((c) => c.parentId === cat.id).map((c) => c.id));
     const filteredItems = items.filter((it) => it.categoryId === cat.id || (it.categoryId && childIds.has(it.categoryId)));
+    const categoryRobots = isPreview
+      ? "noindex, nofollow"
+      : filteredItems.length === 0
+        ? "noindex, follow"
+        : robotsBase;
     const canonicalUrl = `${origin}/category/${encodeURIComponent(cat.slug)}`;
     const title = `${cat.name} — ${tenant.name} | Store254`;
     const description = truncateSeoText(
@@ -2219,7 +2727,8 @@ export function buildStorefrontSeoData(options: {
 
     const headTagsHtml = [
       `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`,
-      `<meta name="robots" content="${escapeHtml(robotsBase)}">`,
+      `<meta name="robots" content="${escapeHtml(categoryRobots)}">`,
+      ...(bingMetaTag && !categoryRobots.startsWith("noindex") ? [bingMetaTag] : []),
       `<meta property="og:type" content="website">`,
       `<meta property="og:site_name" content="${escapeHtml(tenant.name)}">`,
       `<meta property="og:locale" content="en_KE">`,
@@ -2241,7 +2750,7 @@ export function buildStorefrontSeoData(options: {
       title,
       description,
       canonicalUrl,
-      robots: robotsBase,
+      robots: categoryRobots,
       headTagsHtml,
       ssrStoreAddress: subdomainLabel,
       ssrStoreName: `${tenant.name} — ${cat.name}`,
@@ -2308,6 +2817,7 @@ export function buildStorefrontSeoData(options: {
   const headTagsHtml = [
     `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`,
     `<meta name="robots" content="${escapeHtml(robotsBase)}">`,
+    ...(bingMetaTag ? [bingMetaTag] : []),
     `<meta property="og:type" content="website">`,
     `<meta property="og:site_name" content="${escapeHtml(tenant.name)}">`,
     `<meta property="og:locale" content="en_KE">`,

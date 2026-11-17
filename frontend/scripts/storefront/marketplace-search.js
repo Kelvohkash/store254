@@ -778,7 +778,8 @@
     selectedBuyerLocation = loadSavedBuyerLocation();
     syncLocationPillUI();
     if (document.documentElement.dataset.storefront !== "true" && document.documentElement.dataset.platformView !== "stores") {
-      window.runMarketplaceProductSearch();
+      const initialQuery = new URLSearchParams(window.location.search).get("q")?.trim() || "";
+      window.runMarketplaceProductSearch(initialQuery || undefined);
     }
   });
 })();
