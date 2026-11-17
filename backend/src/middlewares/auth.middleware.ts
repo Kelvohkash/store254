@@ -6,8 +6,8 @@ import { AppError } from "../security/error-handler";
 import { requireSecret } from "../security/secrets";
 import {
   CUSTOMER_SESSION_COOKIE,
-  TENANT_SESSION_COOKIE,
   getCookieValue,
+  getTenantSessionCookieValue,
 } from "../security/session-cookie";
 import { createDb } from "../db";
 import { users } from "../db/schema/users";
@@ -67,7 +67,7 @@ export function authMiddleware(required = true): MiddlewareHandler<AppEnv> {
     const authHeader = c.req.header("authorization");
     const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7).trim() : null;
     const cookieHeader = c.req.header("cookie");
-    const tenantCookieToken = bearerToken ? null : getCookieValue(cookieHeader, TENANT_SESSION_COOKIE);
+    const tenantCookieToken = bearerToken ? null : getTenantSessionCookieValue(cookieHeader);
     const ssoCookieToken = bearerToken ? null : getCookieValue(cookieHeader, CUSTOMER_SESSION_COOKIE);
     const customerSessionPath = [
       "/api/auth/me",
@@ -92,11 +92,15 @@ export function authMiddleware(required = true): MiddlewareHandler<AppEnv> {
     const currentTenant = c.get("tenant");
 
     // Verify token and ensure it matches the current tenant (prevents cross-tenant token replay)
-    let user = await verifyAccessToken(token, secret, currentTenant?.id);
+    let accessUser = await verifyAccessToken(token, secret, currentTenant?.id);
+    let user: UserContext | null = accessUser;
+    let authenticatedViaAccessToken = Boolean(accessUser);
+
     if (!user && ssoCookieToken && currentTenant && c.env?.DB) {
       const googleUser = await verifyCustomerSsoToken(ssoCookieToken, secret);
       if (googleUser) {
         user = await resolveGoogleCustomerForTenant(createDb(c.env.DB), currentTenant, googleUser);
+        authenticatedViaAccessToken = false;
       }
     }
 
@@ -107,26 +111,47 @@ export function authMiddleware(required = true): MiddlewareHandler<AppEnv> {
       return next();
     }
 
-    // Verify live status and permissions for staff tokens so revoked rights apply immediately
-    if (user.role === "STAFF" && currentTenant && c.env?.DB) {
+    // Verify live account status, tokenVersion revocation, and role permissions against D1
+    if (currentTenant && c.env?.DB && authenticatedViaAccessToken) {
       const db = createDb(c.env.DB);
-      const [staffRecord] = await db
-        .select({ id: users.id, status: users.status })
+      const [userRecord] = await db
+        .select({
+          id: users.id,
+          status: users.status,
+          role: users.role,
+          tokenVersion: users.tokenVersion,
+        })
         .from(users)
-        .where(
-          and(
-            eq(users.id, user.id),
-            eq(users.tenantId, currentTenant.id),
-            eq(users.role, "STAFF")
-          )
-        )
+        .where(and(eq(users.id, user.id), eq(users.tenantId, currentTenant.id)))
         .limit(1);
-      if (!staffRecord || staffRecord.status !== "ACTIVE") {
+
+      if (!userRecord || userRecord.status !== "ACTIVE") {
         if (required) {
-          throw new AppError("Your staff account is inactive or no longer exists.", 403, "ACCOUNT_INACTIVE");
+          throw new AppError(
+            user.role === "STAFF"
+              ? "Your staff account is inactive or no longer exists."
+              : "Your account is inactive or no longer exists.",
+            403,
+            "ACCOUNT_INACTIVE"
+          );
         }
         return next();
       }
+
+      const tokenVer = Number(accessUser?.tokenVersion ?? 0);
+      if (tokenVer !== userRecord.tokenVersion) {
+        if (required) {
+          throw new AppError(
+            "Authentication token has been revoked. Please sign in again.",
+            401,
+            "INVALID_TOKEN"
+          );
+        }
+        return next();
+      }
+    }
+
+    if (user.role === "STAFF" && currentTenant) {
       user.permissions = getStaffPermissions(currentTenant.settings, user.id);
     } else if (user.role === "OWNER" || user.role === "ADMIN") {
       user.permissions = ["*"];
@@ -135,16 +160,19 @@ export function authMiddleware(required = true): MiddlewareHandler<AppEnv> {
     if (cookieToken && !["GET", "HEAD", "OPTIONS"].includes(c.req.method.toUpperCase())) {
       const origin = c.req.header("origin");
       const secFetchSite = c.req.header("sec-fetch-site");
-      if (!origin && (secFetchSite === "same-origin" || secFetchSite === "same-site")) {
+      if (!origin && secFetchSite === "same-origin") {
         c.set("user", user);
         await next();
         return;
       }
       const primaryDomain = (c.env?.PRIMARY_DOMAIN || "store254.co.ke").toLowerCase();
-      const allowedHosts = new Set([
-        `${currentTenant?.subdomain}.${primaryDomain}`,
-        currentTenant?.customDomain || "",
-      ]);
+      const allowedHosts = new Set<string>();
+      if (currentTenant?.subdomain) {
+        allowedHosts.add(`${currentTenant.subdomain}.${primaryDomain}`);
+      }
+      if (currentTenant?.customDomain) {
+        allowedHosts.add(currentTenant.customDomain.toLowerCase());
+      }
       let originHost = "";
       try {
         const parsedOrigin = new URL(origin || "");

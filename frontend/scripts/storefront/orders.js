@@ -113,7 +113,7 @@ async function loadMyOrders() {
           </p>
           ${
             canConfirmCompletion
-              ? `<button type="button" onclick="confirmOrderDelivered('${escapeHtml(order.id)}', '${escapeHtml(order.orderNumber)}', '${escapeHtml(order.customerPhone || "")}')" class="mt-3 w-full rounded-lg bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-700">
+              ? `<button type="button" data-order-action="confirm-delivery" data-order-id="${escapeHtml(order.id)}" data-order-number="${escapeHtml(order.orderNumber)}" data-customer-phone="${escapeHtml(order.customerPhone || "")}" class="mt-3 w-full rounded-lg bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-700">
                   <i data-lucide="${isServiceBooking ? "calendar-check" : "package-check"}" class="mr-1 inline h-4 w-4 align-text-bottom"></i>
                   ${isServiceBooking ? "Confirm service completed" : "I received this order · Confirm delivery"}
                 </button>`
@@ -155,8 +155,20 @@ async function loadMyOrders() {
     }
     container.innerHTML = `
       <p class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
-        ${res.data?.error?.message || "Could not load your orders. Please try again."}
+        ${escapeHtml(res.data?.error?.message || "Could not load your orders. Please try again.")}
       </p>
     `;
   }
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (event) => {
+    const btn = event.target?.closest?.('[data-order-action="confirm-delivery"]');
+    if (!btn) return;
+    confirmOrderDelivered(
+      btn.dataset.orderId || "",
+      btn.dataset.orderNumber || "",
+      btn.dataset.customerPhone || ""
+    );
+  });
 }

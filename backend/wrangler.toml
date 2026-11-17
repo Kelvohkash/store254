@@ -35,9 +35,16 @@ MPESA_IS_SANDBOX = "false"
 #   npx wrangler secret put GOOGLE_CLIENT_SECRET
 #   npx wrangler secret put GOOGLE_MAPS_API_KEY
 #   npx wrangler secret put PAYMENT_CONFIG_ENCRYPTION_KEY
+#   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put GMAIL_SMTP_USER
+#   npx wrangler secret put GMAIL_SMTP_PASS
+#   npx wrangler secret put GMAIL_SENDER
 
 # Cloudflare Rate Limiting API bindings provide shared per-colo counters across
-# Worker instances. Keep these namespace IDs unique within this Cloudflare account.
+# Worker instances (Cloudflare simple bindings support periods of 10 or 60 seconds).
+# Multi-minute windows (e.g. 15m on admin/OTP routes) also enforce per-IP and
+# per-account isolate limits while routing through AUTH_STRICT_RATE_LIMITER.
+# Keep these namespace IDs unique within this Cloudflare account.
 [[ratelimits]]
 name = "API_RATE_LIMITER"
 namespace_id = "920261108"

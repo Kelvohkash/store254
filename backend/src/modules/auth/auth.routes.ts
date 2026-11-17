@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, gt, or, inArray } from "drizzle-orm";
+import { eq, and, desc, gt, lt, or, inArray, isNotNull, sql } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
@@ -16,7 +16,7 @@ import {
   verifyOtp,
 } from "../../security/crypto";
 import { slugify } from "../../security/sanitize";
-import { createAccessToken } from "../../security/jwt";
+import { createAccessToken, verifyAccessToken, verifyCustomerSsoToken } from "../../security/jwt";
 import { AppError } from "../../security/error-handler";
 import { rateLimiter } from "../../security/rate-limiter";
 import {
@@ -30,8 +30,11 @@ import { EmailService } from "../../services/email.service";
 import { findMerchantStoresByEmail } from "../../services/user-stores.service";
 import { requireSecret } from "../../security/secrets";
 import {
+  CUSTOMER_SESSION_COOKIE,
   clearCustomerSessionCookie,
   clearTenantSessionCookie,
+  getCookieValue,
+  getTenantSessionCookieValue,
   tenantSessionCookie,
 } from "../../security/session-cookie";
 
@@ -50,6 +53,15 @@ const registerCustomerSchema = z.object({
     .max(SECURITY_LIMITS.MAX_PASSWORD_LENGTH),
   fullName: z.string().min(2).max(80),
   phone: z.string().optional(),
+});
+
+const verifyEmailSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().trim().min(6).max(8),
+});
+
+const resendVerificationSchema = z.object({
+  email: z.string().email(),
 });
 
 const forgotPasswordSchema = z.object({
@@ -84,46 +96,150 @@ authRouter.get("/google/config", (c) => {
   });
 });
 
-authRouter.post("/logout", (c) => {
+authRouter.post("/logout", async (c) => {
+  const tenant = c.get("tenant");
+  const secret = c.env?.JWT_SECRET;
+
+  if (tenant && secret && c.env?.DB) {
+    const db = createDb(c.env.DB);
+    const authHeader = c.req.header("authorization");
+    const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7).trim() : null;
+    const cookieHeader = c.req.header("cookie");
+    const tenantCookieToken = bearerToken ? null : getTenantSessionCookieValue(cookieHeader);
+    const token = bearerToken || tenantCookieToken;
+
+    let revoked = false;
+    if (token) {
+      const tokenUser = await verifyAccessToken(token, secret, tenant.id);
+      if (tokenUser) {
+        await db
+          .update(users)
+          .set({ tokenVersion: sql`${users.tokenVersion} + 1`, updatedAt: new Date() })
+          .where(and(eq(users.id, tokenUser.id), eq(users.tenantId, tenant.id)));
+        revoked = true;
+      }
+    }
+
+    if (!revoked) {
+      const ssoToken = getCookieValue(cookieHeader, CUSTOMER_SESSION_COOKIE);
+      if (ssoToken) {
+        const googleUser = await verifyCustomerSsoToken(ssoToken, secret);
+        if (googleUser) {
+          const normalizedEmail = googleUser.email.toLowerCase().trim();
+          await db
+            .update(users)
+            .set({ tokenVersion: sql`${users.tokenVersion} + 1`, updatedAt: new Date() })
+            .where(and(eq(users.tenantId, tenant.id), sql`lower(${users.email}) = ${normalizedEmail}`));
+        }
+      }
+    }
+  }
+
   const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
   const isDev = c.env?.ENVIRONMENT === "development";
   c.header("Set-Cookie", clearCustomerSessionCookie(primaryDomain), { append: true });
   c.header("Set-Cookie", clearTenantSessionCookie(isDev), { append: true });
+  if (!isDev) {
+    c.header("Set-Cookie", clearTenantSessionCookie(true), { append: true });
+  }
   return c.json({ success: true, message: "Signed out successfully." });
 });
 
-const DEMO_PASSWORD_HASHES = new Set([
-  "pbkdf2$sha512$100000$3d29aa15a970e1fdeac9d6d57d2863f9$682a5c5e5a279f675ed7dcd9c3a3bd1b8f434b7082d93a48897f29ea0f20f866eb48d77b8eab66bc57576a336c51562d258dcd13e5115cf41b76978b003f2575",
-  "pbkdf2$sha512$100000$dde6530e852bb302b2bb17283e0739b6$8f4c31e3e04f40779f18ba17a45a7ee0a924da1378bb73f1fd855c4d6b8fdffab1378807dbb326b175b64d9a0df5942c2d806d15e2131db1d1d4d748616f088c",
-]);
-
-async function verifyCandidatePassword(password: string, passwordHash: string): Promise<boolean> {
+async function verifyCandidatePassword(
+  password: string,
+  passwordHash: string | null | undefined
+): Promise<boolean> {
   if (!passwordHash || passwordHash.startsWith("oauth$google$")) return false;
-  if (await verifyPassword(password, passwordHash)) return true;
-  return (password === "1234" || password === "demo") && DEMO_PASSWORD_HASHES.has(passwordHash);
+  return verifyPassword(password, passwordHash);
 }
 
-async function assertDistinctMerchantPassword(
+function escapeHtml(value: string | undefined | null): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function resolveCanonicalTenantOrigin(
+  tenant: { subdomain: string; customDomain?: string | null },
+  primaryDomainEnv?: string
+): string {
+  const rawDomain = (primaryDomainEnv || "store254.co.ke").trim().toLowerCase();
+  const safePrimary = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(rawDomain)
+    ? rawDomain
+    : "store254.co.ke";
+  return `https://${tenant.subdomain}.${safePrimary}`;
+}
+
+async function recordFailedOtpAttempts(
   db: ReturnType<typeof createDb>,
-  tenantId: string,
-  candidatePassword: string,
-  excludeUserId?: string
+  recordIds: string[]
 ): Promise<void> {
-  const merchantRows = await db
-    .select({ id: users.id, role: users.role, passwordHash: users.passwordHash })
-    .from(users)
-    .where(and(eq(users.tenantId, tenantId), inArray(users.role, ["OWNER", "ADMIN", "STAFF"])));
-  for (const row of merchantRows) {
-    if (excludeUserId && row.id === excludeUserId) continue;
-    if (!row.passwordHash || row.passwordHash.startsWith("oauth$google$")) continue;
-    if (await verifyPassword(candidatePassword, row.passwordHash)) {
-      throw new AppError(
-        "Each owner and staff password must be different so the store can distinguish owner vs staff login.",
-        400,
-        "PASSWORD_CONFLICT"
-      );
-    }
-  }
+  if (recordIds.length === 0) return;
+  await db
+    .update(passwordResetOtps)
+    .set({
+      attempts: sql`${passwordResetOtps.attempts} + 1`,
+      isUsed: sql`CASE WHEN ${passwordResetOtps.attempts} + 1 >= ${passwordResetOtps.maxAttempts} THEN 1 ELSE ${passwordResetOtps.isUsed} END`,
+    })
+    .where(
+      and(
+        inArray(passwordResetOtps.id, recordIds),
+        eq(passwordResetOtps.isUsed, false),
+        lt(passwordResetOtps.attempts, passwordResetOtps.maxAttempts)
+      )
+    );
+}
+
+async function consumeOtpRecord(
+  db: ReturnType<typeof createDb>,
+  recordId: string
+): Promise<boolean> {
+  const [consumed] = await db
+    .update(passwordResetOtps)
+    .set({ isUsed: true })
+    .where(
+      and(
+        eq(passwordResetOtps.id, recordId),
+        eq(passwordResetOtps.isUsed, false),
+        lt(passwordResetOtps.attempts, passwordResetOtps.maxAttempts)
+      )
+    )
+    .returning({ id: passwordResetOtps.id });
+  return Boolean(consumed);
+}
+
+async function sendEmailVerificationOtp(params: {
+  to: string;
+  fullName: string;
+  otpCode: string;
+  storeName: string;
+  env?: AppEnv["Bindings"];
+}): Promise<void> {
+  const safeName = escapeHtml(params.fullName);
+  const safeStore = escapeHtml(params.storeName);
+  const safeOtp = escapeHtml(params.otpCode);
+  const html = `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
+      <h2>Verify Your Email Address</h2>
+      <p>Hello <strong>${safeName}</strong>,</p>
+      <p>Use the 6-digit verification code below to activate your customer account on <strong>${safeStore}</strong>:</p>
+      <div style="background:#f3f4f6;border-radius:8px;padding:16px;text-align:center;margin:20px 0;font-size:28px;font-weight:800;letter-spacing:6px;">
+        ${safeOtp}
+      </div>
+      <p>This code expires in <strong>30 minutes</strong>. Do not share it with anyone.</p>
+    </div>
+  `;
+  await EmailService.send({
+    to: params.to,
+    subject: `[${params.storeName}] Verify your email address`,
+    html,
+    apiKey: params.env?.RESEND_API_KEY,
+    smtp: EmailService.smtpFromEnv(params.env),
+    redactInLogs: [params.otpCode],
+  });
 }
 
 async function saveStaffPermissions(
@@ -181,64 +297,33 @@ authRouter.post(
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
     const db = createDb(c.env.DB);
 
-    const [directUser] = await db
+    const [matchedUser] = await db
       .select()
       .from(users)
       .where(
         and(
           eq(users.tenantId, tenant.id),
           or(
-            eq(users.email, normalizedEmail),
-            eq(users.email, `${normalizedEmail}@demo.com`),
-            eq(users.email, `${normalizedEmail}@${tenant.subdomain}.store254.co.ke`)
+            sql`lower(${users.email}) = ${normalizedEmail}`,
+            sql`lower(${users.email}) = ${`${normalizedEmail}@${tenant.subdomain}.store254.co.ke`}`
           )
         )
       )
       .limit(1);
 
-    let matchedUser = directUser || null;
-    let passwordMatched = false;
+    const passwordMatched = matchedUser
+      ? await verifyCandidatePassword(password, matchedUser.passwordHash)
+      : false;
+    const isEmailVerified =
+      Boolean(matchedUser?.emailVerifiedAt) || matchedUser?.role === "STAFF";
 
-    if (matchedUser) {
-      if (matchedUser.status !== "ACTIVE") {
-        throw new AppError("Your account has been deactivated. Please contact support.", 403, "ACCOUNT_INACTIVE");
-      }
-      if (matchedUser.passwordHash.startsWith("oauth$google$")) {
-        throw new AppError(
-          "This account was created with Google. Please click 'Sign in with Google' to continue.",
-          400,
-          "USE_GOOGLE_LOGIN"
-        );
-      }
-      passwordMatched = await verifyCandidatePassword(password, matchedUser.passwordHash);
-    }
-
-    // Dual Owner/Staff Password fallback: allow signing in with the store owner email (or "staff") + a staff password
-    const isSharedStaffLogin =
-      normalizedEmail === "staff" ||
-      Boolean(matchedUser && ["OWNER", "ADMIN"].includes(matchedUser.role));
-
-    if (!passwordMatched && isSharedStaffLogin) {
-      const staffAccounts = await db
-        .select()
-        .from(users)
-        .where(
-          and(
-            eq(users.tenantId, tenant.id),
-            eq(users.role, "STAFF"),
-            eq(users.status, "ACTIVE")
-          )
-        );
-      for (const staffCandidate of staffAccounts) {
-        if (await verifyCandidatePassword(password, staffCandidate.passwordHash)) {
-          matchedUser = staffCandidate;
-          passwordMatched = true;
-          break;
-        }
-      }
-    }
-
-    if (!matchedUser || !passwordMatched) {
+    // Uniform 401 prevents account status, provider, and existence enumeration
+    if (
+      !matchedUser ||
+      !passwordMatched ||
+      matchedUser.status !== "ACTIVE" ||
+      !isEmailVerified
+    ) {
       throw new AppError("Invalid email or password.", 401, "INVALID_CREDENTIALS");
     }
 
@@ -269,6 +354,7 @@ authRouter.post(
         tenantId: tenant.id,
         email: matchedUser.email,
         role: matchedUser.role,
+        tokenVersion: matchedUser.tokenVersion ?? 0,
         ...(permissions ? { permissions } : {}),
       },
       secret
@@ -295,7 +381,7 @@ authRouter.post(
   }
 );
 
-// Register Customer on Storefront
+// Register Customer on Storefront (Requires email OTP verification before activation)
 authRouter.post(
   "/register",
   rateLimiter({ max: 5, windowMs: 60 * 1000 }),
@@ -311,7 +397,7 @@ authRouter.post(
     const [existing] = await db
       .select({ id: users.id })
       .from(users)
-      .where(and(eq(users.tenantId, tenant.id), eq(users.email, normalizedEmail)))
+      .where(and(eq(users.tenantId, tenant.id), sql`lower(${users.email}) = ${normalizedEmail}`))
       .limit(1);
 
     if (existing) {
@@ -333,36 +419,246 @@ authRouter.post(
       fullName: body.fullName,
       phone: body.phone || null,
       role: "CUSTOMER",
-      status: "ACTIVE",
+      status: "PENDING_VERIFICATION",
+      emailVerifiedAt: null,
+      tokenVersion: 0,
     });
 
-    const secret = requireSecret(c.env?.JWT_SECRET, "JWT_SECRET");
-    const token = await createAccessToken(
-      {
-        id: userId,
-        tenantId: tenant.id,
-        email: normalizedEmail,
-        role: "CUSTOMER",
-      },
-      secret
-    );
+    const verificationEmailKey = `verify:${normalizedEmail}`;
+    await db
+      .update(passwordResetOtps)
+      .set({ isUsed: true })
+      .where(
+        and(
+          eq(passwordResetOtps.email, verificationEmailKey),
+          eq(passwordResetOtps.tenantId, tenant.id)
+        )
+      );
+
+    const otp = generateNumericOtp(6);
+    const otpHash = await hashOtp(`verify_email:${otp}`);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    await db.insert(passwordResetOtps).values({
+      id: generateUUID(),
+      tenantId: tenant.id,
+      email: verificationEmailKey,
+      otpHash,
+      attempts: 0,
+      maxAttempts: 3,
+      expiresAt,
+      isUsed: false,
+    });
+
+    await sendEmailVerificationOtp({
+      to: normalizedEmail,
+      fullName: body.fullName,
+      otpCode: otp,
+      storeName: tenant.name,
+      env: c.env,
+    });
 
     return c.json(
       {
         success: true,
-        message: "Customer account created successfully.",
+        message: "Verification code sent to your email. Please verify your email before signing in.",
         data: {
+          verificationRequired: true,
           user: {
             id: userId,
             email: normalizedEmail,
             fullName: body.fullName,
             role: "CUSTOMER",
+            status: "PENDING_VERIFICATION",
           },
-          accessToken: token,
         },
       },
       201
     );
+  }
+);
+
+// Verify Customer Email Address via 6-digit OTP
+authRouter.post(
+  "/verify-email",
+  rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
+  zValidator("json", verifyEmailSchema),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const { email, otp } = c.req.valid("json");
+    const normalizedEmail = email.toLowerCase().trim();
+    const verificationEmailKey = `verify:${normalizedEmail}`;
+
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const db = createDb(c.env.DB);
+    const now = new Date();
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.tenantId, tenant.id), sql`lower(${users.email}) = ${normalizedEmail}`))
+      .limit(1);
+
+    if (!user || user.status === "SUSPENDED") {
+      throw new AppError("Invalid or expired verification code.", 400, "INVALID_VERIFICATION_CODE");
+    }
+
+    const activeRecords = await db
+      .select()
+      .from(passwordResetOtps)
+      .where(
+        and(
+          eq(passwordResetOtps.email, verificationEmailKey),
+          eq(passwordResetOtps.tenantId, tenant.id),
+          eq(passwordResetOtps.isUsed, false),
+          gt(passwordResetOtps.expiresAt, now),
+          lt(passwordResetOtps.attempts, passwordResetOtps.maxAttempts)
+        )
+      )
+      .orderBy(desc(passwordResetOtps.createdAt));
+
+    if (!activeRecords.length) {
+      throw new AppError("Invalid or expired verification code.", 400, "INVALID_VERIFICATION_CODE");
+    }
+
+    let matchedRecord = null;
+    for (const record of activeRecords) {
+      if (await verifyOtp(`verify_email:${otp}`, record.otpHash)) {
+        matchedRecord = record;
+        break;
+      }
+    }
+
+    if (!matchedRecord) {
+      await recordFailedOtpAttempts(
+        db,
+        activeRecords.map((r) => r.id)
+      );
+      throw new AppError("Invalid or expired verification code.", 400, "INVALID_VERIFICATION_CODE");
+    }
+
+    const consumed = await consumeOtpRecord(db, matchedRecord.id);
+    if (!consumed) {
+      throw new AppError("Invalid or expired verification code.", 400, "INVALID_VERIFICATION_CODE");
+    }
+
+    await db
+      .update(passwordResetOtps)
+      .set({ isUsed: true })
+      .where(
+        and(
+          eq(passwordResetOtps.email, verificationEmailKey),
+          eq(passwordResetOtps.tenantId, tenant.id)
+        )
+      );
+
+    await db
+      .update(users)
+      .set({
+        status: "ACTIVE",
+        emailVerifiedAt: user.emailVerifiedAt || now,
+        lastLoginAt: now,
+        updatedAt: now,
+      })
+      .where(and(eq(users.id, user.id), eq(users.tenantId, tenant.id)));
+
+    const secret = requireSecret(c.env?.JWT_SECRET, "JWT_SECRET");
+    const token = await createAccessToken(
+      {
+        id: user.id,
+        tenantId: tenant.id,
+        email: user.email,
+        role: user.role,
+        tokenVersion: user.tokenVersion ?? 0,
+      },
+      secret
+    );
+
+    const isDev = c.env?.ENVIRONMENT === "development";
+    c.header("Set-Cookie", tenantSessionCookie(token, isDev));
+
+    return c.json({
+      success: true,
+      message: "Email verified successfully.",
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          status: "ACTIVE",
+        },
+        accessToken: token,
+      },
+    });
+  }
+);
+
+// Resend Email Verification OTP
+authRouter.post(
+  "/resend-verification",
+  rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
+  zValidator("json", resendVerificationSchema),
+  async (c) => {
+    const tenant = c.get("tenant")!;
+    const { email } = c.req.valid("json");
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!c.env?.DB) throw new AppError("Database not ready", 500);
+    const db = createDb(c.env.DB);
+
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        fullName: users.fullName,
+        status: users.status,
+        emailVerifiedAt: users.emailVerifiedAt,
+      })
+      .from(users)
+      .where(and(eq(users.tenantId, tenant.id), sql`lower(${users.email}) = ${normalizedEmail}`))
+      .limit(1);
+
+    if (user && user.status === "PENDING_VERIFICATION" && !user.emailVerifiedAt) {
+      const verificationEmailKey = `verify:${normalizedEmail}`;
+      await db
+        .update(passwordResetOtps)
+        .set({ isUsed: true })
+        .where(
+          and(
+            eq(passwordResetOtps.email, verificationEmailKey),
+            eq(passwordResetOtps.tenantId, tenant.id)
+          )
+        );
+
+      const otp = generateNumericOtp(6);
+      const otpHash = await hashOtp(`verify_email:${otp}`);
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+      await db.insert(passwordResetOtps).values({
+        id: generateUUID(),
+        tenantId: tenant.id,
+        email: verificationEmailKey,
+        otpHash,
+        attempts: 0,
+        maxAttempts: 3,
+        expiresAt,
+        isUsed: false,
+      });
+
+      await sendEmailVerificationOtp({
+        to: normalizedEmail,
+        fullName: user.fullName || "Customer",
+        otpCode: otp,
+        storeName: tenant.name,
+        env: c.env,
+      });
+    }
+
+    return c.json({
+      success: true,
+      message: "If an unverified account exists with this email, a new verification code has been sent.",
+    });
   }
 );
 
@@ -373,7 +669,7 @@ authRouter.post(
   zValidator("json", forgotPasswordSchema),
   async (c) => {
     const tenant = c.get("tenant")!;
-    const { email, clientOrigin } = c.req.valid("json");
+    const { email } = c.req.valid("json");
     const normalizedEmail = email.toLowerCase().trim();
 
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
@@ -385,10 +681,11 @@ authRouter.post(
       .where(
         and(
           eq(users.tenantId, tenant.id),
+          eq(users.status, "ACTIVE"),
+          isNotNull(users.emailVerifiedAt),
           or(
-            eq(users.email, normalizedEmail),
-            eq(users.email, `${normalizedEmail}@demo.com`),
-            eq(users.email, `${normalizedEmail}@${tenant.subdomain}.store254.co.ke`)
+            sql`lower(${users.email}) = ${normalizedEmail}`,
+            sql`lower(${users.email}) = ${`${normalizedEmail}@${tenant.subdomain}.store254.co.ke`}`
           )
         )
       )
@@ -402,13 +699,15 @@ authRouter.post(
       });
     }
 
+    const targetEmail = user.email.toLowerCase().trim();
+
     // Invalidate existing OTPs/tokens
     await db
       .update(passwordResetOtps)
       .set({ isUsed: true })
       .where(
         and(
-          eq(passwordResetOtps.email, normalizedEmail),
+          eq(passwordResetOtps.email, targetEmail),
           eq(passwordResetOtps.tenantId, tenant.id)
         )
       );
@@ -423,8 +722,10 @@ authRouter.post(
     await db.insert(passwordResetOtps).values({
       id: generateUUID(),
       tenantId: tenant.id,
-      email: normalizedEmail,
+      email: targetEmail,
       otpHash: hashedToken,
+      attempts: 0,
+      maxAttempts: 3,
       expiresAt,
       isUsed: false,
     });
@@ -433,23 +734,27 @@ authRouter.post(
     await db.insert(passwordResetOtps).values({
       id: generateUUID(),
       tenantId: tenant.id,
-      email: normalizedEmail,
+      email: targetEmail,
       otpHash: hashedOtp,
+      attempts: 0,
+      maxAttempts: 3,
       expiresAt,
       isUsed: false,
     });
 
-    const origin = clientOrigin || c.req.header("origin") || `https://${tenant.subdomain}.store254.co.ke`;
-    const resetLink = `${origin}/admin.html?reset_token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(normalizedEmail)}`;
+    // SEC-03: Always construct reset links from canonical server-configured origin
+    const origin = resolveCanonicalTenantOrigin(tenant, c.env?.PRIMARY_DOMAIN);
+    const resetLink = `${origin}/admin.html?reset_token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(targetEmail)}`;
 
     await EmailService.sendPasswordResetLink({
-      to: normalizedEmail,
+      to: targetEmail,
       fullName: user.fullName || "Store Admin",
       resetLink,
       otpCode: otp,
       expiresMinutes: 30,
       storeName: tenant.name,
       apiKey: c.env?.RESEND_API_KEY,
+      smtp: EmailService.smtpFromEnv(c.env),
     });
 
     return c.json({
@@ -478,16 +783,21 @@ authRouter.post(
     const now = new Date();
 
     const candidateCodes = [token, otp].filter(Boolean) as string[];
+    const candidateEmails = [
+      normalizedEmail,
+      `${normalizedEmail}@${tenant.subdomain}.store254.co.ke`,
+    ];
 
     const activeRecords = await db
       .select()
       .from(passwordResetOtps)
       .where(
         and(
-          eq(passwordResetOtps.email, normalizedEmail),
+          inArray(passwordResetOtps.email, candidateEmails),
           eq(passwordResetOtps.tenantId, tenant.id),
           eq(passwordResetOtps.isUsed, false),
-          gt(passwordResetOtps.expiresAt, now)
+          gt(passwordResetOtps.expiresAt, now),
+          lt(passwordResetOtps.attempts, passwordResetOtps.maxAttempts)
         )
       )
       .orderBy(desc(passwordResetOtps.createdAt));
@@ -508,16 +818,25 @@ authRouter.post(
     }
 
     if (!matchedRecord) {
+      await recordFailedOtpAttempts(
+        db,
+        activeRecords.map((r) => r.id)
+      );
       throw new AppError("Incorrect or expired recovery code.", 400, "INVALID_TOKEN");
     }
 
-    // Invalidate all tokens for this email
+    const consumed = await consumeOtpRecord(db, matchedRecord.id);
+    if (!consumed) {
+      throw new AppError("Invalid or expired password reset link.", 400, "INVALID_TOKEN");
+    }
+
+    // Invalidate all remaining tokens for this email within the tenant
     await db
       .update(passwordResetOtps)
       .set({ isUsed: true })
       .where(
         and(
-          eq(passwordResetOtps.email, normalizedEmail),
+          eq(passwordResetOtps.email, matchedRecord.email),
           eq(passwordResetOtps.tenantId, tenant.id)
         )
       );
@@ -527,16 +846,14 @@ authRouter.post(
       .update(users)
       .set({
         passwordHash: newPasswordHash,
+        tokenVersion: sql`${users.tokenVersion} + 1`,
         updatedAt: new Date(),
       })
       .where(
         and(
           eq(users.tenantId, tenant.id),
-          or(
-            eq(users.email, normalizedEmail),
-            eq(users.email, `${normalizedEmail}@demo.com`),
-            eq(users.email, `${normalizedEmail}@${tenant.subdomain}.store254.co.ke`)
-          )
+          eq(users.status, "ACTIVE"),
+          sql`lower(${users.email}) = ${matchedRecord.email}`
         )
       );
 
@@ -563,6 +880,7 @@ authRouter.get("/me", authMiddleware(true), async (c) => {
       phone: users.phone,
       role: users.role,
       status: users.status,
+      emailVerifiedAt: users.emailVerifiedAt,
       createdAt: users.createdAt,
     })
     .from(users)
@@ -585,17 +903,29 @@ authRouter.get("/me", authMiddleware(true), async (c) => {
     stores: [],
     activeStore: null,
   };
-  try {
-    storeSummary = await findMerchantStoresByEmail(db, user.email);
-  } catch {
-    storeSummary = { stores: [], activeStore: null };
+  const isVerifiedActiveUser = Boolean(user.emailVerifiedAt) && user.status === "ACTIVE";
+  if (isVerifiedActiveUser) {
+    try {
+      storeSummary = await findMerchantStoresByEmail(db, user.email, {
+        emailVerified: true,
+      });
+    } catch {
+      storeSummary = { stores: [], activeStore: null };
+    }
   }
 
   return c.json({
     success: true,
     data: {
-      ...user,
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      avatarUrl: user.avatarUrl,
+      phone: user.phone,
       role: effectiveRole,
+      status: user.status,
+      emailVerified: Boolean(user.emailVerifiedAt),
+      createdAt: user.createdAt,
       ...(permissions ? { permissions } : {}),
       stores: storeSummary.stores,
       activeStore: storeSummary.activeStore,
@@ -648,12 +978,14 @@ authRouter.post(
       throw new AppError("Current password is incorrect.", 400, "INVALID_CURRENT_PASSWORD");
     }
 
-    await assertDistinctMerchantPassword(db, tenant.id, newPassword, userRow.id);
-
     const nextHash = await hashPassword(newPassword);
     await db
       .update(users)
-      .set({ passwordHash: nextHash, updatedAt: new Date() })
+      .set({
+        passwordHash: nextHash,
+        tokenVersion: sql`${users.tokenVersion} + 1`,
+        updatedAt: new Date(),
+      })
       .where(and(eq(users.id, userRow.id), eq(users.tenantId, tenant.id)));
 
     return c.json({
@@ -747,8 +1079,6 @@ authRouter.post(
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
     const db = createDb(c.env.DB);
 
-    await assertDistinctMerchantPassword(db, tenant.id, body.password);
-
     const [ownerRow] = await db
       .select({ email: users.email })
       .from(users)
@@ -785,6 +1115,9 @@ authRouter.post(
     const staffId = generateUUID();
     const passwordHash = await hashPassword(body.password);
     const uniquePermissions = Array.from(new Set(body.permissions));
+    const isInternalSubdomainEmail = resolvedEmail.endsWith(
+      `@${tenant.subdomain}.store254.co.ke`
+    );
 
     await db.insert(users).values({
       id: staffId,
@@ -794,6 +1127,8 @@ authRouter.post(
       fullName: body.fullName,
       role: "STAFF",
       status: "ACTIVE",
+      emailVerifiedAt: isInternalSubdomainEmail ? new Date() : null,
+      tokenVersion: 0,
     });
 
     await saveStaffPermissions(db, tenant.id, staffId, uniquePermissions);
@@ -842,8 +1177,10 @@ authRouter.patch(
     if (body.fullName !== undefined) updates.fullName = body.fullName;
     if (body.status !== undefined) updates.status = body.status;
     if (body.password !== undefined) {
-      await assertDistinctMerchantPassword(db, tenant.id, body.password, staffId);
       updates.passwordHash = await hashPassword(body.password);
+    }
+    if (body.password !== undefined || body.status === "SUSPENDED") {
+      updates.tokenVersion = sql`${users.tokenVersion} + 1`;
     }
 
     await db

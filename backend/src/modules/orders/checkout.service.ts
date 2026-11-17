@@ -18,7 +18,7 @@ import { requireSecret } from "../../security/secrets";
 export const checkoutItemSchema = z.object({
   itemId: z.string().trim().min(1).max(128),
   variantId: z.string().trim().min(1).max(128).optional(),
-  quantity: z.number().int().positive().default(1),
+  quantity: z.number().int().positive().max(100).default(1),
 });
 
 export const serviceBookingDetailsSchema = z.object({
@@ -30,14 +30,14 @@ export const serviceBookingDetailsSchema = z.object({
 });
 
 export const checkoutSchema = z.object({
-  customerName: z.string().min(2).max(100),
-  customerEmail: z.string().email(),
-  customerPhone: z.string().min(9).max(15),
+  customerName: z.string().trim().min(2).max(100),
+  customerEmail: z.string().trim().email(),
+  customerPhone: z.string().trim().min(9).max(15),
   paymentMethod: z.enum(["MPESA", "CASH_ON_DELIVERY"]).default("MPESA"),
   deliveryAddress: z.string().trim().min(5).max(300).optional(),
   shippingAddress: z.record(z.unknown()).default({}),
   bookingDetails: serviceBookingDetailsSchema.optional(),
-  items: z.array(checkoutItemSchema).min(1, "Cart cannot be empty"),
+  items: z.array(checkoutItemSchema).min(1, "Cart cannot be empty").max(50, "Cart exceeds maximum of 50 line items"),
   notes: z.string().max(500).optional(),
 });
 
@@ -130,8 +130,25 @@ export async function createOrderForTenant(
   }
   const customerPhone = normalizedPhone || body.customerPhone.trim();
 
-  // 3. Fetch requested catalog items for this tenant
-  const itemIds = body.items.map((i) => i.itemId);
+  // 3. Aggregate duplicate (itemId, variantId) lines BEFORE stock validation and deduction
+  const aggregatedMap = new Map<string, { itemId: string; variantId?: string; quantity: number }>();
+  for (const rawItem of body.items) {
+    const key = `${rawItem.itemId}::${rawItem.variantId || ""}`;
+    const existing = aggregatedMap.get(key);
+    if (existing) {
+      existing.quantity += rawItem.quantity;
+    } else {
+      aggregatedMap.set(key, {
+        itemId: rawItem.itemId,
+        variantId: rawItem.variantId,
+        quantity: rawItem.quantity,
+      });
+    }
+  }
+  const aggregatedItems = Array.from(aggregatedMap.values());
+
+  // 4. Fetch requested catalog items for this tenant
+  const itemIds = Array.from(new Set(aggregatedItems.map((i) => i.itemId)));
   const dbItems = await db
     .select()
     .from(items)
@@ -139,8 +156,10 @@ export async function createOrderForTenant(
 
   const itemMap = new Map(dbItems.map((i) => [i.id, i]));
 
-  // 4. Fetch variants if needed
-  const variantIds = body.items.map((i) => i.variantId).filter(Boolean) as string[];
+  // 5. Fetch variants if needed
+  const variantIds = Array.from(
+    new Set(aggregatedItems.map((i) => i.variantId).filter(Boolean) as string[])
+  );
   const dbVariants =
     variantIds.length > 0
       ? await db
@@ -150,7 +169,7 @@ export async function createOrderForTenant(
       : [];
   const variantMap = new Map(dbVariants.map((v) => [v.id, v]));
 
-  // 5. Separate Product vs Service rules, validate stock (products only) & delivery/booking rules
+  // 6. Separate Product vs Service rules, validate stock (products only) & delivery/booking rules
   let subtotal = 0;
   let hasPhysical = false;
   let hasService = false;
@@ -168,7 +187,7 @@ export async function createOrderForTenant(
     options: Record<string, unknown>;
   }[] = [];
 
-  for (const cartItem of body.items) {
+  for (const cartItem of aggregatedItems) {
     const dbItem = itemMap.get(cartItem.itemId);
     if (!dbItem || dbItem.status !== "PUBLISHED") {
       throw new AppError(`Item "${cartItem.itemId}" is unavailable.`, 400, "ITEM_UNAVAILABLE");
@@ -267,85 +286,172 @@ export async function createOrderForTenant(
   const totalAmount = Math.max(1, subtotal + shippingFee);
   const currency = tenant.currency || "KES";
   const orderKind = isServiceOnly ? "SERVICE_BOOKING" : hasService ? "MIXED" : "PRODUCT_ORDER";
-  const shouldDeductInventoryNow = body.paymentMethod === "CASH_ON_DELIVERY" && orderLineItemsToInsert.some((l) => l.trackInventory);
+  const shouldDeductInventoryNow =
+    body.paymentMethod === "CASH_ON_DELIVERY" &&
+    orderLineItemsToInsert.some((l) => l.trackInventory);
 
-  // 6. Insert Order
-  const orderId = generateUUID();
-  const orderNumber = `${isServiceOnly ? "BKG" : "ORD"}-${Date.now().toString().slice(-6)}`;
-
-  await db.insert(orders).values({
-    id: orderId,
-    tenantId: tenant.id,
-    orderNumber,
-    customerId: user?.id || null,
-    customerName: body.customerName,
-    customerEmail: body.customerEmail.toLowerCase().trim(),
-    customerPhone,
-    shippingAddress: isServiceOnly
-      ? {}
-      : body.deliveryAddress
-      ? { ...body.shippingAddress, address: body.deliveryAddress }
-      : body.shippingAddress,
-    bookingDetails: body.bookingDetails || {},
-    currency,
-    subtotal,
-    shippingFee,
-    totalAmount,
-    status: body.paymentMethod === "CASH_ON_DELIVERY" ? "PROCESSING" : "PENDING_PAYMENT",
-    paymentStatus: "PENDING",
-    paymentMethod: body.paymentMethod,
-    fulfillmentDetails: {
-      orderKind,
-      ...(shouldDeductInventoryNow ? { inventoryDeducted: true } : {}),
-    } as Record<string, unknown>,
-    notes: body.notes || null,
-  });
-
-  // 7. Insert Order Items & deduct inventory ONLY for tracked physical items on COD orders
-  for (const item of orderLineItemsToInsert) {
-    await db.insert(orderItems).values({
-      id: item.id,
-      tenantId: tenant.id,
-      orderId,
-      itemId: item.itemId,
-      variantId: item.variantId || null,
-      title: item.title,
-      sku: item.sku || null,
-      unitPrice: item.unitPrice,
-      quantity: item.quantity,
-      totalPrice: item.totalPrice,
-      options: item.options,
-    });
-
-    if (body.paymentMethod === "CASH_ON_DELIVERY" && item.trackInventory) {
-      if (item.variantId) {
+  // 7. Atomically deduct inventory for COD tracked physical items BEFORE creating order
+  const deductedLines: Array<{ itemId: string; variantId?: string; quantity: number }> = [];
+  const rollbackDeductedStock = async () => {
+    for (const deducted of deductedLines) {
+      if (deducted.variantId) {
         await db
           .update(itemVariants)
           .set({
-            stockQuantity: sql`MAX(0, ${itemVariants.stockQuantity} - ${item.quantity})`,
+            stockQuantity: sql`${itemVariants.stockQuantity} + ${deducted.quantity}`,
+            updatedAt: new Date(),
           })
           .where(
             and(
-              eq(itemVariants.id, item.variantId),
-              eq(itemVariants.tenantId, tenant.id),
-              gte(itemVariants.stockQuantity, item.quantity)
+              eq(itemVariants.id, deducted.variantId),
+              eq(itemVariants.itemId, deducted.itemId),
+              eq(itemVariants.tenantId, tenant.id)
             )
           );
       } else {
         await db
           .update(items)
           .set({
-            stockQuantity: sql`MAX(0, ${items.stockQuantity} - ${item.quantity})`,
+            stockQuantity: sql`${items.stockQuantity} + ${deducted.quantity}`,
+            updatedAt: new Date(),
           })
           .where(
             and(
-              eq(items.id, item.itemId),
+              eq(items.id, deducted.itemId),
               eq(items.tenantId, tenant.id),
-              gte(items.stockQuantity, item.quantity)
+              eq(items.trackInventory, true)
             )
           );
       }
     }
+  };
+
+  if (shouldDeductInventoryNow) {
+    try {
+      for (const item of orderLineItemsToInsert) {
+        if (!item.trackInventory) continue;
+        if (item.variantId) {
+          const updated = await db
+            .update(itemVariants)
+            .set({
+              stockQuantity: sql`${itemVariants.stockQuantity} - ${item.quantity}`,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(itemVariants.id, item.variantId),
+                eq(itemVariants.itemId, item.itemId),
+                eq(itemVariants.tenantId, tenant.id),
+                gte(itemVariants.stockQuantity, item.quantity)
+              )
+            )
+            .returning({ id: itemVariants.id });
+          if (!updated.length) {
+            throw new AppError(
+              `Insufficient stock for "${item.title}".`,
+              409,
+              "INSUFFICIENT_STOCK"
+            );
+          }
+        } else {
+          const updated = await db
+            .update(items)
+            .set({
+              stockQuantity: sql`${items.stockQuantity} - ${item.quantity}`,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(items.id, item.itemId),
+                eq(items.tenantId, tenant.id),
+                eq(items.trackInventory, true),
+                gte(items.stockQuantity, item.quantity)
+              )
+            )
+            .returning({ id: items.id });
+          if (!updated.length) {
+            throw new AppError(
+              `Insufficient stock for "${item.title}".`,
+              409,
+              "INSUFFICIENT_STOCK"
+            );
+          }
+        }
+        deductedLines.push({
+          itemId: item.itemId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+        });
+      }
+    } catch (err) {
+      await rollbackDeductedStock();
+      throw err;
+    }
+  }
+
+  // 8. Insert Order & Order Items with high-entropy order status capability
+  const orderId = generateUUID();
+  const orderNumber = `${isServiceOnly ? "BKG" : "ORD"}-${generateSecureToken(5).toUpperCase()}`;
+  const orderStatusToken = generateSecureToken();
+  const orderStatusTokenHash = await hashOtp(orderStatusToken);
+
+  try {
+    await db.insert(orders).values({
+      id: orderId,
+      tenantId: tenant.id,
+      orderNumber,
+      customerId: user?.id || null,
+      customerName: body.customerName,
+      customerEmail: body.customerEmail.toLowerCase().trim(),
+      customerPhone,
+      shippingAddress: isServiceOnly
+        ? {}
+        : body.deliveryAddress
+        ? { ...body.shippingAddress, address: body.deliveryAddress }
+        : body.shippingAddress,
+      bookingDetails: body.bookingDetails || {},
+      currency,
+      subtotal,
+      shippingFee,
+      totalAmount,
+      status: body.paymentMethod === "CASH_ON_DELIVERY" ? "PROCESSING" : "PENDING_PAYMENT",
+      paymentStatus: "PENDING",
+      paymentMethod: body.paymentMethod,
+      inventoryDeducted: shouldDeductInventoryNow,
+      statusTokenHash: orderStatusTokenHash,
+      fulfillmentDetails: {
+        orderKind,
+        ...(shouldDeductInventoryNow ? { inventoryDeducted: true } : {}),
+      } as Record<string, unknown>,
+      notes: body.notes || null,
+    });
+
+    for (const item of orderLineItemsToInsert) {
+      await db.insert(orderItems).values({
+        id: item.id,
+        tenantId: tenant.id,
+        orderId,
+        itemId: item.itemId,
+        variantId: item.variantId || null,
+        title: item.title,
+        sku: item.sku || null,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        totalPrice: item.totalPrice,
+        options: item.options,
+      });
+    }
+  } catch (err) {
+    await db
+      .delete(orderItems)
+      .where(and(eq(orderItems.orderId, orderId), eq(orderItems.tenantId, tenant.id)))
+      .catch(() => {});
+    await db
+      .delete(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.tenantId, tenant.id)))
+      .catch(() => {});
+    await rollbackDeductedStock();
+    throw err;
   }
 
   if (body.paymentMethod === "CASH_ON_DELIVERY") {
@@ -363,6 +469,7 @@ export async function createOrderForTenant(
         paymentMethod: body.paymentMethod,
         paymentStatus: "PENDING",
         status: "PROCESSING",
+        statusToken: orderStatusToken,
         customerMessage: isServiceOnly
           ? `Your booking is confirmed. Please pay ${currency} ${totalAmount.toLocaleString()} at your service appointment.`
           : `Your order is confirmed. Please pay ${currency} ${totalAmount.toLocaleString()} on delivery.`,
@@ -441,6 +548,7 @@ export async function createOrderForTenant(
       currency,
       checkoutRequestId,
       paymentStatusToken: statusToken,
+      statusToken: orderStatusToken,
       customerMessage,
     },
   };

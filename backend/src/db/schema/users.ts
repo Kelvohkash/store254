@@ -17,9 +17,11 @@ export const users = sqliteTable(
     role: text("role", { enum: ["OWNER", "ADMIN", "STAFF", "CUSTOMER"] })
       .notNull()
       .default("CUSTOMER"),
-    status: text("status", { enum: ["ACTIVE", "SUSPENDED"] })
+    status: text("status", { enum: ["ACTIVE", "SUSPENDED", "PENDING_VERIFICATION"] })
       .notNull()
       .default("ACTIVE"),
+    emailVerifiedAt: integer("email_verified_at", { mode: "timestamp" }),
+    tokenVersion: integer("token_version").notNull().default(0),
     lastLoginAt: integer("last_login_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()

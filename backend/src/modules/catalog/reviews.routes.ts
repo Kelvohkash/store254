@@ -1,12 +1,13 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray, or, sql } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { reviews } from "../../db/schema/reviews";
 import { items } from "../../db/schema/items";
 import { orders, orderItems } from "../../db/schema/orders";
+import { users } from "../../db/schema/users";
 import { authMiddleware, requirePermission } from "../../middlewares/auth.middleware";
 import { generateUUID } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
@@ -90,7 +91,7 @@ reviewsRouter.post(
     const tenant = c.get("tenant")!;
     const user = c.get("user");
     const itemId = c.req.param("itemId");
-    const { customerName, customerEmail, orderNumber, rating, comment } = c.req.valid("json");
+    const { customerName, rating, comment } = c.req.valid("json");
 
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
     const db = createDb(c.env.DB);
@@ -106,54 +107,43 @@ reviewsRouter.post(
       throw new AppError("Item not found.", 404, "ITEM_NOT_FOUND");
     }
 
-    // Determine verified buyer status via authenticated customer, matching email, or order number
+    // Only authenticated callers with a verified email and a PAID/COMPLETED order
+    // matching their user ID or verified email can earn isVerifiedBuyer = true.
     let isVerified = false;
     if (user?.id) {
-      const pastOrders = await db
-        .select({ id: orders.id })
-        .from(orders)
-        .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
-        .where(
-          and(
-            eq(orders.tenantId, tenant.id),
-            eq(orders.customerId, user.id),
-            eq(orderItems.itemId, itemId),
-            eq(orders.status, "COMPLETED")
-          )
-        )
+      const [verifiedUser] = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          emailVerifiedAt: users.emailVerifiedAt,
+          status: users.status,
+        })
+        .from(users)
+        .where(and(eq(users.id, user.id), eq(users.tenantId, tenant.id)))
         .limit(1);
 
-      if (pastOrders.length > 0) {
-        isVerified = true;
-      }
-    } else if (customerEmail || orderNumber) {
-      const lookupEmail = customerEmail?.toLowerCase().trim();
-      const lookupOrderNum = orderNumber?.toUpperCase().trim();
-      const pastOrders = await db
-        .select({
-          id: orders.id,
-          email: orders.customerEmail,
-          orderNum: orders.orderNumber,
-        })
-        .from(orders)
-        .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
-        .where(
-          and(
-            eq(orders.tenantId, tenant.id),
-            eq(orderItems.itemId, itemId),
-            eq(orders.status, "COMPLETED")
+      if (verifiedUser && verifiedUser.emailVerifiedAt != null && verifiedUser.status === "ACTIVE") {
+        const normalizedVerifiedEmail = verifiedUser.email.trim().toLowerCase();
+        const pastOrders = await db
+          .select({ id: orders.id })
+          .from(orders)
+          .innerJoin(orderItems, eq(orders.id, orderItems.orderId))
+          .where(
+            and(
+              eq(orders.tenantId, tenant.id),
+              eq(orderItems.itemId, itemId),
+              inArray(orders.status, ["COMPLETED", "PAID"]),
+              or(
+                eq(orders.customerId, verifiedUser.id),
+                sql`lower(${orders.customerEmail}) = ${normalizedVerifiedEmail}`
+              )
+            )
           )
-        )
-        .limit(25);
+          .limit(1);
 
-      if (
-        pastOrders.some(
-          (o) =>
-            (lookupEmail && o.email.toLowerCase() === lookupEmail) ||
-            (lookupOrderNum && o.orderNum.toUpperCase() === lookupOrderNum)
-        )
-      ) {
-        isVerified = true;
+        if (pastOrders.length > 0) {
+          isVerified = true;
+        }
       }
     }
 
@@ -171,11 +161,24 @@ reviewsRouter.post(
 
     await db.insert(reviews).values(newReview);
 
+    // Do not expose isVerifiedBuyer in responses to unauthenticated callers (prevents oracle)
+    const responseData = user?.id
+      ? newReview
+      : {
+          id: newReview.id,
+          tenantId: newReview.tenantId,
+          itemId: newReview.itemId,
+          customerId: null,
+          customerName: newReview.customerName,
+          rating: newReview.rating,
+          comment: newReview.comment,
+        };
+
     return c.json(
       {
         success: true,
         message: "Review submitted successfully! Thank you for your feedback.",
-        data: newReview,
+        data: responseData,
       },
       201
     );

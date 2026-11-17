@@ -132,7 +132,7 @@
     const listEl = document.getElementById("marketplace-county-list");
     if (!listEl) return;
     if (buyerCountyList.length === 0) {
-      listEl.innerHTML = `<button type="button" onclick="retryLoadMarketplaceCounties()" class="text-xs font-semibold text-emerald-700 underline px-2 py-1">Could not load counties — tap to retry</button>`;
+      listEl.innerHTML = `<button type="button" data-mp-action="retry-counties" class="text-xs font-semibold text-emerald-700 underline px-2 py-1">Could not load counties — tap to retry</button>`;
       return;
     }
     const norm = (s) => String(s || "").toLowerCase().replace(/['’-]/g, "").trim();
@@ -149,7 +149,7 @@
     listEl.innerHTML = matches
       .map((c) => {
         const isSel = activeCountyFilter?.id === c.id;
-        return `<button type="button" onclick="selectMarketplaceCounty(${inlineJs(c.id)})" class="marketplace-county-pill ${isSel ? "is-selected" : ""}">${escapeHtml(c.name)}</button>`;
+        return `<button type="button" data-mp-action="select-county" data-county-id="${escapeHtml(c.id)}" class="marketplace-county-pill ${isSel ? "is-selected" : ""}">${escapeHtml(c.name)}</button>`;
       })
       .join("");
   }
@@ -204,7 +204,7 @@
             constituencyName: loc.constituencyName || "",
           };
           return `
-          <button type="button" data-loc="${escapeHtml(JSON.stringify(payload))}" onclick="selectMarketplaceBuyerLocation(JSON.parse(this.dataset.loc))" class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between gap-2 border-b border-slate-100 last:border-0 text-xs">
+          <button type="button" data-mp-action="select-buyer-location" data-loc="${escapeHtml(JSON.stringify(payload))}" class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between gap-2 border-b border-slate-100 last:border-0 text-xs">
             <div>
               <strong class="text-slate-800 block">${escapeHtml(loc.name)}</strong>
               <span class="text-[11px] text-emerald-700">${escapeHtml(loc.constituencyName || "")} · ${escapeHtml(loc.countyName || activeCountyFilter.name)}</span>
@@ -370,7 +370,7 @@
       const itemBtns = suggestions
         .map(
           (term) => `
-          <button type="button" onclick="pickMarketplaceSuggestion(${inlineJs(term)})" class="w-full text-left px-3.5 py-2 hover:bg-emerald-50 flex items-center gap-2 text-xs text-slate-700 border-b border-slate-100">
+          <button type="button" data-mp-action="pick-suggestion" data-term="${escapeHtml(term)}" class="w-full text-left px-3.5 py-2 hover:bg-emerald-50 flex items-center gap-2 text-xs text-slate-700 border-b border-slate-100">
             <i data-lucide="search" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
             <span class="truncate font-semibold">${escapeHtml(term)}</span>
           </button>`
@@ -454,13 +454,13 @@
         <div class="onboarding-empty-actions flex flex-wrap items-center justify-center gap-2 mt-3.5">
           ${
             query
-              ? `<button type="button" onclick="clearMarketplaceQuery()" class="onboarding-empty-btn-ghost inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-white border border-slate-200 text-slate-700 text-xs font-bold cursor-pointer transition-colors">
+              ? `<button type="button" data-mp-action="clear-query" class="onboarding-empty-btn-ghost inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-white border border-slate-200 text-slate-700 text-xs font-bold cursor-pointer transition-colors">
                   <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                   <span>Clear search</span>
                 </button>`
               : ""
           }
-          <button type="button" onclick="toggleDrawer('onboard-modal', true)" class="onboarding-empty-btn-secondary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold cursor-pointer transition-colors">
+          <button type="button" data-mp-action="open-onboard" class="onboarding-empty-btn-secondary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold cursor-pointer transition-colors">
             <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
             <span>Add a store</span>
           </button>
@@ -568,7 +568,7 @@
       const didYouMeanEl = document.getElementById("marketplace-did-you-mean");
       if (didYouMeanEl) {
         if (payload.didYouMean && payload.didYouMean.toLowerCase() !== lastQuery.toLowerCase()) {
-          didYouMeanEl.innerHTML = `Showing spelling-corrected matches for <button type="button" onclick="pickMarketplaceSuggestion(${inlineJs(payload.didYouMean)})" class="font-extrabold text-emerald-700 underline">${escapeHtml(payload.didYouMean)}</button>`;
+          didYouMeanEl.innerHTML = `Showing spelling-corrected matches for <button type="button" data-mp-action="pick-suggestion" data-term="${escapeHtml(payload.didYouMean)}" class="font-extrabold text-emerald-700 underline">${escapeHtml(payload.didYouMean)}</button>`;
           didYouMeanEl.classList.remove("hidden");
         } else {
           didYouMeanEl.classList.add("hidden");
@@ -628,7 +628,7 @@
             })
           );
           const mediaHtml = hasPhoto
-            ? `<img src="${escapeHtml(item.images[0])}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="replaceBrokenItemMediaWithArtwork(this)" />
+            ? `<img src="${escapeHtml(item.images[0])}" alt="${escapeHtml(item.title)}" loading="lazy" data-mp-broken-artwork="1" />
                <div class="item-artwork-onerror hidden w-full h-full">${fallbackStageHtml}</div>`
             : fallbackStageHtml || `<img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" loading="lazy" />`;
           const availabilityLabel = isService
@@ -639,7 +639,7 @@
             : (item.inStock ? "text-emerald-700" : "text-amber-700");
           const actionLabel = isService ? "Book" : "+ Cart";
           return `
-            <article class="marketplace-product-card" role="button" tabindex="0" onclick="openMarketplaceQuickView('${escapeHtml(item.id)}', '')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceQuickView('${escapeHtml(item.id)}', '');}">
+            <article class="marketplace-product-card" role="button" tabindex="0" data-mp-quick-view="${escapeHtml(item.id)}">
               <div class="marketplace-product-media">
                 ${mediaHtml}
                 ${locBadge ? `<span class="marketplace-ring-badge ring-local">${locBadge}</span>` : ""}
@@ -659,7 +659,7 @@
                   <span class="text-[11px] font-bold text-slate-500">Quick View</span>
                   ${
                     item.inStock
-                      ? `<button type="button" data-item="${quickCartPayload}" onclick="event.stopPropagation(); quickAddMarketplaceItem(JSON.parse(this.dataset.item))" class="px-2.5 py-1 rounded-lg ${isService ? "bg-indigo-50 hover:bg-indigo-700 text-indigo-800 border-indigo-200" : "bg-emerald-50 hover:bg-emerald-700 text-emerald-800 border-emerald-200"} hover:text-white text-[11px] font-extrabold border transition-colors">${actionLabel}</button>`
+                      ? `<button type="button" data-mp-action="quick-add" data-item="${quickCartPayload}" class="px-2.5 py-1 rounded-lg ${isService ? "bg-indigo-50 hover:bg-indigo-700 text-indigo-800 border-indigo-200" : "bg-emerald-50 hover:bg-emerald-700 text-emerald-800 border-emerald-200"} hover:text-white text-[11px] font-extrabold border transition-colors">${actionLabel}</button>`
                       : ""
                   }
                 </div>
@@ -688,8 +688,56 @@
     return Boolean(ev.target && el.contains(ev.target));
   }
 
-  // Close autocomplete / location popovers when clicking outside
+  // Delegated marketplace search & discovery UI actions + outside-click closing
   document.addEventListener("click", (ev) => {
+    const actionBtn = ev.target?.closest?.("[data-mp-action]");
+    if (actionBtn) {
+      const action = actionBtn.dataset.mpAction;
+      if (action === "retry-counties") {
+        void window.retryLoadMarketplaceCounties();
+        return;
+      }
+      if (action === "select-county") {
+        window.selectMarketplaceCounty(actionBtn.dataset.countyId || "");
+        return;
+      }
+      if (action === "select-buyer-location") {
+        try {
+          const parsed = JSON.parse(actionBtn.dataset.loc || "null");
+          if (parsed) window.selectMarketplaceBuyerLocation(parsed);
+        } catch {}
+        return;
+      }
+      if (action === "pick-suggestion") {
+        window.pickMarketplaceSuggestion(actionBtn.dataset.term || "");
+        return;
+      }
+      if (action === "clear-query") {
+        window.clearMarketplaceQuery();
+        return;
+      }
+      if (action === "open-onboard") {
+        if (typeof toggleDrawer === "function") toggleDrawer("onboard-modal", true);
+        return;
+      }
+      if (action === "quick-add") {
+        ev.stopPropagation();
+        try {
+          const parsed = JSON.parse(actionBtn.dataset.item || "null");
+          if (parsed && typeof window.quickAddMarketplaceItem === "function") {
+            window.quickAddMarketplaceItem(parsed);
+          }
+        } catch {}
+        return;
+      }
+    }
+
+    const qvCard = ev.target?.closest?.("[data-mp-quick-view]");
+    if (qvCard && typeof window.openMarketplaceQuickView === "function") {
+      window.openMarketplaceQuickView(qvCard.dataset.mpQuickView || "", "");
+      return;
+    }
+
     const sugBox = document.getElementById("marketplace-suggest-dropdown");
     const searchWrap = document.getElementById("marketplace-search-input-wrap");
     if (sugBox && searchWrap && !eventIsInside(ev, searchWrap)) {
@@ -702,6 +750,29 @@
       locPanel.classList.add("hidden");
     }
   });
+
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    const qvCard = ev.target?.closest?.("[data-mp-quick-view]");
+    if (!qvCard) return;
+    ev.preventDefault();
+    if (typeof window.openMarketplaceQuickView === "function") {
+      window.openMarketplaceQuickView(qvCard.dataset.mpQuickView || "", "");
+    }
+  });
+
+  document.addEventListener(
+    "error",
+    (ev) => {
+      const img = ev.target;
+      if (img instanceof HTMLImageElement && img.dataset.mpBrokenArtwork === "1") {
+        if (typeof replaceBrokenItemMediaWithArtwork === "function") {
+          replaceBrokenItemMediaWithArtwork(img);
+        }
+      }
+    },
+    true
+  );
 
   window.addEventListener("DOMContentLoaded", () => {
     selectedBuyerLocation = loadSavedBuyerLocation();

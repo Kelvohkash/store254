@@ -7,6 +7,7 @@ import { categories } from "../../db/schema/categories";
 import { items, itemVariants } from "../../db/schema/items";
 import { reviews } from "../../db/schema/reviews";
 import { AppError } from "../../security/error-handler";
+import { sanitizePublicTenantSettings } from "../platform/platform.routes";
 
 export const seoPlatformRouter = new Hono<AppEnv>();
 export const seoTenantRouter = new Hono<AppEnv>();
@@ -48,11 +49,15 @@ seoPlatformRouter.get("/seo-stores", async (c) => {
 
   const db = createDb(c.env.DB);
   const activeStores = await buildSeoStoresQuery(db);
+  const sanitizedStores = activeStores.map((store) => ({
+    ...store,
+    settings: sanitizePublicTenantSettings(store.settings),
+  }));
 
   c.header("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
   return c.json({
     success: true,
-    data: activeStores,
+    data: sanitizedStores,
   });
 });
 
@@ -156,11 +161,16 @@ seoTenantRouter.get("/storefront", async (c) => {
     };
   });
 
+  const publicTenant = {
+    ...tenant,
+    settings: sanitizePublicTenantSettings(tenant.settings),
+  };
+
   c.header("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   return c.json({
     success: true,
     data: {
-      tenant,
+      tenant: publicTenant,
       categories: categoryList,
       items: enrichedItems,
     },
@@ -197,7 +207,6 @@ seoTenantRouter.get("/item/:slug", async (c) => {
       stockQuantity: items.stockQuantity,
       images: items.images,
       attributes: items.attributes,
-      metadata: items.metadata,
       updatedAt: items.updatedAt,
       createdAt: items.createdAt,
     })
@@ -252,11 +261,16 @@ seoTenantRouter.get("/item/:slug", async (c) => {
   const reviewCount = Number(ratingAgg[0]?.reviewCount) || 0;
   const avgRating = reviewCount > 0 ? Number(ratingAgg[0]?.avgRating) || 0 : 0;
 
+  const publicTenant = {
+    ...tenant,
+    settings: sanitizePublicTenantSettings(tenant.settings),
+  };
+
   c.header("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   return c.json({
     success: true,
     data: {
-      tenant,
+      tenant: publicTenant,
       item: {
         ...item,
         variants,

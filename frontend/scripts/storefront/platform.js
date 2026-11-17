@@ -7,10 +7,15 @@ const FEATURED_STORE_FALLBACK_IMAGES = [
 ];
 
 function safeShowcaseImageUrl(value) {
-  if (typeof value !== "string" || !value.trim()) return "";
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.startsWith("//")) return "";
   try {
-    const url = new URL(value.trim(), window.location.origin);
-    return ["https:", "http:"].includes(url.protocol) ? url.href : "";
+    const url = new URL(trimmed, window.location.origin);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return "";
+    return url.href.replace(/['"\\()\r\n\s]/g, (ch) =>
+      `%${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`
+    );
   } catch {
     return "";
   }
@@ -187,7 +192,7 @@ function renderStoreCardMarkup(s, index) {
     ? `style="background-image: linear-gradient(180deg, rgba(16, 30, 22, 0.2), rgba(16, 30, 22, 0.72)), url('${escapeHtml(bannerUrl)}'); background-size: cover; background-position: center;"`
     : "";
   const avatarContent = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(s.name)}" class="w-full h-full object-cover rounded-full" onerror="this.parentElement.textContent='${initial}'">`
+    ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(s.name)}" class="w-full h-full object-cover rounded-full" data-avatar-initial="${initial}">`
     : initial;
 
   const isFollowed = isStoreFollowed(s.subdomain);
@@ -208,9 +213,9 @@ function renderStoreCardMarkup(s, index) {
           <small>${badgeLabel}</small>
           <button
             type="button"
+            data-platform-action="toggle-follow"
             data-follow-subdomain="${escapeHtml(s.subdomain)}"
             data-follow-store="${escapeHtml(JSON.stringify(storePayload))}"
-            onclick="event.preventDefault(); event.stopPropagation(); toggleFollowStore(JSON.parse(this.dataset.followStore), event)"
             aria-pressed="${isFollowed ? "true" : "false"}"
             aria-label="${isFollowed ? `Unsubscribe from ${escapeHtml(s.name)}` : `Subscribe to ${escapeHtml(s.name)}`}"
             class="store-card-follow-btn${isFollowed ? " is-following" : ""}">
@@ -456,7 +461,7 @@ function renderPinnedStoresSection() {
       const storeUrl = getStoreUrl(store.subdomain);
       const initial = escapeHtml((store.name || store.subdomain || "S").trim().slice(0, 1).toUpperCase());
       const avatarHtml = store.logoUrl
-        ? `<img src="${escapeHtml(store.logoUrl)}" alt="${escapeHtml(store.name)}" onerror="this.parentElement.textContent='${initial}'">`
+        ? `<img src="${escapeHtml(store.logoUrl)}" alt="${escapeHtml(store.name)}" data-avatar-initial="${initial}">`
         : initial;
       const metaParts = [];
       if (store.locationLabel) metaParts.push(store.locationLabel);
@@ -473,8 +478,8 @@ function renderPinnedStoresSection() {
           </a>
           <button
             type="button"
+            data-platform-action="unpin-store"
             data-unpin-store="${unpinPayload}"
-            onclick="toggleFollowStore(JSON.parse(this.dataset.unpinStore), event)"
             aria-label="Unpin ${escapeHtml(store.name)}"
             title="Unfollow ${escapeHtml(store.name)}"
             class="pinned-store-remove">
@@ -577,15 +582,15 @@ function renderPlatformDirectoryFilters(liveStores) {
   const followedCount = liveStores.filter((s) => followedSet.has(String(s.subdomain || "").toLowerCase())).length;
   const types = Array.from(new Set(liveStores.map((s) => String(s.businessType || "GENERAL").toUpperCase())));
   const buttons = [
-    `<button type="button" onclick="setPlatformTypeFilter('')" class="platform-type-chip ${platformActiveTypeFilter === "" ? "is-active" : ""}">All (${liveStores.length})</button>`,
+    `<button type="button" data-platform-action="filter-type" data-type="" class="platform-type-chip ${platformActiveTypeFilter === "" ? "is-active" : ""}">All (${liveStores.length})</button>`,
     ...(followedCount > 0
       ? [
-          `<button type="button" onclick="setPlatformTypeFilter('__SUBSCRIBED__')" class="platform-type-chip ${platformActiveTypeFilter === "__SUBSCRIBED__" ? "is-active" : ""}">★ Subscribed (${followedCount})</button>`,
+          `<button type="button" data-platform-action="filter-type" data-type="__SUBSCRIBED__" class="platform-type-chip ${platformActiveTypeFilter === "__SUBSCRIBED__" ? "is-active" : ""}">★ Subscribed (${followedCount})</button>`,
         ]
       : []),
     ...types.map((t) => {
       const count = liveStores.filter((s) => String(s.businessType || "GENERAL").toUpperCase() === t).length;
-      return `<button type="button" onclick="setPlatformTypeFilter(${inlineJs(t)})" class="platform-type-chip ${platformActiveTypeFilter === t ? "is-active" : ""}">${escapeHtml(formatBusinessTypeLabel(t))} (${count})</button>`;
+      return `<button type="button" data-platform-action="filter-type" data-type="${escapeHtml(t)}" class="platform-type-chip ${platformActiveTypeFilter === t ? "is-active" : ""}">${escapeHtml(formatBusinessTypeLabel(t))} (${count})</button>`;
     }),
   ];
   filtersEl.innerHTML = buttons.join("");
@@ -612,7 +617,7 @@ function filterPlatformStores() {
         <p class="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
           Create a dedicated storefront for your products and services.
         </p>
-        <button onclick="toggleDrawer('onboard-modal', true)" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all inline-flex items-center gap-1.5">
+        <button type="button" data-platform-action="open-onboard" class="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all inline-flex items-center gap-1.5">
           <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
           <span>Onboard Your Store</span>
         </button>
@@ -661,7 +666,7 @@ function filterPlatformStores() {
       <div class="col-span-full bg-white rounded-2xl p-6 border border-slate-200 text-center shadow-sm">
         <p class="font-bold text-slate-800 text-sm">No matching storefronts found</p>
         <p class="text-xs text-slate-500 mt-1">Try another search term or clear your category filter.</p>
-        <button type="button" onclick="document.getElementById('platform-store-search').value=''; setPlatformTypeFilter('');" class="mt-3 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all">
+        <button type="button" data-platform-action="reset-store-filters" class="mt-3 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all">
           Reset filters
         </button>
       </div>
@@ -725,6 +730,46 @@ async function loadPlatformStores() {
   filterPlatformStores();
 
   renderIcons();
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (event) => {
+    const btn = event.target?.closest?.("[data-platform-action]");
+    if (!btn) return;
+    const action = btn.dataset.platformAction;
+    if (action === "toggle-follow") {
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        const parsed = JSON.parse(btn.dataset.followStore || "null");
+        if (parsed) toggleFollowStore(parsed, event);
+      } catch {}
+    } else if (action === "unpin-store") {
+      try {
+        const parsed = JSON.parse(btn.dataset.unpinStore || "null");
+        if (parsed) toggleFollowStore(parsed, event);
+      } catch {}
+    } else if (action === "filter-type") {
+      setPlatformTypeFilter(btn.dataset.type || "");
+    } else if (action === "open-onboard") {
+      if (typeof toggleDrawer === "function") toggleDrawer("onboard-modal", true);
+    } else if (action === "reset-store-filters") {
+      const searchEl = document.getElementById("platform-store-search");
+      if (searchEl) searchEl.value = "";
+      setPlatformTypeFilter("");
+    }
+  });
+
+  document.addEventListener(
+    "error",
+    (event) => {
+      const img = event.target;
+      if (img instanceof HTMLImageElement && img.dataset.avatarInitial !== undefined && img.parentElement) {
+        img.parentElement.textContent = img.dataset.avatarInitial || "S";
+      }
+    },
+    true
+  );
 }
 
 // Initialization

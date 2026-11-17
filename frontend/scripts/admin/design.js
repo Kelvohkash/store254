@@ -180,9 +180,9 @@ function renderStaffAccounts() {
               <p class="text-xs text-slate-500 font-mono truncate mt-0.5">${escapeDesignHtml(staff.email)}</p>
             </div>
             <div class="flex flex-wrap items-center gap-1.5">
-              <button type="button" onclick="toggleStaffPasswordReset('${safeId}')" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] font-bold text-slate-700">Set Password</button>
-              <button type="button" onclick="handleToggleStaffStatus('${safeId}', '${isSuspended ? "ACTIVE" : "SUSPENDED"}')" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-bold text-slate-700">${isSuspended ? "Activate" : "Suspend"}</button>
-              <button type="button" onclick="handleDeleteStaffAccount('${safeId}')" class="px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-[11px] font-bold text-red-700">Remove</button>
+              <button type="button" data-staff-action="toggle-reset" data-staff-id="${safeId}" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] font-bold text-slate-700">Set Password</button>
+              <button type="button" data-staff-action="toggle-status" data-staff-id="${safeId}" data-next-status="${isSuspended ? "ACTIVE" : "SUSPENDED"}" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-bold text-slate-700">${isSuspended ? "Activate" : "Suspend"}</button>
+              <button type="button" data-staff-action="delete" data-staff-id="${safeId}" class="px-2.5 py-1 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-[11px] font-bold text-red-700">Remove</button>
             </div>
           </div>
 
@@ -199,12 +199,12 @@ function renderStaffAccounts() {
 
           <div id="staff-reset-wrap-${safeId}" class="hidden rounded-xl border border-amber-200 bg-amber-50/70 p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <input id="staff-reset-input-${safeId}" type="password" minlength="8" class="input text-xs flex-1 bg-white" placeholder="New staff password (min 8 characters)" />
-            <button type="button" onclick="handleResetStaffPassword('${safeId}')" class="btn-primary text-xs py-2 px-3 shrink-0">Save Password</button>
+            <button type="button" data-staff-action="reset-password" data-staff-id="${safeId}" class="btn-primary text-xs py-2 px-3 shrink-0">Save Password</button>
           </div>
 
           <div class="flex items-center justify-between pt-2 border-t border-slate-100">
             <span class="text-[11px] text-slate-400">Updated rights apply immediately on staff requests.</span>
-            <button type="button" onclick="handleSaveStaffPermissions('${safeId}')" class="btn-secondary text-xs py-1.5 px-3">Save Rights</button>
+            <button type="button" data-staff-action="save-perms" data-staff-id="${safeId}" class="btn-secondary text-xs py-1.5 px-3">Save Rights</button>
           </div>
         </div>
       `;
@@ -327,4 +327,25 @@ async function handleDeleteStaffAccount(staffId) {
   }
   showToast("Staff account removed.");
   await loadStaffAccounts();
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (event) => {
+    const btn = event.target?.closest?.("[data-staff-action]");
+    if (!btn) return;
+    const action = btn.dataset.staffAction;
+    const staffId = btn.dataset.staffId || "";
+    if (!staffId) return;
+    if (action === "toggle-reset") {
+      toggleStaffPasswordReset(staffId);
+    } else if (action === "toggle-status") {
+      void handleToggleStaffStatus(staffId, btn.dataset.nextStatus || "SUSPENDED");
+    } else if (action === "delete") {
+      void handleDeleteStaffAccount(staffId);
+    } else if (action === "reset-password") {
+      void handleResetStaffPassword(staffId);
+    } else if (action === "save-perms") {
+      void handleSaveStaffPermissions(staffId);
+    }
+  });
 }

@@ -266,22 +266,38 @@ export async function autocompleteGooglePlacesKenya(
     body.sessionToken = params.sessionToken;
   }
 
-  const resp = await fetch(PLACES_AUTOCOMPLETE_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-Maps-Solution-ID": GOOGLE_MAPS_SOLUTION_ID,
-      "X-Goog-FieldMask":
-        "suggestions.placePrediction.placeId,suggestions.placePrediction.text.text,suggestions.placePrediction.structuredFormat",
-    },
-    body: JSON.stringify(body),
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(PLACES_AUTOCOMPLETE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-Maps-Solution-ID": GOOGLE_MAPS_SOLUTION_ID,
+        "X-Goog-FieldMask":
+          "suggestions.placePrediction.placeId,suggestions.placePrediction.text.text,suggestions.placePrediction.structuredFormat",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err: unknown) {
+    console.error(
+      "[Locations] Google Places autocomplete network error:",
+      err instanceof Error ? err.message : String(err)
+    );
+    throw new LocationResolutionError(
+      "Unable to query Google Maps places right now. Please select a listed town or enter your shopping centre name.",
+      502
+    );
+  }
 
   if (!resp.ok) {
     const errText = await resp.text().catch(() => "");
+    console.error(
+      `[Locations] Google Places autocomplete failed (${resp.status}):`,
+      errText.slice(0, 500)
+    );
     throw new LocationResolutionError(
-      `Google Places autocomplete failed (${resp.status})${errText ? `: ${errText.slice(0, 160)}` : ""}`,
+      "Unable to query Google Maps places right now. Please select a listed town or enter your shopping centre name.",
       502
     );
   }
@@ -316,19 +332,35 @@ export async function fetchGooglePlaceDetails(apiKey: string, placeId: string) {
     throw new LocationResolutionError("Invalid Google Place ID format", 400);
   }
 
-  const resp = await fetch(`${PLACES_DETAILS_BASE_URL}/${encodeURIComponent(cleanPlaceId)}`, {
-    method: "GET",
-    headers: {
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-Maps-Solution-ID": GOOGLE_MAPS_SOLUTION_ID,
-      "X-Goog-FieldMask": "id,displayName,formattedAddress,location",
-    },
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(`${PLACES_DETAILS_BASE_URL}/${encodeURIComponent(cleanPlaceId)}`, {
+      method: "GET",
+      headers: {
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-Maps-Solution-ID": GOOGLE_MAPS_SOLUTION_ID,
+        "X-Goog-FieldMask": "id,displayName,formattedAddress,location",
+      },
+    });
+  } catch (err: unknown) {
+    console.error(
+      "[Locations] Google Place lookup network error:",
+      err instanceof Error ? err.message : String(err)
+    );
+    throw new LocationResolutionError(
+      "Unable to fetch Google Maps place details right now. Please select a listed town or enter your shopping centre name.",
+      502
+    );
+  }
 
   if (!resp.ok) {
     const errText = await resp.text().catch(() => "");
+    console.error(
+      `[Locations] Google Place lookup failed (${resp.status}):`,
+      errText.slice(0, 500)
+    );
     throw new LocationResolutionError(
-      `Google Place lookup failed (${resp.status})${errText ? `: ${errText.slice(0, 160)}` : ""}`,
+      "Unable to fetch Google Maps place details right now. Please select a listed town or enter your shopping centre name.",
       502
     );
   }

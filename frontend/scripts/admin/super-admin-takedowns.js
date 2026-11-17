@@ -8,10 +8,25 @@
 
   function resolvePreviewImageUrl(rawUrl) {
     const trimmed = String(rawUrl || "").trim();
-    if (!trimmed) return "";
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    if (trimmed.startsWith("/")) return `${superAdminApiBase}${trimmed}`;
-    return trimmed;
+    if (!trimmed || trimmed.startsWith("//")) return "";
+    if (/^\/api\/media\/[^\s'"\\()\r\n]+$/i.test(trimmed)) {
+      return `${superAdminApiBase}${trimmed}`;
+    }
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.href : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function isExternalPreviewUrl(previewSrc) {
+    if (!previewSrc) return false;
+    try {
+      return new URL(previewSrc, window.location.origin).origin !== window.location.origin;
+    } catch {
+      return true;
+    }
   }
 
   function updateReportCounts(counts = {}) {
@@ -105,13 +120,17 @@
             `
             : `<p class="takedown-resolution-note">${escapeHtml(rep.resolutionNotes || `Resolved by ${rep.resolvedBy || "Super Admin"}`)}</p>`;
 
+        const isExternal = isExternalPreviewUrl(previewSrc);
+
         return `
           <article class="takedown-report-card">
             <div class="takedown-thumb-wrap">
               ${
                 previewSrc
-                  ? `<img src="${escapeHtml(previewSrc)}" alt="Reported media" class="takedown-thumb" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.hidden=false;" />
-                     <div class="takedown-thumb-fallback" hidden>Image removed / unavailable</div>`
+                  ? `<button type="button" class="takedown-thumb-fallback" data-takedown-preview="${escapeHtml(previewSrc)}" style="cursor:pointer;border:0;background:transparent;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.25rem;" title="${isExternal ? "External URL — clicking will load directly from third-party server" : "Click to preview reported media"}">
+                       <i data-lucide="eye" style="width:1rem;height:1rem;"></i>
+                       <span>${isExternal ? "External preview" : "Preview image"}</span>
+                     </button>`
                   : `<div class="takedown-thumb-fallback">No preview</div>`
               }
             </div>
@@ -125,7 +144,7 @@
               <div class="takedown-meta-grid">
                 <div><strong>Store:</strong> ${escapeHtml(storeLabel)}</div>
                 <div><strong>Reporter:</strong> ${escapeHtml(rep.reporterName)} (${escapeHtml(rep.reporterEmail)})</div>
-                <div class="takedown-url-row"><strong>Reported Image:</strong> <code>${escapeHtml(rep.reportedImageUrl)}</code></div>
+                <div class="takedown-url-row"><strong>Reported Image:</strong> <code>${escapeHtml(rep.reportedImageUrl)}</code>${previewSrc ? ` <a href="${escapeHtml(previewSrc)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="takedown-proof-link">Open image ↗</a>` : ""}</div>
                 ${proofLink ? `<div><strong>Original Proof:</strong> ${proofLink}</div>` : ""}
               </div>
               <p class="takedown-reason">${escapeHtml(rep.reason)}</p>
@@ -137,6 +156,37 @@
       .join("");
 
     if (window.lucide?.createIcons) window.lucide.createIcons();
+
+    container.querySelectorAll("[data-takedown-preview]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const previewUrl = btn.dataset.takedownPreview || "";
+        if (!previewUrl) return;
+        if (isExternalPreviewUrl(previewUrl)) {
+          const confirmed = await confirmDialog({
+            title: "Load external image preview?",
+            message:
+              "This image is hosted on a third-party server. Loading it from your browser may expose your IP address and User-Agent to that server.",
+            isDanger: false,
+            confirmText: "Load Preview",
+          });
+          if (!confirmed) return;
+        }
+        const wrap = btn.closest(".takedown-thumb-wrap");
+        if (!wrap) return;
+        const img = document.createElement("img");
+        img.src = previewUrl;
+        img.alt = "Reported media";
+        img.className = "takedown-thumb";
+        img.referrerPolicy = "no-referrer";
+        img.addEventListener("error", () => {
+          const fallback = document.createElement("div");
+          fallback.className = "takedown-thumb-fallback";
+          fallback.textContent = "Image removed / unavailable";
+          wrap.replaceChildren(fallback);
+        });
+        wrap.replaceChildren(img);
+      });
+    });
 
     container.querySelectorAll("[data-takedown-action]").forEach((btn) => {
       btn.addEventListener("click", () => void handleReportAction(btn));

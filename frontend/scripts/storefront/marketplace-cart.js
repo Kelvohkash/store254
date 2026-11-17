@@ -341,7 +341,7 @@
       } catch {}
     }
     if (listEl) {
-      listEl.innerHTML = `<button type="button" onclick="retryWelcomeCounties()" class="text-xs font-semibold text-emerald-700 underline px-1 py-1">Could not load counties — tap to retry</button>`;
+      listEl.innerHTML = `<button type="button" data-mp-cart-action="retry-welcome-counties" class="text-xs font-semibold text-emerald-700 underline px-1 py-1">Could not load counties — tap to retry</button>`;
     }
   }
 
@@ -366,7 +366,7 @@
     listEl.innerHTML = matches
       .map((c) => {
         const active = welcomeSelectedCounty?.id === c.id;
-        return `<button type="button" onclick="selectWelcomeCounty('${escapeHtml(c.id)}')" class="px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+        return `<button type="button" data-mp-cart-action="select-welcome-county" data-county-id="${escapeHtml(c.id)}" class="px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
           active
             ? "bg-emerald-700 text-white border-emerald-700"
             : "bg-slate-50 text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50"
@@ -438,7 +438,7 @@
             })
           );
           const kindLabel = (loc.kind || loc.locationType || "centre").replace(/_/g, " ");
-          return `<button type="button" onclick="chooseWelcomeLocation(JSON.parse(this.dataset.loc))" data-loc="${payload}" class="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50 border-b border-slate-100 last:border-b-0 flex items-center justify-between gap-2 transition-colors">
+          return `<button type="button" data-mp-cart-action="choose-welcome-location" data-loc="${payload}" class="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50 border-b border-slate-100 last:border-b-0 flex items-center justify-between gap-2 transition-colors">
             <div class="min-w-0">
               <div class="text-xs font-extrabold text-slate-900 truncate">${escapeHtml(loc.name)}</div>
               <div class="text-[11px] text-emerald-700 truncate">${escapeHtml(loc.constituencyName ? `${loc.constituencyName} Constituency · ${loc.countyName || ""}` : loc.countyName || "")}</div>
@@ -661,11 +661,11 @@
               <p class="text-xs font-extrabold text-emerald-700 mt-1">${formatKes(item.unitPrice, item.currency)}${isSvc ? " / session" : ""}</p>
               <div class="flex items-center justify-between mt-2">
                 <div class="inline-flex items-center border border-slate-200 rounded-lg bg-slate-50">
-                  <button type="button" onclick="updateMarketplaceCartQty('${escapeHtml(item.itemId)}', '${escapeHtml(item.variantId || "")}', -1)" class="px-2 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded-l-lg">-</button>
+                  <button type="button" data-mp-cart-action="update-qty" data-item-id="${escapeHtml(item.itemId)}" data-variant-id="${escapeHtml(item.variantId || "")}" data-delta="-1" class="px-2 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded-l-lg">-</button>
                   <span class="px-2.5 text-xs font-bold text-slate-900">${item.quantity}</span>
-                  <button type="button" onclick="updateMarketplaceCartQty('${escapeHtml(item.itemId)}', '${escapeHtml(item.variantId || "")}', 1)" class="px-2 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded-r-lg">+</button>
+                  <button type="button" data-mp-cart-action="update-qty" data-item-id="${escapeHtml(item.itemId)}" data-variant-id="${escapeHtml(item.variantId || "")}" data-delta="1" class="px-2 py-0.5 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded-r-lg">+</button>
                 </div>
-                <button type="button" onclick="removeMarketplaceCartItem('${escapeHtml(item.itemId)}', '${escapeHtml(item.variantId || "")}')" class="text-[11px] font-semibold text-rose-600 hover:underline">Remove</button>
+                <button type="button" data-mp-cart-action="remove-item" data-item-id="${escapeHtml(item.itemId)}" data-variant-id="${escapeHtml(item.variantId || "")}" class="text-[11px] font-semibold text-rose-600 hover:underline">Remove</button>
               </div>
             </div>
           </div>`;
@@ -680,7 +680,7 @@
               <p class="text-xs font-extrabold text-slate-900 truncate">${escapeHtml(group.storeName)}</p>
               <p class="text-[11px] text-slate-500 truncate">${escapeHtml(group.storeLocationLabel || `${group.storeSubdomain}.store254.co.ke`)}</p>
             </div>
-            <button type="button" onclick="startMarketplaceCheckoutForStore('${escapeHtml(group.storeId)}')" class="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-extrabold">
+            <button type="button" data-mp-cart-action="checkout-store" data-store-id="${escapeHtml(group.storeId)}" class="shrink-0 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-extrabold">
               Pay ${formatKes(group.subtotal, group.currency)}
             </button>
           </div>
@@ -956,7 +956,7 @@
     };
 
     const qvMediaHtml = hasRealPhotos
-      ? `<img id="qv-main-image" src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover" onerror="this.src='${escapeHtml(fallbackImg)}'" />`
+      ? `<img id="qv-main-image" src="${escapeHtml(imgUrl)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover" data-fallback-src="${escapeHtml(fallbackImg)}" />`
       : (fallbackStageHtml || `<img id="qv-main-image" src="${escapeHtml(fallbackImg)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover" />`);
 
     bodyEl.innerHTML = `
@@ -966,10 +966,10 @@
             ${qvMediaHtml}
             ${
               hasMultipleImages
-                ? `<button type="button" onclick="stepQuickViewImage(-1, event)" aria-label="Previous product photo" class="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-900 hover:text-white border border-white/80 shadow-md flex items-center justify-center cursor-pointer transition-colors">
+                ? `<button type="button" data-mp-cart-action="step-qv-image" data-delta="-1" aria-label="Previous product photo" class="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-900 hover:text-white border border-white/80 shadow-md flex items-center justify-center cursor-pointer transition-colors">
                     <svg class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                   </button>
-                  <button type="button" onclick="stepQuickViewImage(1, event)" aria-label="Next product photo" class="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-900 hover:text-white border border-white/80 shadow-md flex items-center justify-center cursor-pointer transition-colors">
+                  <button type="button" data-mp-cart-action="step-qv-image" data-delta="1" aria-label="Next product photo" class="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-emerald-600 text-slate-900 hover:text-white border border-white/80 shadow-md flex items-center justify-center cursor-pointer transition-colors">
                     <svg class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                   </button>
                   <span id="qv-image-count" class="absolute right-3 bottom-3 z-10 px-2.5 py-0.5 rounded-full bg-slate-900/75 text-white text-[11px] font-bold">${quickViewImageIndex + 1} / ${images.length}</span>`
@@ -986,7 +986,7 @@
               ? `<div id="qv-image-thumbnails" class="flex gap-2 mt-2.5 overflow-x-auto pb-1">${images
                   .map(
                     (src, idx) =>
-                      `<button type="button" onclick="selectQuickViewImage(${idx}, event)" aria-label="View photo ${idx + 1}" aria-pressed="${idx === quickViewImageIndex ? "true" : "false"}" class="qv-thumb-btn w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 cursor-pointer transition-all ${
+                      `<button type="button" data-mp-cart-action="select-qv-image" data-index="${idx}" aria-label="View photo ${idx + 1}" aria-pressed="${idx === quickViewImageIndex ? "true" : "false"}" class="qv-thumb-btn w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 cursor-pointer transition-all ${
                         idx === quickViewImageIndex
                           ? "border-emerald-600 ring-2 ring-emerald-200 opacity-100"
                           : "border-slate-200 opacity-75 hover:opacity-100"
@@ -1009,7 +1009,7 @@
                   type="button"
                   data-follow-subdomain="${escapeHtml(store.subdomain)}"
                   data-follow-store="${escapeHtml(JSON.stringify(followStorePayload))}"
-                  onclick="window.toggleFollowStore?.(JSON.parse(this.dataset.followStore), event)"
+                  data-mp-cart-action="toggle-follow"
                   aria-pressed="${isStoreFollowedNow ? "true" : "false"}"
                   class="qv-follow-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors${isStoreFollowedNow ? " is-following" : ""}">
                   <span>${isStoreFollowedNow ? "Subscribed ★" : "+ Subscribe"}</span>
@@ -1056,7 +1056,7 @@
                     <div class="flex flex-wrap gap-2">${variants
                       .map((v) => {
                         const isSelected = v.id === selectedVariantId;
-                        return `<button type="button" onclick="selectQuickViewVariant('${escapeHtml(v.id)}')" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
+                        return `<button type="button" data-mp-cart-action="select-qv-variant" data-variant-id="${escapeHtml(v.id)}" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${
                           isSelected
                             ? "bg-emerald-700 text-white border-emerald-700"
                             : "bg-white text-slate-700 border-slate-200 hover:border-emerald-400"
@@ -1081,20 +1081,20 @@
           <div class="pt-3 border-t border-slate-100 space-y-2.5">
             <div class="flex items-center gap-3">
               <div class="inline-flex items-center border border-slate-200 rounded-xl bg-slate-50">
-                <button type="button" onclick="changeQuickViewQty(-1)" class="px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 rounded-l-xl">-</button>
+                <button type="button" data-mp-cart-action="change-qv-qty" data-delta="-1" class="px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 rounded-l-xl">-</button>
                 <span id="qv-qty-val" class="px-3.5 text-sm font-extrabold text-slate-900">${quickViewQty}</span>
-                <button type="button" onclick="changeQuickViewQty(1)" class="px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 rounded-r-xl">+</button>
+                <button type="button" data-mp-cart-action="change-qv-qty" data-delta="1" class="px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 rounded-r-xl">+</button>
               </div>
-              <button type="button" onclick="addQuickViewToCart()" ${!inStock ? "disabled" : ""} class="flex-1 py-2.5 px-4 rounded-xl ${isService ? "border-indigo-700 text-indigo-800 bg-indigo-50 hover:bg-indigo-100" : "border-emerald-700 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"} border font-extrabold text-xs sm:text-sm disabled:opacity-50">
+              <button type="button" data-mp-cart-action="add-qv-cart" ${!inStock ? "disabled" : ""} class="flex-1 py-2.5 px-4 rounded-xl ${isService ? "border-indigo-700 text-indigo-800 bg-indigo-50 hover:bg-indigo-100" : "border-emerald-700 text-emerald-800 bg-emerald-50 hover:bg-emerald-100"} border font-extrabold text-xs sm:text-sm disabled:opacity-50">
                 ${isService ? "Add to Booking" : "Add to Cart"}
               </button>
             </div>
-            <button type="button" onclick="buyQuickViewNow()" ${!inStock ? "disabled" : ""} class="w-full py-3 px-4 rounded-xl ${isService ? "bg-indigo-700 hover:bg-indigo-800 shadow-indigo-700/20" : "bg-emerald-700 hover:bg-emerald-800 shadow-emerald-700/20"} text-white font-extrabold text-sm shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
+            <button type="button" data-mp-cart-action="buy-qv-now" ${!inStock ? "disabled" : ""} class="w-full py-3 px-4 rounded-xl ${isService ? "bg-indigo-700 hover:bg-indigo-800 shadow-indigo-700/20" : "bg-emerald-700 hover:bg-emerald-800 shadow-emerald-700/20"} text-white font-extrabold text-sm shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
               <i data-lucide="${isService ? "calendar" : "smartphone"}" class="w-4 h-4"></i>
               <span>${isService ? `Book Service Now (${store.mpesaEnabled ? "M-Pesa / Pay at Visit" : "Pay at Appointment"})` : `Buy Now Directly on Store254 (${store.mpesaEnabled ? "M-Pesa / COD" : "Cash on Delivery"})`}</span>
             </button>
             <div class="flex justify-end">
-              <button type="button" onclick="reportQuickViewCopyright()" class="text-[11px] font-semibold text-slate-400 hover:text-rose-600 inline-flex items-center gap-1 transition-colors">
+              <button type="button" data-mp-cart-action="report-qv-copyright" class="text-[11px] font-semibold text-slate-400 hover:text-rose-600 inline-flex items-center gap-1 transition-colors">
                 <i data-lucide="flag" class="w-3 h-3"></i>
                 <span>Report copyrighted image</span>
               </button>
@@ -1116,6 +1116,20 @@
           }
         </div>
       </div>`;
+
+    const qvMainImg = document.getElementById("qv-main-image");
+    if (qvMainImg && qvMainImg.dataset.fallbackSrc) {
+      qvMainImg.addEventListener(
+        "error",
+        () => {
+          const fb = qvMainImg.dataset.fallbackSrc;
+          if (fb && qvMainImg.src !== fb) {
+            qvMainImg.src = fb;
+          }
+        },
+        { once: true }
+      );
+    }
 
     if (hasMultipleImages) {
       const stageEl = document.getElementById("qv-gallery-stage");
@@ -1241,7 +1255,7 @@
             .join("")}
         </div>
 
-        <form id="mp-checkout-form" onsubmit="event.preventDefault(); submitMarketplaceCheckout();" class="space-y-3">
+        <form id="mp-checkout-form" class="space-y-3">
           ${
             hasService
               ? `<div class="rounded-xl bg-indigo-50/70 border border-indigo-100 p-3 space-y-2.5">
@@ -1262,7 +1276,7 @@
                   </div>
                   <div>
                     <label class="block text-[11px] font-bold text-slate-600 mb-1">Service Location Mode</label>
-                    <select id="mp-co-booking-mode" onchange="var g=document.getElementById('mp-co-address-group'); if(g && ${isServiceOnly ? "true" : "false"}){ g.classList.toggle('hidden', this.value !== 'ON_SITE_CLIENT'); }" class="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-200 bg-white">
+                    <select id="mp-co-booking-mode" class="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-200 bg-white">
                       <option value="IN_PERSON_SHOP">At Provider Location / Studio</option>
                       <option value="ON_SITE_CLIENT">Come to My Location (On-Site)</option>
                       <option value="VIRTUAL_ONLINE">Online / Remote Session</option>
@@ -1308,6 +1322,19 @@
           </button>
         </form>
       </div>`;
+
+    const checkoutForm = document.getElementById("mp-checkout-form");
+    checkoutForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void window.submitMarketplaceCheckout();
+    });
+    const bookingModeSelect = document.getElementById("mp-co-booking-mode");
+    bookingModeSelect?.addEventListener("change", () => {
+      const addrGroup = document.getElementById("mp-co-address-group");
+      if (addrGroup && isServiceOnly) {
+        addrGroup.classList.toggle("hidden", bookingModeSelect.value !== "ON_SITE_CLIENT");
+      }
+    });
   }
 
   window.submitMarketplaceCheckout = async function submitMarketplaceCheckout() {
@@ -1440,10 +1467,10 @@
         <div class="flex flex-col sm:flex-row gap-2 pt-2">
           ${
             hasMoreShops
-              ? `<button type="button" onclick="advanceMarketplaceCheckoutQueue()" class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs">Next Shop Checkout (${activeCheckoutIndex + 2}/${activeCheckoutQueue.length}) →</button>`
-              : `<button type="button" onclick="closeMarketplaceCheckoutModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs">Keep Shopping on Store254</button>`
+              ? `<button type="button" data-mp-cart-action="advance-checkout" class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs">Next Shop Checkout (${activeCheckoutIndex + 2}/${activeCheckoutQueue.length}) →</button>`
+              : `<button type="button" data-mp-cart-action="close-checkout" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs">Keep Shopping on Store254</button>`
           }
-          <button type="button" onclick="closeMarketplaceCheckoutModal(); openMarketplaceOrdersModal();" class="py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs">
+          <button type="button" data-mp-cart-action="view-orders" class="py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs">
             View My Orders
           </button>
         </div>
@@ -1462,8 +1489,13 @@
         }
         try {
           const stRes = await fetch(
-            `/api/platform/marketplace/orders/${encodeURIComponent(data.orderId)}/status?token=${encodeURIComponent(data.paymentStatusToken)}`,
-            { credentials: "include" }
+            `/api/platform/marketplace/orders/${encodeURIComponent(data.orderId)}/status`,
+            {
+              credentials: "include",
+              headers: {
+                "X-Payment-Status-Token": data.paymentStatusToken,
+              },
+            }
           );
           const stJson = await stRes.json();
           const st = stJson?.data;
@@ -1519,7 +1551,7 @@
           <h3 class="text-base font-extrabold text-slate-900">Sign in once to see all your orders</h3>
           <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Google Sign-In keeps all your Store254 orders &amp; M-Pesa receipts across different shops synced in one screen.</p>
         </div>
-        <button type="button" onclick="closeMarketplaceOrdersModal(); startPlatformGoogleSignIn();" class="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold">
+        <button type="button" data-mp-cart-action="google-signin" class="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold">
           Continue with Google
         </button>
       </div>`;
@@ -1548,10 +1580,10 @@
           <span class="font-bold text-slate-900 truncate">${escapeHtml(locLabel || "Not selected")}</span>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          <button type="button" onclick="closeMarketplaceOrdersModal(); openBuyerWelcomeModal(2);" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[11px] font-bold text-emerald-800">${locLabel ? "Change" : "Set town"}</button>
+          <button type="button" data-mp-cart-action="change-location" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[11px] font-bold text-emerald-800">${locLabel ? "Change" : "Set town"}</button>
           ${
             locLabel
-              ? `<button type="button" onclick="clearMarketplaceBuyerLocation(); openMarketplaceOrdersModal();" class="px-2 py-1 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50">Clear</button>`
+              ? `<button type="button" data-mp-cart-action="clear-location" class="px-2 py-1 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50">Clear</button>`
               : ""
           }
         </div>
@@ -1563,7 +1595,7 @@
             <p class="text-xs font-extrabold text-slate-900 truncate">${escapeHtml(platformUser.fullName || platformUser.email)}</p>
             <p class="text-[11px] text-slate-500 truncate">${escapeHtml(platformUser.email)}</p>
           </div>
-          <button type="button" onclick="signOutPlatformBuyer()" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">Sign out</button>
+          <button type="button" data-mp-cart-action="signout-buyer" class="shrink-0 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">Sign out</button>
         </div>
         ${locationRow}
       </div>`;
@@ -1646,6 +1678,75 @@
       modal.setAttribute("aria-hidden", "true");
     }
   };
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("click", (event) => {
+      const btn = event.target?.closest?.("[data-mp-cart-action]");
+      if (!btn) return;
+      const action = btn.dataset.mpCartAction;
+      if (action === "retry-welcome-counties") {
+        window.retryWelcomeCounties();
+      } else if (action === "select-welcome-county") {
+        window.selectWelcomeCounty(btn.dataset.countyId || "");
+      } else if (action === "choose-welcome-location") {
+        try {
+          const parsed = JSON.parse(btn.dataset.loc || "null");
+          if (parsed) window.chooseWelcomeLocation(parsed);
+        } catch {}
+      } else if (action === "update-qty") {
+        window.updateMarketplaceCartQty(
+          btn.dataset.itemId || "",
+          btn.dataset.variantId || "",
+          Number(btn.dataset.delta || 0)
+        );
+      } else if (action === "remove-item") {
+        window.removeMarketplaceCartItem(btn.dataset.itemId || "", btn.dataset.variantId || "");
+      } else if (action === "checkout-store") {
+        window.startMarketplaceCheckoutForStore(btn.dataset.storeId || "");
+      } else if (action === "step-qv-image") {
+        window.stepQuickViewImage(Number(btn.dataset.delta || 0), event);
+      } else if (action === "select-qv-image") {
+        window.selectQuickViewImage(Number(btn.dataset.index || 0), event);
+      } else if (action === "toggle-follow") {
+        try {
+          const parsed = JSON.parse(btn.dataset.followStore || "null");
+          if (parsed && typeof window.toggleFollowStore === "function") {
+            window.toggleFollowStore(parsed, event);
+          }
+        } catch {}
+      } else if (action === "select-qv-variant") {
+        window.selectQuickViewVariant(btn.dataset.variantId || "");
+      } else if (action === "change-qv-qty") {
+        window.changeQuickViewQty(Number(btn.dataset.delta || 0));
+      } else if (action === "add-qv-cart") {
+        window.addQuickViewToCart();
+      } else if (action === "buy-qv-now") {
+        window.buyQuickViewNow();
+      } else if (action === "report-qv-copyright") {
+        window.reportQuickViewCopyright();
+      } else if (action === "advance-checkout") {
+        window.advanceMarketplaceCheckoutQueue();
+      } else if (action === "close-checkout") {
+        window.closeMarketplaceCheckoutModal();
+      } else if (action === "view-orders") {
+        window.closeMarketplaceCheckoutModal();
+        void window.openMarketplaceOrdersModal();
+      } else if (action === "google-signin") {
+        window.closeMarketplaceOrdersModal();
+        window.startPlatformGoogleSignIn();
+      } else if (action === "change-location") {
+        window.closeMarketplaceOrdersModal();
+        void window.openBuyerWelcomeModal(2);
+      } else if (action === "clear-location") {
+        if (typeof window.clearMarketplaceBuyerLocation === "function") {
+          window.clearMarketplaceBuyerLocation();
+        }
+        void window.openMarketplaceOrdersModal();
+      } else if (action === "signout-buyer") {
+        void window.signOutPlatformBuyer();
+      }
+    });
+  }
 
   window.addEventListener("pageshow", (event) => {
     if (event.persisted && isPlatformRootMode()) {

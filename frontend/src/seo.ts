@@ -387,6 +387,28 @@ export function toAbsoluteUrl(rawUrl: unknown, origin: string): string {
   }
 }
 
+export function sanitizeCssUrl(rawUrl: unknown, origin?: string): string {
+  if (typeof rawUrl !== "string") return "";
+  const trimmed = rawUrl.trim();
+  if (!trimmed || trimmed.startsWith("//")) return "";
+  const resolved = origin ? toAbsoluteUrl(trimmed, origin) : trimmed;
+  if (!resolved) return "";
+  if (!/^https?:\/\//i.test(resolved) && !/^\/api\/media\/[^\s'"\\()\r\n]+$/i.test(resolved)) {
+    return "";
+  }
+  try {
+    if (/^https?:\/\//i.test(resolved)) {
+      const parsed = new URL(resolved);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return "";
+    }
+  } catch {
+    return "";
+  }
+  return resolved.replace(/['"\\()\r\n\s]/g, (ch) =>
+    `%${ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`
+  );
+}
+
 function parseSettings(raw: unknown): Record<string, any> {
   if (!raw) return {};
   if (typeof raw === "string") {
@@ -975,7 +997,7 @@ function buildStoreDirectoryCardHtml(store: PlatformStoreSeo, origin: string): s
   );
   const initial = escapeHtml((store.name || "S").trim().slice(0, 1).toUpperCase());
   const badge = escapeHtml((store.businessType || "Store").replace(/_/g, " "));
-  const bannerUrl = toAbsoluteUrl(settings.bannerUrl, origin);
+  const bannerUrl = sanitizeCssUrl(settings.bannerUrl, origin);
   const logoUrl = toAbsoluteUrl(settings.logoUrl, origin);
   const coverStyle = bannerUrl
     ? `style="background-image: linear-gradient(180deg, rgba(16, 30, 22, 0.2), rgba(16, 30, 22, 0.72)), url('${escapeHtml(bannerUrl)}'); background-size: cover; background-position: center;"`
@@ -1026,7 +1048,7 @@ export function buildPlatformSeoData(
   const isStoresView = view === "stores";
   const title = isStoresView
     ? "Active Kenyan Storefronts | Store254"
-    : "Store254 | Kenyan Online Stores, Local Search & M-Pesa Storefronts";
+    : "Store254 | Kenyan Online Stores, Every hustle has a home here";
   const description = isStoresView
     ? "Browse verified independent Kenyan online stores across counties and towns on Store254."
     : "Store254 is Kenya's marketplace to search local products and services, discover independent Kenyan online stores, and launch your own .store254.co.ke storefront with M-Pesa.";
@@ -1843,12 +1865,12 @@ export function buildPlatformPrivacyHtml(isPreview = false): {
 
 function buildSsrCategoryLinksHtml(categories: SeoCategory[], activeSlug = ""): string {
   const roots = categories.filter((c) => !c.parentId);
-  const allBtn = `<a href="/" onclick="event.preventDefault(); selectCategory('')" class="category-pill ${
+  const allBtn = `<a href="/" data-action="select-category" data-category-slug="" class="category-pill ${
     activeSlug === "" ? "category-pill-active" : "category-pill-inactive"
   }"><span>All Items</span></a>`;
   const links = roots.map((cat) => {
     const active = cat.slug === activeSlug;
-    return `<a href="/category/${encodeURIComponent(cat.slug)}" onclick="event.preventDefault(); selectCategory('${escapeHtml(cat.slug)}')" class="category-pill ${
+    return `<a href="/category/${encodeURIComponent(cat.slug)}" data-action="select-category" data-category-slug="${escapeHtml(cat.slug)}" class="category-pill ${
       active ? "category-pill-active" : "category-pill-inactive"
     }"><span>${escapeHtml(cat.name)}</span></a>`;
   });

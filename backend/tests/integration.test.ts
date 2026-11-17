@@ -203,6 +203,59 @@ describe("Store254 End-to-End Workflow & Security Tests", () => {
     expect(combined).not.toContain('<script>alert("xss")</script>');
   });
 
+  it("should extract SMTP credentials from Worker bindings and skip SMTP cleanly when unconfigured", async () => {
+    const { EmailService } = await import("../src/services/email.service");
+    const creds = EmailService.smtpFromEnv({
+      GMAIL_SMTP_USER: "mailer@example.com",
+      GMAIL_SMTP_PASS: "example-app-pass",
+      GMAIL_SENDER: "Store254 <noreply@example.com>",
+    });
+    expect(creds).toEqual({
+      user: "mailer@example.com",
+      pass: "example-app-pass",
+      sender: "Store254 <noreply@example.com>",
+    });
+
+    const origVitest = process.env.VITEST;
+    const origNodeEnv = process.env.NODE_ENV;
+    const origUser = process.env.GMAIL_SMTP_USER;
+    const origPass = process.env.GMAIL_SMTP_PASS;
+    const warnings: string[] = [];
+    const logs: string[] = [];
+    const origWarn = console.warn;
+    const origLog = console.log;
+    console.warn = (...args: unknown[]) => warnings.push(args.join(" "));
+    console.log = (...args: unknown[]) => logs.push(args.join(" "));
+
+    try {
+      delete process.env.VITEST;
+      delete process.env.NODE_ENV;
+      delete process.env.GMAIL_SMTP_USER;
+      delete process.env.GMAIL_SMTP_PASS;
+
+      const sent = await EmailService.sendPasswordResetLink({
+        to: "owner@example.com",
+        fullName: "Test Owner",
+        resetLink: "https://store254.co.ke/admin.html?reset_token=tok123",
+        otpCode: "112233",
+        expiresMinutes: 30,
+        smtp: EmailService.smtpFromEnv({}),
+      });
+
+      expect(sent).toBe(true);
+      expect(warnings.some((w) => w.includes("Gmail SMTP not configured"))).toBe(true);
+      expect(logs.join("\n")).toContain("[REDACTED]");
+      expect(logs.join("\n")).not.toContain("112233");
+    } finally {
+      console.warn = origWarn;
+      console.log = origLog;
+      if (origVitest !== undefined) process.env.VITEST = origVitest;
+      if (origNodeEnv !== undefined) process.env.NODE_ENV = origNodeEnv;
+      if (origUser !== undefined) process.env.GMAIL_SMTP_USER = origUser;
+      if (origPass !== undefined) process.env.GMAIL_SMTP_PASS = origPass;
+    }
+  });
+
   it("should require County, Constituency, and Town/Shopping Centre on store registration", async () => {
     const res = await app.request(
       "https://store254.co.ke/api/platform/register-store",

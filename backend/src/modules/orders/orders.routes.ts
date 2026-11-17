@@ -1,14 +1,16 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, inArray, or, gte, lte, sql } from "drizzle-orm";
+import { eq, and, ne, desc, inArray, or, sql } from "drizzle-orm";
+import type { Context } from "hono";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { orders, orderItems, payments } from "../../db/schema/orders";
 import { items, itemVariants } from "../../db/schema/items";
+import { users } from "../../db/schema/users";
 import { tenantPaymentConfigs } from "../../db/schema/payment-configs";
 import { authMiddleware, hasPermission, requirePermission } from "../../middlewares/auth.middleware";
-import { generateUUID, generateSecureToken, hashOtp } from "../../security/crypto";
+import { generateUUID, generateSecureToken, hashOtp, timingSafeEqual } from "../../security/crypto";
 import { AppError } from "../../security/error-handler";
 import { rateLimiter } from "../../security/rate-limiter";
 import {
@@ -31,11 +33,66 @@ const updateOrderStatusSchema = z.object({
     .object({
       courierName: z.string().max(80).optional(), // e.g. "Fargo Courier", "Wells Fargo", "Rider"
       trackingNumber: z.string().max(100).optional(),
-      trackingUrl: z.string().url().optional(),
+      trackingUrl: z
+        .string()
+        .trim()
+        .url()
+        .refine(
+          (value) => {
+            try {
+              const protocol = new URL(value).protocol.toLowerCase();
+              return protocol === "http:" || protocol === "https:";
+            } catch {
+              return false;
+            }
+          },
+          { message: "Tracking URL must use http or https." }
+        )
+        .optional(),
       notes: z.string().max(500).optional(),
     })
     .optional(),
 });
+
+async function isUserEmailVerified(
+  db: ReturnType<typeof createDb>,
+  user: { id: string } | undefined | null,
+  tenantId: string
+): Promise<boolean> {
+  if (!user) return false;
+  const [dbUser] = await db
+    .select({
+      status: users.status,
+      emailVerifiedAt: users.emailVerifiedAt,
+    })
+    .from(users)
+    .where(and(eq(users.id, user.id), eq(users.tenantId, tenantId)))
+    .limit(1);
+  return Boolean(dbUser && dbUser.status === "ACTIVE" && dbUser.emailVerifiedAt !== null);
+}
+
+function getPresentedStatusToken(c: Context<AppEnv>): string {
+  return (
+    c.req.header("x-order-status-token")?.trim() ||
+    c.req.query("token")?.trim() ||
+    ""
+  );
+}
+
+async function verifyOrderStatusToken(
+  presentedToken: string,
+  statusTokenHash: string | null | undefined
+): Promise<boolean> {
+  if (!presentedToken || !statusTokenHash) return false;
+  return timingSafeEqual(await hashOtp(presentedToken), statusTokenHash);
+}
+
+function stripSensitiveOrderFields<T extends { statusTokenHash?: string | null }>(
+  order: T
+): Omit<T, "statusTokenHash"> {
+  const { statusTokenHash: _omit, ...rest } = order;
+  return rest;
+}
 
 const markOrderPaidSchema = z.object({
   paymentStatus: z.literal("PAID"),
@@ -46,7 +103,12 @@ const sendPaymentPromptSchema = z.object({
 });
 
 // Create Order & Trigger Merchant's M-Pesa STK Push
-ordersRouter.post("/checkout", authMiddleware(false), zValidator("json", checkoutSchema), async (c) => {
+ordersRouter.post(
+  "/checkout",
+  rateLimiter({ max: 10, windowMs: 60 * 1000 }),
+  authMiddleware(false),
+  zValidator("json", checkoutSchema),
+  async (c) => {
   const tenant = c.get("tenant")!;
   const user = c.get("user");
   const body = c.req.valid("json");
@@ -91,20 +153,15 @@ ordersRouter.patch(
     if (order.status === "COMPLETED") {
       throw new AppError("Delivered orders cannot be changed by the merchant.", 400, "ORDER_ALREADY_DELIVERED");
     }
-
-    const shouldRestoreStock =
-      status === "CANCELLED" &&
-      order.status !== "CANCELLED" &&
-      (order.fulfillmentDetails?.inventoryDeducted === true || order.paymentStatus === "PAID");
+    if (order.status === "CANCELLED") {
+      throw new AppError("Cancelled orders cannot be reopened or modified.", 400, "ORDER_ALREADY_CANCELLED");
+    }
 
     const mergedFulfillment = {
       ...(order.fulfillmentDetails || {}),
       ...(fulfillmentDetails || {}),
       dispatchedAt: status === "SHIPPED" ? new Date().toISOString() : order.fulfillmentDetails?.dispatchedAt,
       deliveredAt: order.fulfillmentDetails?.deliveredAt,
-      inventoryDeducted: shouldRestoreStock
-        ? false
-        : order.fulfillmentDetails?.inventoryDeducted,
     };
 
     const [updatedOrder] = await db
@@ -126,6 +183,34 @@ ordersRouter.patch(
       throw new AppError("Order status changed. Refresh and try again.", 409, "ORDER_STATUS_CHANGED");
     }
 
+    let shouldRestoreStock = false;
+    if (status === "CANCELLED") {
+      const restoredFulfillment = {
+        ...mergedFulfillment,
+        inventoryDeducted: false,
+      };
+      const claimedRestore = await db
+        .update(orders)
+        .set({
+          inventoryDeducted: false,
+          fulfillmentDetails: restoredFulfillment,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(orders.tenantId, tenant.id),
+            eq(orders.id, order.id),
+            eq(orders.status, "CANCELLED"),
+            eq(orders.inventoryDeducted, true)
+          )
+        )
+        .returning({ id: orders.id });
+      shouldRestoreStock = claimedRestore.length > 0;
+      if (shouldRestoreStock) {
+        mergedFulfillment.inventoryDeducted = false;
+      }
+    }
+
     if (shouldRestoreStock) {
       const lines = await db
         .select()
@@ -133,15 +218,27 @@ ordersRouter.patch(
         .where(and(eq(orderItems.orderId, order.id), eq(orderItems.tenantId, tenant.id)));
       for (const line of lines) {
         if ((line.options as Record<string, unknown> | null)?.itemType === "SERVICE") continue;
-        if (line.variantId) {
+        if (line.variantId && line.itemId) {
           await db
             .update(itemVariants)
-            .set({ stockQuantity: sql`${itemVariants.stockQuantity} + ${line.quantity}` })
-            .where(and(eq(itemVariants.id, line.variantId), eq(itemVariants.tenantId, tenant.id)));
+            .set({
+              stockQuantity: sql`${itemVariants.stockQuantity} + ${line.quantity}`,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(itemVariants.id, line.variantId),
+                eq(itemVariants.itemId, line.itemId),
+                eq(itemVariants.tenantId, tenant.id)
+              )
+            );
         } else if (line.itemId) {
           await db
             .update(items)
-            .set({ stockQuantity: sql`${items.stockQuantity} + ${line.quantity}` })
+            .set({
+              stockQuantity: sql`${items.stockQuantity} + ${line.quantity}`,
+              updatedAt: new Date(),
+            })
             .where(and(eq(items.id, line.itemId), eq(items.tenantId, tenant.id), eq(items.trackInventory, true)));
         }
       }
@@ -159,6 +256,7 @@ ordersRouter.patch(
       trackingUrl: mergedFulfillment.trackingUrl,
       notes: mergedFulfillment.notes,
       apiKey: c.env?.RESEND_API_KEY,
+      smtp: EmailService.smtpFromEnv(c.env),
     });
 
     return c.json({
@@ -175,12 +273,14 @@ ordersRouter.patch(
   }
 );
 
-ordersRouter.post("/:id/confirm-delivery", authMiddleware(true), async (c) => {
+ordersRouter.post("/:id/confirm-delivery", authMiddleware(false), async (c) => {
   const tenant = c.get("tenant")!;
-  const user = c.get("user")!;
+  const user = c.get("user");
   const orderId = c.req.param("id");
-  if (user.role !== "CUSTOMER") {
-    throw new AppError("Only the customer can confirm delivery.", 403, "CUSTOMER_REQUIRED");
+  const presentedToken = getPresentedStatusToken(c);
+
+  if (!user && !presentedToken) {
+    throw new AppError("Authentication or valid order status token required.", 401, "UNAUTHORIZED");
   }
   if (!c.env?.DB) throw new AppError("Database not ready", 500);
   const db = createDb(c.env.DB);
@@ -190,9 +290,28 @@ ordersRouter.post("/:id/confirm-delivery", authMiddleware(true), async (c) => {
     .from(orders)
     .where(and(eq(orders.tenantId, tenant.id), eq(orders.id, orderId)))
     .limit(1);
-  if (!order) throw new AppError("Order not found.", 404, "ORDER_NOT_FOUND");
-  if (order.customerId !== user.id && order.customerEmail.toLowerCase() !== user.email.toLowerCase()) {
-    throw new AppError("This order does not belong to your account.", 403, "ORDER_NOT_OWNED");
+  if (!order) {
+    if (!user) {
+      throw new AppError("Invalid order status token.", 403, "INVALID_STATUS_TOKEN");
+    }
+    throw new AppError("Order not found.", 404, "ORDER_NOT_FOUND");
+  }
+
+  const hasValidStatusToken = await verifyOrderStatusToken(presentedToken, order.statusTokenHash);
+  if (!hasValidStatusToken) {
+    if (!user) {
+      throw new AppError("Invalid order status token.", 403, "INVALID_STATUS_TOKEN");
+    }
+    if (user.role !== "CUSTOMER") {
+      throw new AppError("Only the customer can confirm delivery.", 403, "CUSTOMER_REQUIRED");
+    }
+    const emailVerified = await isUserEmailVerified(db, user, tenant.id);
+    const isCustomerOwner =
+      order.customerId === user.id ||
+      (emailVerified && order.customerEmail.toLowerCase() === user.email.toLowerCase());
+    if (!isCustomerOwner) {
+      throw new AppError("This order does not belong to your account.", 403, "ORDER_NOT_OWNED");
+    }
   }
   const isServiceBookingOrder = order.fulfillmentDetails?.orderKind === "SERVICE_BOOKING";
   const confirmableStatuses = isServiceBookingOrder ? ["PROCESSING", "SHIPPED"] : ["SHIPPED"];
@@ -685,15 +804,18 @@ ordersRouter.get("/my-orders", authMiddleware(true), async (c) => {
   if (!c.env?.DB) throw new AppError("Database not ready", 500);
   const db = createDb(c.env.DB);
 
+  const emailVerified = await isUserEmailVerified(db, user, tenant.id);
+  const ownerFilter = emailVerified
+    ? or(
+        eq(orders.customerId, user.id),
+        sql`lower(${orders.customerEmail}) = ${user.email.toLowerCase().trim()}`
+      )
+    : eq(orders.customerId, user.id);
+
   const customerOrders = await db
     .select()
     .from(orders)
-    .where(
-      and(
-        eq(orders.tenantId, tenant.id),
-        or(eq(orders.customerId, user.id), eq(orders.customerEmail, user.email))
-      )
-    )
+    .where(and(eq(orders.tenantId, tenant.id), ownerFilter))
     .orderBy(desc(orders.createdAt))
     .limit(50);
 
@@ -722,7 +844,7 @@ ordersRouter.get("/my-orders", authMiddleware(true), async (c) => {
         Boolean(paymentConfig?.shortcode);
 
       return {
-        ...order,
+        ...stripSensitiveOrderFields(order),
         paymentInstructions: instructionsAvailable
           ? {
               method: paymentConfig!.shortcodeType,
@@ -738,21 +860,7 @@ ordersRouter.get("/my-orders", authMiddleware(true), async (c) => {
   });
 });
 
-function maskEmail(email: string): string {
-  const parts = email.split("@");
-  if (parts.length !== 2) return "***@***.com";
-  const name = parts[0];
-  const domain = parts[1];
-  const maskedName = name.length > 2 ? `${name[0]}***${name[name.length - 1]}` : `${name[0]}***`;
-  return `${maskedName}@${domain}`;
-}
-
-function maskPhone(phone: string): string {
-  if (phone.length <= 4) return "****";
-  return `${phone.slice(0, 4)}****${phone.slice(-3)}`;
-}
-
-// Get Order Details by ID (Protected against IDOR & PII Scraping)
+// Get Order Details by ID (Requires authenticated owner/merchant or valid statusToken)
 ordersRouter.get(
   "/:id",
   rateLimiter({ max: 30, windowMs: 60 * 1000 }),
@@ -761,6 +869,11 @@ ordersRouter.get(
     const tenant = c.get("tenant")!;
     const user = c.get("user");
     const orderId = c.req.param("id");
+    const presentedToken = getPresentedStatusToken(c);
+
+    if (!user && !presentedToken) {
+      throw new AppError("Authentication or valid order status token required.", 401, "UNAUTHORIZED");
+    }
 
     if (!c.env?.DB) throw new AppError("Database not ready", 500);
     const db = createDb(c.env.DB);
@@ -772,25 +885,35 @@ ordersRouter.get(
       .limit(1);
 
     if (!order) {
+      if (!user) {
+        throw new AppError("Invalid order status token.", 403, "INVALID_STATUS_TOKEN");
+      }
       throw new AppError("Order not found.", 404, "ORDER_NOT_FOUND");
     }
 
-    // Check if requester has authorized access to view full customer PII
-    const isMerchant =
+    const isMerchant = Boolean(
       user &&
-      hasPermission(user, "manage_orders") &&
-      user.tenantId === tenant.id;
-    const isCustomerOwner =
+        hasPermission(user, "manage_orders") &&
+        user.tenantId === tenant.id
+    );
+    const isCustomerOwner = Boolean(
       user &&
-      (order.customerId === user.id ||
-        (user.email &&
-          order.customerEmail.toLowerCase() === user.email.toLowerCase()));
-    const queryPhone = c.req.query("phone")?.trim();
-    const isPhoneVerified =
-      queryPhone &&
-      normalizeKenyanPhone(queryPhone) === normalizeKenyanPhone(order.customerPhone);
+        (order.customerId === user.id ||
+          (user.email &&
+            (await isUserEmailVerified(db, user, tenant.id)) &&
+            order.customerEmail.toLowerCase() === user.email.toLowerCase()))
+    );
+    const hasValidStatusToken = await verifyOrderStatusToken(
+      presentedToken,
+      order.statusTokenHash
+    );
 
-    const hasFullAccess = isMerchant || isCustomerOwner || isPhoneVerified;
+    if (!isMerchant && !isCustomerOwner && !hasValidStatusToken) {
+      if (!user) {
+        throw new AppError("Invalid order status token.", 403, "INVALID_STATUS_TOKEN");
+      }
+      throw new AppError("This order does not belong to your account.", 403, "ORDER_NOT_OWNED");
+    }
 
     const itemsList = await db
       .select()
@@ -809,23 +932,10 @@ ordersRouter.get(
       .from(payments)
       .where(and(eq(payments.tenantId, tenant.id), eq(payments.orderId, orderId)));
 
-    const safeOrder = hasFullAccess
-      ? order
-      : {
-          ...order,
-          customerName: order.customerName.split(" ")[0] + " ***",
-          customerEmail: maskEmail(order.customerEmail),
-          customerPhone: maskPhone(order.customerPhone),
-          shippingAddress: {
-            county: (order.shippingAddress as any)?.county || "",
-            subCounty: (order.shippingAddress as any)?.subCounty || "",
-          },
-        };
-
     return c.json({
       success: true,
       data: {
-        ...safeOrder,
+        ...stripSensitiveOrderFields(order),
         items: itemsList,
         payments: paymentsList,
       },
@@ -841,8 +951,10 @@ ordersRouter.get("/", authMiddleware(true), requirePermission("manage_orders"), 
   const db = createDb(c.env.DB);
 
   const query = c.req.query();
-  const limit = Math.min(500, Math.max(1, parseInt(query.limit || "200", 10)));
-  const page = Math.max(1, parseInt(query.page || "1", 10));
+  const parsedLimit = Number.parseInt(query.limit ?? "", 10);
+  const parsedPage = Number.parseInt(query.page ?? "", 10);
+  const limit = Number.isFinite(parsedLimit) ? Math.min(500, Math.max(1, parsedLimit)) : 200;
+  const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const offset = (page - 1) * limit;
 
   const orderList = await db
@@ -880,7 +992,7 @@ ordersRouter.get("/", authMiddleware(true), requirePermission("manage_orders"), 
   }
 
   const formattedOrders = orderList.map((order) => ({
-    ...order,
+    ...stripSensitiveOrderFields(order),
     items: orderItemsByOrder.get(order.id) || [],
   }));
 
@@ -920,31 +1032,55 @@ ordersRouter.delete(
       throw new AppError("Completed and paid orders cannot be deleted.", 400, "CANNOT_DELETE_COMPLETED_PAID_ORDER");
     }
 
-    // If inventory was deducted and order was not cancelled, restore inventory
-    if (order.fulfillmentDetails?.inventoryDeducted === true && order.status !== "CANCELLED") {
-      const lines = await db
-        .select()
-        .from(orderItems)
-        .where(and(eq(orderItems.orderId, order.id), eq(orderItems.tenantId, tenant.id)));
-      for (const line of lines) {
-        if ((line.options as Record<string, unknown> | null)?.itemType === "SERVICE") continue;
-        if (line.itemId) {
-          if (line.variantId) {
-            await db
-              .update(itemVariants)
-              .set({
-                stockQuantity: sql`${itemVariants.stockQuantity} + ${line.quantity}`,
-                updatedAt: new Date(),
-              })
-              .where(and(eq(itemVariants.id, line.variantId), eq(itemVariants.itemId, line.itemId)));
-          } else {
-            await db
-              .update(items)
-              .set({
-                stockQuantity: sql`${items.stockQuantity} + ${line.quantity}`,
-                updatedAt: new Date(),
-              })
-              .where(and(eq(items.id, line.itemId), eq(items.tenantId, tenant.id), eq(items.trackInventory, true)));
+    // Atomically claim inventory restoration if inventory was deducted and order was not cancelled
+    if (order.inventoryDeducted === true && order.status !== "CANCELLED") {
+      const claimedRestore = await db
+        .update(orders)
+        .set({
+          inventoryDeducted: false,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(orders.id, order.id),
+            eq(orders.tenantId, tenant.id),
+            ne(orders.status, "CANCELLED"),
+            eq(orders.inventoryDeducted, true)
+          )
+        )
+        .returning({ id: orders.id });
+
+      if (claimedRestore.length) {
+        const lines = await db
+          .select()
+          .from(orderItems)
+          .where(and(eq(orderItems.orderId, order.id), eq(orderItems.tenantId, tenant.id)));
+        for (const line of lines) {
+          if ((line.options as Record<string, unknown> | null)?.itemType === "SERVICE") continue;
+          if (line.itemId) {
+            if (line.variantId) {
+              await db
+                .update(itemVariants)
+                .set({
+                  stockQuantity: sql`${itemVariants.stockQuantity} + ${line.quantity}`,
+                  updatedAt: new Date(),
+                })
+                .where(
+                  and(
+                    eq(itemVariants.id, line.variantId),
+                    eq(itemVariants.itemId, line.itemId),
+                    eq(itemVariants.tenantId, tenant.id)
+                  )
+                );
+            } else {
+              await db
+                .update(items)
+                .set({
+                  stockQuantity: sql`${items.stockQuantity} + ${line.quantity}`,
+                  updatedAt: new Date(),
+                })
+                .where(and(eq(items.id, line.itemId), eq(items.tenantId, tenant.id), eq(items.trackInventory, true)));
+            }
           }
         }
       }

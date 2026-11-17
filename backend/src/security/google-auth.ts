@@ -29,8 +29,16 @@ export async function verifyGoogleIdToken(
       method: "GET",
       headers: { Accept: "application/json" },
     });
-  } catch (err: any) {
-    throw new AppError(`Failed to reach Google authentication service: ${err.message}`, 502, "GOOGLE_NETWORK_ERROR");
+  } catch (err: unknown) {
+    console.error(
+      "[GoogleAuth] Failed to reach Google authentication service:",
+      err instanceof Error ? err.message : String(err)
+    );
+    throw new AppError(
+      "Google authentication service is temporarily unavailable. Please try again.",
+      502,
+      "GOOGLE_NETWORK_ERROR"
+    );
   }
 
   if (!res.ok) {

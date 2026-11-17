@@ -24,6 +24,9 @@ export interface Env {
   PLATFORM_ADMIN_JWT_SECRET?: string;
   PAYMENT_CONFIG_ENCRYPTION_KEY?: string;
   RESEND_API_KEY?: string;
+  GMAIL_SMTP_USER?: string;
+  GMAIL_SMTP_PASS?: string;
+  GMAIL_SENDER?: string;
 
   // Centralized Google OAuth configuration
   GOOGLE_CLIENT_ID?: string;

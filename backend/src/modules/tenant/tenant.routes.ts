@@ -1,4 +1,5 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { eq, and, sql } from "drizzle-orm";
@@ -9,19 +10,37 @@ import { items } from "../../db/schema/items";
 import { orders } from "../../db/schema/orders";
 import { authMiddleware, requireRole, requirePermission } from "../../middlewares/auth.middleware";
 import { AppError } from "../../security/error-handler";
-import { generateUUID } from "../../security/crypto";
+import { generateSecureToken, generateUUID } from "../../security/crypto";
 import { businessTypeSchema } from "../../config/business-types";
 import { detectImageMimeFromBytes } from "../../lib/media-validation";
+import { rateLimiter } from "../../security/rate-limiter";
+import { DEFAULT_PRIMARY_DOMAIN } from "../../config/constants";
 
 export const tenantSettingsRouter = new Hono<AppEnv>();
 
-export const MEDIA_PATH_REGEX = /^\/api\/media\/[^/\s]+\/[^/\s]+$/;
+export const MEDIA_SEGMENT_REGEX = /^[a-zA-Z0-9._-]+$/;
+export const MEDIA_PATH_REGEX = /^\/api\/media\/[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
+
+/**
+ * Validates a single media path segment (tenantId or fileName) against strict safe characters
+ * and rejects path traversal, slashes, query strings, and fragments.
+ */
+export function isSafeMediaSegment(segment: string): boolean {
+  if (typeof segment !== "string") return false;
+  if (segment.length === 0 || segment.length > 255) return false;
+  if (segment === "." || segment.includes("..") || /[/\\?#]/.test(segment)) {
+    return false;
+  }
+  return MEDIA_SEGMENT_REGEX.test(segment);
+}
 
 export function isTenantMediaPath(path: string, tenantId: string): boolean {
-  if (typeof path !== "string" || !tenantId) return false;
-  const escapedTenantId = tenantId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`^/api/media/${escapedTenantId}/[^/\\s]+$`);
-  return regex.test(path);
+  if (typeof path !== "string" || !isSafeMediaSegment(tenantId)) return false;
+  if (path.includes("..") || /[\\?#]/.test(path)) return false;
+  const prefix = `/api/media/${tenantId}/`;
+  if (!path.startsWith(prefix)) return false;
+  const fileName = path.slice(prefix.length);
+  return isSafeMediaSegment(fileName);
 }
 
 export function validateTenantMediaUrl(
@@ -33,6 +52,114 @@ export function validateTenantMediaUrl(
   if (currentUrl && url === currentUrl) return true;
   return isTenantMediaPath(url, tenantId);
 }
+
+const RESERVED_CUSTOM_DOMAIN_TLDS = new Set([
+  "local",
+  "internal",
+  "localhost",
+  "localdomain",
+  "arpa",
+  "invalid",
+  "test",
+  "example",
+  "home",
+  "lan",
+  "corp",
+  "intranet",
+]);
+
+const RESERVED_CUSTOM_DOMAIN_HOSTNAMES = new Set([
+  "localhost",
+  "localhost.localdomain",
+  "ip6-localhost",
+  "api.internal",
+  "metadata.google.internal",
+  "example.com",
+  "example.org",
+  "example.net",
+]);
+
+const RESERVED_CUSTOM_DOMAIN_SUFFIXES = [
+  ".localhost",
+  ".local",
+  ".internal",
+  ".localdomain",
+  ".arpa",
+  ".invalid",
+  ".test",
+  ".example",
+  ".workers.dev",
+  ".pages.dev",
+];
+
+/**
+ * Validates that a custom domain is a public, non-reserved DNS hostname and cannot
+ * hijack platform subdomains, local/internal addresses, or IP literals.
+ */
+export function isAllowedCustomDomain(
+  rawDomain: string,
+  primaryDomain = DEFAULT_PRIMARY_DOMAIN
+): boolean {
+  const domain = String(rawDomain || "").trim().toLowerCase();
+  if (!domain || domain.length < 4 || domain.length > 100) return false;
+  if (domain.includes(":") || domain.includes("/") || domain.includes("..")) return false;
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(domain)) return false;
+  if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(domain)) {
+    return false;
+  }
+
+  const normalizedPrimary = primaryDomain.trim().toLowerCase() || DEFAULT_PRIMARY_DOMAIN;
+  if (domain === normalizedPrimary || domain.endsWith(`.${normalizedPrimary}`)) {
+    return false;
+  }
+  if (RESERVED_CUSTOM_DOMAIN_HOSTNAMES.has(domain)) {
+    return false;
+  }
+  if (RESERVED_CUSTOM_DOMAIN_SUFFIXES.some((suffix) => domain.endsWith(suffix))) {
+    return false;
+  }
+  const labels = domain.split(".");
+  const tld = labels[labels.length - 1];
+  if (RESERVED_CUSTOM_DOMAIN_TLDS.has(tld)) {
+    return false;
+  }
+  return true;
+}
+
+function isSafeSocialFieldValue(value: string, isWhatsapp = false): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (trimmed.startsWith("//")) return false;
+  // Reject any URL with a non-http(s) scheme (e.g. javascript:, data:, vbscript:, file:)
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      return (parsed.protocol === "https:" || parsed.protocol === "http:") && Boolean(parsed.hostname);
+    } catch {
+      return false;
+    }
+  }
+  if (isWhatsapp) {
+    return /^\+?[0-9\s()-]{6,30}$/.test(trimmed);
+  }
+  return /^@?[a-zA-Z0-9._-]{1,100}$/.test(trimmed);
+}
+
+const socialHandleOrUrlSchema = z
+  .string()
+  .max(200)
+  .refine((v) => isSafeSocialFieldValue(v, false), {
+    message: "Social links must use an http/https URL or a valid handle.",
+  })
+  .optional();
+
+const whatsappFieldSchema = z
+  .string()
+  .max(50)
+  .refine((v) => isSafeSocialFieldValue(v, true), {
+    message: "WhatsApp contact must be a phone number or http/https URL.",
+  })
+  .optional();
 
 const optionalMediaPath = z
   .union([
@@ -61,11 +188,11 @@ export const updateStoreProfileSchema = z.object({
       businessHours: z.record(z.string()).optional(),
       socialLinks: z
         .object({
-          instagram: z.string().max(200).optional(),
-          facebook: z.string().max(200).optional(),
-          tiktok: z.string().max(200).optional(),
-          whatsapp: z.string().max(50).optional(),
-          twitter: z.string().max(200).optional(),
+          instagram: socialHandleOrUrlSchema,
+          facebook: socialHandleOrUrlSchema,
+          tiktok: socialHandleOrUrlSchema,
+          whatsapp: whatsappFieldSchema,
+          twitter: socialHandleOrUrlSchema,
         })
         .optional(),
       primaryColor: z.string().regex(/^#([0-9a-fA-F]{3}){1,2}$/).optional(),
@@ -91,13 +218,58 @@ export const updateStoreProfileSchema = z.object({
 });
 
 // Custom Domain Mapping Schema
-const customDomainSchema = z.object({
+export const customDomainSchema = z.object({
   customDomain: z
     .string()
+    .trim()
     .min(4)
     .max(100)
-    .regex(/^[a-z0-9][a-z0-9-.]+\.[a-z]{2,}$/i, "Invalid domain format (e.g. yourstore.com)"),
+    .transform((v) => v.toLowerCase())
+    .refine(
+      (v) => isAllowedCustomDomain(v),
+      "Invalid or reserved domain. Use a valid public domain you own (e.g. yourstore.com)."
+    ),
 });
+
+interface DomainVerificationState {
+  domain: string;
+  token: string;
+  verified: boolean;
+  requestedAt: string;
+  verifiedAt?: string;
+}
+
+const DNS_TXT_PREFIX = "_store254-verify";
+
+async function verifyDomainTxtRecord(
+  domain: string,
+  expectedToken: string
+): Promise<{ verified: boolean; lookupFailed: boolean }> {
+  const txtHost = `${DNS_TXT_PREFIX}.${domain}`;
+  const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(txtHost)}&type=TXT`;
+  try {
+    const resp = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/dns-json" },
+    });
+    if (!resp.ok) {
+      return { verified: false, lookupFailed: true };
+    }
+    const data = (await resp.json()) as {
+      Status?: number;
+      Answer?: Array<{ type?: number; data?: string }>;
+    };
+    const answers = Array.isArray(data?.Answer) ? data.Answer : [];
+    const matched = answers.some((record) => {
+      if (record.type !== 16 || typeof record.data !== "string") return false;
+      const cleaned = record.data.replace(/^"+|"+$/g, "").replace(/"\s+"/g, "").trim();
+      return cleaned === expectedToken;
+    });
+    return { verified: matched, lookupFailed: false };
+  } catch {
+    return { verified: false, lookupFailed: true };
+  }
+}
 
 // Update Store Profile & Branding (Store Owner, Admins, or Staff with manage_settings)
 tenantSettingsRouter.patch(
@@ -154,6 +326,12 @@ tenantSettingsRouter.patch(
     if (latestSettings.staffPermissions && typeof latestSettings.staffPermissions === "object") {
       mergedSettings.staffPermissions = latestSettings.staffPermissions;
     }
+    if (
+      latestSettings.customDomainVerification &&
+      typeof latestSettings.customDomainVerification === "object"
+    ) {
+      mergedSettings.customDomainVerification = latestSettings.customDomainVerification;
+    }
     delete mergedSettings.storefrontTemplate;
     delete mergedSettings.storefrontTemplateVersion;
     delete mergedSettings.themePalette;
@@ -183,46 +361,72 @@ tenantSettingsRouter.patch(
   }
 );
 
-// Map Custom Apex/Subdomain Domain (e.g. alicebabycare.com)
-tenantSettingsRouter.put(
-  "/custom-domain",
-  authMiddleware(true),
-  requirePermission("manage_settings"),
-  zValidator("json", customDomainSchema),
-  async (c) => {
-    const tenant = c.get("tenant")!;
-    const { customDomain } = c.req.valid("json");
-    const normalizedDomain = customDomain.toLowerCase().trim();
+// Map Custom Apex/Subdomain Domain (e.g. alicebabycare.com) with DNS TXT ownership verification
+async function handleCustomDomainBindOrVerify(
+  c: Context<AppEnv>,
+  requestedDomain: string
+) {
+  const tenant = c.get("tenant")!;
+  const primaryDomain = (c.env?.PRIMARY_DOMAIN || DEFAULT_PRIMARY_DOMAIN).toLowerCase();
+  const normalizedDomain = requestedDomain.toLowerCase().trim();
 
-    if (!c.env?.DB) throw new AppError("Database not ready", 500);
-    const db = createDb(c.env.DB);
+  if (!isAllowedCustomDomain(normalizedDomain, primaryDomain)) {
+    throw new AppError(
+      "This domain cannot be mapped. Provide a valid public domain you own.",
+      400,
+      "INVALID_CUSTOM_DOMAIN"
+    );
+  }
 
-    // Check if domain is claimed by another store
-    const [existing] = await db
-      .select({ id: tenants.id })
-      .from(tenants)
-      .where(eq(tenants.customDomain, normalizedDomain))
-      .limit(1);
+  if (!c.env?.DB) throw new AppError("Database not ready", 500);
+  const db = createDb(c.env.DB);
 
-    if (existing && existing.id !== tenant.id) {
-      throw new AppError("This custom domain is already registered to another store.", 409, "DOMAIN_TAKEN");
-    }
+  // Check if domain is claimed by another store
+  const [existing] = await db
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.customDomain, normalizedDomain))
+    .limit(1);
 
-    await db
-      .update(tenants)
-      .set({
-        customDomain: normalizedDomain,
-        updatedAt: new Date(),
-      })
-      .where(eq(tenants.id, tenant.id));
+  if (existing && existing.id !== tenant.id) {
+    throw new AppError(
+      "This custom domain is already registered to another store.",
+      409,
+      "DOMAIN_TAKEN"
+    );
+  }
 
-    const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
+  const [freshTenant] = await db
+    .select({ customDomain: tenants.customDomain, settings: tenants.settings })
+    .from(tenants)
+    .where(eq(tenants.id, tenant.id))
+    .limit(1);
 
+  const currentSettings =
+    freshTenant?.settings &&
+    typeof freshTenant.settings === "object" &&
+    !Array.isArray(freshTenant.settings)
+      ? { ...(freshTenant.settings as Record<string, unknown>) }
+      : { ...((tenant.settings as Record<string, unknown>) || {}) };
+
+  const existingVerification =
+    currentSettings.customDomainVerification &&
+    typeof currentSettings.customDomainVerification === "object"
+      ? (currentSettings.customDomainVerification as Partial<DomainVerificationState>)
+      : null;
+
+  const isAlreadyVerifiedForSameDomain =
+    freshTenant?.customDomain === normalizedDomain &&
+    existingVerification?.domain === normalizedDomain &&
+    existingVerification?.verified === true;
+
+  if (isAlreadyVerifiedForSameDomain) {
     return c.json({
       success: true,
-      message: `Custom domain mapped. Please configure your DNS settings.`,
+      message: "Custom domain is verified and active.",
       data: {
         customDomain: normalizedDomain,
+        verified: true,
         dnsInstructions: {
           recordType: "CNAME",
           host: normalizedDomain,
@@ -231,6 +435,121 @@ tenantSettingsRouter.put(
         },
       },
     });
+  }
+
+  const token =
+    existingVerification?.domain === normalizedDomain &&
+    typeof existingVerification.token === "string" &&
+    existingVerification.token.startsWith("store254-verify=")
+      ? existingVerification.token
+      : `store254-verify=${generateSecureToken(16)}`;
+
+  const nowIso = new Date().toISOString();
+  const txtCheck = await verifyDomainTxtRecord(normalizedDomain, token);
+
+  if (txtCheck.verified) {
+    const nextSettings = {
+      ...currentSettings,
+      customDomainVerification: {
+        domain: normalizedDomain,
+        token,
+        verified: true,
+        requestedAt: existingVerification?.requestedAt || nowIso,
+        verifiedAt: nowIso,
+      },
+    };
+
+    await db
+      .update(tenants)
+      .set({
+        customDomain: normalizedDomain,
+        settings: nextSettings,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenants.id, tenant.id));
+
+    return c.json({
+      success: true,
+      message: "Custom domain verified and mapped successfully.",
+      data: {
+        customDomain: normalizedDomain,
+        verified: true,
+        dnsInstructions: {
+          recordType: "CNAME",
+          host: normalizedDomain,
+          pointsTo: `${tenant.subdomain}.${primaryDomain}`,
+          ttl: "Auto / 3600",
+        },
+      },
+    });
+  }
+
+  // Persist pending verification challenge without binding customDomain yet.
+  const nextSettings = {
+    ...currentSettings,
+    customDomainVerification: {
+      domain: normalizedDomain,
+      token,
+      verified: false,
+      requestedAt: existingVerification?.requestedAt || nowIso,
+    },
+  };
+
+  await db
+    .update(tenants)
+    .set({
+      settings: nextSettings,
+      updatedAt: new Date(),
+    })
+    .where(eq(tenants.id, tenant.id));
+
+  const txtHost = `${DNS_TXT_PREFIX}.${normalizedDomain}`;
+  return c.json(
+    {
+      success: true,
+      message: txtCheck.lookupFailed
+        ? "Domain ownership verification is required. DNS lookup could not be completed yet; add the TXT record below and try again."
+        : "Domain ownership verification is required. Add the DNS TXT record below and re-submit to activate your custom domain.",
+      data: {
+        customDomain: null,
+        pendingDomain: normalizedDomain,
+        verified: false,
+        txtVerification: {
+          recordType: "TXT",
+          host: txtHost,
+          value: token,
+        },
+        dnsInstructions: {
+          recordType: "TXT",
+          host: txtHost,
+          pointsTo: token,
+          ttl: "Auto / 3600",
+        },
+      },
+    },
+    202
+  );
+}
+
+tenantSettingsRouter.put(
+  "/custom-domain",
+  authMiddleware(true),
+  requirePermission("manage_settings"),
+  zValidator("json", customDomainSchema),
+  async (c) => {
+    const { customDomain } = c.req.valid("json");
+    return handleCustomDomainBindOrVerify(c, customDomain);
+  }
+);
+
+tenantSettingsRouter.post(
+  "/custom-domain/verify",
+  authMiddleware(true),
+  requirePermission("manage_settings"),
+  zValidator("json", customDomainSchema),
+  async (c) => {
+    const { customDomain } = c.req.valid("json");
+    return handleCustomDomainBindOrVerify(c, customDomain);
   }
 );
 
@@ -272,9 +591,26 @@ tenantSettingsRouter.get(
   }
 );
 
+const mediaUploadBodyLimit = bodyLimit({
+  maxSize: 6 * 1024 * 1024, // 6 MB (5 MB image + multipart overhead)
+  onError: (c) =>
+    c.json(
+      {
+        success: false,
+        error: {
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Media upload exceeds the 6 MB maximum payload size.",
+        },
+      },
+      413
+    ),
+});
+
 // Upload Store/Product Image to Cloudflare R2
 tenantSettingsRouter.post(
   "/media",
+  rateLimiter({ max: 20, windowMs: 60 * 1000, binding: "SENSITIVE_RATE_LIMITER" }),
+  mediaUploadBodyLimit,
   authMiddleware(true),
   requirePermission("manage_products", "manage_settings"),
   async (c) => {

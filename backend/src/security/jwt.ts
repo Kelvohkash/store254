@@ -8,12 +8,18 @@ export interface JWTPayload {
   tenantId: string;
   email: string;
   role: UserContext["role"];
+  tokenVersion?: number;
+  tv?: number;
   permissions?: string[];
   iss: string;
   aud: string;
   iat: number;
   exp: number;
   [key: string]: unknown;
+}
+
+export interface AccessTokenUser extends UserContext {
+  tokenVersion?: number;
 }
 
 const JWT_ISSUER = "store254-auth";
@@ -25,16 +31,21 @@ const GOOGLE_SSO_AUDIENCE = "store254-storefronts";
  * Creates a signed JWT access token strictly bound to a tenant
  */
 export async function createAccessToken(
-  user: UserContext,
+  user: AccessTokenUser,
   secret: string,
   expiresInSeconds = SECURITY_LIMITS.ACCESS_TOKEN_EXPIRY_SECONDS
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
+  const tokenVersion =
+    typeof user.tokenVersion === "number" && Number.isInteger(user.tokenVersion)
+      ? user.tokenVersion
+      : 0;
   const payload: JWTPayload = {
     sub: user.id,
     tenantId: user.tenantId,
     email: user.email,
     role: user.role,
+    tokenVersion,
     ...(Array.isArray(user.permissions) ? { permissions: user.permissions } : {}),
     iss: JWT_ISSUER,
     aud: JWT_AUDIENCE,
@@ -52,7 +63,7 @@ export async function verifyAccessToken(
   token: string,
   secret: string,
   expectedTenantId?: string
-): Promise<UserContext | null> {
+): Promise<AccessTokenUser | null> {
   try {
     const payload = (await verify(token, secret, "HS256")) as unknown as JWTPayload;
 
@@ -62,7 +73,7 @@ export async function verifyAccessToken(
     }
 
     const now = Math.floor(Date.now() / 1000);
-    if (!payload.exp || payload.exp < now) {
+    if (typeof payload.exp !== "number" || !Number.isFinite(payload.exp) || payload.exp <= now) {
       return null;
     }
 
@@ -71,11 +82,19 @@ export async function verifyAccessToken(
       return null;
     }
 
+    const tokenVersion =
+      typeof payload.tv === "number"
+        ? payload.tv
+        : typeof payload.tokenVersion === "number"
+        ? payload.tokenVersion
+        : 0;
+
     return {
       id: payload.sub,
       tenantId: payload.tenantId,
       email: payload.email,
       role: payload.role,
+      tokenVersion,
       ...(Array.isArray(payload.permissions)
         ? { permissions: payload.permissions.filter((p): p is string => typeof p === "string") }
         : {}),

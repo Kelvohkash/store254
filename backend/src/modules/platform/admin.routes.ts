@@ -72,56 +72,68 @@ function clearAdminSessionCookie(c: Context<AppEnv>): void {
   );
 }
 
+const ADMIN_JWT_ISSUER = "store254-platform";
+const ADMIN_JWT_AUDIENCE = "store254-platform-admin";
+
+async function verifySuperAdminJwt(token: string, jwtSecret: string) {
+  const payload = await verify(token, jwtSecret, "HS256");
+  const now = Math.floor(Date.now() / 1000);
+  if (
+    !payload ||
+    payload.role !== "SUPER_ADMIN" ||
+    payload.iss !== ADMIN_JWT_ISSUER ||
+    payload.aud !== ADMIN_JWT_AUDIENCE ||
+    typeof payload.exp !== "number" ||
+    !Number.isFinite(payload.exp) ||
+    payload.exp <= now
+  ) {
+    return null;
+  }
+  return payload;
+}
+
 function assertAdminOrigin(c: Context<AppEnv>): void {
   const origin = c.req.header("origin");
-  // Allow direct navigation or same-origin requests without explicit Origin header
   if (!origin) {
     const secFetchSite = c.req.header("sec-fetch-site");
-    if (secFetchSite === "same-origin" || secFetchSite === "same-site" || secFetchSite === "none") {
+    if (secFetchSite === "same-origin") {
       return;
     }
-  }
-
-  if (origin) {
-    try {
-      const url = new URL(origin);
-      const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
-
-      if (
-        c.env?.ENVIRONMENT === "development" &&
-        (url.hostname === "localhost" ||
-          url.hostname === "127.0.0.1" ||
-          url.hostname.endsWith(".localhost"))
-      ) {
-        return;
-      }
-
-      // Admin sessions may be initiated only from platform UI domains.
-      if (
-        (url.protocol === "https:" || c.env?.ENVIRONMENT === "development") &&
-        (url.hostname === primaryDomain || url.hostname === `www.${primaryDomain}`)
-      ) {
-        return;
-      }
-
-      // Check additional configured frontend origins
-      const configured = (c.env?.FRONTEND_ORIGINS || "").split(",").map((s) => s.trim());
-      if (
-        (url.protocol === "https:" || c.env?.ENVIRONMENT === "development") &&
-        configured.includes(url.origin)
-      ) {
-        return;
-      }
-    } catch {
-      throw new AppError("A valid platform origin is required.", 403, "INVALID_ORIGIN");
-    }
-
     throw new AppError("A valid platform origin is required.", 403, "INVALID_ORIGIN");
   }
 
-  const secFetchSite = c.req.header("sec-fetch-site");
-  if (secFetchSite === "same-origin" || secFetchSite === "same-site" || secFetchSite === "none") {
-    return;
+  try {
+    const url = new URL(origin);
+    const primaryDomain = (c.env?.PRIMARY_DOMAIN || "store254.co.ke").toLowerCase();
+    const isDev = c.env?.ENVIRONMENT === "development";
+
+    if (
+      isDev &&
+      (url.hostname === "localhost" ||
+        url.hostname === "127.0.0.1" ||
+        url.hostname.endsWith(".localhost"))
+    ) {
+      return;
+    }
+
+    // Admin sessions may be initiated only from apex/www platform UI domains.
+    if (
+      (url.protocol === "https:" || isDev) &&
+      (url.hostname.toLowerCase() === primaryDomain || url.hostname.toLowerCase() === `www.${primaryDomain}`)
+    ) {
+      return;
+    }
+
+    // Check additional configured frontend origins (explicit non-empty matches only)
+    const configured = (c.env?.FRONTEND_ORIGINS || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if ((url.protocol === "https:" || isDev) && configured.includes(url.origin)) {
+      return;
+    }
+  } catch {
+    throw new AppError("A valid platform origin is required.", 403, "INVALID_ORIGIN");
   }
 
   throw new AppError("A valid platform origin is required.", 403, "INVALID_ORIGIN");
@@ -135,8 +147,8 @@ platformAdminRouter.get("/me", async (c) => {
 
   if (token && jwtSecret) {
     try {
-      const payload = await verify(token, jwtSecret, "HS256");
-      if (payload && payload.role === "SUPER_ADMIN" && payload.iss === "store254-platform") {
+      const payload = await verifySuperAdminJwt(token, jwtSecret);
+      if (payload) {
         return c.json({
           success: true,
           authenticated: true,
@@ -160,7 +172,12 @@ platformAdminRouter.get("/me", async (c) => {
 // Super Admin Login (username/password Cloudflare secrets, then HttpOnly session)
 platformAdminRouter.post(
   "/login",
-  rateLimiter({ max: 15, windowMs: 15 * 60 * 1000 }),
+  rateLimiter({
+    max: 5,
+    windowMs: 15 * 60 * 1000,
+    binding: "AUTH_STRICT_RATE_LIMITER",
+    accountKeyFields: ["username"],
+  }),
   zValidator("json", adminLoginSchema),
   async (c) => {
     assertAdminOrigin(c);
@@ -187,7 +204,8 @@ platformAdminRouter.post(
         sub: "super-admin",
         email: adminUsername.trim(),
         role: "SUPER_ADMIN",
-        iss: "store254-platform",
+        iss: ADMIN_JWT_ISSUER,
+        aud: ADMIN_JWT_AUDIENCE,
         iat: now,
         exp: now + 24 * 60 * 60, // 24 hours
       },
@@ -225,8 +243,8 @@ platformAdminRouter.use("*", async (c, next) => {
 
   if (token && jwtSecret) {
     try {
-      const payload = await verify(token, jwtSecret, "HS256");
-      if (payload && payload.role === "SUPER_ADMIN" && payload.iss === "store254-platform") {
+      const payload = await verifySuperAdminJwt(token, jwtSecret);
+      if (payload) {
         c.set("user", {
           id: (payload.sub as string) || "super-admin",
           tenantId: "platform",
@@ -437,6 +455,7 @@ platformAdminRouter.patch("/stores/:id/activate", async (c) => {
       subdomain: store.subdomain,
       primaryDomain,
       apiKey: c.env?.RESEND_API_KEY,
+      smtp: EmailService.smtpFromEnv(c.env),
     });
   }
 
@@ -519,6 +538,7 @@ platformAdminRouter.patch("/stores/:id/reactivate", async (c) => {
       subdomain: store.subdomain,
       primaryDomain,
       apiKey: c.env?.RESEND_API_KEY,
+      smtp: EmailService.smtpFromEnv(c.env),
     });
   }
 

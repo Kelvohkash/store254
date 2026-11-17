@@ -74,7 +74,7 @@ function renderOrdersTable(orders) {
   const pageOrders = orders.slice(startIdx, startIdx + ordersPerPage);
 
   tbody.innerHTML = pageOrders.map(o => `
-    <tr class="hover:bg-slate-50 transition-colors cursor-pointer admin-order-row" onclick="openOrderDrawer(${inlineJs(o.id)})">
+    <tr class="hover:bg-slate-50 transition-colors cursor-pointer admin-order-row" data-order-row-id="${escHtml(o.id)}">
       <td data-label="Order" class="px-5 py-3 font-mono font-black text-slate-900 text-xs">
         <span class="order-id-badge">#${escHtml((o.orderNumber || String(o.id).slice(0,8)).toUpperCase())}</span>
       </td>
@@ -111,15 +111,15 @@ function renderOrdersTable(orders) {
           ${statusBadge(o.status)}
         </div>
       </td>
-      <td data-label="Update" class="px-5 py-3 text-right" onclick="event.stopPropagation()">
+      <td data-label="Update" class="px-5 py-3 text-right" data-order-actions-cell="1">
         <div class="order-update-wrap flex items-center justify-end gap-1.5">
           ${o.status === 'COMPLETED'
             ? '<span class="text-xs font-semibold text-slate-500">Delivered</span>'
-            : `<select onchange="updateOrderStatus('${escHtml(o.id)}', this.value)" class="order-status-select text-xs border border-slate-300 rounded-lg px-2.5 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white shadow-sm">
+            : `<select data-order-status-select="${escHtml(o.id)}" class="order-status-select text-xs border border-slate-300 rounded-lg px-2.5 py-1 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white shadow-sm">
                 ${['PROCESSING','SHIPPED','CANCELLED'].map(s => `<option ${o.status===s?'selected':''} value="${s}">${formatStatusLabel(s)}</option>`).join('')}
               </select>`}
           ${(typeof hasAdminPermission !== 'function' || hasAdminPermission('delete_orders')) && canDeleteOrder(o) ? `
-            <button type="button" onclick="deleteOrder(${inlineJs(o.id)}, ${inlineJs(o.orderNumber || o.id.slice(0,8))})" class="order-delete-btn" title="Delete Order">
+            <button type="button" data-order-action="delete" data-order-id="${escHtml(o.id)}" data-order-number="${escHtml(o.orderNumber || o.id.slice(0,8))}" class="order-delete-btn" title="Delete Order">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           ` : ''}
@@ -265,7 +265,7 @@ window.setOrdersPage = function(page) {
           : `<p class="text-xs font-black text-slate-500 uppercase mb-3">Update Status</p>
             <div class="grid grid-cols-2 gap-2">
               ${['PROCESSING','SHIPPED','CANCELLED'].map(s => `
-                <button onclick="updateOrderStatus(${inlineJs(o.id)},'${s}'); document.getElementById('order-drawer').classList.add('hidden');" class="py-2 text-xs font-black rounded-xl border ${o.status===s ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-200 text-slate-700 hover:bg-slate-50'} transition-all">${s}</button>
+                <button type="button" data-order-action="set-status-close" data-order-id="${escHtml(o.id)}" data-status="${s}" class="py-2 text-xs font-black rounded-xl border ${o.status===s ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-200 text-slate-700 hover:bg-slate-50'} transition-all">${s}</button>
               `).join('')}
             </div>`}
       </div>
@@ -273,14 +273,14 @@ window.setOrdersPage = function(page) {
         ${o.status === 'COMPLETED' ? `
           <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 space-y-2">
             <p class="text-xs font-black text-indigo-900">Collect payment</p>
-            <button onclick="showOrderPaymentInstructions(${inlineJs(o.id)})" class="w-full py-2.5 bg-white hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold rounded-xl transition-colors">
+            <button type="button" data-order-action="show-payment-instructions" data-order-id="${escHtml(o.id)}" class="w-full py-2.5 bg-white hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold rounded-xl transition-colors">
               Show customer M-Pesa instructions
             </button>
-            <button onclick="sendOrderPaymentPrompt(${inlineJs(o.id)})" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors">
+            <button type="button" data-order-action="send-payment-prompt" data-order-id="${escHtml(o.id)}" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors">
               Send M-Pesa prompt to ${escHtml(o.customerPhone || 'customer')}
             </button>
             ${o.status === 'COMPLETED' ? `
-              <button onclick="markOrderPaid(${inlineJs(o.id)})" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-colors">
+              <button type="button" data-order-action="mark-paid" data-order-id="${escHtml(o.id)}" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-colors">
                 Record payment received · ${fmt(o.totalAmount || 0)}
               </button>
             ` : ''}
@@ -292,7 +292,7 @@ window.setOrdersPage = function(page) {
 
       ${(typeof hasAdminPermission !== 'function' || hasAdminPermission('delete_orders')) && canDeleteOrder(o) ? `
         <div class="pt-2">
-          <button type="button" onclick="deleteOrder(${inlineJs(o.id)}, ${inlineJs(o.orderNumber || o.id.slice(0,8))}); document.getElementById('order-drawer').classList.add('hidden');" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+          <button type="button" data-order-action="delete-close" data-order-id="${escHtml(o.id)}" data-order-number="${escHtml(o.orderNumber || o.id.slice(0,8))}" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
             <span>Delete Order</span>
           </button>
@@ -301,6 +301,47 @@ window.setOrdersPage = function(page) {
     `;
     drawer.classList.remove('hidden');
     lucide.createIcons();
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', (event) => {
+      const actionBtn = event.target?.closest?.('[data-order-action]');
+      if (actionBtn) {
+        const action = actionBtn.dataset.orderAction;
+        const orderId = actionBtn.dataset.orderId || '';
+        if (action === 'delete') {
+          void deleteOrder(orderId, actionBtn.dataset.orderNumber || '');
+        } else if (action === 'set-status-close') {
+          void updateOrderStatus(orderId, actionBtn.dataset.status || '');
+          document.getElementById('order-drawer')?.classList.add('hidden');
+        } else if (action === 'show-payment-instructions') {
+          void showOrderPaymentInstructions(orderId);
+        } else if (action === 'send-payment-prompt') {
+          void sendOrderPaymentPrompt(orderId);
+        } else if (action === 'mark-paid') {
+          void markOrderPaid(orderId);
+        } else if (action === 'delete-close') {
+          void deleteOrder(orderId, actionBtn.dataset.orderNumber || '');
+          document.getElementById('order-drawer')?.classList.add('hidden');
+        }
+        return;
+      }
+
+      if (event.target?.closest?.('[data-order-actions-cell]')) {
+        return;
+      }
+
+      const row = event.target?.closest?.('[data-order-row-id]');
+      if (row) {
+        openOrderDrawer(row.dataset.orderRowId || '');
+      }
+    });
+
+    document.addEventListener('change', (event) => {
+      const select = event.target?.closest?.('[data-order-status-select]');
+      if (!select) return;
+      void updateOrderStatus(select.dataset.orderStatusSelect || '', select.value);
+    });
   }
 
   // ═══════════════════════════════════════

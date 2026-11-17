@@ -15,6 +15,7 @@ import {
   getDirectoryHubForBusinessType,
   parseStorefrontRoute,
   resolveTenantCanonicalOrigin,
+  sanitizeCssUrl,
   sanitizeSlug,
   toAbsoluteUrl,
   type PlatformStoreSeo,
@@ -95,6 +96,44 @@ async function fetchCachedSeoJson<T>(
   } catch {
     return { status: 502, data: null };
   }
+}
+
+function buildCspPolicy(isLocalHost = false): string {
+  const localApiSources = isLocalHost ? " http://localhost:8787 http://127.0.0.1:8787" : "";
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://unpkg.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    `img-src 'self' data: blob: https:${localApiSources}`,
+    `connect-src 'self'${localApiSources}`,
+    "frame-src 'none'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
+function withSecurityHeaders(
+  response: Response,
+  options: { isLocalHost?: boolean; status?: number } = {}
+): Response {
+  const headers = new Headers(response.headers);
+  headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Frame-Options", "DENY");
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(self), payment=(), usb=()"
+  );
+  headers.set("Content-Security-Policy", buildCspPolicy(Boolean(options.isLocalHost)));
+  return new Response(response.body, {
+    status: options.status ?? response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function withRobotsHeader(response: Response, value: string, status?: number): Response {
@@ -213,12 +252,15 @@ export default {
     // Dynamic robots.txt for both the root marketplace and every independent storefront subdomain.
     if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/robots.txt") {
       if (hostInfo.isPreviewHost || hostInfo.hostname === `api.${PRIMARY_DOMAIN}`) {
-        return new Response(buildRobotsTxt({ isPreview: true, canonicalOrigin: url.origin }), {
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Cache-Control": "public, max-age=300",
-          },
-        });
+        return withSecurityHeaders(
+          new Response(buildRobotsTxt({ isPreview: true, canonicalOrigin: url.origin }), {
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8",
+              "Cache-Control": "public, max-age=300",
+            },
+          }),
+          { isLocalHost: hostInfo.isLocalHost }
+        );
       }
 
       if (hostInfo.isPlatformRoot) {
@@ -231,19 +273,22 @@ export default {
           ctx,
           120
         );
-        return new Response(
-          buildRobotsTxt({
-            isPreview: false,
-            canonicalOrigin: `https://${PRIMARY_DOMAIN}`,
-            stores: stores || [],
-            includePlatformIndex: true,
-          }),
-          {
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8",
-              "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
-            },
-          }
+        return withSecurityHeaders(
+          new Response(
+            buildRobotsTxt({
+              isPreview: false,
+              canonicalOrigin: `https://${PRIMARY_DOMAIN}`,
+              stores: stores || [],
+              includePlatformIndex: true,
+            }),
+            {
+              headers: {
+                "Content-Type": "text/plain; charset=utf-8",
+                "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+              },
+            }
+          ),
+          { isLocalHost: hostInfo.isLocalHost }
         );
       }
 
@@ -258,31 +303,39 @@ export default {
       );
 
       if (!storefrontPayload?.tenant) {
-        return new Response("User-agent: *\nDisallow: /\n", {
-          status: 404,
-          headers: { "Content-Type": "text/plain; charset=utf-8" },
-        });
+        return withSecurityHeaders(
+          new Response("User-agent: *\nDisallow: /\n", {
+            status: 404,
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          }),
+          { isLocalHost: hostInfo.isLocalHost }
+        );
       }
 
       const canonicalOrigin = resolveTenantCanonicalOrigin(url, storefrontPayload.tenant);
-      return new Response(
-        buildRobotsTxt({
-          isPreview: false,
-          canonicalOrigin,
-        }),
-        {
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
-          },
-        }
+      return withSecurityHeaders(
+        new Response(
+          buildRobotsTxt({
+            isPreview: false,
+            canonicalOrigin,
+          }),
+          {
+            headers: {
+              "Content-Type": "text/plain; charset=utf-8",
+              "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+            },
+          }
+        ),
+        { isLocalHost: hostInfo.isLocalHost }
       );
     }
 
     // Dynamic XML sitemaps for root marketplace and independent subdomains.
     if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/sitemap-index.xml") {
       if (!hostInfo.isPlatformRoot || hostInfo.isPreviewHost) {
-        return new Response("Not Found", { status: 404 });
+        return withSecurityHeaders(new Response("Not Found", { status: 404 }), {
+          isLocalHost: hostInfo.isLocalHost,
+        });
       }
       const { data: stores } = await fetchCachedSeoJson<PlatformStoreSeo[]>(
         env.API,
@@ -293,17 +346,22 @@ export default {
         ctx,
         120
       );
-      return new Response(buildPlatformSitemapIndexXml(stores || []), {
-        headers: {
-          "Content-Type": "application/xml; charset=utf-8",
-          "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
-        },
-      });
+      return withSecurityHeaders(
+        new Response(buildPlatformSitemapIndexXml(stores || []), {
+          headers: {
+            "Content-Type": "application/xml; charset=utf-8",
+            "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+          },
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
     }
 
     if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/sitemap.xml") {
       if (hostInfo.isPreviewHost || hostInfo.hostname === `api.${PRIMARY_DOMAIN}`) {
-        return new Response("Not Found", { status: 404 });
+        return withSecurityHeaders(new Response("Not Found", { status: 404 }), {
+          isLocalHost: hostInfo.isLocalHost,
+        });
       }
 
       if (hostInfo.isPlatformRoot) {
@@ -316,12 +374,15 @@ export default {
           ctx,
           120
         );
-        return new Response(buildPlatformSitemapXml(stores || []), {
-          headers: {
-            "Content-Type": "application/xml; charset=utf-8",
-            "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
-          },
-        });
+        return withSecurityHeaders(
+          new Response(buildPlatformSitemapXml(stores || []), {
+            headers: {
+              "Content-Type": "application/xml; charset=utf-8",
+              "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+            },
+          }),
+          { isLocalHost: hostInfo.isLocalHost }
+        );
       }
 
       const { status, data: storefrontPayload } = await fetchCachedSeoJson<SeoStorefrontPayload>(
@@ -335,19 +396,25 @@ export default {
       );
 
       if (!storefrontPayload?.tenant) {
-        return new Response("Storefront sitemap not found", {
-          status: status === 404 ? 404 : 503,
-          headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
-        });
+        return withSecurityHeaders(
+          new Response("Storefront sitemap not found", {
+            status: status === 404 ? 404 : 503,
+            headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex, nofollow" },
+          }),
+          { isLocalHost: hostInfo.isLocalHost }
+        );
       }
 
       const canonicalOrigin = resolveTenantCanonicalOrigin(url, storefrontPayload.tenant);
-      return new Response(buildStorefrontSitemapXml(canonicalOrigin, storefrontPayload), {
-        headers: {
-          "Content-Type": "application/xml; charset=utf-8",
-          "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
-        },
-      });
+      return withSecurityHeaders(
+        new Response(buildStorefrontSitemapXml(canonicalOrigin, storefrontPayload), {
+          headers: {
+            "Content-Type": "application/xml; charset=utf-8",
+            "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+          },
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
     }
 
     const route = parseStorefrontRoute(url.pathname);
@@ -361,15 +428,20 @@ export default {
       headers.set("Content-Type", "application/javascript; charset=utf-8");
       headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
       headers.set("Service-Worker-Allowed", "/");
-      return new Response(request.method === "HEAD" ? null : swAsset.body, {
-        status: swAsset.status,
-        headers,
-      });
+      return withSecurityHeaders(
+        new Response(request.method === "HEAD" ? null : swAsset.body, {
+          status: swAsset.status,
+          headers,
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
     }
 
     if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/offline.html") {
       const offlineRes = await env.ASSETS.fetch(request);
-      return withRobotsHeader(offlineRes, "noindex, nofollow");
+      return withSecurityHeaders(withRobotsHeader(offlineRes, "noindex, nofollow"), {
+        isLocalHost: hostInfo.isLocalHost,
+      });
     }
 
     // Web App Manifest: always install the main Store254 platform app (never subdomain-scoped PWAs).
@@ -394,22 +466,28 @@ export default {
             { src: `${rootOrigin}/assets/pwa-icon-maskable-512.png`, sizes: "512x512", type: "image/png", purpose: "maskable" },
           ],
         }, null, 2);
-        return new Response(request.method === "HEAD" ? null : manifestBody, {
-          headers: {
-            "Content-Type": "application/manifest+json; charset=utf-8",
-            "Cache-Control": "public, max-age=300",
-          },
-        });
+        return withSecurityHeaders(
+          new Response(request.method === "HEAD" ? null : manifestBody, {
+            headers: {
+              "Content-Type": "application/manifest+json; charset=utf-8",
+              "Cache-Control": "public, max-age=300",
+            },
+          }),
+          { isLocalHost: hostInfo.isLocalHost }
+        );
       }
 
       const staticManifest = await env.ASSETS.fetch(request);
       const headers = new Headers(staticManifest.headers);
       headers.set("Content-Type", "application/manifest+json; charset=utf-8");
       headers.set("Cache-Control", "public, max-age=300");
-      return new Response(request.method === "HEAD" ? null : staticManifest.body, {
-        status: staticManifest.status,
-        headers,
-      });
+      return withSecurityHeaders(
+        new Response(request.method === "HEAD" ? null : staticManifest.body, {
+          status: staticManifest.status,
+          headers,
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
     }
 
     // Legal Pages (/terms and /privacy): serve on root domain, redirect tenant subdomains to canonical root
@@ -428,14 +506,17 @@ export default {
         targetPath === "/privacy"
           ? buildPlatformPrivacyHtml(hostInfo.isPreviewHost)
           : buildPlatformTermsHtml(hostInfo.isPreviewHost);
-      return new Response(request.method === "HEAD" ? null : legalPage.html, {
-        status: legalPage.status,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "X-Robots-Tag": legalPage.robots,
-          "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
-        },
-      });
+      return withSecurityHeaders(
+        new Response(request.method === "HEAD" ? null : legalPage.html, {
+          status: legalPage.status,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "X-Robots-Tag": legalPage.robots,
+            "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+          },
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
     }
 
     // About Page (/about) on platform root domain (kept off top header nav; indexed via sitemap & subtle footer link)
@@ -445,14 +526,17 @@ export default {
       (url.pathname === "/about" || url.pathname === "/about/")
     ) {
       const aboutPage = buildPlatformAboutHtml(hostInfo.isPreviewHost);
-      return new Response(request.method === "HEAD" ? null : aboutPage.html, {
-        status: aboutPage.status,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "X-Robots-Tag": aboutPage.robots,
-          "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
-        },
-      });
+      return withSecurityHeaders(
+        new Response(request.method === "HEAD" ? null : aboutPage.html, {
+          status: aboutPage.status,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "X-Robots-Tag": aboutPage.robots,
+            "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+          },
+        }),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
     }
 
     // Marketplace Directory Hub Pages (/directory and /directory/:category) on root domain
@@ -479,21 +563,26 @@ export default {
           page,
           isPreview: hostInfo.isPreviewHost,
         });
-        return new Response(request.method === "HEAD" ? null : dirPage.html, {
-          status: dirPage.status,
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "X-Robots-Tag": dirPage.robots,
-            "Cache-Control": "public, max-age=120, stale-while-revalidate=600",
-          },
-        });
+        return withSecurityHeaders(
+          new Response(request.method === "HEAD" ? null : dirPage.html, {
+            status: dirPage.status,
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "X-Robots-Tag": dirPage.robots,
+              "Cache-Control": "public, max-age=120, stale-while-revalidate=600",
+            },
+          }),
+          { isLocalHost: hostInfo.isLocalHost }
+        );
       }
     }
 
     // Admin routes get explicit noindex headers
     if (route.kind === "admin") {
       const adminRes = await env.ASSETS.fetch(request);
-      return withRobotsHeader(adminRes, "noindex, nofollow");
+      return withSecurityHeaders(withRobotsHeader(adminRes, "noindex, nofollow"), {
+        isLocalHost: hostInfo.isLocalHost,
+      });
     }
 
     const isPlatformStoresPage = !isTenantContext && (url.pathname === "/stores" || url.pathname === "/stores/");
@@ -533,7 +622,8 @@ export default {
           headers,
         });
       }
-      return hostInfo.isPreviewHost ? withRobotsHeader(outResponse, "noindex, nofollow") : outResponse;
+      const wrapped = hostInfo.isPreviewHost ? withRobotsHeader(outResponse, "noindex, nofollow") : outResponse;
+      return withSecurityHeaders(wrapped, { isLocalHost: hostInfo.isLocalHost });
     }
 
     // 1. Platform Marketplace Home & Stores Directory SSR & SEO (store254.co.ke, store254.co.ke/stores)
@@ -623,7 +713,10 @@ export default {
       }
 
       const transformed = rewriter.transform(assetResponse);
-      return withRobotsHeader(transformed, hostInfo.isPreviewHost ? "noindex, nofollow" : seo.robots);
+      return withSecurityHeaders(
+        withRobotsHeader(transformed, hostInfo.isPreviewHost ? "noindex, nofollow" : seo.robots),
+        { isLocalHost: hostInfo.isLocalHost }
+      );
     }
 
     // 2. Tenant Storefront / Category / Item Edge SSR & SEO (*.store254.co.ke or custom domain)
@@ -656,7 +749,9 @@ export default {
             },
           })
           .transform(assetResponse);
-        return withRobotsHeader(transformed, "noindex, nofollow", 404);
+        return withSecurityHeaders(withRobotsHeader(transformed, "noindex, nofollow", 404), {
+          isLocalHost: hostInfo.isLocalHost,
+        });
       }
 
       let itemDetail: SeoItemDetailPayload | null = null;
@@ -757,12 +852,12 @@ export default {
         .on("#store-info-banner", {
           element(el) {
             removeHiddenClass(el);
-            if (ssrBannerUrl) {
+            const safeCssUrl = sanitizeCssUrl(ssrBannerUrl);
+            if (safeCssUrl) {
               const cls = el.getAttribute("class") || "store-banner";
               if (!cls.split(/\s+/).includes("has-banner-image")) {
                 el.setAttribute("class", `${cls} has-banner-image`.trim());
               }
-              const safeCssUrl = ssrBannerUrl.replace(/["\\()\r\n]/g, encodeURIComponent);
               el.setAttribute("style", `--store-banner-image: url("${safeCssUrl}");`);
             }
           },
@@ -842,14 +937,21 @@ export default {
       const needsNoIndex = hostInfo.isPreviewHost || seo.status >= 400 || seo.robots.startsWith("noindex");
       if (needsNoIndex) {
         const robotsHeader = hostInfo.isPreviewHost || seo.status >= 400 ? "noindex, nofollow" : seo.robots;
-        return withRobotsHeader(transformed, robotsHeader, seo.status);
+        return withSecurityHeaders(withRobotsHeader(transformed, robotsHeader, seo.status), {
+          isLocalHost: hostInfo.isLocalHost,
+        });
       }
       if (seo.status !== 200) {
-        return withRobotsHeader(transformed, seo.robots, seo.status);
+        return withSecurityHeaders(withRobotsHeader(transformed, seo.robots, seo.status), {
+          isLocalHost: hostInfo.isLocalHost,
+        });
       }
-      return withRobotsHeader(transformed, seo.robots);
+      return withSecurityHeaders(withRobotsHeader(transformed, seo.robots), {
+        isLocalHost: hostInfo.isLocalHost,
+      });
     } catch {
-      return hostInfo.isPreviewHost ? withRobotsHeader(assetResponse, "noindex, nofollow") : assetResponse;
+      const fallback = hostInfo.isPreviewHost ? withRobotsHeader(assetResponse, "noindex, nofollow") : assetResponse;
+      return withSecurityHeaders(fallback, { isLocalHost: hostInfo.isLocalHost });
     }
   },
 };

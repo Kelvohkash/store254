@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import type { AppEnv } from "./types/context";
+import { SECURITY_LIMITS } from "./config/constants";
 
 // Security Frameworks
 import { enterpriseSecurityHeaders } from "./security/headers";
@@ -12,7 +14,7 @@ import { requestIdMiddleware } from "./middlewares/request-id.middleware";
 import { tenantMiddleware } from "./middlewares/tenant.middleware";
 
 // Feature Modules
-import { platformRouter } from "./modules/platform/platform.routes";
+import { platformRouter, sanitizePublicTenantSettings } from "./modules/platform/platform.routes";
 import { platformAdminRouter } from "./modules/platform/admin.routes";
 import { authRouter } from "./modules/auth/auth.routes";
 import { googleGatewayRouter } from "./modules/auth/google-gateway.routes";
@@ -24,11 +26,26 @@ import { filtersRouter } from "./modules/filters/filters.routes";
 import { ordersRouter } from "./modules/orders/orders.routes";
 import { paymentSettingsRouter } from "./modules/payments/settings.routes";
 import { mpesaRouter } from "./modules/payments/mpesa.routes";
-import { tenantSettingsRouter } from "./modules/tenant/tenant.routes";
+import { isSafeMediaSegment, tenantSettingsRouter } from "./modules/tenant/tenant.routes";
 import { tenantBillingRouter } from "./modules/tenant/billing.routes";
 import { seoPlatformRouter, seoTenantRouter } from "./modules/seo/seo.routes";
 
 const app = new Hono<AppEnv>();
+
+const defaultBodyLimit = bodyLimit({
+  maxSize: SECURITY_LIMITS.MAX_BODY_BYTES,
+  onError: (c) =>
+    c.json(
+      {
+        success: false,
+        error: {
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Request payload exceeds the 1 MB maximum size.",
+        },
+      },
+      413
+    ),
+});
 
 // 1. Global Correlation ID & Request Tracking
 app.use("*", requestIdMiddleware());
@@ -42,7 +59,15 @@ app.use("*", multiTenantCors());
 // 4. Global Anti-Abuse Rate Limiter
 app.use("*", rateLimiter());
 
-// 5. Global Error & 404 Handlers
+// 5. Global Request Body Size Limit (1 MB default; media upload route enforces 6 MB)
+app.use("*", async (c, next) => {
+  if (c.req.path === "/api/store/settings/media") {
+    return next();
+  }
+  return defaultBodyLimit(c, next);
+});
+
+// 6. Global Error & 404 Handlers
 app.onError(globalErrorHandler);
 app.notFound(notFoundHandler);
 
@@ -81,10 +106,21 @@ app.route("/api/payments/mpesa", mpesaRouter);
 
 // Public R2 Media Serving Endpoint
 app.get("/api/media/:tenantId/:fileName", async (c) => {
+  const tenantId = c.req.param("tenantId");
+  const fileName = c.req.param("fileName");
+  if (!isSafeMediaSegment(tenantId) || !isSafeMediaSegment(fileName)) {
+    return c.json(
+      {
+        success: false,
+        error: { code: "INVALID_MEDIA_PATH", message: "Invalid media path." },
+      },
+      400
+    );
+  }
   if (!c.env?.MEDIA_BUCKET) {
     return c.json({ success: false, message: "Media storage not configured" }, 404);
   }
-  const key = `${c.req.param("tenantId")}/${c.req.param("fileName")}`;
+  const key = `${tenantId}/${fileName}`;
   const ifNoneMatch = c.req.header("if-none-match");
   const edgeCache = (caches as unknown as { default?: Cache }).default;
   const cacheKey = new Request(`https://media-cache.internal/v2/${key}`, { method: "GET" });
@@ -147,7 +183,10 @@ tenantScope.get("/store", (c) => {
   c.header("Cache-Control", "no-cache, no-store, must-revalidate");
   return c.json({
     success: true,
-    data: tenant,
+    data: {
+      ...tenant,
+      settings: sanitizePublicTenantSettings(tenant.settings),
+    },
   });
 });
 

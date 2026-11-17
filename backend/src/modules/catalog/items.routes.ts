@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, sql, gte, lte, inArray } from "drizzle-orm";
-import type { AppEnv } from "../../types/context";
+import { eq, and, desc, ne, sql, gte, lte, inArray } from "drizzle-orm";
+import type { AppEnv, UserContext } from "../../types/context";
 import { createDb } from "../../db";
 import { items, itemVariants, type ItemVariant } from "../../db/schema/items";
 import { categories } from "../../db/schema/categories";
@@ -22,22 +22,114 @@ const variantInputSchema = z.object({
   options: z.record(z.string()).default({}),
 });
 
-export const MEDIA_PATH_REGEX = /^\/api\/media\/[^/\s]+\/[^/\s]+$/;
+const MEDIA_SEGMENT_REGEX = /^[a-zA-Z0-9._-]+$/;
+export const MEDIA_PATH_REGEX = /^\/api\/media\/([a-zA-Z0-9._-]+)\/([a-zA-Z0-9._-]+)$/;
+
+const DISALLOWED_FILTER_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function isSafeMediaSegment(segment: string): boolean {
+  if (!segment || !MEDIA_SEGMENT_REGEX.test(segment)) return false;
+  if (
+    segment === "." ||
+    segment === ".." ||
+    segment.includes("..") ||
+    segment.includes("?") ||
+    segment.includes("#") ||
+    segment.includes("/") ||
+    segment.includes("\\")
+  ) {
+    return false;
+  }
+  return true;
+}
 
 export function isTenantMediaPath(path: string, tenantId: string): boolean {
-  if (typeof path !== "string" || !tenantId) return false;
-  const escapedTenantId = tenantId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`^/api/media/${escapedTenantId}/[^/\\s]+$`);
-  return regex.test(path);
+  if (typeof path !== "string" || typeof tenantId !== "string" || !isSafeMediaSegment(tenantId)) {
+    return false;
+  }
+  if (path.includes("..") || path.includes("?") || path.includes("#") || path.includes("\\")) {
+    return false;
+  }
+  const match = MEDIA_PATH_REGEX.exec(path);
+  if (!match) return false;
+  const [, pathTenantId, fileName] = match;
+  return pathTenantId === tenantId && isSafeMediaSegment(fileName);
 }
 
 const mediaPathSchema = z
   .string()
   .max(2_000_000)
   .refine(
-    (val) => MEDIA_PATH_REGEX.test(val),
+    (val) => {
+      const match = MEDIA_PATH_REGEX.exec(val);
+      return Boolean(match && isSafeMediaSegment(match[1]) && isSafeMediaSegment(match[2]));
+    },
     "Images must be uploaded media paths in the format /api/media/<tenantId>/<file>"
   );
+
+function parseClampedInt(
+  raw: string | undefined,
+  fallback: number,
+  min: number,
+  max: number
+): number {
+  if (raw === undefined || raw === "") return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function isTenantMerchantUser(user: UserContext | undefined, tenantId: string): boolean {
+  return Boolean(
+    user &&
+      user.tenantId === tenantId &&
+      (user.role === "OWNER" || user.role === "ADMIN" || user.role === "STAFF")
+  );
+}
+
+/**
+ * Strips internal merchant metadata so public storefront endpoints only expose
+ * safe display/booking configuration keys (`artworkIcon`, `serviceConfig`).
+ */
+export function sanitizePublicItemMetadata(raw: unknown): Record<string, unknown> {
+  let source: unknown = raw;
+  if (typeof source === "string") {
+    try {
+      source = JSON.parse(source);
+    } catch {
+      return {};
+    }
+  }
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return {};
+  }
+  const obj = source as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+  if (typeof obj.artworkIcon === "string" && obj.artworkIcon.trim()) {
+    sanitized.artworkIcon = obj.artworkIcon.trim();
+  }
+  if (
+    obj.serviceConfig &&
+    typeof obj.serviceConfig === "object" &&
+    !Array.isArray(obj.serviceConfig)
+  ) {
+    const rawSvc = obj.serviceConfig as Record<string, unknown>;
+    const serviceConfig: Record<string, unknown> = {};
+    if (typeof rawSvc.available === "boolean") {
+      serviceConfig.available = rawSvc.available;
+    }
+    if (typeof rawSvc.deliveryMode === "string" && rawSvc.deliveryMode.trim()) {
+      serviceConfig.deliveryMode = rawSvc.deliveryMode.trim();
+    }
+    if (typeof rawSvc.duration === "string" && rawSvc.duration.trim()) {
+      serviceConfig.duration = rawSvc.duration.trim();
+    }
+    if (Object.keys(serviceConfig).length > 0) {
+      sanitized.serviceConfig = serviceConfig;
+    }
+  }
+  return sanitized;
+}
 
 export const createItemSchema = z.object({
   categoryId: z.string().min(1).nullable().optional(),
@@ -65,8 +157,8 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
   const query = c.req.query();
   const db = createDb(c.env.DB);
 
-  const page = Math.max(1, parseInt(query.page || "1", 10));
-  const limit = Math.min(200, Math.max(1, parseInt(query.limit || "50", 10)));
+  const page = parseClampedInt(query.page, 1, 1, 100_000);
+  const limit = parseClampedInt(query.limit, 50, 1, 200);
   const offset = (page - 1) * limit;
 
   const isMerchant =
@@ -79,10 +171,10 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
   const reservedParams = new Set(["page", "limit", "category", "search", "minPrice", "maxPrice", "itemType", "sort", "includeAll"]);
 
   // Extract dynamic attribute filters from query string (e.g. ?brand=Samsung&screen_size=55)
-  const dynamicFilters: Record<string, string> = {};
+  const dynamicFilters = new Map<string, string>();
   for (const [key, val] of Object.entries(query)) {
     if (!reservedParams.has(key) && val) {
-      dynamicFilters[key] = val;
+      dynamicFilters.set(key, val);
     }
   }
 
@@ -135,8 +227,10 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
   }
 
   // In-memory filter for dynamic JSON attributes and client search
+  const canViewInternalMetadata = isTenantMerchantUser(user, tenant.id);
   let filtered = rawList.map((i) => ({
     ...i,
+    metadata: canViewInternalMetadata ? i.metadata : sanitizePublicItemMetadata(i.metadata),
     variants: variantsByItem.get(i.id) || [],
   }));
 
@@ -156,11 +250,11 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
   // Filter by Price range
   if (query.minPrice) {
     const min = parseInt(query.minPrice, 10);
-    if (!isNaN(min)) filtered = filtered.filter((i) => i.basePrice >= min);
+    if (Number.isFinite(min)) filtered = filtered.filter((i) => i.basePrice >= min);
   }
   if (query.maxPrice) {
     const max = parseInt(query.maxPrice, 10);
-    if (!isNaN(max)) filtered = filtered.filter((i) => i.basePrice <= max);
+    if (Number.isFinite(max)) filtered = filtered.filter((i) => i.basePrice <= max);
   }
 
   // Filter by item type (e.g. PHYSICAL or SERVICE)
@@ -179,10 +273,17 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
   }
 
   // Filter by dynamic attributes (e.g. brand, size, color, duration)
-  if (Object.keys(dynamicFilters).length > 0) {
+  if (dynamicFilters.size > 0) {
     filtered = filtered.filter((item) => {
-      const itemAttrs = (item.attributes as Record<string, unknown>) || {};
-      for (const [filterKey, filterValue] of Object.entries(dynamicFilters)) {
+      const rawAttrs = item.attributes;
+      if (!rawAttrs || typeof rawAttrs !== "object" || Array.isArray(rawAttrs)) {
+        return false;
+      }
+      const itemAttrs = rawAttrs as Record<string, unknown>;
+      for (const [filterKey, filterValue] of dynamicFilters.entries()) {
+        if (DISALLOWED_FILTER_KEYS.has(filterKey) || !Object.hasOwn(itemAttrs, filterKey)) {
+          return false;
+        }
         const itemVal = itemAttrs[filterKey];
         if (itemVal === undefined || itemVal === null) return false;
 
@@ -214,18 +315,24 @@ itemsRouter.get("/", authMiddleware(false), async (c) => {
 });
 
 // Get Single Item with Variants
-itemsRouter.get("/:slug", async (c) => {
+itemsRouter.get("/:slug", authMiddleware(false), async (c) => {
   const tenant = c.get("tenant")!;
+  const user = c.get("user");
   const slug = c.req.param("slug");
   const db = createDb(c.env.DB);
+  const isMerchant = isTenantMerchantUser(user, tenant.id);
 
   const [item] = await db
     .select()
     .from(items)
-    .where(and(eq(items.tenantId, tenant.id), eq(items.slug, slug)))
+    .where(
+      isMerchant
+        ? and(eq(items.tenantId, tenant.id), eq(items.slug, slug))
+        : and(eq(items.tenantId, tenant.id), eq(items.slug, slug), eq(items.status, "PUBLISHED"))
+    )
     .limit(1);
 
-  if (!item) {
+  if (!item || (!isMerchant && item.status !== "PUBLISHED")) {
     throw new AppError("Item not found.", 404, "ITEM_NOT_FOUND");
   }
 
@@ -234,6 +341,18 @@ itemsRouter.get("/:slug", async (c) => {
     .select()
     .from(itemVariants)
     .where(and(eq(itemVariants.tenantId, tenant.id), eq(itemVariants.itemId, item.id)));
+
+  if (!isMerchant) {
+    const { costPrice: _costPrice, barcode: _barcode, ...publicItem } = item;
+    return c.json({
+      success: true,
+      data: {
+        ...publicItem,
+        metadata: sanitizePublicItemMetadata(item.metadata),
+        variants,
+      },
+    });
+  }
 
   return c.json({
     success: true,
@@ -433,7 +552,32 @@ itemsRouter.put(
     const updateData: Record<string, unknown> = { updatedAt: new Date() };
     if (!existing.sku) updateData.sku = sku;
     if (body.title !== undefined) updateData.title = body.title;
-    if (body.slug !== undefined) updateData.slug = slugify(body.slug);
+    if (body.slug !== undefined) {
+      const nextSlug = slugify(body.slug);
+      if (!nextSlug) {
+        throw new AppError("Slug cannot be empty.", 400, "INVALID_SLUG");
+      }
+      const [slugConflict] = await db
+        .select({ id: items.id })
+        .from(items)
+        .where(
+          and(
+            eq(items.tenantId, tenant.id),
+            eq(items.slug, nextSlug),
+            ne(items.id, id)
+          )
+        )
+        .limit(1);
+
+      if (slugConflict) {
+        throw new AppError(
+          `An item with slug "${nextSlug}" already exists.`,
+          409,
+          "SLUG_TAKEN"
+        );
+      }
+      updateData.slug = nextSlug;
+    }
     if (body.description !== undefined) updateData.description = body.description;
     if (body.itemType !== undefined) updateData.itemType = body.itemType;
     if (body.basePrice !== undefined) updateData.basePrice = body.basePrice;

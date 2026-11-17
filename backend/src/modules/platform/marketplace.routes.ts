@@ -29,6 +29,7 @@ import {
   checkoutSchema,
   createOrderForTenant,
 } from "../orders/checkout.service";
+import { sanitizePublicTenantSettings } from "./platform.routes";
 
 export const marketplaceRouter = new Hono<AppEnv>();
 
@@ -57,7 +58,12 @@ export async function readPlatformGoogleUser(
 
 export function assertAllowedPlatformOrigin(c: Context<AppEnv>): void {
   const originHeader = c.req.header("origin") || c.req.header("referer");
-  if (!originHeader) return;
+  if (!originHeader) {
+    if (c.req.header("sec-fetch-site") === "same-origin") {
+      return;
+    }
+    throw new AppError("Origin is required for platform mutations.", 403, "FORBIDDEN_ORIGIN");
+  }
 
   try {
     const parsed = new URL(originHeader);
@@ -76,9 +82,7 @@ export function assertAllowedPlatformOrigin(c: Context<AppEnv>): void {
 
     const isAllowed =
       parsed.protocol === "https:" &&
-      (hostname === primaryDomain ||
-        hostname === `www.${primaryDomain}` ||
-        hostname.endsWith(`.${primaryDomain}`));
+      (hostname === primaryDomain || hostname === `www.${primaryDomain}`);
 
     if (!isAllowed) {
       throw new AppError("Origin is not authorized for platform requests.", 403, "FORBIDDEN_ORIGIN");
@@ -201,7 +205,17 @@ marketplaceRouter.get(
           ) / 10
         : 0;
 
-    const settings = (row.tenant.settings || {}) as Record<string, unknown>;
+    const rawSettings =
+      row.tenant.settings &&
+      typeof row.tenant.settings === "object" &&
+      !Array.isArray(row.tenant.settings)
+        ? (row.tenant.settings as Record<string, unknown>)
+        : {};
+    const settings = sanitizePublicTenantSettings(row.tenant.settings);
+    const socialLinks =
+      settings.socialLinks && typeof settings.socialLinks === "object"
+        ? (settings.socialLinks as Record<string, unknown>)
+        : {};
     const locMeta = locationRows[0];
     const mpesaEnabled = Boolean(paymentRows[0]?.isEnabled);
 
@@ -243,8 +257,17 @@ marketplaceRouter.get(
           logoUrl:
             typeof settings.logoUrl === "string" ? settings.logoUrl : null,
           whatsapp:
-            typeof settings.whatsapp === "string" ? settings.whatsapp : null,
-          phone: typeof settings.phone === "string" ? settings.phone : null,
+            typeof socialLinks.whatsapp === "string"
+              ? socialLinks.whatsapp
+              : typeof rawSettings.whatsapp === "string"
+              ? rawSettings.whatsapp
+              : null,
+          phone:
+            typeof settings.contactPhone === "string"
+              ? settings.contactPhone
+              : typeof rawSettings.phone === "string"
+              ? rawSettings.phone
+              : null,
           mpesaEnabled,
         },
       },
@@ -256,9 +279,12 @@ marketplaceRouter.get(
 marketplaceRouter.post(
   "/checkout",
   rateLimiter({ max: 20, windowMs: 60 * 1000 }),
+  async (c, next) => {
+    assertAllowedPlatformOrigin(c);
+    await next();
+  },
   zValidator("json", platformCheckoutSchema),
   async (c) => {
-    assertAllowedPlatformOrigin(c);
     const body = c.req.valid("json");
     if (!c.env?.DB) throw new AppError("Database not ready.", 500);
     const db = createDb(c.env.DB);

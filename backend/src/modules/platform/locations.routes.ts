@@ -3,6 +3,12 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
+import { AppError } from "../../security/error-handler";
+import { rateLimiter } from "../../security/rate-limiter";
+import {
+  assertAllowedPlatformOrigin,
+  readPlatformGoogleUser,
+} from "./marketplace.routes";
 import {
   autocompleteGooglePlacesKenya,
   formatLocationLabel,
@@ -24,18 +30,18 @@ import {
 export const locationsRouter = new Hono<AppEnv>();
 
 const googleAutocompleteSchema = z.object({
-  query: z.string().trim().min(2, "Enter at least 2 characters").max(120),
-  countyId: z.string().optional(),
-  constituencyId: z.string().optional(),
-  sessionToken: z.string().max(128).optional(),
+  query: z.string().trim().min(2, "Enter at least 2 characters").max(100),
+  countyId: z.string().trim().max(64).optional(),
+  constituencyId: z.string().trim().max(64).optional(),
+  sessionToken: z.string().trim().regex(/^[A-Za-z0-9_-]{8,128}$/).optional(),
 });
 
 const resolveLocationSchema = z
   .object({
-    countyId: z.string().min(1, "County is required"),
-    constituencyId: z.string().optional(),
-    locationId: z.string().optional(),
-    googlePlaceId: z.string().optional(),
+    countyId: z.string().trim().min(1, "County is required").max(64),
+    constituencyId: z.string().trim().max(64).optional(),
+    locationId: z.string().trim().max(64).optional(),
+    googlePlaceId: z.string().trim().max(160).optional(),
     customLocationName: z.string().trim().min(2).max(80).optional(),
   })
   .refine(
@@ -188,9 +194,11 @@ locationsRouter.get("/google-status", (c) => {
 /**
  * POST /api/platform/locations/google-autocomplete
  * Proxies Kenyan place/shopping-centre autocomplete via Places API (New).
+ * Protected by rate limiting, platform Origin check, and Google SSO session.
  */
 locationsRouter.post(
   "/google-autocomplete",
+  rateLimiter({ max: 15, windowMs: 60 * 1000, binding: "SENSITIVE_RATE_LIMITER" }),
   zValidator("json", googleAutocompleteSchema),
   async (c) => {
     const apiKey = c.env?.GOOGLE_MAPS_API_KEY?.trim();
@@ -202,6 +210,16 @@ locationsRouter.post(
           configured: false,
         },
         503
+      );
+    }
+
+    assertAllowedPlatformOrigin(c);
+    const googleUser = await readPlatformGoogleUser(c);
+    if (!googleUser) {
+      throw new AppError(
+        "Please sign in with Google to search locations.",
+        401,
+        "UNAUTHORIZED"
       );
     }
 
@@ -251,11 +269,23 @@ locationsRouter.post(
 /**
  * POST /api/platform/locations/resolve-location
  * Resolves a location selection (DB ID, Google Place ID, or custom centre) and returns its neighbor graph.
+ * Protected by strict rate limiting, platform Origin check, and Google SSO session.
  */
 locationsRouter.post(
   "/resolve-location",
+  rateLimiter({ max: 10, windowMs: 60 * 1000, binding: "AUTH_RATE_LIMITER" }),
   zValidator("json", resolveLocationSchema),
   async (c) => {
+    assertAllowedPlatformOrigin(c);
+    const googleUser = await readPlatformGoogleUser(c);
+    if (!googleUser) {
+      throw new AppError(
+        "Please sign in with Google to resolve or register a location.",
+        401,
+        "UNAUTHORIZED"
+      );
+    }
+
     const body = c.req.valid("json");
 
     if (body.locationId) {

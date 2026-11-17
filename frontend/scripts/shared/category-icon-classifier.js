@@ -617,8 +617,10 @@
       .join("");
   }
 
+  const LUCIDE_ICON_NAME_RE = /^[a-z0-9-]+$/;
+
   function isValidLucideIcon(name) {
-    if (!name) return false;
+    if (typeof name !== "string" || !LUCIDE_ICON_NAME_RE.test(name)) return false;
     const registry = root.lucide && root.lucide.icons;
     if (!registry) return true;
     return Boolean(registry[name] || registry[toPascalCase(name)]);

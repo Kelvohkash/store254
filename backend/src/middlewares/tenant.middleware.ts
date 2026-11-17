@@ -23,15 +23,17 @@ export interface TenantLookup {
 export function resolveTenantLookup(
   hostname: string,
   primaryDomain: string,
-  requestedSlug: string | undefined
+  requestedSlug: string | undefined,
+  isDevelopment = true
 ): TenantLookup {
   const normalizedHost = hostname.toLowerCase();
   const normalizedDomain = primaryDomain.toLowerCase();
   const apiHost = `api.${normalizedDomain}`;
-  const isLocalHost =
+  const isAnyLocalHost =
     normalizedHost === "localhost" ||
     normalizedHost === "127.0.0.1" ||
     normalizedHost.endsWith(".localhost");
+  const isLocalHost = isDevelopment && isAnyLocalHost;
   const isSharedApiHost =
     normalizedHost === apiHost ||
     normalizedHost === "api.internal";
@@ -46,7 +48,7 @@ export function resolveTenantLookup(
   }
 
   // Local development subdomains without explicit selector (e.g. alicebabycare.localhost)
-  if (normalizedHost.endsWith(".localhost")) {
+  if (isDevelopment && normalizedHost.endsWith(".localhost")) {
     const localSub = normalizedHost.slice(0, -".localhost".length);
     if (localSub && localSub !== "www" && localSub !== "api") {
       return {
@@ -69,7 +71,7 @@ export function resolveTenantLookup(
     normalizedHost &&
     normalizedHost !== normalizedDomain &&
     normalizedHost !== "api.internal" &&
-    !isLocalHost
+    !isAnyLocalHost
   ) {
     return { resolvedSubdomain: null, resolvedCustomDomain: normalizedHost };
   }
@@ -88,14 +90,16 @@ export function tenantMiddleware(
 ): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
-    const hostHeader =
-      c.req.header("x-forwarded-host") || c.req.header("host") || "";
+    const isDevelopment = c.env?.ENVIRONMENT === "development";
+    // Resolve host strictly from Host header (never trust spoofable X-Forwarded-Host)
+    const hostHeader = c.req.header("host") || new URL(c.req.url).host || "";
     const hostname = hostHeader.split(":")[0].toLowerCase();
 
     const { resolvedSubdomain, resolvedCustomDomain } = resolveTenantLookup(
       hostname,
       primaryDomain,
-      c.req.header("x-tenant-slug")
+      c.req.header("x-tenant-slug"),
+      isDevelopment
     );
 
     // Root platform request (e.g. www.store254.co.ke, or platform landing/registration)
@@ -152,7 +156,7 @@ export function tenantMiddleware(
 
     const requestPath = new URL(c.req.url).pathname;
     const requestMethod = c.req.method.toUpperCase();
-    const suspendedPaymentPath =
+    const restrictedStatusPath =
       (requestPath === "/api/auth/login" && requestMethod === "POST") ||
       (requestPath === "/api/auth/me" && requestMethod === "GET") ||
       (requestPath === "/api/auth/logout" && requestMethod === "POST") ||
@@ -160,7 +164,19 @@ export function tenantMiddleware(
       (requestPath === "/api/billing/subscription/payment-prompt" && requestMethod === "POST") ||
       (/^\/api\/billing\/subscription\/payments\/[^/]+$/.test(requestPath) && requestMethod === "GET");
 
-    if (tenant.status === "SUSPENDED" && !suspendedPaymentPath) {
+    if ((tenant.status === "SUSPENDED" || tenant.status === "PENDING") && !restrictedStatusPath) {
+      if (tenant.status === "PENDING") {
+        throw new AppError(
+          `The storefront "${tenant.name}" (${tenant.subdomain}.store254.co.ke) is pending activation. Store254 marketplace services remain online.`,
+          403,
+          "TENANT_PENDING",
+          {
+            storeName: tenant.name,
+            subdomain: tenant.subdomain,
+            customDomain: tenant.customDomain || null,
+          }
+        );
+      }
       throw new AppError(
         `The storefront "${tenant.name}" (${tenant.subdomain}.store254.co.ke) is temporarily paused. Store254 marketplace services remain online.`,
         403,

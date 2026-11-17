@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { createDb } from "../db";
 import { users } from "../db/schema/users";
 import { tenants } from "../db/schema/tenants";
@@ -41,8 +41,13 @@ const ROLE_PRIORITY: Record<string, number> = {
 
 export async function findMerchantStoresByEmail(
   db: StoreDb,
-  email: string | undefined | null
+  email: string | undefined | null,
+  options?: { emailVerified?: boolean }
 ): Promise<{ stores: UserStoreSummary[]; activeStore: UserStoreSummary | null }> {
+  if (options?.emailVerified === false) {
+    return { stores: [], activeStore: null };
+  }
+
   const normalizedEmail = typeof email === "string" ? email.toLowerCase().trim() : "";
   if (!normalizedEmail) {
     return { stores: [], activeStore: null };
@@ -72,7 +77,8 @@ export async function findMerchantStoresByEmail(
       and(
         sql`lower(${users.email}) = ${normalizedEmail}`,
         inArray(users.role, ["OWNER", "ADMIN", "STAFF"]),
-        eq(users.status, "ACTIVE")
+        eq(users.status, "ACTIVE"),
+        isNotNull(users.emailVerifiedAt)
       )
     );
 

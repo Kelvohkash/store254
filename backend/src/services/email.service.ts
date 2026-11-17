@@ -3,12 +3,30 @@
  * Official Platform Sender: recovery@store254.co.ke
  */
 
+/**
+ * Gmail SMTP credentials. These MUST come from environment/secret bindings
+ * (e.g. `npx wrangler secret put GMAIL_SMTP_PASS`) and never be hardcoded.
+ */
+export interface SmtpCredentials {
+  user?: string;
+  pass?: string;
+  sender?: string;
+}
+
+/** Subset of Worker bindings / process.env used to resolve SMTP credentials. */
+export interface SmtpEnvSource {
+  GMAIL_SMTP_USER?: string;
+  GMAIL_SMTP_PASS?: string;
+  GMAIL_SENDER?: string;
+}
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
   from?: string;
   apiKey?: string;
+  smtp?: SmtpCredentials;
   redactInLogs?: string[];
 }
 
@@ -21,11 +39,11 @@ function escapeHtml(value: string | undefined | null): string {
     .replace(/'/g, "&#39;");
 }
 
-function sanitizeHttpsUrl(url: string | undefined | null): string | null {
+export function sanitizeHttpsUrl(url: string | undefined | null): string | null {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+    if (parsed.protocol === "https:") {
       return escapeHtml(parsed.toString());
     }
   } catch {
@@ -34,10 +52,91 @@ function sanitizeHttpsUrl(url: string | undefined | null): string | null {
   return null;
 }
 
+/**
+ * Strips CR, LF, and ASCII control characters from email header values to prevent MIME header injection.
+ */
+export function sanitizeEmailHeader(value: string | undefined | null): string {
+  return String(value ?? "")
+    .replace(/[\r\n\x00-\x1f\x7f]/g, "")
+    .trim();
+}
+
+/**
+ * Validates a single recipient/sender email address and rejects newlines, whitespace, angle brackets, or control chars.
+ */
+export function isValidEmailAddress(email: string | undefined | null): boolean {
+  if (typeof email !== "string") return false;
+  if (email.length === 0 || email.length > 254) return false;
+  if (/[\r\n\s\x00-\x1f\x7f<>",;:\\]/.test(email)) return false;
+  const atIndex = email.indexOf("@");
+  if (atIndex <= 0 || atIndex !== email.lastIndexOf("@")) return false;
+  const local = email.slice(0, atIndex);
+  const domain = email.slice(atIndex + 1);
+  if (local.length > 64 || !domain.includes(".") || domain.startsWith(".") || domain.endsWith(".")) {
+    return false;
+  }
+  return true;
+}
+
+function buildResetLinkRedactions(resetLink: string, safeLink: string, otpCode: string): string[] {
+  const redactions = new Set<string>();
+  if (otpCode) redactions.add(otpCode);
+  if (resetLink) redactions.add(resetLink);
+  if (safeLink && safeLink !== "#") redactions.add(safeLink);
+
+  try {
+    const parsed = new URL(resetLink);
+    const normalized = parsed.toString();
+    redactions.add(normalized);
+    redactions.add(escapeHtml(normalized));
+    if (parsed.search) {
+      redactions.add(parsed.search);
+      redactions.add(escapeHtml(parsed.search));
+    }
+    parsed.searchParams.forEach((value, key) => {
+      if (value && /token|secret|otp|code|key|auth|reset/i.test(key)) {
+        redactions.add(value);
+        redactions.add(encodeURIComponent(value));
+        redactions.add(escapeHtml(value));
+      }
+    });
+  } catch {
+    // Ignore invalid URLs; raw resetLink is already included above
+  }
+
+  return Array.from(redactions);
+}
+
 export class EmailService {
   private static DEFAULT_SENDER = "Store254 Security <password_recovery@store254.co.ke>";
-  private static DEFAULT_SMTP_USER = "REMOVED_SMTP_USER";
-  private static DEFAULT_SMTP_PASS = "REMOVED_SMTP_PASS";
+
+  /**
+   * Builds SMTP credentials from Worker bindings (`c.env`). Cloudflare Workers do not
+   * populate `process.env` from secrets for this compatibility date, so callers should
+   * pass `smtp: EmailService.smtpFromEnv(c.env)` explicitly.
+   */
+  public static smtpFromEnv(env?: SmtpEnvSource | null): SmtpCredentials {
+    return {
+      user: env?.GMAIL_SMTP_USER,
+      pass: env?.GMAIL_SMTP_PASS,
+      sender: env?.GMAIL_SENDER,
+    };
+  }
+
+  /**
+   * Resolves SMTP credentials from explicit options first, then `process.env` (Node.js / scripts).
+   * Returns null when credentials are not configured so SMTP delivery is skipped.
+   */
+  private static resolveSmtpCredentials(explicit?: SmtpCredentials): { user: string; pass: string; sender?: string } | null {
+    const proc = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
+    const user = explicit?.user || proc?.env?.GMAIL_SMTP_USER;
+    const rawPass = explicit?.pass || proc?.env?.GMAIL_SMTP_PASS;
+    const sender = explicit?.sender || proc?.env?.GMAIL_SENDER;
+    if (!user || !rawPass) {
+      return null;
+    }
+    return { user, pass: rawPass.replace(/\s+/g, ""), sender: sender || undefined };
+  }
 
   /**
    * Unified SMTP Socket interface supporting both Cloudflare Workers (cloudflare:sockets)
@@ -157,6 +256,36 @@ export class EmailService {
   }
 
   /**
+   * Builds a MIME email message with all header fields sanitized against CRLF/control-char injection.
+   */
+  public static buildMimeMessage(options: {
+    from: string;
+    replyTo?: string;
+    to: string;
+    subject: string;
+    html: string;
+  }): string {
+    const safeFrom = sanitizeEmailHeader(options.from) || this.DEFAULT_SENDER;
+    const safeReplyTo = sanitizeEmailHeader(options.replyTo ?? safeFrom) || safeFrom;
+    const safeTo = sanitizeEmailHeader(options.to);
+    const safeSubject = sanitizeEmailHeader(options.subject);
+    const normalizedHtml = options.html.replace(/\r?\n/g, "\r\n");
+
+    return [
+      `From: ${safeFrom}`,
+      `Reply-To: ${safeReplyTo}`,
+      `To: ${safeTo}`,
+      `Subject: ${safeSubject}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: text/html; charset=utf-8`,
+      ``,
+      normalizedHtml,
+      `.`,
+      ``,
+    ].join("\r\n");
+  }
+
+  /**
    * Dispatches an email via direct Gmail SMTP over TLS on port 465
    */
   private static async sendViaGmailSmtp(options: {
@@ -164,12 +293,27 @@ export class EmailService {
     subject: string;
     html: string;
     from?: string;
+    replyTo?: string;
+    smtp?: SmtpCredentials;
   }): Promise<boolean> {
-    const proc = (globalThis as unknown as { process?: { env?: Record<string, string> } }).process;
-    const user = (typeof proc !== "undefined" && proc?.env?.GMAIL_SMTP_USER) || this.DEFAULT_SMTP_USER;
-    const rawPass = (typeof proc !== "undefined" && proc?.env?.GMAIL_SMTP_PASS) || this.DEFAULT_SMTP_PASS;
-    const pass = rawPass.replace(/\s+/g, "");
-    const from = options.from || (typeof proc !== "undefined" && proc?.env?.GMAIL_SENDER) || this.DEFAULT_SENDER;
+    if (!isValidEmailAddress(options.to)) {
+      console.warn("[EmailService] Invalid recipient email address; aborting SMTP delivery.");
+      return false;
+    }
+
+    const creds = this.resolveSmtpCredentials(options.smtp);
+    if (!creds) {
+      console.warn("[EmailService] Gmail SMTP not configured (GMAIL_SMTP_USER / GMAIL_SMTP_PASS missing); skipping SMTP delivery.");
+      return false;
+    }
+    const { user, pass } = creds;
+    if (!isValidEmailAddress(user)) {
+      console.warn("[EmailService] Invalid SMTP user address; aborting SMTP delivery.");
+      return false;
+    }
+    const from = sanitizeEmailHeader(options.from || creds.sender || this.DEFAULT_SENDER) || this.DEFAULT_SENDER;
+    const subject = sanitizeEmailHeader(options.subject);
+    const replyTo = sanitizeEmailHeader(options.replyTo || from) || from;
 
     try {
       const socket = await this.createSmtpSocket();
@@ -241,7 +385,8 @@ export class EmailService {
 
       // Extract email address from from header (e.g. "Store254 Security <password_recovery@store254.co.ke>")
       const senderMatch = from.match(/<([^>]+)>/);
-      const preferredSender = senderMatch ? senderMatch[1] : (from.includes("@") ? from.trim() : user);
+      const candidateSender = senderMatch ? senderMatch[1].trim() : from.trim();
+      const preferredSender = isValidEmailAddress(candidateSender) ? candidateSender : user;
 
       await socket.write(`MAIL FROM:<${preferredSender}>\r\n`);
       let mailFrom = await readResponse();
@@ -269,19 +414,13 @@ export class EmailService {
         return false;
       }
 
-      const normalizedHtml = options.html.replace(/\r?\n/g, "\r\n");
-      const mimeMsg = [
-        `From: ${from}`,
-        `Reply-To: ${from}`,
-        `To: ${options.to}`,
-        `Subject: ${options.subject}`,
-        `MIME-Version: 1.0`,
-        `Content-Type: text/html; charset=utf-8`,
-        ``,
-        normalizedHtml,
-        `.`,
-        ``
-      ].join("\r\n");
+      const mimeMsg = this.buildMimeMessage({
+        from,
+        replyTo,
+        to: options.to,
+        subject,
+        html: options.html,
+      });
 
       await socket.write(mimeMsg);
       const dataResult = await readResponse();
@@ -308,7 +447,13 @@ export class EmailService {
    * Dispatches an email via Resend (preferred when apiKey is configured), Gmail SMTP fallback, or local logger
    */
   public static async send(options: SendEmailOptions): Promise<boolean> {
-    const from = options.from || this.DEFAULT_SENDER;
+    if (!isValidEmailAddress(options.to)) {
+      console.warn("[EmailService] Invalid recipient email address; aborting email send.");
+      return false;
+    }
+
+    const from = sanitizeEmailHeader(options.from || this.DEFAULT_SENDER) || this.DEFAULT_SENDER;
+    const subject = sanitizeEmailHeader(options.subject);
 
     // In automated tests, skip outbound network/SMTP so tests can assert local logging and redaction
     const proc = (globalThis as unknown as { process?: { env?: Record<string, string> } }).process;
@@ -333,7 +478,7 @@ export class EmailService {
             from,
             reply_to: "support@store254.co.ke",
             to: [options.to],
-            subject: options.subject,
+            subject,
             html: options.html,
             text: plainText,
           }),
@@ -353,22 +498,24 @@ export class EmailService {
     if (!isTest) {
       const smtpSuccess = await this.sendViaGmailSmtp({
         to: options.to,
-        subject: options.subject,
+        subject,
         html: options.html,
         from,
+        smtp: options.smtp,
       });
       if (smtpSuccess) {
         return true;
       }
     }
 
-    let safeSubject = options.subject;
+    let safeSubject = subject;
     let safeBody = options.html.replace(/<[^>]+>/g, " ");
-    for (const secret of options.redactInLogs || []) {
-      if (secret) {
-        safeSubject = safeSubject.split(secret).join("[REDACTED]");
-        safeBody = safeBody.split(secret).join("[REDACTED]");
-      }
+    const redactions = Array.from(new Set((options.redactInLogs || []).filter(Boolean))).sort(
+      (a, b) => b.length - a.length
+    );
+    for (const secret of redactions) {
+      safeSubject = safeSubject.split(secret).join("[REDACTED]");
+      safeBody = safeBody.split(secret).join("[REDACTED]");
     }
 
     // Default development & test mode: Output to console with sensitive tokens redacted
@@ -395,6 +542,7 @@ ${safeBody}
     otpCode: string;
     expiresMinutes: number;
     apiKey?: string;
+    smtp?: SmtpCredentials;
   }): Promise<boolean> {
     const safeName = escapeHtml(params.fullName);
     const safeOtp = escapeHtml(params.otpCode);
@@ -452,10 +600,11 @@ ${safeBody}
 
     return this.send({
       to: params.to,
-      subject: `[Store254] Your Password Reset OTP: ${params.otpCode}`,
+      subject: `[Store254] Your Password Reset OTP: ${sanitizeEmailHeader(params.otpCode)}`,
       html,
       from: "Store254 Security <password_recovery@store254.co.ke>",
       apiKey: params.apiKey,
+      smtp: params.smtp,
       redactInLogs: [params.otpCode],
     });
   }
@@ -471,10 +620,11 @@ ${safeBody}
     expiresMinutes: number;
     storeName?: string;
     apiKey?: string;
+    smtp?: SmtpCredentials;
   }): Promise<boolean> {
     const safeName = escapeHtml(params.fullName);
     const safeOtp = escapeHtml(params.otpCode);
-    const safeLink = sanitizeHttpsUrl(params.resetLink) || escapeHtml(params.resetLink);
+    const safeLink = sanitizeHttpsUrl(params.resetLink) || "#";
     const safeStore = escapeHtml(params.storeName || "Store254");
 
     const html = `
@@ -543,8 +693,9 @@ ${safeBody}
       subject: `[Store254] Reset Your Password`,
       html,
       from: "Store254 Security <password_recovery@store254.co.ke>",
-      redactInLogs: [params.otpCode],
+      redactInLogs: buildResetLinkRedactions(params.resetLink, safeLink, params.otpCode),
       apiKey: params.apiKey,
+      smtp: params.smtp,
     });
   }
 
@@ -557,6 +708,7 @@ ${safeBody}
     subdomain: string;
     primaryDomain: string;
     apiKey?: string;
+    smtp?: SmtpCredentials;
   }): Promise<boolean> {
     const safeStoreName = escapeHtml(params.storeName);
     const safeSubdomain = escapeHtml(params.subdomain);
@@ -598,10 +750,11 @@ ${safeBody}
 
     return this.send({
       to: params.to,
-      subject: `[Store254] Application Received for ${params.storeName} (Pending Review)`,
+      subject: `[Store254] Application Received for ${sanitizeEmailHeader(params.storeName)} (Pending Review)`,
       html,
       from: "Store254 Onboarding <welcome@store254.co.ke>",
       apiKey: params.apiKey,
+      smtp: params.smtp,
     });
   }
 
@@ -614,9 +767,11 @@ ${safeBody}
     subdomain: string;
     primaryDomain: string;
     apiKey?: string;
+    smtp?: SmtpCredentials;
   }): Promise<boolean> {
     const safeStoreName = escapeHtml(params.storeName);
     const storeUrl = sanitizeHttpsUrl(`https://${params.subdomain}.${params.primaryDomain}`) || "#";
+    const adminUrl = storeUrl === "#" ? "#" : `${storeUrl}/admin`;
     const html = `
     <!DOCTYPE html>
     <html>
@@ -645,7 +800,7 @@ ${safeBody}
           <p>Your online store is now accessible to customers at:</p>
           <p><a href="${storeUrl}" style="color: #2563eb; font-weight: 600; font-size: 16px;">${storeUrl}</a></p>
           
-          <a href="${storeUrl}/admin" class="btn">Access Merchant Dashboard</a>
+          <a href="${adminUrl}" class="btn">Access Merchant Dashboard</a>
           
           <p>Next steps:</p>
           <ol>
@@ -663,10 +818,11 @@ ${safeBody}
 
     return this.send({
       to: params.to,
-      subject: `[Store254] 🎉 Your store ${params.storeName} has been activated!`,
+      subject: `[Store254] 🎉 Your store ${sanitizeEmailHeader(params.storeName)} has been activated!`,
       html,
       from: "Store254 Team <support@store254.co.ke>",
       apiKey: params.apiKey,
+      smtp: params.smtp,
     });
   }
 
@@ -684,6 +840,7 @@ ${safeBody}
     trackingUrl?: string;
     notes?: string;
     apiKey?: string;
+    smtp?: SmtpCredentials;
   }): Promise<boolean> {
     const safeStoreName = escapeHtml(params.storeName);
     const safeCustomerName = escapeHtml(params.customerName);
@@ -737,12 +894,14 @@ ${safeBody}
     </html>
     `;
 
+    const safeFromStoreName = sanitizeEmailHeader(params.storeName).replace(/["<>]/g, "").trim() || "Store254";
     return this.send({
       to: params.to,
-      subject: `[${params.storeName}] Update on Order #${params.orderNumber}: ${params.status}`,
+      subject: `[${sanitizeEmailHeader(params.storeName)}] Update on Order #${sanitizeEmailHeader(params.orderNumber)}: ${sanitizeEmailHeader(params.status)}`,
       html,
-      from: `${params.storeName.replace(/["<>]/g, "")} Orders <orders@store254.co.ke>`,
+      from: `${safeFromStoreName} Orders <orders@store254.co.ke>`,
       apiKey: params.apiKey,
+      smtp: params.smtp,
     });
   }
 }

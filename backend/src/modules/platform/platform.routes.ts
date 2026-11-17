@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, gt } from "drizzle-orm";
+import { eq, and, desc, gt, lt, isNull, inArray, sql } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
@@ -41,6 +41,66 @@ import { extractMediaReference } from "../../services/copyright-takedown.service
 
 export const platformRouter = new Hono<AppEnv>();
 
+const PUBLIC_TENANT_SETTINGS_KEYS = new Set([
+  "logoUrl",
+  "bannerUrl",
+  "heroBannerUrl",
+  "tagline",
+  "description",
+  "contactEmail",
+  "contactPhone",
+  "physicalAddress",
+  "businessHours",
+  "socialLinks",
+  "location",
+  "theme",
+  "primaryColor",
+  "backgroundColor",
+  "themePalette",
+  "storefrontArchetype",
+  "headingFont",
+  "productImageRatio",
+  "heroStyle",
+  "heroFocalPoint",
+  "cardDensity",
+  "sectionVisibility",
+  "headerVariant",
+  "productCardStyle",
+]);
+
+/**
+ * Strips internal tenant settings (such as staffPermissions) so public directory
+ * endpoints only expose storefront branding, contact, and location metadata.
+ */
+export function sanitizePublicTenantSettings(raw: unknown): Record<string, unknown> {
+  let source: unknown = raw;
+  if (typeof source === "string") {
+    try {
+      source = JSON.parse(source);
+    } catch {
+      return {};
+    }
+  }
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return {};
+  }
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(source as Record<string, unknown>)) {
+    if (PUBLIC_TENANT_SETTINGS_KEYS.has(key)) {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+
+function resolveCanonicalPlatformOrigin(primaryDomainEnv?: string): string {
+  const rawDomain = (primaryDomainEnv || "store254.co.ke").trim().toLowerCase();
+  const safePrimary = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(rawDomain)
+    ? rawDomain
+    : "store254.co.ke";
+  return `https://${safePrimary}`;
+}
+
 platformRouter.route("/locations", locationsRouter);
 platformRouter.route("/search", searchRouter);
 platformRouter.route("/marketplace", marketplaceRouter);
@@ -73,7 +133,8 @@ platformRouter.get("/me", async (c) => {
     try {
       storeSummary = await findMerchantStoresByEmail(
         createDb(c.env.DB),
-        googleUser.email
+        googleUser.email,
+        { emailVerified: Boolean(googleUser.emailVerified) }
       );
     } catch {
       storeSummary = { stores: [], activeStore: null };
@@ -96,8 +157,18 @@ platformRouter.get("/me", async (c) => {
   });
 });
 
-platformRouter.post("/logout", (c) => {
+platformRouter.post("/logout", async (c) => {
   assertAllowedPlatformOrigin(c);
+  if (c.env?.DB) {
+    const googleUser = await readPlatformGoogleUser(c);
+    if (googleUser?.email) {
+      const normalizedEmail = googleUser.email.toLowerCase().trim();
+      await createDb(c.env.DB)
+        .update(users)
+        .set({ tokenVersion: sql`${users.tokenVersion} + 1`, updatedAt: new Date() })
+        .where(sql`lower(${users.email}) = ${normalizedEmail}`);
+    }
+  }
   const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
   c.header("Set-Cookie", clearCustomerSessionCookie(primaryDomain), { append: true });
   return c.json({ success: true, message: "Signed out of Store254." });
@@ -141,7 +212,7 @@ const registerStoreSchema = z
 // Forgot Password Schemas
 const forgotPasswordSchema = z.object({
   email: z.string().email(),
-  clientOrigin: z.string().url().optional(),
+  clientOrigin: z.string().optional(),
 });
 
 const resetPasswordSchema = z.object({
@@ -206,7 +277,7 @@ platformRouter.get("/stores", async (c) => {
   const db = createDb(c.env.DB);
   let activeStores: Array<Record<string, unknown>> = [];
   try {
-    activeStores = await db
+    const rawStores = await db
       .select({
         id: tenants.id,
         name: tenants.name,
@@ -226,6 +297,11 @@ platformRouter.get("/stores", async (c) => {
       .where(eq(tenants.status, "ACTIVE"))
       .orderBy(desc(tenants.createdAt))
       .limit(50);
+
+    activeStores = rawStores.map((store) => ({
+      ...store,
+      settings: sanitizePublicTenantSettings(store.settings),
+    }));
   } catch {
     activeStores = [];
   }
@@ -342,7 +418,7 @@ platformRouter.post(
       },
     });
 
-    // 2. Create Owner User
+    // 2. Create Owner User (email already verified via Google SSO)
     await db.insert(users).values({
       id: userId,
       tenantId: tenantId,
@@ -350,8 +426,11 @@ platformRouter.post(
       passwordHash: hashedPassword,
       fullName: body.ownerFullName,
       phone: body.ownerPhone || null,
+      googleId: googleUser.sub,
       role: "OWNER",
       status: "ACTIVE",
+      emailVerifiedAt: new Date(),
+      tokenVersion: 0,
     });
 
     const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
@@ -365,6 +444,7 @@ platformRouter.post(
         subdomain: sanitizedSub,
         primaryDomain,
         apiKey: c.env?.RESEND_API_KEY,
+        smtp: EmailService.smtpFromEnv(c.env),
       });
     } catch (emailErr) {
       console.error("[Platform] Failed sending store pending email:", emailErr);
@@ -431,11 +511,16 @@ platformRouter.post(
       });
     }
 
-    // Invalidate any existing active OTPs for this email
+    // Invalidate any existing active platform OTPs for this email
     await db
       .update(passwordResetOtps)
       .set({ isUsed: true })
-      .where(eq(passwordResetOtps.email, normalizedEmail));
+      .where(
+        and(
+          eq(passwordResetOtps.email, normalizedEmail),
+          isNull(passwordResetOtps.tenantId)
+        )
+      );
 
     // Generate 6-digit numeric OTP and URL reset token
     const otp = generateNumericOtp(6);
@@ -444,26 +529,32 @@ platformRouter.post(
     const hashedToken = await hashOtp(resetToken);
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes validity
 
-    // Store URL token record
+    // Store URL token record (platform-scoped: tenantId = null)
     await db.insert(passwordResetOtps).values({
       id: generateUUID(),
+      tenantId: null,
       email: normalizedEmail,
       otpHash: hashedToken,
+      attempts: 0,
+      maxAttempts: 3,
       expiresAt,
       isUsed: false,
     });
 
-    // Store 6-digit OTP record
+    // Store 6-digit OTP record (platform-scoped: tenantId = null)
     await db.insert(passwordResetOtps).values({
       id: generateUUID(),
+      tenantId: null,
       email: normalizedEmail,
       otpHash: hashedOtp,
+      attempts: 0,
+      maxAttempts: 3,
       expiresAt,
       isUsed: false,
     });
 
-    const primaryDomain = c.env?.PRIMARY_DOMAIN || "store254.co.ke";
-    const origin = (c.req.valid("json") as any).clientOrigin || c.req.header("origin") || `https://${primaryDomain}`;
+    // SEC-03: Always construct reset links from canonical server-configured origin
+    const origin = resolveCanonicalPlatformOrigin(c.env?.PRIMARY_DOMAIN);
     const resetLink = `${origin}/admin.html?reset_token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(normalizedEmail)}`;
 
     // Send official recovery email with direct reset button & OTP
@@ -475,6 +566,7 @@ platformRouter.post(
       expiresMinutes: 30,
       storeName: "Store254 Platform",
       apiKey: c.env?.RESEND_API_KEY,
+      smtp: EmailService.smtpFromEnv(c.env),
     });
 
     return c.json({
@@ -506,15 +598,17 @@ platformRouter.post(
 
     const candidateCodes = [token, otp].filter(Boolean) as string[];
 
-    // Find active records
+    // Find active platform-scoped records (tenantId IS NULL) below attempt limit
     const activeRecords = await db
       .select()
       .from(passwordResetOtps)
       .where(
         and(
           eq(passwordResetOtps.email, normalizedEmail),
+          isNull(passwordResetOtps.tenantId),
           eq(passwordResetOtps.isUsed, false),
-          gt(passwordResetOtps.expiresAt, now)
+          gt(passwordResetOtps.expiresAt, now),
+          lt(passwordResetOtps.attempts, passwordResetOtps.maxAttempts)
         )
       )
       .orderBy(desc(passwordResetOtps.createdAt));
@@ -535,24 +629,62 @@ platformRouter.post(
     }
 
     if (!matchedRecord) {
+      const activeIds = activeRecords.map((r) => r.id);
+      if (activeIds.length > 0) {
+        await db
+          .update(passwordResetOtps)
+          .set({
+            attempts: sql`${passwordResetOtps.attempts} + 1`,
+            isUsed: sql`CASE WHEN ${passwordResetOtps.attempts} + 1 >= ${passwordResetOtps.maxAttempts} THEN 1 ELSE ${passwordResetOtps.isUsed} END`,
+          })
+          .where(
+            and(
+              inArray(passwordResetOtps.id, activeIds),
+              eq(passwordResetOtps.isUsed, false),
+              lt(passwordResetOtps.attempts, passwordResetOtps.maxAttempts)
+            )
+          );
+      }
       throw new AppError("Incorrect or expired recovery code.", 400, "INVALID_TOKEN");
     }
 
-    // Invalidate all tokens for this email
+    const [consumed] = await db
+      .update(passwordResetOtps)
+      .set({ isUsed: true })
+      .where(
+        and(
+          eq(passwordResetOtps.id, matchedRecord.id),
+          eq(passwordResetOtps.isUsed, false),
+          lt(passwordResetOtps.attempts, passwordResetOtps.maxAttempts)
+        )
+      )
+      .returning({ id: passwordResetOtps.id });
+
+    if (!consumed) {
+      throw new AppError("Invalid or expired password reset link.", 400, "INVALID_TOKEN");
+    }
+
+    // Invalidate all remaining platform-scoped tokens for this email
     await db
       .update(passwordResetOtps)
       .set({ isUsed: true })
-      .where(eq(passwordResetOtps.email, normalizedEmail));
+      .where(
+        and(
+          eq(passwordResetOtps.email, normalizedEmail),
+          isNull(passwordResetOtps.tenantId)
+        )
+      );
 
-    // Hash new password and update all matching user accounts for this email
+    // SEC-04: Scope password update strictly to OWNER accounts and rotate tokenVersion
     const newPasswordHash = await hashPassword(newPassword);
     await db
       .update(users)
       .set({
         passwordHash: newPasswordHash,
+        tokenVersion: sql`${users.tokenVersion} + 1`,
         updatedAt: new Date(),
       })
-      .where(eq(users.email, normalizedEmail));
+      .where(and(eq(users.email, normalizedEmail), eq(users.role, "OWNER")));
 
     return c.json({
       success: true,

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 import { tenants } from "./tenants";
 import { users } from "./users";
@@ -34,6 +35,8 @@ export const orders = sqliteTable(
       .notNull()
       .default("PENDING"),
     paymentMethod: text("payment_method").notNull().default("MPESA"),
+    inventoryDeducted: integer("inventory_deducted", { mode: "boolean" }).notNull().default(false),
+    statusTokenHash: text("status_token_hash"),
     // Fulfillment & Courier Tracking (e.g. Fargo Courier, Wells Fargo, G4S, Rider)
     fulfillmentDetails: text("fulfillment_details", { mode: "json" })
       .$type<{
@@ -144,7 +147,9 @@ export const payments = sqliteTable(
   },
   (table) => ({
     checkoutRequestIdx: index("payments_checkout_req_idx").on(table.checkoutRequestId),
-    mpesaReceiptIdx: index("payments_mpesa_receipt_idx").on(table.mpesaReceiptNumber),
+    mpesaReceiptUniqueIdx: uniqueIndex("payments_mpesa_receipt_unique_idx")
+      .on(table.mpesaReceiptNumber)
+      .where(sql`${table.mpesaReceiptNumber} IS NOT NULL`),
     tenantOrderIdx: index("payments_tenant_order_idx").on(table.tenantId, table.orderId),
   })
 );

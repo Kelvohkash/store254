@@ -108,20 +108,22 @@ function buildFacetDropdownHtml(facet) {
   const label = isActive
     ? `${facet.name}: ${selectedVals.length === 1 ? selectedVals[0] : `(${selectedVals.length})`}`
     : `${facet.name}`;
+  const safeFacetCode = escapeHtml(facet.code);
+  const safePopoverId = `popover-${safeFacetCode}`;
 
   return `
     <div class="relative inline-block text-left drilldown-facet-wrap shrink-0">
-      <button type="button" onclick="event.stopPropagation(); toggleFilterPopover('popover-${facet.code}', this)" class="category-pill pc-filter-dropdown-btn ${
+      <button type="button" data-action="toggle-facet-popover" data-popover-id="${safePopoverId}" class="category-pill pc-filter-dropdown-btn ${
         isActive ? "is-active" : ""
-      }" aria-expanded="false" aria-controls="popover-${facet.code}" title="Filter by ${escapeHtml(facet.name)}">
+      }" aria-expanded="false" aria-controls="${safePopoverId}" title="Filter by ${escapeHtml(facet.name)}">
         <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
         <span>${escapeHtml(label)}</span>
         <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
       </button>
-      <div id="popover-${facet.code}" class="filter-popover-card hidden absolute left-0 z-50 mt-2 w-64 p-3.5 bg-white rounded-2xl shadow-xl border border-slate-100">
+      <div id="${safePopoverId}" class="filter-popover-card hidden absolute left-0 z-50 mt-2 w-64 p-3.5 bg-white rounded-2xl shadow-xl border border-slate-100">
         <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-100">
           <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">${escapeHtml(facet.name)}</span>
-          ${isActive ? `<button type="button" onclick="clearFacetFilter('${facet.code}')" class="text-[11px] text-slate-500 hover:text-slate-800 font-semibold">Clear</button>` : ""}
+          ${isActive ? `<button type="button" data-action="clear-facet-filter" data-facet-code="${safeFacetCode}" class="text-[11px] text-slate-500 hover:text-slate-800 font-semibold">Clear</button>` : ""}
         </div>
         <div class="facet-options-list space-y-1 max-h-48 overflow-y-auto pr-1">
           ${facet.options
@@ -134,7 +136,7 @@ function buildFacetDropdownHtml(facet) {
                   isChecked ? "is-checked" : ""
                 }">
                   <div class="flex items-center gap-2.5 min-w-0">
-                    <input type="checkbox" onchange="toggleFilter('${facet.code}', ${inlineJs(opt.value)}, this.checked)" ${
+                    <input type="checkbox" data-action="toggle-facet-option" data-facet-code="${safeFacetCode}" data-facet-value="${escapeHtml(opt.value)}" ${
                 isChecked ? "checked" : ""
               } class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 shrink-0">
                     <span class="facet-option-label truncate">${escapeHtml(opt.value)}</span>
@@ -160,7 +162,7 @@ function buildPriceDropdownHtml() {
 
   return `
     <div class="relative inline-block text-left drilldown-price-wrap shrink-0">
-      <button id="pc-price-dropdown-btn" type="button" onclick="event.stopPropagation(); toggleFilterPopover('price-popover', this)" class="category-pill pc-filter-dropdown-btn ${
+      <button id="pc-price-dropdown-btn" type="button" data-action="toggle-facet-popover" data-popover-id="price-popover" class="category-pill pc-filter-dropdown-btn ${
         isPriceActive ? "is-active" : ""
       }" aria-expanded="false" aria-controls="price-popover" title="Filter by price">
         <i data-lucide="badge-dollar-sign" class="w-3.5 h-3.5"></i>
@@ -176,11 +178,11 @@ function buildPriceDropdownHtml() {
           <span id="price-label-min">KES ${Number(state.priceRange?.min || 0).toLocaleString()}</span>
           <span id="price-label-max">KES ${maxSliderVal.toLocaleString()}</span>
         </div>
-        <input type="range" id="price-filter-max" min="${state.priceRange?.min || 0}" max="${maxBound}" value="${maxSliderVal}" oninput="onDesktopPriceInput(this.value)" onchange="applyPriceFilter(this.value)" class="w-full accent-emerald-600 cursor-pointer mb-3">
+        <input type="range" id="price-filter-max" min="${state.priceRange?.min || 0}" max="${maxBound}" value="${maxSliderVal}" data-action="desktop-price-range" class="w-full accent-emerald-600 cursor-pointer mb-3">
         <div id="desktop-price-presets" class="price-presets-grid mb-3"></div>
         <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-          <button type="button" onclick="setPricePreset(null); toggleFilterPopover(null);" class="text-slate-500 hover:text-slate-800 font-semibold">Reset</button>
-          <button type="button" onclick="toggleFilterPopover(null)" class="px-3 py-1 bg-slate-900 text-white rounded-lg font-bold">Apply</button>
+          <button type="button" data-action="reset-price-popover" class="text-slate-500 hover:text-slate-800 font-semibold">Reset</button>
+          <button type="button" data-action="close-price-popover" class="px-3 py-1 bg-slate-900 text-white rounded-lg font-bold">Apply</button>
         </div>
       </div>
     </div>
@@ -201,7 +203,7 @@ function buildCategoryFilterDividerHtml() {
 
 function buildResetFiltersPillHtml() {
   return `
-    <button type="button" onclick="resetFilters()" class="category-pill category-pill-inactive shrink-0" aria-label="Reset filters and show all categories" title="Reset filters and return to all categories">
+    <button type="button" data-action="reset-filters" class="category-pill category-pill-inactive shrink-0" aria-label="Reset filters and show all categories" title="Reset filters and return to all categories">
       <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
       <span>Reset Filters</span>
     </button>
@@ -222,7 +224,8 @@ function getCategoryIcon(category) {
       storeName: state.tenant?.name,
     });
   }
-  return category?.icon || "tag";
+  const raw = String(category?.icon || "").trim().toLowerCase();
+  return /^[a-z0-9-]+$/.test(raw) ? raw : "tag";
 }
 
 function renderCategoryNavigation(animateLevelChange = false) {
@@ -303,9 +306,9 @@ function renderCategoryNavigation(animateLevelChange = false) {
             : `/category/${encodeURIComponent(cat.slug)}`;
 
           return `
-            <a href="${escapeHtml(catHref)}" class="category-card" onclick="event.preventDefault(); selectCategory('${escapeHtml(cat.slug)}')" aria-label="Browse ${escapeHtml(cat.name)}">
+            <a href="${escapeHtml(catHref)}" class="category-card" data-action="select-category" data-category-slug="${escapeHtml(cat.slug)}" aria-label="Browse ${escapeHtml(cat.name)}">
               <span class="category-card-icon">
-                <i data-lucide="${icon}" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                <i data-lucide="${escapeHtml(icon)}" class="w-5 h-5 sm:w-6 sm:h-6"></i>
               </span>
               <span class="category-card-copy">
                 <span class="category-card-title">${escapeHtml(cat.name)}</span>
@@ -333,16 +336,16 @@ function renderCategoryNavigation(animateLevelChange = false) {
     } else if (activeRoot) {
       drilldownHeader?.classList.remove("hidden");
       breadcrumbPath.innerHTML = `
-        <button type="button" onclick="selectCategory('')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to all departments">All</button>
+        <button type="button" data-action="select-category" data-category-slug="" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to all departments">All</button>
         <span class="url-slash text-slate-300">›</span>
         <span class="font-bold text-slate-800">${escapeHtml(activeRoot.name)}</span>
       `;
     } else if (activeSub && parentOfSub) {
       drilldownHeader?.classList.remove("hidden");
       breadcrumbPath.innerHTML = `
-        <button type="button" onclick="selectCategory('')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to all departments">All</button>
+        <button type="button" data-action="select-category" data-category-slug="" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to all departments">All</button>
         <span class="url-slash text-slate-300">›</span>
-        <button type="button" onclick="selectCategory('${escapeHtml(parentOfSub.slug)}')" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to ${escapeHtml(parentOfSub.name)}">${escapeHtml(parentOfSub.name)}</button>
+        <button type="button" data-action="select-category" data-category-slug="${escapeHtml(parentOfSub.slug)}" class="url-crumb-btn text-slate-500 hover:text-slate-900 underline-offset-2 hover:underline transition-colors" title="Back to ${escapeHtml(parentOfSub.name)}">${escapeHtml(parentOfSub.name)}</button>
         <span class="url-slash text-slate-300">›</span>
         <span class="font-bold text-slate-800">${escapeHtml(activeSub.name)}</span>
       `;
@@ -368,7 +371,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
   );
 
   let pillsHtml = `
-    <button onclick="selectCategory('')" class="category-pill ${!currentSlug ? "category-pill-active" : "category-pill-inactive"} shrink-0" aria-selected="${!currentSlug}" type="button">
+    <button data-action="select-category" data-category-slug="" class="category-pill ${!currentSlug ? "category-pill-active" : "category-pill-inactive"} shrink-0" aria-selected="${!currentSlug}" type="button">
       <span>All</span>
       ${totalCount !== null ? `<span class="category-pill-count">${totalCount}</span>` : ""}
     </button>
@@ -378,7 +381,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
     const isSelectedRoot = activeRoot?.id === cat.id || parentOfSub?.id === cat.id;
     const count = getCategoryItemCount(cat.slug);
     pillsHtml += `
-      <button onclick="selectCategory('${escapeHtml(cat.slug)}')" class="category-pill ${isSelectedRoot ? "category-pill-active" : "category-pill-inactive"} shrink-0" aria-selected="${isSelectedRoot}" type="button">
+      <button data-action="select-category" data-category-slug="${escapeHtml(cat.slug)}" class="category-pill ${isSelectedRoot ? "category-pill-active" : "category-pill-inactive"} shrink-0" aria-selected="${isSelectedRoot}" type="button">
         <span>${escapeHtml(cat.name)}</span>
         ${count !== null ? `<span class="category-pill-count">${count}</span>` : ""}
       </button>
@@ -418,7 +421,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
     if (subParent && subList.length > 0) {
       const parentCount = getCategoryItemCount(subParent.slug);
       let subHtml = `
-        <button type="button" onclick="selectCategory('${escapeHtml(subParent.slug)}')" class="category-subpill ${activeRoot?.id === subParent.id ? "category-subpill-active" : "category-subpill-inactive"} shrink-0" aria-selected="${activeRoot?.id === subParent.id}">
+        <button type="button" data-action="select-category" data-category-slug="${escapeHtml(subParent.slug)}" class="category-subpill ${activeRoot?.id === subParent.id ? "category-subpill-active" : "category-subpill-inactive"} shrink-0" aria-selected="${activeRoot?.id === subParent.id}">
           <span>All ${escapeHtml(subParent.name)}</span>
           ${parentCount !== null ? `<span class="category-subpill-count">${parentCount}</span>` : ""}
         </button>
@@ -427,7 +430,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
         const isSubActive = activeSub?.id === sub.id;
         const subCount = getCategoryItemCount(sub.slug);
         subHtml += `
-          <button type="button" onclick="selectCategory('${escapeHtml(sub.slug)}')" class="category-subpill ${isSubActive ? "category-subpill-active" : "category-subpill-inactive"} shrink-0" aria-selected="${isSubActive}">
+          <button type="button" data-action="select-category" data-category-slug="${escapeHtml(sub.slug)}" class="category-subpill ${isSubActive ? "category-subpill-active" : "category-subpill-inactive"} shrink-0" aria-selected="${isSubActive}">
             <span>${escapeHtml(sub.name)}</span>
             ${subCount !== null ? `<span class="category-subpill-count">${subCount}</span>` : ""}
           </button>
@@ -448,7 +451,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
     } else {
       sidebarSection.classList.remove("hidden");
       let treeHtml = `
-        <button type="button" onclick="selectCategory('')" class="sidebar-cat-btn ${
+        <button type="button" data-action="select-category" data-category-slug="" class="sidebar-cat-btn ${
           state.selectedCategory === "" ? "is-active" : ""
         }" aria-selected="${state.selectedCategory === ""}">
           <span class="sidebar-cat-name">All Products &amp; Services</span>
@@ -462,7 +465,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
         const count = getCategoryItemCount(cat.slug);
         treeHtml += `
           <div class="sidebar-cat-group">
-            <button type="button" onclick="selectCategory('${escapeHtml(cat.slug)}')" class="sidebar-cat-btn ${
+            <button type="button" data-action="select-category" data-category-slug="${escapeHtml(cat.slug)}" class="sidebar-cat-btn ${
               isDirectSelected || isRootActive ? "is-active" : ""
             }" aria-selected="${isDirectSelected}">
               <span class="sidebar-cat-name">${escapeHtml(cat.name)}</span>
@@ -476,7 +479,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
                         const isSubSelected = state.selectedCategory === sub.slug;
                         const subCount = getCategoryItemCount(sub.slug);
                         return `
-                          <button type="button" onclick="selectCategory('${escapeHtml(sub.slug)}')" class="sidebar-subcat-btn ${
+                          <button type="button" data-action="select-category" data-category-slug="${escapeHtml(sub.slug)}" class="sidebar-subcat-btn ${
                             isSubSelected ? "is-active" : ""
                           }" aria-selected="${isSubSelected}">
                             <span>${escapeHtml(sub.name)}</span>
@@ -499,7 +502,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
   if (mobileCategoryContainer) {
     if (isStorefront && categories.length > 0) {
       let mobileHtml = `
-        <button onclick="selectCategory('')" class="category-pill ${
+        <button data-action="select-category" data-category-slug="" class="category-pill ${
           state.selectedCategory === "" ? "category-pill-active" : "category-pill-inactive"
         }" aria-selected="${state.selectedCategory === ""}" type="button">
           <span>All Categories</span>
@@ -513,7 +516,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
         const expanded = isSelected || isChildSelected;
         const count = getCategoryItemCount(cat.slug);
         mobileHtml += `<div class="category-filter-group ${expanded ? 'is-expanded' : ''}">
-          <button onclick="selectCategory('${escapeHtml(cat.slug)}')" class="category-pill ${
+          <button data-action="select-category" data-category-slug="${escapeHtml(cat.slug)}" class="category-pill ${
             isSelected ? "category-pill-active" : isChildSelected ? "category-pill-parent-active" : "category-pill-inactive"
           }" aria-selected="${isSelected || isChildSelected}" aria-expanded="${expanded}" type="button">
             <span class="flex items-center gap-1.5">
@@ -527,7 +530,7 @@ function renderCategoryNavigation(animateLevelChange = false) {
           for (const sub of children) {
             const isSubSelected = state.selectedCategory === sub.slug;
             const subCount = getCategoryItemCount(sub.slug);
-            mobileHtml += `<button onclick="selectCategory('${escapeHtml(sub.slug)}')" class="category-subpill ${
+            mobileHtml += `<button data-action="select-category" data-category-slug="${escapeHtml(sub.slug)}" class="category-subpill ${
               isSubSelected ? "category-subpill-active" : "category-subpill-inactive"
             }" aria-selected="${isSubSelected}" type="button">
               <span>${escapeHtml(sub.name)}</span>
@@ -721,7 +724,7 @@ function renderPricePresets() {
 
   const buildPresetsHtml = () => {
     let html = `
-      <button type="button" onclick="setPricePreset(null)" class="price-preset-btn ${
+      <button type="button" data-action="set-price-preset" data-price-step="" class="price-preset-btn ${
         !state.priceFilterActive || currentMax >= maxCatalogPrice ? "is-active" : ""
       }">All Prices</button>
     `;
@@ -729,7 +732,7 @@ function renderPricePresets() {
       const isStepActive = state.priceFilterActive && currentMax === step;
       const shortLabel = step >= 1000 ? `≤ ${step / 1000}K` : `≤ ${step}`;
       html += `
-        <button type="button" onclick="setPricePreset(${step})" class="price-preset-btn ${
+        <button type="button" data-action="set-price-preset" data-price-step="${step}" class="price-preset-btn ${
           isStepActive ? "is-active" : ""
         }">${shortLabel}</button>
       `;
@@ -844,7 +847,7 @@ function renderDynamicFiltersUI() {
               isChecked ? "is-checked" : ""
             }">
               <div class="flex items-center gap-2.5 min-w-0">
-                <input type="checkbox" onchange="toggleFilter('brand', ${inlineJs(opt.value)}, this.checked)" ${
+                <input type="checkbox" data-action="toggle-facet-option" data-facet-code="brand" data-facet-value="${escapeHtml(opt.value)}" ${
             isChecked ? "checked" : ""
           } class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 shrink-0">
                 <span class="facet-option-label truncate">${escapeHtml(opt.value)}</span>
@@ -891,7 +894,7 @@ function renderDynamicFiltersUI() {
           isChecked ? "is-checked" : ""
         }">
           <div class="flex items-center gap-2.5 min-w-0">
-            <input type="checkbox" onchange="toggleFilter(${inlineJs(facet.code)}, ${inlineJs(opt.value)}, this.checked)" ${
+            <input type="checkbox" data-action="toggle-facet-option" data-facet-code="${escapeHtml(facet.code)}" data-facet-value="${escapeHtml(opt.value)}" ${
         isChecked ? "checked" : ""
       } class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 shrink-0">
             <span class="facet-option-label truncate">${escapeHtml(opt.value)}</span>
@@ -1099,15 +1102,73 @@ function toggleDesktopFilterDrawer(show) {
   }
 }
 
-// Global click-away listener for filter popovers
+// Global delegated listeners & click-away listener for filter popovers
 if (typeof document !== "undefined") {
   document.addEventListener("click", (e) => {
+    const toggleBtn = e.target?.closest?.('[data-action="toggle-facet-popover"]');
+    if (toggleBtn) {
+      e.stopPropagation();
+      toggleFilterPopover(toggleBtn.dataset.popoverId || "", toggleBtn);
+      return;
+    }
+
+    const actionEl = e.target?.closest?.("[data-action]");
+    if (actionEl) {
+      const action = actionEl.dataset.action;
+      if (action === "clear-facet-filter") {
+        clearFacetFilter(actionEl.dataset.facetCode || "");
+        return;
+      }
+      if (action === "reset-price-popover") {
+        setPricePreset(null);
+        toggleFilterPopover(null);
+        return;
+      }
+      if (action === "close-price-popover") {
+        toggleFilterPopover(null);
+        return;
+      }
+      if (action === "reset-filters") {
+        resetFilters();
+        return;
+      }
+      if (action === "select-category") {
+        if (actionEl.tagName === "A") e.preventDefault();
+        selectCategory(actionEl.dataset.categorySlug || "");
+        return;
+      }
+      if (action === "set-price-preset") {
+        const rawStep = actionEl.dataset.priceStep;
+        setPricePreset(rawStep ? Number(rawStep) : null);
+        return;
+      }
+    }
+
     const openPopover = document.querySelector(".filter-popover-card:not(.hidden)");
     if (!openPopover) return;
     const trigger = openPopover._popoverTrigger;
     const clickedTrigger = trigger && (e.composedPath().includes(trigger) || trigger.contains(e.target));
     if (!openPopover.contains(e.target) && !clickedTrigger) {
       closeFilterPopover(openPopover);
+    }
+  });
+
+  document.addEventListener("change", (e) => {
+    const facetOpt = e.target?.closest?.('[data-action="toggle-facet-option"]');
+    if (facetOpt) {
+      toggleFilter(facetOpt.dataset.facetCode || "", facetOpt.dataset.facetValue || "", Boolean(facetOpt.checked));
+      return;
+    }
+    const priceInput = e.target?.closest?.('[data-action="desktop-price-range"]');
+    if (priceInput) {
+      applyPriceFilter(priceInput.value);
+    }
+  });
+
+  document.addEventListener("input", (e) => {
+    const priceInput = e.target?.closest?.('[data-action="desktop-price-range"]');
+    if (priceInput) {
+      onDesktopPriceInput(priceInput.value);
     }
   });
 
