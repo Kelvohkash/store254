@@ -366,7 +366,8 @@ test("about page and platform schema identify Why Store254, founder Kelvin Kamau
   assert.match(about.html, /"@type":"FAQPage"/);
   assert.match(about.html, /Kelvin Kamau/);
   assert.match(about.html, /Kayzen Labs Software Company Limited/);
-  assert.match(about.html, /kelvin@store254\.co\.ke/);
+  assert.match(about.html, /support@store254\.co\.ke/);
+  assert.doesNotMatch(about.html, /kelvin@store254\.co\.ke|github\.com\/Kelvohkash/i);
   assert.match(about.html, /\/assets\/guide\/onboard-google\.webp/);
   assert.match(about.html, /\/assets\/guide\/onboard-store\.webp/);
   assert.match(about.html, /\/assets\/guide\/create-category\.webp/);

@@ -1221,7 +1221,7 @@ export function buildPlatformSeoData(
               url: ogImage,
             },
             image: ogImage,
-            email: "kelvin@store254.co.ke",
+            email: "support@store254.co.ke",
             areaServed: {
               "@type": "Country",
               name: "Kenya",
@@ -1231,9 +1231,8 @@ export function buildPlatformSeoData(
               "@id": `${origin}/about#founder`,
               name: "Kelvin Kamau",
               jobTitle: "Software Developer, Owner & CEO",
-              email: "kelvin@store254.co.ke",
+              email: "support@store254.co.ke",
               url: `${origin}/about`,
-              sameAs: ["https://github.com/Kelvohkash"],
             },
             parentOrganization: {
               "@type": "Organization",
@@ -1577,7 +1576,7 @@ export function buildPlatformAboutHtml(isPreview = false): {
         name: "Store254",
         url: `${origin}/`,
         logo: ogImage,
-        email: "kelvin@store254.co.ke",
+        email: "support@store254.co.ke",
         description:
           "Store254 empowers Kenyan merchants and service providers to launch fast, search-indexed online storefronts with M-Pesa checkout.",
         founder: { "@id": `${canonicalUrl}#founder` },
@@ -1596,11 +1595,10 @@ export function buildPlatformAboutHtml(isPreview = false): {
         jobTitle: "Software Developer, Owner & CEO",
         description:
           "Kelvin Kamau is a Kenyan software developer and the founder, owner, and CEO of Store254 and Kayzen Labs Software Company Limited.",
-        email: "kelvin@store254.co.ke",
+        email: "support@store254.co.ke",
         url: canonicalUrl,
         worksFor: { "@id": `${canonicalUrl}#company` },
         owns: { "@id": `${origin}/#organization` },
-        sameAs: ["https://github.com/Kelvohkash"],
       },
       {
         "@type": "HowTo",
@@ -1866,7 +1864,7 @@ export function buildPlatformAboutHtml(isPreview = false): {
             <div><strong>Founder &amp; CEO:</strong> Kelvin Kamau (Software Developer)</div>
             <div><strong>Operating Company:</strong> Kayzen Labs Software Company Limited</div>
             <div><strong>Headquarters:</strong> Nairobi, Kenya</div>
-            <div><strong>Direct Contact:</strong> <a href="mailto:kelvin@store254.co.ke" style="font-weight:700;text-decoration:none;">kelvin@store254.co.ke</a> &bull; <a href="https://github.com/Kelvohkash" target="_blank" rel="noopener" style="font-weight:600;text-decoration:none;">GitHub</a></div>
+            <div><strong>Direct Contact:</strong> <a href="mailto:support@store254.co.ke" style="font-weight:700;text-decoration:none;">support@store254.co.ke</a></div>
           </div>
         </div>
 
@@ -2218,7 +2216,7 @@ export function buildPlatformTermsHtml(isPreview = false): {
         <li><strong>No Copyrighted Images or Unauthorized Media:</strong> Merchants and users <strong>must not upload, display, copy, or distribute any copyrighted photographs, watermarked stock images, brand logos, product graphics, or third-party media</strong> unless they own the copyright or hold a valid commercial license or written permission from the rights holder.</li>
         <li><strong>Merchant Warranty:</strong> By uploading any image, logo, banner, or listing media to Store254, the merchant warrants that the content is original or properly licensed and does not infringe any copyright, trademark, publicity, or privacy right.</li>
         <li><strong>Store254's Right to Take Down Content Immediately:</strong> Store254 reserves the absolute, unilateral right to <strong>remove, strip, or permanently delete any reported or suspected copyrighted image or listing from storefronts and cloud storage immediately without prior notice</strong>, and to suspend or permanently terminate repeat offenders.</li>
-        <li><strong>How to Report Copyrighted Images:</strong> Rights holders or any user can report an infringing image directly via our <a href="/?report=copyright" style="color:#b91c1c;font-weight:700;text-decoration:none;">Report Copyrighted Image form</a> (also available on every product page) or by emailing <a href="mailto:kelvin@store254.co.ke" style="color:#059669;font-weight:700;text-decoration:none;">kelvin@store254.co.ke</a> with the image URL, store link, proof of ownership, and a good-faith declaration.</li>
+        <li><strong>How to Report Copyrighted Images:</strong> Rights holders or any user can report an infringing image directly via our <a href="/?report=copyright" style="color:#b91c1c;font-weight:700;text-decoration:none;">Report Copyrighted Image form</a> (also available on every product page) or by emailing <a href="mailto:support@store254.co.ke" style="color:#059669;font-weight:700;text-decoration:none;">support@store254.co.ke</a> with the image URL, store link, proof of ownership, and a good-faith declaration.</li>
       </ul>
     </article>
 
@@ -2286,7 +2284,7 @@ export function buildPlatformTermsHtml(isPreview = false): {
         Personal data is processed in accordance with our <a href="/privacy" style="color:#059669;font-weight:700;text-decoration:none;">Privacy &amp; Data Protection Policy</a> and the <strong>Kenya Data Protection Act, 2019</strong>.
       </p>
       <p style="margin:0;color:#334155;font-size:14px;">
-        These Terms are governed by the laws of the <strong>Republic of Kenya</strong>, with exclusive jurisdiction in the courts of Nairobi, Kenya. Legal &amp; takedown inquiries: <a href="mailto:kelvin@store254.co.ke" style="color:#059669;font-weight:700;text-decoration:none;">kelvin@store254.co.ke</a>.
+        These Terms are governed by the laws of the <strong>Republic of Kenya</strong>, with exclusive jurisdiction in the courts of Nairobi, Kenya. Legal &amp; takedown inquiries: <a href="mailto:support@store254.co.ke" style="color:#059669;font-weight:700;text-decoration:none;">support@store254.co.ke</a>.
       </p>
     </article>
   `;
@@ -2360,7 +2358,7 @@ export function buildPlatformPrivacyHtml(isPreview = false): {
         We protect data in transit via HTTPS/TLS, encrypt sensitive M-Pesa merchant secrets at rest, and isolate tenant records per store. Data is retained only as long as necessary to provide the service, resolve disputes/takedowns, or satisfy statutory tax/audit requirements.
       </p>
       <p style="margin:0;color:#334155;font-size:14px;">
-        Under the <strong>Kenya Data Protection Act, 2019</strong>, you have the right to request access, correction, or deletion of your personal data, or object to processing. Contact our Data Protection Contact at <a href="mailto:kelvin@store254.co.ke" style="color:#059669;font-weight:700;text-decoration:none;">kelvin@store254.co.ke</a>.
+        Under the <strong>Kenya Data Protection Act, 2019</strong>, you have the right to request access, correction, or deletion of your personal data, or object to processing. Contact our Data Protection Contact at <a href="mailto:support@store254.co.ke" style="color:#059669;font-weight:700;text-decoration:none;">support@store254.co.ke</a>.
       </p>
     </article>
   `;
