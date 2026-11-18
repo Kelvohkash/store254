@@ -717,10 +717,16 @@ async function handleOnboardSubmit(e) {
     btn.textContent = "Submitting...";
   }
 
+  const businessType = document.getElementById("onboard-type")?.value || "GENERAL";
+  const portfolioMode = Boolean(
+    document.getElementById("onboard-portfolio-mode")?.checked || businessType === "PORTFOLIO"
+  );
+
   const payload = {
     storeName,
     subdomain,
-    businessType: document.getElementById("onboard-type")?.value || "GENERAL",
+    businessType,
+    portfolioMode,
     primaryColor: "#2563eb",
     ownerFullName,
     ownerEmail,
@@ -809,6 +815,15 @@ document.addEventListener("DOMContentLoaded", () => {
     onboardEmailEl.addEventListener("input", () => {
       const user = getSignedInPlatformUserForOnboard();
       onboardEmailEl.value = user ? user.email.trim().toLowerCase() : "";
+    });
+  }
+  const onboardTypeEl = document.getElementById("onboard-type");
+  const onboardPortfolioEl = document.getElementById("onboard-portfolio-mode");
+  if (onboardTypeEl && onboardPortfolioEl) {
+    onboardTypeEl.addEventListener("change", () => {
+      if (onboardTypeEl.value === "PORTFOLIO") {
+        onboardPortfolioEl.checked = true;
+      }
     });
   }
 });

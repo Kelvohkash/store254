@@ -30,6 +30,8 @@ import {
   createOrderForTenant,
 } from "../orders/checkout.service";
 import { sanitizePublicTenantSettings } from "./platform.routes";
+import { sanitizePublicItemMetadata } from "../catalog/items.routes";
+import { getStaticLocationById } from "./kenya-static-data";
 
 export const marketplaceRouter = new Hono<AppEnv>();
 
@@ -219,6 +221,40 @@ marketplaceRouter.get(
     const locMeta = locationRows[0];
     const mpesaEnabled = Boolean(paymentRows[0]?.isEnabled);
 
+    let rawItemMeta: unknown = row.item.metadata;
+    if (typeof rawItemMeta === "string") {
+      try {
+        rawItemMeta = JSON.parse(rawItemMeta);
+      } catch {
+        rawItemMeta = {};
+      }
+    }
+    const itemMeta =
+      rawItemMeta && typeof rawItemMeta === "object" && !Array.isArray(rawItemMeta)
+        ? (rawItemMeta as Record<string, unknown>)
+        : {};
+    const isSingleListing = itemMeta.isSingleListing === true;
+    const singleStaticLoc =
+      isSingleListing && typeof itemMeta.locationId === "string"
+        ? getStaticLocationById(itemMeta.locationId)
+        : undefined;
+    const singleSellerName =
+      isSingleListing && typeof itemMeta.sellerName === "string" && itemMeta.sellerName.trim()
+        ? itemMeta.sellerName.trim()
+        : null;
+    const singleSellerPhone =
+      isSingleListing && typeof itemMeta.sellerPhone === "string" && itemMeta.sellerPhone.trim()
+        ? itemMeta.sellerPhone.trim()
+        : null;
+    const singleSellerWhatsapp =
+      isSingleListing && typeof itemMeta.sellerWhatsapp === "string" && itemMeta.sellerWhatsapp.trim()
+        ? itemMeta.sellerWhatsapp.trim()
+        : singleSellerPhone;
+    const singleLocationLabel =
+      isSingleListing && typeof itemMeta.locationLabel === "string" && itemMeta.locationLabel.trim()
+        ? itemMeta.locationLabel.trim()
+        : null;
+
     return c.json({
       success: true,
       data: {
@@ -234,7 +270,7 @@ marketplaceRouter.get(
           stockQuantity: row.item.stockQuantity,
           images: row.item.images || [],
           attributes: row.item.attributes || {},
-          metadata: row.item.metadata || {},
+          metadata: sanitizePublicItemMetadata(itemMeta),
           categoryName: row.categoryName || null,
         },
         variants: variantsList,
@@ -245,29 +281,34 @@ marketplaceRouter.get(
         },
         store: {
           id: row.tenant.id,
-          name: row.tenant.name,
+          name: singleSellerName || row.tenant.name,
           subdomain: row.tenant.subdomain,
           customDomain: row.tenant.customDomain,
           businessType: row.tenant.businessType,
           currency: row.tenant.currency || "KES",
           locationLabel:
-            row.tenant.locationLabel || locMeta?.locationName || null,
-          countyName: locMeta?.countyName || null,
-          constituencyName: locMeta?.constituencyName || null,
+            singleLocationLabel ||
+            row.tenant.locationLabel ||
+            locMeta?.locationName ||
+            null,
+          countyName: locMeta?.countyName || singleStaticLoc?.countyName || null,
+          constituencyName: locMeta?.constituencyName || singleStaticLoc?.constituencyName || null,
           logoUrl:
             typeof settings.logoUrl === "string" ? settings.logoUrl : null,
-          whatsapp:
-            typeof socialLinks.whatsapp === "string"
-              ? socialLinks.whatsapp
-              : typeof rawSettings.whatsapp === "string"
-              ? rawSettings.whatsapp
-              : null,
-          phone:
-            typeof settings.contactPhone === "string"
-              ? settings.contactPhone
-              : typeof rawSettings.phone === "string"
-              ? rawSettings.phone
-              : null,
+          whatsapp: isSingleListing
+            ? singleSellerWhatsapp
+            : typeof socialLinks.whatsapp === "string"
+            ? socialLinks.whatsapp
+            : typeof rawSettings.whatsapp === "string"
+            ? rawSettings.whatsapp
+            : null,
+          phone: isSingleListing
+            ? singleSellerPhone
+            : typeof settings.contactPhone === "string"
+            ? settings.contactPhone
+            : typeof rawSettings.phone === "string"
+            ? rawSettings.phone
+            : null,
           mpesaEnabled,
         },
       },

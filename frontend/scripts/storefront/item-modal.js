@@ -180,6 +180,19 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
   }
   const isService = item.itemType === "SERVICE";
   const isDigital = item.itemType === "DIGITAL";
+  const isPortfolioItem = typeof isPortfolioProjectItem === "function"
+    ? isPortfolioProjectItem(item)
+    : Boolean(
+        document.documentElement?.dataset?.portfolioMode === "true" ||
+        item?.metadata?.isPortfolioProject ||
+        Number(item?.basePrice) === 0
+      );
+  const projectUrl = typeof getSafeExternalProjectUrl === "function"
+    ? getSafeExternalProjectUrl(item?.metadata?.projectUrl)
+    : "";
+  const inquiryTarget = isPortfolioItem && typeof getStorefrontInquiryHref === "function"
+    ? getStorefrontInquiryHref(item?.title)
+    : null;
   const attrs = item.attributes || {};
   const serviceConfig = item.metadata?.serviceConfig || {};
   const serviceAvailable = !isService || serviceConfig.available !== false;
@@ -193,21 +206,50 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
 
   document.getElementById("item-modal-title").textContent = item.title;
   renderItemImageGallery(item.images || [], item.title, item);
-  document.getElementById("item-modal-price").textContent = `KES ${Number(item.basePrice).toLocaleString()}`;
-  document.getElementById("item-modal-description").textContent = item.description || (isService ? "Bookable service available from this store." : "Available from this store.");
-
+  const priceRowEl = document.getElementById("item-modal-price-row");
+  const priceEl = document.getElementById("item-modal-price");
   const comparePriceEl = document.getElementById("item-modal-compare-price");
-  if (item.compareAtPrice && item.compareAtPrice > item.basePrice) {
-    comparePriceEl.textContent = `KES ${Number(item.compareAtPrice).toLocaleString()}`;
-    comparePriceEl.classList.remove("hidden");
+  if (isPortfolioItem) {
+    if (priceRowEl) priceRowEl.classList.add("hidden");
+    if (priceEl) {
+      priceEl.textContent = "";
+      priceEl.classList.add("hidden");
+    }
+    if (comparePriceEl) comparePriceEl.classList.add("hidden");
   } else {
-    comparePriceEl.classList.add("hidden");
+    if (priceRowEl) priceRowEl.classList.remove("hidden");
+    if (priceEl) {
+      priceEl.textContent = `KES ${Number(item.basePrice).toLocaleString()}`;
+      priceEl.classList.remove("hidden");
+    }
+    if (comparePriceEl) {
+      if (item.compareAtPrice && item.compareAtPrice > item.basePrice) {
+        comparePriceEl.textContent = `KES ${Number(item.compareAtPrice).toLocaleString()}`;
+        comparePriceEl.classList.remove("hidden");
+      } else {
+        comparePriceEl.classList.add("hidden");
+      }
+    }
   }
+  document.getElementById("item-modal-description").textContent =
+    item.description ||
+    (isPortfolioItem
+      ? "Portfolio project showcase."
+      : isService
+      ? "Bookable service available from this store."
+      : "Available from this store.");
 
-  // Separate Product Stock Badges vs Service Booking Badges
+  // Separate Product Stock Badges vs Service Booking Badges vs Portfolio Project Badge
   const badgesEl = document.getElementById("item-modal-badges");
   let statusBadgeHtml = "";
-  if (isService) {
+  if (isPortfolioItem) {
+    if (item.metadata?.clientName) {
+      statusBadgeHtml += `<span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">${escapeHtml(item.metadata.clientName)}</span>`;
+    }
+    if (item.metadata?.completedYear) {
+      statusBadgeHtml += `<span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">${escapeHtml(item.metadata.completedYear)}</span>`;
+    }
+  } else if (isService) {
     statusBadgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded ${serviceAvailable ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-amber-50 text-amber-800 border border-amber-200"}">${serviceAvailable ? "Bookable Service" : "Bookings Paused"}</span>`;
     if (serviceConfig.duration) {
       statusBadgeHtml += `<span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">${escapeHtml(serviceConfig.duration)}</span>`;
@@ -223,10 +265,16 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
       ? `<span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">Only ${qtyAvail} left</span>`
       : `<span class="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded">${qtyAvail} in stock</span>`;
   }
+  const typeBadgeClass = isPortfolioItem
+    ? "bg-indigo-100 text-indigo-700"
+    : isService
+    ? "bg-indigo-100 text-indigo-700"
+    : isDigital
+    ? "bg-cyan-100 text-cyan-700"
+    : "bg-emerald-100 text-emerald-700";
+  const typeBadgeText = isPortfolioItem ? "Project" : isService ? "Service" : isDigital ? "Digital" : "Product";
   badgesEl.innerHTML = `
-    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-      isService ? "bg-indigo-100 text-indigo-700" : isDigital ? "bg-cyan-100 text-cyan-700" : "bg-emerald-100 text-emerald-700"
-    }">${isService ? "Service" : isDigital ? "Digital" : "Product"}</span>
+    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${typeBadgeClass}">${typeBadgeText}</span>
     ${attrs.brand ? `<span class="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">${escapeHtml(attrs.brand)}</span>` : ""}
     ${statusBadgeHtml}
   `;
@@ -250,8 +298,12 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
   let selectedVariant = null;
   const variants = Array.isArray(item.variants) ? item.variants : [];
   const btnCart = document.getElementById("item-modal-btn-cart");
+  const actionsRowEl = document.getElementById("item-modal-actions-row");
+  const qtyWrapEl = document.getElementById("item-modal-qty-wrap");
+  const portfolioActionsEl = document.getElementById("item-modal-portfolio-actions");
 
   const syncCartButtonState = () => {
+    if (!btnCart) return;
     const activeStock = selectedVariant ? selectedVariant.stockQuantity : item.stockQuantity;
     const isPhysicalOutOfStock = !isService && !isDigital && Boolean(item.trackInventory) && Number(activeStock || 0) <= 0;
     const blocked = isService ? !serviceAvailable : isPhysicalOutOfStock;
@@ -266,9 +318,9 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
   };
 
   if (variantsEl) {
-    if (variants.length > 0) {
+    if (!isPortfolioItem && variants.length > 0) {
       selectedVariant = variants[0];
-      document.getElementById("item-modal-price").textContent = `KES ${Number(selectedVariant.price).toLocaleString()}`;
+      if (priceEl) priceEl.textContent = `KES ${Number(selectedVariant.price).toLocaleString()}`;
       variantsEl.innerHTML = `
         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">${isService ? "Choose Package" : isDigital ? "Choose Edition" : "Choose Option"}</label>
         <div class="flex flex-wrap gap-2" id="item-modal-variant-buttons">
@@ -283,7 +335,7 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
         btn.addEventListener("click", () => {
           const idx = Number(btn.getAttribute("data-variant-idx") || 0);
           selectedVariant = variants[idx] || variants[0];
-          document.getElementById("item-modal-price").textContent = `KES ${Number(selectedVariant.price).toLocaleString()}`;
+          if (priceEl) priceEl.textContent = `KES ${Number(selectedVariant.price).toLocaleString()}`;
           variantsEl.querySelectorAll("[data-variant-idx]").forEach((b, i) => {
             b.className = `px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
               i === idx ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-700 border-slate-200 hover:border-emerald-400"
@@ -299,16 +351,53 @@ async function viewItemDetails(itemId, options = { updateHistory: true }) {
     }
   }
 
-  // Action Button (Book Session for services vs Add to Cart for products)
-  syncCartButtonState();
-  btnCart.onclick = () => {
-    if (btnCart.disabled) return;
-    const qty = Math.max(1, parseInt(document.getElementById("item-modal-qty")?.value || "1", 10) || 1);
-    const displayTitle = selectedVariant ? `${item.title} (${selectedVariant.title})` : item.title;
-    const unitPrice = selectedVariant ? selectedVariant.price : item.basePrice;
-    addToCart(item.id, displayTitle, unitPrice, state.currentItemImages[state.currentItemImageIndex], item.itemType, selectedVariant?.id, qty);
-    toggleDrawer("item-details-modal", false);
-  };
+  if (isPortfolioItem) {
+    if (actionsRowEl) actionsRowEl.classList.add("hidden");
+    if (qtyWrapEl) qtyWrapEl.classList.add("hidden");
+    if (btnCart) {
+      btnCart.classList.add("hidden");
+      btnCart.onclick = null;
+    }
+    if (portfolioActionsEl) {
+      portfolioActionsEl.innerHTML = `
+        <div class="flex flex-col sm:flex-row gap-2">
+          ${projectUrl
+            ? `<a href="${escapeHtml(projectUrl)}" target="_blank" rel="noopener noreferrer" class="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2 no-underline">
+                <i data-lucide="external-link" class="w-4 h-4"></i>
+                <span>Visit Live Project</span>
+              </a>`
+            : ""}
+          ${inquiryTarget
+            ? `<a href="${escapeHtml(inquiryTarget.href)}" ${inquiryTarget.external ? 'target="_blank" rel="noopener noreferrer"' : ""} class="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2 no-underline">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>Inquire / Contact</span>
+              </a>`
+            : `<button type="button" onclick="showToast('Use the contact details in the store header to inquire about this project.', 'info')" class="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>Inquire / Contact</span>
+              </button>`}
+        </div>`;
+      portfolioActionsEl.classList.remove("hidden");
+    }
+  } else {
+    if (portfolioActionsEl) {
+      portfolioActionsEl.innerHTML = "";
+      portfolioActionsEl.classList.add("hidden");
+    }
+    if (actionsRowEl) actionsRowEl.classList.remove("hidden");
+    if (qtyWrapEl) qtyWrapEl.classList.remove("hidden");
+    if (btnCart) btnCart.classList.remove("hidden");
+    // Action Button (Book Session for services vs Add to Cart for products)
+    syncCartButtonState();
+    btnCart.onclick = () => {
+      if (btnCart.disabled) return;
+      const qty = Math.max(1, parseInt(document.getElementById("item-modal-qty")?.value || "1", 10) || 1);
+      const displayTitle = selectedVariant ? `${item.title} (${selectedVariant.title})` : item.title;
+      const unitPrice = selectedVariant ? selectedVariant.price : item.basePrice;
+      addToCart(item.id, displayTitle, unitPrice, state.currentItemImages[state.currentItemImageIndex], item.itemType, selectedVariant?.id, qty);
+      toggleDrawer("item-details-modal", false);
+    };
+  }
 
   // Reset Review Form & Load Reviews
   toggleReviewForm(false);

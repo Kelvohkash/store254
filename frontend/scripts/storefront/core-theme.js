@@ -28,6 +28,12 @@ function resolveStoreAccentColor(settings = {}) {
 
 async function applyStorefrontSettings(settings = {}) {
   const root = document.documentElement;
+  const prevPortfolioMode = root.dataset.portfolioMode;
+  const isPortfolioMode = Boolean(
+    settings?.portfolioMode ||
+    (typeof state !== "undefined" && state?.activeTenant?.businessType === "PORTFOLIO")
+  );
+  root.dataset.portfolioMode = isPortfolioMode ? "true" : "false";
   root.dataset.storefrontType = settings?.storefrontArchetype || "modern-retailer";
   root.dataset.storefront = "true";
   root.dataset.productImageRatio = settings?.productImageRatio || "square";
@@ -67,6 +73,15 @@ async function applyStorefrontSettings(settings = {}) {
   root.style.setProperty("--store-clay", accent);
 
   await loadDefaultStorefrontStyles();
+  if (
+    prevPortfolioMode !== root.dataset.portfolioMode &&
+    typeof renderCatalogView === "function" &&
+    typeof state !== "undefined" &&
+    Array.isArray(state?.items) &&
+    state.items.length > 0
+  ) {
+    renderCatalogView();
+  }
 }
 
 function setHeaderLogo(src = DEFAULT_STORE_LOGO, alt = "Store254", fallbackSrc = DEFAULT_STORE_LOGO) {

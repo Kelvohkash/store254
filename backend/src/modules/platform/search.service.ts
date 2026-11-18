@@ -1,4 +1,4 @@
-import { and, asc, between, desc, eq, gte, inArray, lte, notLike, sql } from "drizzle-orm";
+import { and, asc, between, desc, eq, gte, inArray, lte, ne, notLike, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "../../db/schema";
 import {
@@ -18,6 +18,7 @@ import {
   getStaticLocationById,
   searchStaticTowns,
 } from "./kenya-static-data";
+import { sanitizePublicItemMetadata } from "../catalog/items.routes";
 
 type AppDb = DrizzleD1Database<typeof schema>;
 
@@ -900,6 +901,21 @@ async function fetchPublishedCatalogPool(
   }
 }
 
+function parseMetadataRecord(raw: unknown): Record<string, unknown> {
+  let source = raw;
+  if (typeof source === "string") {
+    try {
+      source = JSON.parse(source);
+    } catch {
+      return {};
+    }
+  }
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return {};
+  }
+  return source as Record<string, unknown>;
+}
+
 export async function searchMarketplaceWithRipple(
   db: AppDb,
   rawParams: RippleSearchParams
@@ -949,6 +965,62 @@ export async function searchMarketplaceWithRipple(
     addCandidates(poolRows);
   }
 
+  // Pre-resolve any non-static location IDs referenced by single-item listings
+  const extraLocationIds = new Set<string>();
+  for (const cand of candidateMap.values()) {
+    const meta = parseMetadataRecord(cand.metadata);
+    if (
+      meta.isSingleListing === true &&
+      typeof meta.locationId === "string" &&
+      meta.locationId.trim()
+    ) {
+      const locId = meta.locationId.trim();
+      if (!getStaticLocationById(locId)) {
+        extraLocationIds.add(locId);
+      }
+    }
+  }
+
+  const extraLocMap = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      kind: string;
+      latitude: number;
+      longitude: number;
+      population: number;
+      countyId: string;
+      countyName: string | null;
+      constituencyName: string | null;
+    }
+  >();
+  if (extraLocationIds.size > 0) {
+    try {
+      const rows = await db
+        .select({
+          id: kenyaLocations.id,
+          name: kenyaLocations.name,
+          kind: kenyaLocations.kind,
+          latitude: kenyaLocations.latitude,
+          longitude: kenyaLocations.longitude,
+          population: kenyaLocations.population,
+          countyId: kenyaLocations.countyId,
+          countyName: kenyaCounties.name,
+          constituencyName: kenyaConstituencies.name,
+        })
+        .from(kenyaLocations)
+        .leftJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
+        .leftJoin(kenyaConstituencies, eq(kenyaLocations.constituencyId, kenyaConstituencies.id))
+        .where(inArray(kenyaLocations.id, Array.from(extraLocationIds)));
+      for (const r of rows) {
+        extraLocMap.set(r.id, r);
+      }
+    } catch {
+      // Ignore if location tables are unavailable in minimal unit test environments
+    }
+  }
+
   // Score, filter, and assign spatial ripple ring to every candidate
   const correctionCounts = new Map<string, number>();
 
@@ -962,10 +1034,85 @@ export async function searchMarketplaceWithRipple(
     compositeScore: number;
     inStock: boolean;
     rippleLabel: string;
+    effectiveStoreName: string;
+    effectiveCountyId: string | null;
+    effectiveCountyName: string | null;
+    effectiveConstituencyName: string | null;
+    effectiveLocationName: string | null;
+    effectiveLocationLabel: string | null;
+    parsedMetadata: Record<string, unknown>;
   }
 
   const allScored: ScoredItem[] = [];
   for (const candidate of candidateMap.values()) {
+    const rawMeta = parseMetadataRecord(candidate.metadata);
+    const isSingleListing = rawMeta.isSingleListing === true;
+    const effectiveStoreName =
+      isSingleListing && typeof rawMeta.sellerName === "string" && rawMeta.sellerName.trim()
+        ? rawMeta.sellerName.trim()
+        : candidate.storeName;
+
+    const metaLocationId =
+      isSingleListing && typeof rawMeta.locationId === "string" && rawMeta.locationId.trim()
+        ? rawMeta.locationId.trim()
+        : null;
+    const metaLocationLabel =
+      isSingleListing && typeof rawMeta.locationLabel === "string" && rawMeta.locationLabel.trim()
+        ? rawMeta.locationLabel.trim()
+        : null;
+
+    let effectiveLocationId = candidate.storeLocationId;
+    let effectiveLocationName = candidate.storeLocationName;
+    let effectiveLocationLabel = metaLocationLabel || candidate.storeLocationLabel;
+    let effectiveLocationKind = candidate.storeLocationKind;
+    let effectiveLat = candidate.storeLat;
+    let effectiveLng = candidate.storeLng;
+    let effectivePopulation = candidate.storePopulation;
+    let effectiveCountyId = candidate.storeCountyId;
+    let effectiveCountyName = candidate.storeCountyName;
+    let effectiveConstituencyName = candidate.storeConstituencyName;
+
+    if (isSingleListing && metaLocationId) {
+      effectiveLocationId = metaLocationId;
+      const staticLoc = getStaticLocationById(metaLocationId);
+      const dbLoc = !staticLoc ? extraLocMap.get(metaLocationId) : undefined;
+
+      if (staticLoc) {
+        effectiveLocationName = staticLoc.name;
+        effectiveLocationKind = staticLoc.kind;
+        effectiveLat = typeof rawMeta.latitude === "number" ? rawMeta.latitude : staticLoc.latitude;
+        effectiveLng = typeof rawMeta.longitude === "number" ? rawMeta.longitude : staticLoc.longitude;
+        effectivePopulation = staticLoc.population;
+        effectiveCountyId = staticLoc.countyId;
+        effectiveCountyName = staticLoc.countyName;
+        effectiveConstituencyName = staticLoc.constituencyName;
+        effectiveLocationLabel =
+          metaLocationLabel ||
+          `${staticLoc.name}, ${staticLoc.constituencyName}, ${staticLoc.countyName}`;
+      } else if (dbLoc) {
+        effectiveLocationName = dbLoc.name;
+        effectiveLocationKind = dbLoc.kind;
+        effectiveLat = typeof rawMeta.latitude === "number" ? rawMeta.latitude : dbLoc.latitude;
+        effectiveLng = typeof rawMeta.longitude === "number" ? rawMeta.longitude : dbLoc.longitude;
+        effectivePopulation = dbLoc.population;
+        effectiveCountyId = dbLoc.countyId;
+        effectiveCountyName = dbLoc.countyName;
+        effectiveConstituencyName = dbLoc.constituencyName;
+        effectiveLocationLabel =
+          metaLocationLabel ||
+          [dbLoc.name, dbLoc.constituencyName, dbLoc.countyName].filter(Boolean).join(", ");
+      } else {
+        effectiveLocationName = metaLocationLabel
+          ? metaLocationLabel.split(",")[0].trim()
+          : candidate.storeLocationName;
+        effectiveLat = typeof rawMeta.latitude === "number" ? rawMeta.latitude : candidate.storeLat;
+        effectiveLng = typeof rawMeta.longitude === "number" ? rawMeta.longitude : candidate.storeLng;
+        if (typeof rawMeta.countyId === "string" && rawMeta.countyId.trim()) {
+          effectiveCountyId = rawMeta.countyId.trim();
+        }
+      }
+    }
+
     const attrsText = candidate.attributes
       ? Object.entries(candidate.attributes)
           .map(([k, v]) => `${k} ${String(v ?? "")}`)
@@ -976,7 +1123,7 @@ export async function searchMarketplaceWithRipple(
       title: candidate.title,
       description: candidate.description || "",
       categoryName: candidate.categoryName || "",
-      storeName: candidate.storeName,
+      storeName: effectiveStoreName,
       sku: candidate.sku || "",
       attributesText: attrsText,
       bm25Score: candidate.bm25Score,
@@ -991,15 +1138,15 @@ export async function searchMarketplaceWithRipple(
 
     const ringInfo = classifyLocationIntoRing(
       originCtx,
-      candidate.storeLocationId,
-      candidate.storeLat,
-      candidate.storeLng,
-      candidate.storeLocationKind,
-      candidate.storePopulation
+      effectiveLocationId,
+      effectiveLat,
+      effectiveLng,
+      effectiveLocationKind,
+      effectivePopulation
     );
 
     const isServiceCandidate = candidate.itemType === "SERVICE";
-    const serviceCfg = (candidate.metadata as Record<string, any> | null)?.serviceConfig;
+    const serviceCfg = (rawMeta as Record<string, any> | null)?.serviceConfig;
     const inStock = isServiceCandidate
       ? serviceCfg?.available !== false
       : !candidate.trackInventory || candidate.stockQuantity > 0;
@@ -1027,21 +1174,23 @@ export async function searchMarketplaceWithRipple(
 
     let rippleLabel = isServiceCandidate ? "Available Nationwide" : "Nationwide Shipping";
     if (!originCtx.origin) {
-      rippleLabel = candidate.storeLocationName
-        ? `${candidate.storeLocationName}${candidate.storeCountyName ? `, ${candidate.storeCountyName}` : ""}`
+      rippleLabel = effectiveLocationName
+        ? `${effectiveLocationName}${effectiveCountyName ? `, ${effectiveCountyName}` : ""}`
+        : effectiveLocationLabel
+        ? effectiveLocationLabel
         : isServiceCandidate
         ? "Bookable Service"
         : "Nationwide Shipping";
     } else if (ringInfo.ring === 0) {
       rippleLabel = `In ${originCtx.origin.name}`;
     } else if (ringInfo.ring === 1) {
-      rippleLabel = `Nearby ${candidate.storeLocationName || "Centre"} · ${ringInfo.distanceKm} km`;
+      rippleLabel = `Nearby ${effectiveLocationName || "Centre"} · ${ringInfo.distanceKm} km`;
     } else if (ringInfo.ring === 2) {
-      rippleLabel = `${ringInfo.isHub ? "Area Hub" : "Local Ripple"} · ${candidate.storeLocationName} · ${ringInfo.distanceKm} km`;
+      rippleLabel = `${ringInfo.isHub ? "Area Hub" : "Local Ripple"} · ${effectiveLocationName || "Centre"} · ${ringInfo.distanceKm} km`;
     } else if (ringInfo.ring === 3) {
-      rippleLabel = `Regional ${ringInfo.isHub ? "Town Hub" : "Centre"} · ${candidate.storeLocationName} · ${ringInfo.distanceKm} km`;
+      rippleLabel = `Regional ${ringInfo.isHub ? "Town Hub" : "Centre"} · ${effectiveLocationName || "Centre"} · ${ringInfo.distanceKm} km`;
     } else if (ringInfo.ring === 4) {
-      rippleLabel = `Major Hub · ${candidate.storeLocationName}, ${candidate.storeCountyName || ""} · ${ringInfo.distanceKm} km`;
+      rippleLabel = `Major Hub · ${effectiveLocationName || "Centre"}, ${effectiveCountyName || ""} · ${ringInfo.distanceKm} km`;
     } else {
       rippleLabel = isServiceCandidate ? "Book Online / Nationwide" : "Nationwide Courier Delivery";
     }
@@ -1056,6 +1205,13 @@ export async function searchMarketplaceWithRipple(
       compositeScore,
       inStock,
       rippleLabel,
+      effectiveStoreName,
+      effectiveCountyId,
+      effectiveCountyName,
+      effectiveConstituencyName,
+      effectiveLocationName,
+      effectiveLocationLabel,
+      parsedMetadata: rawMeta,
     });
   }
 
@@ -1163,13 +1319,13 @@ export async function searchMarketplaceWithRipple(
   let maxFacetPrice = 0;
   for (const row of visibleItems) {
     typeFacet.set(row.candidate.itemType, (typeFacet.get(row.candidate.itemType) ?? 0) + 1);
-    if (row.candidate.storeCountyId && row.candidate.storeCountyName) {
-      const prev = countyFacet.get(row.candidate.storeCountyId);
+    if (row.effectiveCountyId && row.effectiveCountyName) {
+      const prev = countyFacet.get(row.effectiveCountyId);
       if (prev) prev.count += 1;
       else {
-        countyFacet.set(row.candidate.storeCountyId, {
-          id: row.candidate.storeCountyId,
-          name: row.candidate.storeCountyName,
+        countyFacet.set(row.effectiveCountyId, {
+          id: row.effectiveCountyId,
+          name: row.effectiveCountyName,
           count: 1,
         });
       }
@@ -1241,20 +1397,20 @@ export async function searchMarketplaceWithRipple(
       stockQuantity: c.stockQuantity,
       images: Array.isArray(c.images) ? c.images : [],
       attributes: c.attributes || {},
-      metadata: c.metadata || {},
+      metadata: sanitizePublicItemMetadata(entry.parsedMetadata),
       categoryName: c.categoryName || c.storeBusinessType,
       variantCount: vInfo?.count ?? 0,
       startingPrice: vInfo ? Math.min(c.basePrice, vInfo.minPrice) : c.basePrice,
       createdAt: createdEpoch,
       store: {
         id: c.tenantId,
-        name: c.storeName,
+        name: entry.effectiveStoreName,
         subdomain: c.storeSubdomain,
         businessType: c.storeBusinessType,
-        countyName: c.storeCountyName,
-        constituencyName: c.storeConstituencyName,
-        locationName: c.storeLocationName,
-        locationLabel: c.storeLocationLabel,
+        countyName: entry.effectiveCountyName,
+        constituencyName: entry.effectiveConstituencyName,
+        locationName: entry.effectiveLocationName,
+        locationLabel: entry.effectiveLocationLabel,
       },
       geo: {
         rippleRing: entry.ring,
@@ -1375,6 +1531,7 @@ export async function suggestMarketplaceTerms(db: AppDb, rawQuery: string, limit
       .where(
         and(
           eq(tenants.status, "ACTIVE"),
+          ne(tenants.id, "tenant-community-market"),
           notLike(tenants.id, "tenant-demo-%"),
           sql`lower(${tenants.name}) LIKE ${likeStore}`
         )
@@ -1391,6 +1548,7 @@ export async function suggestMarketplaceTerms(db: AppDb, rawQuery: string, limit
         .where(
           and(
             eq(tenants.status, "ACTIVE"),
+            ne(tenants.id, "tenant-community-market"),
             notLike(tenants.id, "tenant-demo-%"),
             sql`lower(${tenants.name}) LIKE ${likeStore}`
           )

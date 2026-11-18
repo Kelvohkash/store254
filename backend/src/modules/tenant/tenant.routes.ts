@@ -213,6 +213,7 @@ export const updateStoreProfileSchema = z.object({
       }).optional(),
       headerVariant: z.enum(["compact-search-first", "centered-brand", "minimal-nav"]).optional(),
       productCardStyle: z.enum(["grid-card", "service-card"]).optional(),
+      portfolioMode: z.boolean().optional(),
     })
     .optional(),
 });

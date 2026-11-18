@@ -110,6 +110,31 @@ async function handleProductImageUpload(fileInput) {
   }
 }
 
+function isStorePortfolioModeEnabled() {
+  const storeInfo = typeof getAdminStoreInfo === 'function' ? getAdminStoreInfo() : (typeof tenantInfo !== 'undefined' ? tenantInfo : null);
+  return Boolean(storeInfo?.settings?.portfolioMode || storeInfo?.businessType === 'PORTFOLIO');
+}
+
+function syncPortfolioProjectEditorUI() {
+  const checkbox = document.getElementById('product-portfolio-project');
+  const priceInput = document.getElementById('product-price');
+  const priceLabel = document.getElementById('product-price-label');
+  const isPortfolio = Boolean(checkbox?.checked || isStorePortfolioModeEnabled());
+  if (priceInput) {
+    priceInput.min = isPortfolio ? '0' : '1';
+    priceInput.required = !isPortfolio;
+    if (isPortfolio && priceInput.value === '') {
+      priceInput.value = '0';
+    }
+  }
+  if (priceLabel) {
+    priceLabel.textContent = isPortfolio ? 'Price (KES) (optional — 0 for portfolio)' : 'Price (KES) *';
+  }
+}
+if (typeof window !== 'undefined') {
+  window.syncPortfolioProjectEditorUI = syncPortfolioProjectEditorUI;
+}
+
 function getEditorItemType() {
   return document.getElementById('product-type')?.value || 'PHYSICAL';
 }
@@ -173,6 +198,7 @@ function syncItemEditorTypeUI(itemType) {
       ? 'variant-row grid grid-cols-[1fr_105px_32px] gap-2 items-center'
       : 'variant-row grid grid-cols-[1fr_90px_75px_32px] gap-2 items-center';
   });
+  syncPortfolioProjectEditorUI();
 }
 
 function getAdminStoreArtworkContext() {
@@ -292,7 +318,7 @@ function addProductVariantRow(v = {}) {
     : 'variant-row grid grid-cols-[1fr_90px_75px_32px] gap-2 items-center';
   row.innerHTML = `
     <input type="text" class="input text-xs py-1.5 variant-title" placeholder="${isNoStockType ? (type === 'SERVICE' ? 'Package (e.g. VIP Session)' : 'Edition (e.g. Pro)') : 'Option (e.g. Red / XL)'}" value="${escHtml(v.title || '')}" />
-    <input type="number" min="1" class="input text-xs py-1.5 variant-price" placeholder="KES Price" value="${escHtml(v.price || '')}" />
+    <input type="number" min="0" class="input text-xs py-1.5 variant-price" placeholder="KES Price" value="${escHtml(v.price ?? '')}" />
     <input type="number" min="0" class="input text-xs py-1.5 variant-stock ${isNoStockType ? 'hidden' : ''}" placeholder="Stock" value="${escHtml(v.stockQuantity ?? (isNoStockType ? 0 : 5))}" />
     <button type="button" onclick="this.closest('.variant-row').remove()" class="variant-remove-btn w-8 h-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center" aria-label="Remove variant">✕</button>
   `;
@@ -301,12 +327,14 @@ function addProductVariantRow(v = {}) {
 
 function collectProductVariants() {
   const rows = document.querySelectorAll('#product-variants-list .variant-row');
-  const basePrice = parseInt(document.getElementById('product-price').value) || 1;
+  const rawBasePrice = parseInt(document.getElementById('product-price').value, 10);
+  const basePrice = Number.isFinite(rawBasePrice) && rawBasePrice >= 0 ? rawBasePrice : 0;
   const isNoStockType = ['SERVICE', 'DIGITAL'].includes(getEditorItemType());
   const out = [];
   rows.forEach(row => {
     const title = row.querySelector('.variant-title')?.value.trim();
-    const price = parseInt(row.querySelector('.variant-price')?.value) || basePrice;
+    const rawVarPrice = parseInt(row.querySelector('.variant-price')?.value, 10);
+    const price = Number.isFinite(rawVarPrice) && rawVarPrice >= 0 ? rawVarPrice : basePrice;
     const stockQuantity = isNoStockType ? 0 : Math.max(0, parseInt(row.querySelector('.variant-stock')?.value) || 0);
     if (title) {
       out.push({ title, price, stockQuantity, options: { variant: title } });

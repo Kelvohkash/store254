@@ -369,3 +369,163 @@ test("Bing verification, Firefox OpenSearch, scrollbar-width, and ?q= search rou
   assert.match(searchJs, /new URLSearchParams\(window\.location\.search\)\.get\("q"\)/);
   assert.match(resetCss, /\.scrollbar-none\s*\{[\s\S]*scrollbar-width:\s*none/);
 });
+
+test("Boda & Taxi rides modal, Single-Item Quick Sell modal, and entry triggers match JS IDs", async () => {
+  const [indexHtml, superAdminHtml, onboardingJs] = await Promise.all([
+    read("../index.html"),
+    read("../super-admin.html"),
+    read("../scripts/storefront/onboarding.js"),
+  ]);
+
+  // Entry triggers & onboarding options
+  assert.match(indexHtml, /onclick="openRidesModal\('book'\)"/);
+  assert.match(indexHtml, /onclick="openSingleItemModal\('post'\)"/);
+  assert.match(indexHtml, /id="platform-hero-quick-actions"/);
+  assert.match(indexHtml, /id="onboard-portfolio-mode"/);
+  assert.match(indexHtml, /value="PORTFOLIO"/);
+  assert.match(indexHtml, /value="TRANSPORT_RIDES"/);
+  assert.match(superAdminHtml, /value="PORTFOLIO"/);
+  assert.match(superAdminHtml, /value="TRANSPORT_RIDES"/);
+  assert.match(onboardingJs, /\bportfolioMode\b/);
+  assert.match(onboardingJs, /onboard-portfolio-mode/);
+
+  // Required #rides-modal DOM IDs
+  const requiredRidesIds = [
+    "rides-modal",
+    "rides-tab-book",
+    "rides-tab-driver",
+    "rides-book-panel",
+    "rides-driver-panel",
+    "rides-map-canvas",
+    "rides-nearby-summary",
+    "ride-pickup-input",
+    "ride-pickup-suggestions",
+    "ride-pickup-gps-btn",
+    "ride-dropoff-input",
+    "ride-dropoff-suggestions",
+    "ride-estimate-box",
+    "ride-estimate-boda-fare",
+    "ride-estimate-taxi-fare",
+    "ride-estimate-distance",
+    "ride-rider-name",
+    "ride-rider-phone",
+    "ride-request-btn",
+    "ride-live-tracker",
+    "ride-status-badge",
+    "ride-driver-card",
+    "ride-driver-name",
+    "ride-driver-vehicle",
+    "ride-driver-plate",
+    "ride-driver-eta",
+    "ride-driver-mpesa",
+    "ride-driver-call",
+    "ride-driver-whatsapp",
+    "ride-cancel-btn",
+    "ride-rating-form",
+    "ride-rating-score",
+    "ride-rating-review",
+    "rides-driver-auth-gate",
+    "rides-driver-content",
+    "rides-driver-online-toggle",
+    "rides-driver-online-label",
+    "rides-driver-form",
+    "driver-full-name",
+    "driver-phone",
+    "driver-mpesa",
+    "driver-vehicle-type",
+    "driver-vehicle-model",
+    "driver-plate",
+    "driver-base-fare",
+    "driver-per-km",
+    "driver-location-label",
+    "driver-gps-btn",
+    "rides-driver-active-ride",
+    "rides-driver-requests-list",
+  ];
+  for (const id of requiredRidesIds) {
+    assert.ok(indexHtml.includes(`id="${id}"`), `Missing #${id} in index.html`);
+  }
+  assert.match(indexHtml, /data-ride-vehicle="BODABODA"/);
+  assert.match(indexHtml, /data-ride-vehicle="TAXI"/);
+
+  // Required #single-item-modal DOM IDs
+  const requiredSingleItemIds = [
+    "single-item-modal",
+    "single-item-tab-post",
+    "single-item-tab-mine",
+    "single-item-post-panel",
+    "single-item-mine-panel",
+    "single-item-auth-gate",
+    "single-item-form",
+    "single-item-title",
+    "single-item-price",
+    "single-item-type",
+    "single-item-condition",
+    "single-item-description",
+    "single-item-seller-name",
+    "single-item-seller-phone",
+    "single-item-seller-whatsapp",
+    "single-item-county",
+    "single-item-town",
+    "single-item-town-results",
+    "single-item-selected-loc",
+    "single-item-photo-input",
+    "single-item-photo-previews",
+    "single-item-submit-btn",
+    "single-item-feedback",
+    "single-item-mine-list",
+  ];
+  for (const id of requiredSingleItemIds) {
+    assert.ok(indexHtml.includes(`id="${id}"`), `Missing #${id} in index.html`);
+  }
+
+  // Scripts loaded in order before pwa.js
+  const mediaOptIdx = indexHtml.indexOf('/scripts/admin/media-optimizer.js');
+  const ridesIdx = indexHtml.indexOf('/scripts/storefront/rides.js');
+  const singleIdx = indexHtml.indexOf('/scripts/storefront/single-item-sell.js');
+  const pwaIdx = indexHtml.indexOf('/scripts/storefront/pwa.js');
+  assert.ok(mediaOptIdx > 0 && ridesIdx > 0 && singleIdx > 0 && pwaIdx > 0);
+  assert.ok(mediaOptIdx < singleIdx && ridesIdx < pwaIdx && singleIdx < pwaIdx);
+});
+
+test("Portfolio mode hides commerce chrome and enables zero-price project showcase in Storefront & Admin", async () => {
+  const [
+    coreThemeJs,
+    storefrontCss,
+    storefrontCatalogJs,
+    itemModalJs,
+    adminHtml,
+    adminDesignJs,
+    productEditorJs,
+    adminCatalogJs,
+  ] = await Promise.all([
+    read("../scripts/storefront/core-theme.js"),
+    read("../styles/storefront-default.css"),
+    read("../scripts/storefront/catalog.js"),
+    read("../scripts/storefront/item-modal.js"),
+    read("../admin.html"),
+    read("../scripts/admin/design.js"),
+    read("../scripts/admin/product-editor.js"),
+    read("../scripts/admin/catalog.js"),
+  ]);
+
+  assert.match(coreThemeJs, /root\.dataset\.portfolioMode/);
+  assert.match(storefrontCss, /html\[data-portfolio-mode="true"\]\s+#desktop-cart-btn/);
+  assert.match(storefrontCss, /\.product-cart-icon/);
+
+  assert.match(storefrontCatalogJs, /View Project/);
+  assert.match(storefrontCatalogJs, /Visit Live Project/);
+  assert.match(storefrontCatalogJs, /Inquire \/ Contact/);
+
+  assert.match(itemModalJs, /item-modal-portfolio-actions/);
+  assert.match(itemModalJs, /Visit Live Project/);
+  assert.match(itemModalJs, /Inquire \/ Contact/);
+
+  assert.match(adminHtml, /id="settings-portfolio-mode"/);
+  assert.match(adminHtml, /id="product-portfolio-project"/);
+  assert.match(adminHtml, /id="product-project-url"/);
+  assert.match(adminDesignJs, /portfolioMode/);
+  assert.match(productEditorJs, /syncPortfolioProjectEditorUI/);
+  assert.match(adminCatalogJs, /product-project-url/);
+  assert.match(adminCatalogJs, /isPortfolioProject/);
+});

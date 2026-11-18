@@ -251,8 +251,8 @@ function renderProductsTable(products) {
       </td>
       <td data-label="Price" class="px-5 py-3">
         <div class="admin-product-price-wrap">
-          <p class="font-normal text-slate-900 text-sm">${fmt(p.basePrice)}</p>
-          ${p.compareAtPrice ? `<p class="text-xs text-slate-400 line-through">${fmt(p.compareAtPrice)}</p>` : ''}
+          <p class="font-normal text-slate-900 text-sm">${(p.metadata?.isPortfolioProject || Number(p.basePrice) === 0) ? '<span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">Portfolio</span>' : fmt(p.basePrice)}</p>
+          ${p.compareAtPrice && Number(p.basePrice) > 0 ? `<p class="text-xs text-slate-400 line-through">${fmt(p.compareAtPrice)}</p>` : ''}
         </div>
       </td>
       <td data-label="Stock" class="px-5 py-3">
@@ -299,13 +299,20 @@ window.setProductsPage = function(page) {
 
 function openAddProductModal() {
   productAttributeDraft = {};
+  const isStorePortfolio = typeof isStorePortfolioModeEnabled === 'function'
+    ? isStorePortfolioModeEnabled()
+    : Boolean(tenantInfo?.settings?.portfolioMode || tenantInfo?.businessType === 'PORTFOLIO');
   document.getElementById('product-modal-title').textContent = 'Add Product';
   document.getElementById('product-id').value = '';
   document.getElementById('product-title').value = '';
   document.getElementById('product-description').value = '';
-  document.getElementById('product-price').value = '';
+  document.getElementById('product-price').value = isStorePortfolio ? '0' : '';
   document.getElementById('product-compare-price').value = '';
   document.getElementById('product-stock').value = '0';
+  const portfolioCheckEl = document.getElementById('product-portfolio-project');
+  if (portfolioCheckEl) portfolioCheckEl.checked = isStorePortfolio;
+  const projectUrlEl = document.getElementById('product-project-url');
+  if (projectUrlEl) projectUrlEl.value = '';
   const statusSel = document.getElementById('service-booking-status');
   if (statusSel) statusSel.value = 'available';
   const modeSel = document.getElementById('service-delivery-mode');
@@ -344,9 +351,18 @@ async function openEditProductModal(id) {
   document.getElementById('product-id').value = p.id;
   document.getElementById('product-title').value = p.title;
   document.getElementById('product-description').value = p.description || '';
-  document.getElementById('product-price').value = p.basePrice;
+  document.getElementById('product-price').value = p.basePrice ?? 0;
   document.getElementById('product-compare-price').value = p.compareAtPrice || '';
   document.getElementById('product-stock').value = p.stockQuantity || 0;
+  const isStorePortfolio = typeof isStorePortfolioModeEnabled === 'function'
+    ? isStorePortfolioModeEnabled()
+    : Boolean(tenantInfo?.settings?.portfolioMode || tenantInfo?.businessType === 'PORTFOLIO');
+  const portfolioCheckEl = document.getElementById('product-portfolio-project');
+  if (portfolioCheckEl) {
+    portfolioCheckEl.checked = Boolean(p.metadata?.isPortfolioProject || Number(p.basePrice) === 0 || isStorePortfolio);
+  }
+  const projectUrlEl = document.getElementById('product-project-url');
+  if (projectUrlEl) projectUrlEl.value = p.metadata?.projectUrl || '';
 
   const serviceConfig = p.metadata?.serviceConfig || {};
   const statusSel = document.getElementById('service-booking-status');
@@ -404,11 +420,39 @@ async function handleSaveProduct(e) {
   const itemType = document.getElementById('product-type').value || 'PHYSICAL';
   const isService = itemType === 'SERVICE';
   const isDigital = itemType === 'DIGITAL';
+  const isStorePortfolio = typeof isStorePortfolioModeEnabled === 'function'
+    ? isStorePortfolioModeEnabled()
+    : Boolean(tenantInfo?.settings?.portfolioMode || tenantInfo?.businessType === 'PORTFOLIO');
+  const isPortfolioProject = Boolean(
+    document.getElementById('product-portfolio-project')?.checked || isStorePortfolio
+  );
+  const rawProjectUrl = (document.getElementById('product-project-url')?.value || '').trim();
+  if (rawProjectUrl) {
+    try {
+      const parsedUrl = new URL(rawProjectUrl);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        throw new Error('Invalid protocol');
+      }
+    } catch {
+      errEl.textContent = 'Live Project URL must start with http:// or https://.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+  }
+  const parsedPrice = parseInt(document.getElementById('product-price').value, 10);
+  const basePrice = Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : 0;
+  if (!isPortfolioProject && basePrice < 1) {
+    errEl.textContent = 'Price must be at least KES 1 unless Portfolio / Showcase Project is enabled.';
+    errEl.classList.remove('hidden');
+    return;
+  }
 
   const artworkMode = document.getElementById('product-artwork-mode')?.value || 'auto';
   const artworkIconVal = artworkMode === 'manual' ? (document.getElementById('product-artwork-icon')?.value || '') : '';
   const metadata = {};
   if (artworkIconVal) metadata.artworkIcon = artworkIconVal;
+  if (isPortfolioProject) metadata.isPortfolioProject = true;
+  if (rawProjectUrl) metadata.projectUrl = rawProjectUrl;
   if (isService) {
     metadata.serviceConfig = {
       available: (document.getElementById('service-booking-status')?.value || 'available') !== 'paused',
@@ -424,7 +468,7 @@ async function handleSaveProduct(e) {
   const body = {
     title: document.getElementById('product-title').value.trim(),
     description: document.getElementById('product-description').value.trim() || undefined,
-    basePrice: parseInt(document.getElementById('product-price').value) || 0,
+    basePrice,
     compareAtPrice: parseInt(document.getElementById('product-compare-price').value) || undefined,
     stockQuantity: isService || isDigital ? 0 : (parseInt(document.getElementById('product-stock').value) || 0),
     images,

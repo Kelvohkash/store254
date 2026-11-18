@@ -104,10 +104,56 @@ if (typeof window !== "undefined") {
   window.replaceBrokenItemMediaWithArtwork = replaceBrokenItemMediaWithArtwork;
 }
 
+function isPortfolioProjectItem(item) {
+  return Boolean(
+    (typeof document !== "undefined" && document.documentElement?.dataset?.portfolioMode === "true") ||
+    item?.metadata?.isPortfolioProject ||
+    Number(item?.basePrice) === 0
+  );
+}
+
+function getSafeExternalProjectUrl(rawUrl) {
+  const raw = String(rawUrl || "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function getStorefrontInquiryHref(itemTitle) {
+  const settings = (typeof state !== "undefined" && state?.activeTenant?.settings) || {};
+  const waRaw = settings?.socialLinks?.whatsapp;
+  if (typeof getSocialLinkUrl === "function" && waRaw) {
+    const waBase = getSocialLinkUrl("whatsapp", waRaw);
+    if (waBase) {
+      try {
+        const u = new URL(waBase);
+        u.searchParams.set("text", `Hi ${state?.activeTenant?.name || "there"}, I'd like to inquire about "${itemTitle || "your project"}".`);
+        return { href: u.href, external: true };
+      } catch {}
+    }
+  }
+  const phone = String(settings?.contactPhone || settings?.phone || "").trim();
+  if (phone) {
+    return { href: `tel:${phone}`, external: false };
+  }
+  const email = String(settings?.contactEmail || "").trim();
+  if (email) {
+    return { href: `mailto:${email}?subject=${encodeURIComponent(`Inquiry: ${itemTitle || "Project"}`)}`, external: false };
+  }
+  return null;
+}
+
 function buildItemCardHtml(item, cardIndex = 99) {
   const isPriorityCard = cardIndex < 4;
+  const isPortfolioItem = isPortfolioProjectItem(item);
+  const projectUrl = getSafeExternalProjectUrl(item?.metadata?.projectUrl);
+  const inquiryTarget = isPortfolioItem ? getStorefrontInquiryHref(item?.title) : null;
   const isService = item.itemType === "SERVICE";
-  const hasDisc = item.compareAtPrice && Number(item.compareAtPrice) > Number(item.basePrice);
+  const hasDisc = !isPortfolioItem && item.compareAtPrice && Number(item.compareAtPrice) > Number(item.basePrice);
   const hasPhoto = Array.isArray(item.images) && Boolean(item.images[0]);
   const artwork = getItemFallbackArtwork(item);
   const primaryImg = hasPhoto ? item.images[0] : artwork.dataUri;
@@ -116,8 +162,8 @@ function buildItemCardHtml(item, cardIndex = 99) {
   const attrs = item.attributes || {};
   const serviceConfig = item.metadata?.serviceConfig || {};
   const serviceAvailable = !isService || serviceConfig.available !== false;
-  const isPhysicalOutOfStock = !isService && item.itemType !== "DIGITAL" && Boolean(item.trackInventory) && Number(item.stockQuantity || 0) <= 0;
-  const brandOrCat = attrs.brand || getCategoryLabelForItem(item.categoryId) || (isService ? "Service" : "Featured");
+  const isPhysicalOutOfStock = !isPortfolioItem && !isService && item.itemType !== "DIGITAL" && Boolean(item.trackInventory) && Number(item.stockQuantity || 0) <= 0;
+  const brandOrCat = attrs.brand || getCategoryLabelForItem(item.categoryId) || (isPortfolioItem ? "Project" : isService ? "Service" : "Featured");
 
   // Concise attribute specs (services can also show configured duration & venue mode)
   const specEntries = [];
@@ -145,8 +191,42 @@ function buildItemCardHtml(item, cardIndex = 99) {
        ${secImg ? `<img class="product-card-secondary w-full h-full object-cover" src="${escapeHtml(secImg)}" alt="" loading="lazy" decoding="async" width="400" height="400">` : ""}`
     : artwork.stageHtml;
 
+  const portfolioFooterHtml = `
+    <div class="product-card-footer pt-2.5 mt-auto space-y-1.5">
+      <button type="button" onclick="event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" class="product-card-add w-full flex items-center justify-center gap-1.5">
+        <i data-lucide="folder-open" class="w-4 h-4"></i>
+        <span>View Project</span>
+      </button>
+      <div class="flex flex-wrap items-center gap-1.5">
+        ${projectUrl
+          ? `<a href="${escapeHtml(projectUrl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="flex-1 min-w-0 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-[11px] font-bold no-underline transition-colors">
+              <i data-lucide="external-link" class="w-3.5 h-3.5 shrink-0"></i>
+              <span class="truncate">Visit Live Project</span>
+            </a>`
+          : ""}
+        ${inquiryTarget
+          ? `<a href="${escapeHtml(inquiryTarget.href)}" ${inquiryTarget.external ? 'target="_blank" rel="noopener noreferrer"' : ""} onclick="event.stopPropagation()" class="flex-1 min-w-0 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold no-underline transition-colors">
+              <i data-lucide="message-circle" class="w-3.5 h-3.5 shrink-0"></i>
+              <span class="truncate">Inquire / Contact</span>
+            </a>`
+          : `<button type="button" onclick="event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" class="flex-1 min-w-0 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold transition-colors">
+              <i data-lucide="message-circle" class="w-3.5 h-3.5 shrink-0"></i>
+              <span class="truncate">Inquire / Contact</span>
+            </button>`}
+      </div>
+    </div>`;
+
+  const commerceFooterHtml = `
+    <div class="product-card-footer pt-2.5 mt-auto">
+      <div class="product-price-block flex items-baseline flex-wrap gap-1.5 mb-2.5">
+        <span class="product-card-price">KES ${Number(item.basePrice).toLocaleString()}</span>
+        ${hasDisc ? `<span class="product-card-compare-price">KES ${Number(item.compareAtPrice).toLocaleString()}</span>` : ""}
+      </div>
+      ${isService ? `<button type="button" ${serviceAvailable ? "" : "disabled"} onclick="addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" class="product-card-add w-full product-cart-service flex items-center justify-center gap-2 disabled:opacity-50"><i data-lucide="calendar" class="w-4 h-4"></i><span>${serviceAvailable ? "Book Session" : "Bookings Paused"}</span></button>` : ""}
+    </div>`;
+
   return `
-    <article class="product-card${isService ? " product-card--service" : ""} flex flex-col group relative">
+    <article class="product-card${isService ? " product-card--service" : ""}${isPortfolioItem ? " product-card--portfolio" : ""} flex flex-col group relative">
       <div class="product-card-media relative overflow-hidden flex items-center justify-center cursor-pointer" onclick="viewItemDetails(${inlineJs(item.id)})">
         <a href="${escapeHtml(itemHref)}" onclick="event.preventDefault(); event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" class="block w-full h-full no-underline" aria-label="${escapeHtml(item.title)}">
           ${mediaInnerHtml}
@@ -155,16 +235,17 @@ function buildItemCardHtml(item, cardIndex = 99) {
           <button type="button" data-wishlist-item="${escapeHtml(item.id)}" class="product-wishlist ${isWish ? "is-wishlisted" : ""}" onclick="event.stopPropagation(); toggleWishlist(${inlineJs(item.id)}, this)" aria-label="${isWish ? "Remove from" : "Add to"} wishlist" aria-pressed="${isWish}">
             <i data-lucide="heart" class="w-4 h-4"></i>
           </button>
-          ${!isService && !isPhysicalOutOfStock ? `<button type="button" class="product-cart-icon" onclick="event.stopPropagation(); addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" aria-label="Add ${escapeHtml(item.title)} to cart" title="Add to cart"><i data-lucide="plus" class="w-4 h-4"></i></button>` : ""}
+          ${!isPortfolioItem && !isService && !isPhysicalOutOfStock ? `<button type="button" class="product-cart-icon" onclick="event.stopPropagation(); addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" aria-label="Add ${escapeHtml(item.title)} to cart" title="Add to cart"><i data-lucide="plus" class="w-4 h-4"></i></button>` : ""}
         </div>
-        <button type="button" class="product-quick-view-btn" onclick="event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" aria-label="Quick view ${escapeHtml(item.title)}" title="Quick view details">
+        <button type="button" class="product-quick-view-btn" onclick="event.stopPropagation(); viewItemDetails(${inlineJs(item.id)})" aria-label="${isPortfolioItem ? "View project" : "Quick view"} ${escapeHtml(item.title)}" title="${isPortfolioItem ? "View project details" : "Quick view details"}">
           <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-          <span>Quick View</span>
+          <span>${isPortfolioItem ? "View Project" : "Quick View"}</span>
         </button>
         <div class="product-badge-rail absolute top-2.5 inset-x-2.5 flex items-center justify-between pointer-events-none">
           <div class="flex items-center gap-1.5 flex-wrap">
-            ${isService ? `<span class="badge-service-pill">${serviceAvailable ? "Service" : "Paused"}</span>` : ""}
-            ${isPhysicalOutOfStock ? `<span class="product-out-of-stock-pill">Out of stock</span>` : ""}
+            ${isPortfolioItem ? `<span class="badge-service-pill badge-portfolio-pill">Project</span>` : ""}
+            ${!isPortfolioItem && isService ? `<span class="badge-service-pill">${serviceAvailable ? "Service" : "Paused"}</span>` : ""}
+            ${!isPortfolioItem && isPhysicalOutOfStock ? `<span class="product-out-of-stock-pill">Out of stock</span>` : ""}
           </div>
         </div>
       </div>
@@ -172,19 +253,13 @@ function buildItemCardHtml(item, cardIndex = 99) {
         <div>
           <div class="product-card-meta-row flex items-center justify-between gap-1.5 mb-1">
             <span class="product-tag-pill truncate">${escapeHtml(brandOrCat)}</span>
-            ${!isService && item.itemType !== "DIGITAL" && item.trackInventory && item.stockQuantity > 0 && item.stockQuantity <= 8 ? `<span class="product-stock-note">${item.stockQuantity} left</span>` : ""}
+            ${!isPortfolioItem && !isService && item.itemType !== "DIGITAL" && item.trackInventory && item.stockQuantity > 0 && item.stockQuantity <= 8 ? `<span class="product-stock-note">${item.stockQuantity} left</span>` : ""}
           </div>
           <h3 class="product-card-title cursor-pointer"><a href="${escapeHtml(itemHref)}" onclick="event.preventDefault(); viewItemDetails(${inlineJs(item.id)})" class="no-underline text-inherit">${escapeHtml(item.title)}</a></h3>
           ${item.description ? `<p class="product-card-desc">${escapeHtml(item.description)}</p>` : ""}
           ${specChips ? `<div class="product-card-specs flex flex-wrap">${specChips}</div>` : ""}
         </div>
-        <div class="product-card-footer pt-2.5 mt-auto">
-          <div class="product-price-block flex items-baseline flex-wrap gap-1.5 mb-2.5">
-            <span class="product-card-price">KES ${Number(item.basePrice).toLocaleString()}</span>
-            ${hasDisc ? `<span class="product-card-compare-price">KES ${Number(item.compareAtPrice).toLocaleString()}</span>` : ""}
-          </div>
-          ${isService ? `<button type="button" ${serviceAvailable ? "" : "disabled"} onclick="addToCart(${inlineJs(item.id)}, ${inlineJs(item.title)}, ${Number(item.basePrice) || 0}, ${inlineJs(primaryImg)}, ${inlineJs(item.itemType)})" class="product-card-add w-full product-cart-service flex items-center justify-center gap-2 disabled:opacity-50"><i data-lucide="calendar" class="w-4 h-4"></i><span>${serviceAvailable ? "Book Session" : "Bookings Paused"}</span></button>` : ""}
-        </div>
+        ${isPortfolioItem ? portfolioFooterHtml : commerceFooterHtml}
       </div>
     </article>`;
 }

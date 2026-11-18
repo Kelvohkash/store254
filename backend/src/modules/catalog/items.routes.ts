@@ -88,9 +88,21 @@ function isTenantMerchantUser(user: UserContext | undefined, tenantId: string): 
   );
 }
 
+function isValidHttpUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.startsWith("//")) return false;
+  try {
+    const parsed = new URL(trimmed);
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Strips internal merchant metadata so public storefront endpoints only expose
- * safe display/booking configuration keys (`artworkIcon`, `serviceConfig`).
+ * safe display, portfolio, single-listing, and booking configuration keys.
+ * Internal fields such as `sellerEmail` are never exposed.
  */
 export function sanitizePublicItemMetadata(raw: unknown): Record<string, unknown> {
   let source: unknown = raw;
@@ -129,6 +141,36 @@ export function sanitizePublicItemMetadata(raw: unknown): Record<string, unknown
       sanitized.serviceConfig = serviceConfig;
     }
   }
+  if (typeof obj.isPortfolioProject === "boolean") {
+    sanitized.isPortfolioProject = obj.isPortfolioProject;
+  }
+  if (typeof obj.projectUrl === "string" && isValidHttpUrl(obj.projectUrl)) {
+    sanitized.projectUrl = obj.projectUrl.trim();
+  }
+  if (typeof obj.clientName === "string" && obj.clientName.trim()) {
+    sanitized.clientName = obj.clientName.trim();
+  }
+  if (typeof obj.completedYear === "string" && obj.completedYear.trim()) {
+    sanitized.completedYear = obj.completedYear.trim();
+  }
+  if (typeof obj.isSingleListing === "boolean") {
+    sanitized.isSingleListing = obj.isSingleListing;
+  }
+  if (typeof obj.sellerName === "string" && obj.sellerName.trim()) {
+    sanitized.sellerName = obj.sellerName.trim();
+  }
+  if (typeof obj.sellerPhone === "string" && obj.sellerPhone.trim()) {
+    sanitized.sellerPhone = obj.sellerPhone.trim();
+  }
+  if (typeof obj.sellerWhatsapp === "string" && obj.sellerWhatsapp.trim()) {
+    sanitized.sellerWhatsapp = obj.sellerWhatsapp.trim();
+  }
+  if (typeof obj.condition === "string" && obj.condition.trim()) {
+    sanitized.condition = obj.condition.trim();
+  }
+  if (typeof obj.locationLabel === "string" && obj.locationLabel.trim()) {
+    sanitized.locationLabel = obj.locationLabel.trim();
+  }
   return sanitized;
 }
 
@@ -138,7 +180,7 @@ export const createItemSchema = z.object({
   slug: z.string().optional(),
   description: z.string().optional(),
   itemType: z.enum(["PHYSICAL", "SERVICE", "DIGITAL"]).default("PHYSICAL"),
-  basePrice: z.number().int().positive(),
+  basePrice: z.number().int().min(0),
   compareAtPrice: z.number().int().positive().optional(),
   costPrice: z.number().int().positive().optional(),
   barcode: z.string().optional(),

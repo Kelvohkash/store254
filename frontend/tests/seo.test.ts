@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   BING_SITE_AUTH_TOKEN,
+  DIRECTORY_CATEGORIES,
   INDEXNOW_KEY,
   buildBingSiteAuthXml,
   buildIndexNowKeyFile,
@@ -507,4 +508,92 @@ test("empty categories are excluded from sitemap and marked noindex, IndexNow ke
   const privacyPage = buildPlatformPrivacyHtml(false);
   const privacyDesc = privacyPage.html.match(/<meta name="description" content="([^"]*)">/)?.[1] || "";
   assert.ok(privacyDesc.length <= 160, `Privacy description too long: ${privacyDesc.length}`);
+});
+
+test("DIRECTORY_CATEGORIES includes portfolio & transport-rides and Portfolio Mode omits KES 0 in SSR & schema", () => {
+  const slugs = new Map(DIRECTORY_CATEGORIES.map((c) => [c.enumType, c]));
+  assert.equal(slugs.get("PORTFOLIO")?.slug, "portfolio");
+  assert.equal(slugs.get("TRANSPORT_RIDES")?.slug, "transport-rides");
+  assert.equal(getDirectoryHubForBusinessType("PORTFOLIO").slug, "portfolio");
+  assert.equal(getDirectoryHubForBusinessType("TRANSPORT_RIDES").slug, "transport-rides");
+
+  const portfolioPayload = {
+    tenant: {
+      id: "tenant-studio-nairobi-202",
+      name: "Nairobi Creative Studio",
+      subdomain: "nairobicreative",
+      businessType: "PORTFOLIO",
+      currency: "KES",
+      settings: {
+        portfolioMode: true,
+        tagline: "Brand systems & web architecture",
+        description: "Portfolio showcase of digital products and visual identity systems in Nairobi.",
+      },
+    },
+    categories: [{ id: "cat-web", name: "Web Apps", slug: "web-apps" }],
+    items: [
+      {
+        id: "item-proj-1",
+        categoryId: "cat-web",
+        title: "Savannah Fintech Dashboard",
+        slug: "savannah-fintech-dashboard",
+        description: "End-to-end UX and frontend platform for mobile wallet settlements.",
+        itemType: "SERVICE",
+        basePrice: 0,
+        images: ["/api/media/tenant-studio-nairobi-202/project1.webp"],
+        metadata: {
+          isPortfolioProject: true,
+          projectUrl: "https://example.org/savannah-fintech",
+        },
+        isFeatured: true,
+      },
+    ],
+  };
+
+  const homeSeo = buildStorefrontSeoData({
+    origin: "https://nairobicreative.store254.co.ke",
+    route: { kind: "home" },
+    payload: portfolioPayload,
+    isPreview: false,
+  });
+  assert.match(homeSeo.ssrItemsHtml, /Portfolio Project/);
+  assert.doesNotMatch(homeSeo.ssrItemsHtml, /KES\s*0\b/i);
+
+  const itemSeo = buildStorefrontSeoData({
+    origin: "https://nairobicreative.store254.co.ke",
+    route: { kind: "item", slug: "savannah-fintech-dashboard" },
+    payload: portfolioPayload,
+    isPreview: false,
+  });
+  assert.equal(itemSeo.status, 200);
+  assert.match(itemSeo.title, /Portfolio Project/);
+  assert.doesNotMatch(itemSeo.title, /KES\s*0\b/i);
+  assert.doesNotMatch(itemSeo.headTagsHtml, /product:price:amount/);
+  assert.match(itemSeo.headTagsHtml, /"@type":"CreativeWork"/);
+  assert.match(itemSeo.ssrItemDetailHtml, /Portfolio Project/);
+  assert.match(itemSeo.ssrItemDetailHtml, /https:\/\/example\.org\/savannah-fintech/);
+  assert.doesNotMatch(itemSeo.ssrItemDetailHtml, /KES\s*0\b/i);
+
+  // Also test non-PORTFOLIO store where single item has basePrice: 0
+  const zeroPriceRetailSeo = buildStorefrontSeoData({
+    origin: "https://alicebabycare.store254.co.ke",
+    route: { kind: "item", slug: "free-sample-guide" },
+    payload: {
+      tenant: sampleStores[0],
+      categories: [],
+      items: [
+        {
+          id: "item-zero",
+          title: "Lookbook Case Study",
+          slug: "free-sample-guide",
+          description: "Showcase work.",
+          itemType: "SERVICE",
+          basePrice: 0,
+        },
+      ],
+    },
+    isPreview: false,
+  });
+  assert.match(zeroPriceRetailSeo.title, /Portfolio Project/);
+  assert.doesNotMatch(zeroPriceRetailSeo.ssrItemDetailHtml, /KES\s*0\b/i);
 });

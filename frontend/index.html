@@ -158,6 +158,14 @@
           <i data-lucide="store" class="w-3.5 h-3.5"></i>
           <span>Stores</span>
         </a>
+        <button id="platform-nav-rides-btn" type="button" onclick="openRidesModal('book')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-colors">
+          <i data-lucide="bike" class="w-3.5 h-3.5"></i>
+          <span>Boda &amp; Taxi</span>
+        </button>
+        <button id="platform-nav-quicksell-btn" type="button" onclick="openSingleItemModal('post')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-colors">
+          <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+          <span>Sell 1 Item</span>
+        </button>
         <button id="platform-nav-account-btn" type="button" onclick="handlePlatformAccountClick()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors">
           <i data-lucide="user-round" class="w-3.5 h-3.5"></i>
           <span id="platform-nav-account-label">Sign in</span>
@@ -228,6 +236,8 @@
     <nav id="platform-mobile-menu" class="platform-mobile-menu" aria-label="Mobile navigation" hidden>
       <a href="/" onclick="togglePlatformMobileMenu(false)"><span>Shop Products</span><i data-lucide="shopping-bag" class="w-4 h-4"></i></a>
       <a href="/stores" onclick="togglePlatformMobileMenu(false)"><span>Active storefronts</span><i data-lucide="store" class="w-4 h-4"></i></a>
+      <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); openRidesModal('book')"><span>Boda &amp; Taxi (0% Fee)</span><i data-lucide="bike" class="w-4 h-4"></i></a>
+      <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); openSingleItemModal('post')"><span>Sell 1 Item (No Store)</span><i data-lucide="tag" class="w-4 h-4"></i></a>
       <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); openBuyerWelcomeModal(2)"><span id="platform-mobile-location-label">Pick Your Town</span><i data-lucide="map-pin" class="w-4 h-4"></i></a>
       <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); handlePlatformAccountClick()"><span id="platform-mobile-account-label">Sign in with Google</span><i data-lucide="user-round" class="w-4 h-4"></i></a>
       <a href="javascript:void(0)" onclick="togglePlatformMobileMenu(false); openMarketplaceOrdersModal()"><span>My Orders</span><i data-lucide="package-check" class="w-4 h-4"></i></a>
@@ -378,6 +388,28 @@
               </button>
             </form>
           </div>
+        </div>
+        <div id="platform-hero-quick-actions" class="mt-3 pt-3 border-t border-emerald-200/70 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="openRidesModal('book')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold shadow-sm transition-colors">
+              <i data-lucide="bike" class="w-3.5 h-3.5"></i>
+              <span>Boda &amp; Taxi</span>
+              <span class="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-black">0% Fee</span>
+            </button>
+            <button type="button" onclick="openRidesModal('driver')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-900 text-xs font-bold transition-colors">
+              <i data-lucide="navigation" class="w-3.5 h-3.5 text-emerald-700"></i>
+              <span>Driver Mode</span>
+            </button>
+            <button type="button" onclick="openSingleItemModal('post')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 text-xs font-extrabold transition-colors">
+              <i data-lucide="tag" class="w-3.5 h-3.5 text-amber-700"></i>
+              <span>Sell 1 Item</span>
+              <span class="hidden sm:inline text-[10px] font-bold text-amber-800">No Store Needed</span>
+            </button>
+          </div>
+          <button type="button" onclick="toggleDrawer('onboard-modal', true)" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white/90 hover:bg-white text-slate-800 text-xs font-bold transition-colors">
+            <i data-lucide="briefcase" class="w-3.5 h-3.5 text-indigo-600"></i>
+            <span>Open Store / Portfolio</span>
+          </button>
         </div>
       </div>
 
@@ -823,15 +855,15 @@
           </div>
           <div>
             <div id="item-modal-badges" class="flex flex-wrap gap-1.5 mb-2"></div>
-            <div class="flex items-baseline gap-2 mb-3">
+            <div id="item-modal-price-row" class="flex items-baseline gap-2 mb-3">
               <span id="item-modal-price" class="text-2xl font-black text-slate-900">KES 0</span>
               <span id="item-modal-compare-price" class="hidden text-xs text-slate-400 line-through">KES 0</span>
             </div>
             <p id="item-modal-description" class="text-xs text-slate-600 leading-relaxed mb-4"></p>
             <div id="item-modal-variants" class="mb-4 hidden"></div>
             <div id="item-modal-attributes" class="grid grid-cols-2 gap-2 text-xs"></div>
-            <div class="mt-5 flex items-center gap-2">
-              <div class="flex items-center border border-slate-200 rounded-xl bg-slate-50 px-1 py-1">
+            <div id="item-modal-actions-row" class="mt-5 flex items-center gap-2">
+              <div id="item-modal-qty-wrap" class="flex items-center border border-slate-200 rounded-xl bg-slate-50 px-1 py-1">
                 <button type="button" onclick="stepItemModalQty(-1)" class="w-7 h-7 rounded-lg hover:bg-white text-slate-700 font-bold text-sm flex items-center justify-center">−</button>
                 <input id="item-modal-qty" type="number" inputmode="numeric" min="1" max="99" value="1" class="w-10 p-0 border-0 text-center text-xs font-bold bg-transparent text-slate-900 focus:outline-none" readonly />
                 <button type="button" onclick="stepItemModalQty(1)" class="w-7 h-7 rounded-lg hover:bg-white text-slate-700 font-bold text-sm flex items-center justify-center">+</button>
@@ -841,6 +873,7 @@
                 <span>Add to Cart</span>
               </button>
             </div>
+            <div id="item-modal-portfolio-actions" class="hidden mt-5 space-y-2.5"></div>
             <div class="mt-3 flex justify-end">
               <button type="button" onclick="reportCurrentStorefrontItem()" class="text-[11px] font-semibold text-slate-400 hover:text-rose-600 inline-flex items-center gap-1 transition-colors">
                 <i data-lucide="flag" class="w-3 h-3"></i>
@@ -1001,9 +1034,16 @@
         </button>
       </div>
 
-      <p class="text-xs text-slate-500 mb-6 leading-relaxed">
+      <p class="text-xs text-slate-500 mb-3 leading-relaxed">
         Register your store on Store254. Your application will be reviewed and activated by Our 254 team.
       </p>
+
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50/70 px-3.5 py-2.5 text-[11px] text-amber-950">
+        <span class="font-medium">No store needed for a single listing.</span>
+        <button type="button" onclick="toggleDrawer('onboard-modal', false); openSingleItemModal('post')" class="font-extrabold text-emerald-800 hover:underline">
+          Just selling 1 item? Post without a store &rarr;
+        </button>
+      </div>
 
       <div id="onboard-auth-gate" class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 text-center space-y-3">
         <div class="w-11 h-11 rounded-2xl bg-white border border-emerald-200 text-emerald-700 mx-auto flex items-center justify-center shadow-xs">
@@ -1059,8 +1099,18 @@
             <option value="SPORTS_FITNESS">Sports Gear, Gym &amp; Outdoor</option>
             <option value="WHOLESALE_B2B">Wholesale, Distributors &amp; Importers</option>
             <option value="LOGISTICS_DELIVERY">Courier, Boda &amp; Transport Services</option>
+            <option value="PORTFOLIO">Personal / Agency Portfolio &amp; Showcase (No Selling)</option>
+            <option value="TRANSPORT_RIDES">Bodaboda, Taxi &amp; Transport</option>
           </select>
         </div>
+
+        <label for="onboard-portfolio-mode" class="flex items-start gap-2.5 rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 text-[11px] text-slate-700 leading-relaxed cursor-pointer">
+          <input type="checkbox" id="onboard-portfolio-mode" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0">
+          <span>
+            <strong class="block font-bold text-slate-900">Portfolio / Showcase Only — no cart or selling, showcase projects &amp; work</strong>
+            <span class="text-slate-600">Hide shopping cart, checkout, and KES 0 prices; share projects with live links and inquiry contacts.</span>
+          </span>
+        </label>
 
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3">
           <div class="flex items-center justify-between gap-2">
@@ -1523,6 +1573,406 @@
     </div>
   </div>
 
+  <!-- Bodaboda & Taxi Direct Rides Modal (0% Commission) -->
+  <div id="rides-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[97] flex items-center justify-center p-2 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="rides-modal-title">
+    <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 my-auto">
+      <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <div class="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 mb-0.5">
+            <i data-lucide="navigation" class="w-3.5 h-3.5"></i>
+            <span>0% Commission · Direct M-Pesa / Cash</span>
+          </div>
+          <h2 id="rides-modal-title" class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">Boda &amp; Taxi Live Radar</h2>
+        </div>
+        <button type="button" onclick="closeRidesModal()" aria-label="Close rides modal" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center flex-shrink-0 transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="px-4 sm:px-6 pt-3 pb-2 border-b border-slate-100 flex items-center gap-2" role="tablist">
+        <button id="rides-tab-book" type="button" role="tab" aria-selected="true" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-700 text-white transition-colors">
+          <i data-lucide="map-pin" class="w-4 h-4"></i>
+          <span>Book a Ride</span>
+        </button>
+        <button id="rides-tab-driver" type="button" role="tab" aria-selected="false" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 transition-colors">
+          <i data-lucide="bike" class="w-4 h-4"></i>
+          <span>Driver Mode (0% Fee)</span>
+        </button>
+      </div>
+
+      <!-- Rider Booking Panel -->
+      <div id="rides-book-panel" class="p-4 sm:p-6 space-y-5">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          <!-- Left: Live Radar Canvas & Summary -->
+          <div class="lg:col-span-5 space-y-3">
+            <div class="relative rounded-2xl overflow-hidden border border-emerald-900/20 bg-slate-950 shadow-inner">
+              <canvas id="rides-map-canvas" width="420" height="300" class="w-full h-[230px] sm:h-[270px] block"></canvas>
+              <div class="px-3.5 py-2.5 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between gap-2 text-xs text-slate-200">
+                <div id="rides-nearby-summary" class="font-medium leading-snug">Checking nearby Bodabodas &amp; Taxis…</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <button type="button" data-ride-vehicle="BODABODA" class="is-selected ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50 rounded-2xl border p-3 text-left transition-all">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                  <span class="inline-flex items-center gap-1.5 text-xs font-extrabold text-slate-900">
+                    <i data-lucide="bike" class="w-4 h-4 text-emerald-700"></i>
+                    Bodaboda
+                  </span>
+                  <span id="ride-estimate-boda-fare" class="text-xs font-extrabold text-emerald-700">KES —</span>
+                </div>
+                <p class="text-[11px] text-slate-600">Fast traffic dodge · 1 passenger</p>
+              </button>
+
+              <button type="button" data-ride-vehicle="TAXI" class="rounded-2xl border border-slate-200 bg-white hover:border-slate-300 p-3 text-left transition-all">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                  <span class="inline-flex items-center gap-1.5 text-xs font-extrabold text-slate-900">
+                    <i data-lucide="car" class="w-4 h-4 text-sky-700"></i>
+                    Taxi Cab
+                  </span>
+                  <span id="ride-estimate-taxi-fare" class="text-xs font-extrabold text-sky-700">KES —</span>
+                </div>
+                <p class="text-[11px] text-slate-600">Up to 4 seats · Weather-safe</p>
+              </button>
+            </div>
+
+            <div id="ride-estimate-box" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50/70 px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
+              <span class="font-bold text-emerald-900">Estimated Trip Distance</span>
+              <span id="ride-estimate-distance" class="font-extrabold text-emerald-800">—</span>
+            </div>
+          </div>
+
+          <!-- Right: Route & Request Form + Live Tracker -->
+          <div class="lg:col-span-7 space-y-4">
+            <form class="space-y-3 bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4" onsubmit="event.preventDefault(); requestRide();">
+              <div class="relative">
+                <label for="ride-pickup-input" class="block text-xs font-bold text-slate-700 mb-1">Pickup Point</label>
+                <div class="flex gap-2">
+                  <input id="ride-pickup-input" type="text" autocomplete="off" placeholder="Search Kenyan town, estate, stage, or road…" class="flex-1 min-w-0 border border-slate-300 bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+                  <button id="ride-pickup-gps-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-bold text-slate-800 flex-shrink-0 transition-colors">
+                    <i data-lucide="locate-fixed" class="w-4 h-4 text-emerald-700"></i>
+                    <span>Use GPS</span>
+                  </button>
+                </div>
+                <div id="ride-pickup-suggestions" class="hidden absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-lg max-h-52 overflow-y-auto divide-y divide-slate-100"></div>
+              </div>
+
+              <div class="relative">
+                <label for="ride-dropoff-input" class="block text-xs font-bold text-slate-700 mb-1">Drop-off Destination</label>
+                <input id="ride-dropoff-input" type="text" autocomplete="off" placeholder="Where are you heading? e.g. Westlands, CBD, Kilimani…" class="w-full border border-slate-300 bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+                <div id="ride-dropoff-suggestions" class="hidden absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-lg max-h-52 overflow-y-auto divide-y divide-slate-100"></div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="ride-rider-name" class="block text-xs font-bold text-slate-700 mb-1">Your Name</label>
+                  <input id="ride-rider-name" type="text" placeholder="e.g. Brian Kamau" class="w-full border border-slate-300 bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+                </div>
+                <div>
+                  <label for="ride-rider-phone" class="block text-xs font-bold text-slate-700 mb-1">Phone / WhatsApp</label>
+                  <input id="ride-rider-phone" type="tel" placeholder="07XX XXX XXX" class="w-full border border-slate-300 bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+                </div>
+              </div>
+
+              <button id="ride-request-btn" type="button" class="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm shadow-sm inline-flex items-center justify-center gap-2 transition-colors">
+                <i data-lucide="navigation" class="w-4 h-4"></i>
+                <span>Request Direct Ride</span>
+              </button>
+              <p class="text-[11px] text-slate-500 text-center">Pay the rider/driver directly via M-Pesa or cash — Store254 takes KES 0 commission.</p>
+            </form>
+
+            <!-- Live Ride Status & Assigned Driver Card -->
+            <div id="ride-live-tracker" class="hidden rounded-2xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
+                  <span id="ride-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border bg-amber-50 text-amber-800 border-amber-200">Searching nearby drivers</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="resetCompletedRideView()" class="text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg">Book Another</button>
+                  <button id="ride-cancel-btn" type="button" class="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors">Cancel Ride</button>
+                </div>
+              </div>
+
+              <div id="ride-driver-card" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 space-y-2.5">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <div id="ride-driver-name" class="font-extrabold text-slate-900 text-sm">Driver</div>
+                    <div class="text-xs text-slate-600 mt-0.5">
+                      <span id="ride-driver-vehicle">Bodaboda</span> · Plate <strong id="ride-driver-plate" class="text-slate-900">—</strong>
+                    </div>
+                    <div id="ride-driver-eta" class="text-xs font-bold text-emerald-700 mt-1">Connecting…</div>
+                  </div>
+                </div>
+                <div class="text-xs text-slate-700 bg-white rounded-lg px-3 py-2 border border-emerald-100">
+                  <span class="font-bold text-slate-500">Direct M-Pesa / Till:</span>
+                  <span id="ride-driver-mpesa" class="font-bold text-slate-900 ml-1">—</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <a id="ride-driver-call" href="#" class="hidden inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold">
+                    <i data-lucide="phone" class="w-3.5 h-3.5"></i>
+                    <span>Call Driver</span>
+                  </a>
+                  <a id="ride-driver-whatsapp" href="#" target="_blank" rel="noopener noreferrer" class="hidden inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold">
+                    <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                    <span>WhatsApp</span>
+                  </a>
+                </div>
+              </div>
+
+              <form id="ride-rating-form" class="hidden rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2.5">
+                <div class="text-xs font-extrabold text-slate-800">Rate your trip</div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <select id="ride-rating-score" class="border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
+                    <option value="5" selected>5 Stars — Excellent</option>
+                    <option value="4">4 Stars — Good</option>
+                    <option value="3">3 Stars — Okay</option>
+                    <option value="2">2 Stars — Fair</option>
+                    <option value="1">1 Star — Poor</option>
+                  </select>
+                  <textarea id="ride-rating-review" rows="1" placeholder="Optional quick feedback…" class="sm:col-span-2 border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs outline-none"></textarea>
+                </div>
+                <button type="submit" class="w-full py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold">Submit Rating</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Driver Mode Panel -->
+      <div id="rides-driver-panel" class="hidden p-4 sm:p-6 space-y-5">
+        <div id="rides-driver-auth-gate" class="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center space-y-3">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+            <i data-lucide="shield-check" class="w-6 h-6"></i>
+          </div>
+          <h3 class="text-base font-extrabold text-slate-900">Sign in with Google to go online as a Driver / Rider</h3>
+          <p class="text-xs text-slate-600 max-w-md mx-auto">Register your Bodaboda or Taxi once, share your live location, and keep 100% of every fare — Store254 charges 0% commission.</p>
+          <button type="button" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-sm">
+            <i data-lucide="log-in" class="w-4 h-4"></i>
+            <span>Continue with Google</span>
+          </button>
+        </div>
+
+        <div id="rides-driver-content" class="hidden space-y-5">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Availability Status</div>
+              <div id="rides-driver-online-label" class="text-sm font-extrabold text-slate-900 mt-0.5">Offline — Toggle On when ready for trips</div>
+            </div>
+            <label class="inline-flex items-center gap-2.5 cursor-pointer select-none bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm">
+              <input id="rides-driver-online-toggle" type="checkbox" class="w-4 h-4 accent-emerald-700 rounded">
+              <span class="text-xs font-extrabold text-slate-800">Go Online</span>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            <div class="lg:col-span-6 space-y-4">
+              <div id="rides-driver-active-ride"></div>
+              <div>
+                <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Nearby Ride Requests</h3>
+                <div id="rides-driver-requests-list" class="space-y-2.5"></div>
+              </div>
+            </div>
+
+            <form id="rides-driver-form" class="lg:col-span-6 rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-sm font-extrabold text-slate-900">Your Vehicle &amp; Direct Fare Rates</h3>
+                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">0% Commission</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="driver-full-name" class="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+                  <input id="driver-full-name" type="text" required placeholder="e.g. Samuel Mwangi" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-emerald-600">
+                </div>
+                <div>
+                  <label for="driver-phone" class="block text-xs font-bold text-slate-700 mb-1">Phone / WhatsApp</label>
+                  <input id="driver-phone" type="tel" required placeholder="07XX XXX XXX" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-emerald-600">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="driver-vehicle-type" class="block text-xs font-bold text-slate-700 mb-1">Vehicle Type</label>
+                  <select id="driver-vehicle-type" class="w-full border border-slate-300 bg-white rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold">
+                    <option value="BODABODA">Bodaboda Motorcycle</option>
+                    <option value="TAXI">Taxi Cab</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="driver-plate" class="block text-xs font-bold text-slate-700 mb-1">Number Plate</label>
+                  <input id="driver-plate" type="text" required placeholder="KMDE 421B / KDM 812K" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm uppercase outline-none focus:border-emerald-600">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="driver-vehicle-model" class="block text-xs font-bold text-slate-700 mb-1">Bike / Car Model</label>
+                  <input id="driver-vehicle-model" type="text" placeholder="e.g. Boxer BM150 / Toyota Axio" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-emerald-600">
+                </div>
+                <div>
+                  <label for="driver-mpesa" class="block text-xs font-bold text-slate-700 mb-1">M-Pesa Number / Till / Paybill</label>
+                  <input id="driver-mpesa" type="text" placeholder="e.g. M-Pesa 0712 345 678" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-emerald-600">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label for="driver-base-fare" class="block text-xs font-bold text-slate-700 mb-1">Base Fare (KES)</label>
+                  <input id="driver-base-fare" type="number" min="30" step="10" value="80" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-emerald-600">
+                </div>
+                <div>
+                  <label for="driver-per-km" class="block text-xs font-bold text-slate-700 mb-1">Per KM (KES)</label>
+                  <input id="driver-per-km" type="number" min="10" step="5" value="35" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-emerald-600">
+                </div>
+              </div>
+
+              <div>
+                <label for="driver-location-label" class="block text-xs font-bold text-slate-700 mb-1">Stage / Base Area</label>
+                <div class="flex gap-2">
+                  <input id="driver-location-label" type="text" placeholder="e.g. Roysambu Stage / Kisumu CBD" class="flex-1 min-w-0 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm outline-none focus:border-emerald-600">
+                  <button id="driver-gps-btn" type="button" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-800 flex-shrink-0">
+                    <i data-lucide="locate-fixed" class="w-3.5 h-3.5 text-emerald-700"></i>
+                    <span>GPS</span>
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-extrabold transition-colors">
+                Save Driver Profile
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick-Sell Single Item / Personal Listing Modal (No Store Required) -->
+  <div id="single-item-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[97] flex items-center justify-center p-2 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="single-item-modal-title">
+    <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 my-auto">
+      <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <div class="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 mb-0.5">
+            <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+            <span>Quick Classified · No Store Needed</span>
+          </div>
+          <h2 id="single-item-modal-title" class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">Sell 1 Item Across Kenya</h2>
+        </div>
+        <button type="button" onclick="closeSingleItemModal()" aria-label="Close quick sell modal" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center flex-shrink-0 transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="px-4 sm:px-6 pt-3 pb-2 border-b border-slate-100 flex items-center gap-2" role="tablist">
+        <button id="single-item-tab-post" type="button" role="tab" aria-selected="true" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-700 text-white transition-colors">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Post 1 Item</span>
+        </button>
+        <button id="single-item-tab-mine" type="button" role="tab" aria-selected="false" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 transition-colors">
+          <i data-lucide="list" class="w-4 h-4"></i>
+          <span>My Listings</span>
+        </button>
+      </div>
+
+      <!-- Post 1 Item Panel -->
+      <div id="single-item-post-panel" class="p-4 sm:p-6 space-y-4">
+        <div id="single-item-auth-gate" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center space-y-3">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+            <i data-lucide="log-in" class="w-5 h-5"></i>
+          </div>
+          <h3 class="text-sm sm:text-base font-extrabold text-slate-900">Sign in with Google to post your item</h3>
+          <p class="text-xs text-slate-600 max-w-md mx-auto">Buyers call or WhatsApp you directly. Post your phone, laptop, furniture, or service in 30 seconds without opening a full store.</p>
+          <button type="button" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-sm">
+            <i data-lucide="user-check" class="w-4 h-4"></i>
+            <span>Continue with Google</span>
+          </button>
+        </div>
+
+        <form id="single-item-form" class="space-y-3.5">
+          <div>
+            <label for="single-item-title" class="block text-xs font-bold text-slate-700 mb-1">What are you selling? *</label>
+            <input id="single-item-title" type="text" required placeholder="e.g. iPhone 13 128GB Clean · Blue" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label for="single-item-price" class="block text-xs font-bold text-slate-700 mb-1">Price (KES) *</label>
+              <input id="single-item-price" type="number" min="1" step="1" required placeholder="e.g. 48000" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+            </div>
+            <div>
+              <label for="single-item-type" class="block text-xs font-bold text-slate-700 mb-1">Listing Type</label>
+              <select id="single-item-type" class="w-full border border-slate-300 bg-white rounded-xl px-3 py-2.5 text-sm font-semibold">
+                <option value="PHYSICAL">Physical Item</option>
+                <option value="SERVICE">One-off Service</option>
+              </select>
+            </div>
+            <div>
+              <label for="single-item-condition" class="block text-xs font-bold text-slate-700 mb-1">Condition</label>
+              <select id="single-item-condition" class="w-full border border-slate-300 bg-white rounded-xl px-3 py-2.5 text-sm font-semibold">
+                <option value="NEW">Brand New</option>
+                <option value="USED">Ex-UK / Pre-owned</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="single-item-description" class="block text-xs font-bold text-slate-700 mb-1">Description</label>
+            <textarea id="single-item-description" rows="2" placeholder="Specs, battery health, pickup landmark, or delivery notes…" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label for="single-item-seller-name" class="block text-xs font-bold text-slate-700 mb-1">Your Name *</label>
+              <input id="single-item-seller-name" type="text" required placeholder="e.g. Mercy Wanjiku" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+            </div>
+            <div>
+              <label for="single-item-seller-phone" class="block text-xs font-bold text-slate-700 mb-1">Phone *</label>
+              <input id="single-item-seller-phone" type="tel" required placeholder="07XX XXX XXX" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+            </div>
+            <div>
+              <label for="single-item-seller-whatsapp" class="block text-xs font-bold text-slate-700 mb-1">WhatsApp (optional)</label>
+              <input id="single-item-seller-whatsapp" type="tel" placeholder="Same as phone if blank" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="single-item-county" class="block text-xs font-bold text-slate-700 mb-1">County</label>
+              <select id="single-item-county" class="w-full border border-slate-300 bg-white rounded-xl px-3 py-2.5 text-sm font-semibold">
+                <option value="">All Kenya / Loading counties…</option>
+              </select>
+            </div>
+            <div class="relative">
+              <label for="single-item-town" class="block text-xs font-bold text-slate-700 mb-1">Town / Estate *</label>
+              <input id="single-item-town" type="text" autocomplete="off" placeholder="Search town, constituency, estate…" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+              <div id="single-item-town-results" class="hidden absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-lg max-h-52 overflow-y-auto divide-y divide-slate-100"></div>
+            </div>
+          </div>
+
+          <div id="single-item-selected-loc" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800"></div>
+
+          <div>
+            <label for="single-item-photo-input" class="block text-xs font-bold text-slate-700 mb-1">Photos (up to 5)</label>
+            <input id="single-item-photo-input" type="file" accept="image/*" multiple class="block w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100 cursor-pointer">
+            <div id="single-item-photo-previews" class="grid grid-cols-5 gap-2 mt-2"></div>
+          </div>
+
+          <div id="single-item-feedback" role="alert" aria-live="polite" class="hidden rounded-xl border px-3.5 py-2.5 text-xs font-semibold"></div>
+
+          <button id="single-item-submit-btn" type="submit" class="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm shadow-sm inline-flex items-center justify-center gap-2 transition-colors">
+            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+            <span>Publish Listing Now</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- My Single-Item Listings Panel -->
+      <div id="single-item-mine-panel" class="hidden p-4 sm:p-6">
+        <div id="single-item-mine-list" class="space-y-3"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="/scripts/storefront/core.js?v=20261116"></script>
   <script src="/scripts/storefront/core-theme.js"></script>
   <script src="/scripts/storefront/social.js?v=20261115h"></script>
@@ -1545,6 +1995,9 @@
   <script src="/scripts/storefront/marketplace-cart.js?v=20261116c"></script>
   <script src="/scripts/storefront/onboarding.js?v=20261116"></script>
   <script src="/scripts/storefront/copyright-report.js?v=20261116"></script>
+  <script src="/scripts/admin/media-optimizer.js"></script>
+  <script src="/scripts/storefront/rides.js"></script>
+  <script src="/scripts/storefront/single-item-sell.js"></script>
   <script src="/scripts/storefront/pwa.js"></script>
 
 </body>

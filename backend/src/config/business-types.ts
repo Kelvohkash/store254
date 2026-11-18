@@ -21,6 +21,8 @@ export const BUSINESS_TYPE_VALUES = [
   "KIDS_BABY",
   "WHOLESALE_B2B",
   "LOGISTICS_DELIVERY",
+  "PORTFOLIO",
+  "TRANSPORT_RIDES",
 ] as const;
 
 export type BusinessTypeValue = (typeof BUSINESS_TYPE_VALUES)[number];

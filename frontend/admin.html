@@ -450,6 +450,15 @@
                     <p class="mt-1 text-xs text-slate-500">Products keep the current grid. Service cards become wider on desktop and full-width on phones.</p>
                   </div>
                 </div>
+                <div class="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 max-w-3xl">
+                  <label for="settings-portfolio-mode" class="flex items-start gap-3 cursor-pointer">
+                    <input id="settings-portfolio-mode" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0" />
+                    <span class="space-y-0.5">
+                      <span class="block text-sm font-black text-slate-900">Portfolio / Showcase Mode (No Cart or Checkout)</span>
+                      <span class="block text-xs text-slate-600">Hide cart, checkout, and KES 0 prices across your storefront. Showcase projects with optional live project links and direct WhatsApp or phone inquiries.</span>
+                    </span>
+                  </label>
+                </div>
                 <!-- Store Identity & Branding -->
                 <div class="border-t border-slate-100 pt-5 space-y-4">
                   <h4 class="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -840,10 +849,23 @@
         <label class="label">Description</label>
         <textarea id="product-description" class="input" rows="3" oninput="handleItemArtworkPreviewInput()"></textarea>
       </div>
+      <div class="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-3.5 space-y-3">
+        <label for="product-portfolio-project" class="flex items-start gap-2.5 cursor-pointer">
+          <input id="product-portfolio-project" type="checkbox" onchange="syncPortfolioProjectEditorUI()" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0" />
+          <span class="text-xs">
+            <strong class="block font-black text-slate-900">Portfolio / Showcase Project</strong>
+            <span class="text-[11px] text-slate-600">Allows KES 0 showcase items (no cart/checkout) with an optional live project link.</span>
+          </span>
+        </label>
+        <div>
+          <label class="label" for="product-project-url">Live Project URL <span class="text-slate-400 font-normal">(optional)</span></label>
+          <input id="product-project-url" type="url" class="input" placeholder="https://yourproject.example.com" />
+        </div>
+      </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="label">Price (KES) *</label>
-          <input id="product-price" type="number" required min="1" class="input" />
+          <label id="product-price-label" class="label">Price (KES) *</label>
+          <input id="product-price" type="number" required min="0" class="input" />
         </div>
         <div>
           <label class="label">Compare-at Price</label>

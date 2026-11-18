@@ -262,6 +262,8 @@ export const DIRECTORY_CATEGORIES: ReadonlyArray<{ slug: string; label: string; 
   { slug: "sports-fitness", label: "Sports & Fitness", enumType: "SPORTS_FITNESS" },
   { slug: "wholesale", label: "Wholesale & B2B", enumType: "WHOLESALE_B2B" },
   { slug: "logistics", label: "Logistics & Courier", enumType: "LOGISTICS_DELIVERY" },
+  { slug: "portfolio", label: "Portfolios & Creatives", enumType: "PORTFOLIO" },
+  { slug: "transport-rides", label: "Bodaboda & Taxi Rides", enumType: "TRANSPORT_RIDES" },
   { slug: "general", label: "General", enumType: "GENERAL" },
 ];
 
@@ -888,8 +890,24 @@ const SCHEMA_STORE_TYPES: Record<string, string> = {
   WHOLESALE_B2B: "WholesaleStore",
   SERVICES: "ProfessionalService",
   LOGISTICS_DELIVERY: "MovingCompany",
+  PORTFOLIO: "ProfessionalService",
+  TRANSPORT_RIDES: "TaxiService",
   RETAIL: "Store",
 };
+
+function isPortfolioItemSeo(
+  item: SeoItem,
+  tenant?: Pick<TenantSeo, "businessType" | "settings"> | null,
+  parsedSettings?: Record<string, any>
+): boolean {
+  const settings = parsedSettings || parseSettings(tenant?.settings);
+  return Boolean(
+    settings?.portfolioMode ||
+      String(tenant?.businessType || "").toUpperCase() === "PORTFOLIO" ||
+      item?.metadata?.isPortfolioProject ||
+      Number(item?.basePrice) === 0
+  );
+}
 
 function getSchemaStoreType(businessType: string | undefined): string {
   return SCHEMA_STORE_TYPES[String(businessType || "").toUpperCase()] || "OnlineStore";
@@ -916,6 +934,9 @@ function buildStoreSchemaNode(origin: string, tenant: TenantSeo): Record<string,
   const physicalAddress = settings.physicalAddress || "";
   const sameAs = buildSocialSameAs(settings.socialLinks);
 
+  const isPortfolioStore = Boolean(
+    settings?.portfolioMode || String(tenant.businessType || "").toUpperCase() === "PORTFOLIO"
+  );
   const node: Record<string, unknown> = {
     "@type": getSchemaStoreType(tenant.businessType),
     "@id": `${origin}/#store`,
@@ -925,11 +946,12 @@ function buildStoreSchemaNode(origin: string, tenant: TenantSeo): Record<string,
     description:
       settings.description ||
       settings.tagline ||
-      `Shop directly from ${tenant.name} on Store254 with instant M-Pesa checkout.`,
+      (isPortfolioStore
+        ? `Explore portfolio projects and creative work from ${tenant.name} on Store254.`
+        : `Shop directly from ${tenant.name} on Store254 with instant M-Pesa checkout.`),
     image: banner,
     logo,
-    paymentAccepted: "M-Pesa",
-    currenciesAccepted: tenant.currency || "KES",
+    ...(isPortfolioStore ? {} : { paymentAccepted: "M-Pesa", currenciesAccepted: tenant.currency || "KES" }),
     memberOf: {
       "@type": "Organization",
       "@id": `https://${PRIMARY_DOMAIN}/#organization`,
@@ -972,9 +994,45 @@ function buildItemSchemaNode(
   const images = rawImages.length > 0 ? rawImages : fallbackStoreImg ? [fallbackStoreImg] : [`${origin}/assets/store254Logo.webp`];
   const attrs = item.attributes && typeof item.attributes === "object" ? item.attributes : {};
   const brandName = typeof attrs.brand === "string" && attrs.brand.trim() ? attrs.brand.trim() : tenant.name;
+  const isPortfolio = isPortfolioItemSeo(item, tenant, settings);
   const cleanDescription =
     (typeof item.description === "string" && item.description.trim()) ||
-    `${item.title} offered by ${tenant.name} (${currency} ${Number(item.basePrice).toLocaleString()}).`;
+    (isPortfolio
+      ? `${item.title} — Portfolio project by ${tenant.name}.`
+      : `${item.title} offered by ${tenant.name} (${currency} ${Number(item.basePrice).toLocaleString()}).`);
+
+  if (isPortfolio) {
+    const projectUrl =
+      typeof item.metadata?.projectUrl === "string" && /^https?:\/\//i.test(item.metadata.projectUrl.trim())
+        ? item.metadata.projectUrl.trim()
+        : "";
+    const workSchema: Record<string, unknown> = {
+      "@type": "CreativeWork",
+      "@id": `${itemUrl}#project`,
+      name: item.title,
+      description: cleanDescription,
+      url: itemUrl,
+      image: images,
+      creator: {
+        "@id": `${origin}/#store`,
+        "@type": "Organization",
+        name: tenant.name,
+        url: `${origin}/`,
+      },
+      ...(categoryName ? { genre: categoryName } : {}),
+      ...(projectUrl ? { sameAs: projectUrl } : {}),
+    };
+    if ((item.reviewCount || 0) > 0 && (item.avgRating || 0) > 0) {
+      workSchema.aggregateRating = {
+        "@type": "AggregateRating",
+        ratingValue: String(item.avgRating),
+        reviewCount: String(item.reviewCount),
+        bestRating: "5",
+        worstRating: "1",
+      };
+    }
+    return workSchema;
+  }
 
   const variants = Array.isArray(item.variants) ? item.variants : [];
   const variantPrices = variants.map((v) => Number(v.price)).filter((p) => Number.isFinite(p) && p > 0);
@@ -2418,21 +2476,32 @@ function buildSsrFallbackArtworkUri(item: SeoItem, categoryName: string | undefi
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="${bg}"/>${shape}</svg>`)}`;
 }
 
-function buildSsrItemCardsHtml(origin: string, items: SeoItem[], currency: string, categories: SeoCategory[]): string {
+function buildSsrItemCardsHtml(
+  origin: string,
+  items: SeoItem[],
+  currency: string,
+  categories: SeoCategory[],
+  tenant?: TenantSeo | null
+): string {
   const catNameById = new Map<string, string>(categories.map((c) => [c.id, c.name]));
+  const settings = parseSettings(tenant?.settings);
   return items.slice(0, 60).map((item) => {
     const isService = item.itemType === "SERVICE";
+    const isPortfolio = isPortfolioItemSeo(item, tenant, settings);
     const href = `/item/${encodeURIComponent(item.slug)}`;
     const categoryLabel =
       (item.attributes && typeof item.attributes.brand === "string" && item.attributes.brand) ||
       (item.categoryId && catNameById.get(item.categoryId)) ||
-      (isService ? "Service" : "Featured");
+      (isPortfolio ? "Project" : isService ? "Service" : "Featured");
     const primaryImg =
       (Array.isArray(item.images) && toAbsoluteUrl(item.images[0], origin)) ||
-      buildSsrFallbackArtworkUri(item, categoryLabel);
+      buildSsrFallbackArtworkUri(item, categoryLabel, tenant || undefined);
     const desc = item.description ? `<p class="product-card-desc">${escapeHtml(truncateSeoText(item.description, 120))}</p>` : "";
+    const priceBlockHtml = isPortfolio
+      ? `<span class="product-card-price">Portfolio Project</span>`
+      : `<span class="product-card-price">${escapeHtml(currency)} ${Number(item.basePrice).toLocaleString()}</span>`;
     return `
-      <article class="product-card${isService ? " product-card--service" : ""} flex flex-col group relative">
+      <article class="product-card${isService ? " product-card--service" : ""}${isPortfolio ? " product-card--portfolio" : ""} flex flex-col group relative">
         <a href="${escapeHtml(href)}" class="product-card-media relative overflow-hidden flex items-center justify-center cursor-pointer no-underline">
           <img src="${escapeHtml(primaryImg)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" width="400" height="400" class="w-full h-full object-cover">
         </a>
@@ -2446,7 +2515,7 @@ function buildSsrItemCardsHtml(origin: string, items: SeoItem[], currency: strin
           </div>
           <div class="product-card-footer pt-2.5 mt-auto">
             <div class="product-price-block flex items-baseline flex-wrap gap-1.5 mb-2.5">
-              <span class="product-card-price">${escapeHtml(currency)} ${Number(item.basePrice).toLocaleString()}</span>
+              ${priceBlockHtml}
             </div>
           </div>
         </div>
@@ -2462,12 +2531,25 @@ function buildSsrItemDetailHtml(
   category: SeoCategory | null
 ): string {
   const currency = tenant.currency || "KES";
+  const settings = parseSettings(tenant.settings);
   const isService = item.itemType === "SERVICE";
+  const isPortfolio = isPortfolioItemSeo(item, tenant, settings);
+  const projectUrl =
+    typeof item.metadata?.projectUrl === "string" && /^https?:\/\//i.test(item.metadata.projectUrl.trim())
+      ? item.metadata.projectUrl.trim()
+      : "";
   const primaryImg =
     (Array.isArray(item.images) && toAbsoluteUrl(item.images[0], origin)) ||
     buildSsrFallbackArtworkUri(item, category?.name, tenant);
   const attrs = item.attributes && typeof item.attributes === "object" ? Object.entries(item.attributes).filter(([, v]) => v !== null && v !== undefined && String(v).trim()) : [];
-  const hasCompare = item.compareAtPrice && Number(item.compareAtPrice) > Number(item.basePrice);
+  const hasCompare = !isPortfolio && item.compareAtPrice && Number(item.compareAtPrice) > Number(item.basePrice);
+  const priceDisplayHtml = isPortfolio
+    ? `<strong class="text-xl font-black text-indigo-700">Portfolio Project</strong>`
+    : `<strong class="text-xl font-black text-emerald-700">${escapeHtml(currency)} ${Number(item.basePrice).toLocaleString()}</strong>
+       ${hasCompare ? `<span class="text-sm text-slate-400 line-through">${escapeHtml(currency)} ${Number(item.compareAtPrice).toLocaleString()}</span>` : ""}`;
+  const fallbackDesc = isPortfolio
+    ? `${item.title} — Portfolio project showcased by ${tenant.name}.`
+    : `${item.title} available directly from ${tenant.name} with instant M-Pesa checkout.`;
 
   return `
     <section id="ssr-item-detail" class="ssr-item-detail mb-6 bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
@@ -2482,15 +2564,15 @@ function buildSsrItemDetailHtml(
           <img src="${escapeHtml(primaryImg)}" alt="${escapeHtml(item.title)}" class="w-full h-auto object-cover" width="600" height="600">
         </div>
         <div>
-          <span class="inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 mb-2">${isService ? "Service" : "Product"} · ${escapeHtml(tenant.name)}</span>
+          <span class="inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 mb-2">${isPortfolio ? "Portfolio Project" : isService ? "Service" : "Product"} · ${escapeHtml(tenant.name)}</span>
           <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">${escapeHtml(item.title)}</h1>
           <div class="flex items-baseline gap-2.5 mb-3">
-            <strong class="text-xl font-black text-emerald-700">${escapeHtml(currency)} ${Number(item.basePrice).toLocaleString()}</strong>
-            ${hasCompare ? `<span class="text-sm text-slate-400 line-through">${escapeHtml(currency)} ${Number(item.compareAtPrice).toLocaleString()}</span>` : ""}
+            ${priceDisplayHtml}
           </div>
-          <p class="text-sm text-slate-600 leading-relaxed mb-4">${escapeHtml(item.description || `${item.title} available directly from ${tenant.name} with instant M-Pesa checkout.`)}</p>
+          <p class="text-sm text-slate-600 leading-relaxed mb-4">${escapeHtml(item.description || fallbackDesc)}</p>
+          ${projectUrl ? `<div class="mb-4"><a href="${escapeHtml(projectUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold no-underline">Visit Live Project</a></div>` : ""}
           ${attrs.length > 0 ? `<dl class="grid grid-cols-2 gap-2 mb-4">${attrs.slice(0, 6).map(([k, v]) => `<div class="bg-slate-50 p-2 rounded-lg border border-slate-100"><dt class="text-[10px] text-slate-500 font-semibold uppercase">${escapeHtml(k.replace(/_/g, " "))}</dt><dd class="text-xs font-bold text-slate-800">${escapeHtml(v)}</dd></div>`).join("")}</dl>` : ""}
-          <a href="/" class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:underline">&larr; Browse all ${escapeHtml(tenant.name)} products &amp; services</a>
+          <a href="/" class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:underline">&larr; Browse all ${escapeHtml(tenant.name)} ${isPortfolio ? "projects" : "products &amp; services"}</a>
         </div>
       </div>
     </section>
@@ -2523,6 +2605,9 @@ export function buildStorefrontSeoData(options: {
   const { tenant, categories = [], items = [] } = payload;
   const settings = parseSettings(tenant.settings);
   const currency = tenant.currency || "KES";
+  const isPortfolioStore = Boolean(
+    settings?.portfolioMode || String(tenant.businessType || "").toUpperCase() === "PORTFOLIO"
+  );
   const subdomainLabel = `${tenant.subdomain}.${PRIMARY_DOMAIN}`;
   const rawTagline = typeof settings.tagline === "string" ? settings.tagline.trim() : "";
   const rawDescription = typeof settings.description === "string" ? settings.description.trim() : "";
@@ -2530,7 +2615,9 @@ export function buildStorefrontSeoData(options: {
     Boolean(rawTagline) && rawDescription.toLowerCase() === rawTagline.toLowerCase();
   const defaultStoreDesc =
     (rawDescription && !isDuplicateTaglineDesc ? rawDescription : "") ||
-    `Shop verified products and services directly from ${tenant.name} (${subdomainLabel}) with instant M-Pesa checkout.`;
+    (isPortfolioStore
+      ? `Explore portfolio projects and creative work from ${tenant.name} (${subdomainLabel}).`
+      : `Shop verified products and services directly from ${tenant.name} (${subdomainLabel}) with instant M-Pesa checkout.`);
   const storeLogoUrl = toAbsoluteUrl(settings.logoUrl, origin);
   const storeBannerUrl = toAbsoluteUrl(settings.bannerUrl || settings.heroBannerUrl, origin);
   const firstUploadedItemImg =
@@ -2570,7 +2657,7 @@ export function buildStorefrontSeoData(options: {
         ssrStoreTagline: settings.tagline || "",
         ssrStoreDesc: defaultStoreDesc,
         ssrCategoryHtml: buildSsrCategoryLinksHtml(categories, ""),
-        ssrItemsHtml: buildSsrItemCardsHtml(origin, items, currency, categories),
+        ssrItemsHtml: buildSsrItemCardsHtml(origin, items, currency, categories, tenant),
         ssrItemDetailHtml: "",
         downgradeBannerHeading: false,
       };
@@ -2578,12 +2665,19 @@ export function buildStorefrontSeoData(options: {
 
     const cat = itemDetail?.category || (matchedItem.categoryId ? categoryById.get(matchedItem.categoryId) || null : null);
     const isService = matchedItem.itemType === "SERVICE";
-    const priceLabel = `${currency} ${Number(matchedItem.basePrice).toLocaleString()}`;
+    const isPortfolioItem = isPortfolioItemSeo(matchedItem, tenant, settings);
+    const priceLabel = isPortfolioItem
+      ? "Portfolio Project"
+      : `${currency} ${Number(matchedItem.basePrice).toLocaleString()}`;
     const title = buildItemSeoTitle(matchedItem.title, priceLabel, tenant.name);
     const description = truncateSeoText(
-      matchedItem.description
-        ? `${matchedItem.description} ${isService ? "Book" : "Order"} from ${tenant.name} for ${priceLabel} with M-Pesa checkout.`
-        : `${isService ? "Book" : "Buy"} ${matchedItem.title} from ${tenant.name} (${subdomainLabel}) for ${priceLabel}. Fast service and instant M-Pesa payment.`
+      isPortfolioItem
+        ? matchedItem.description
+          ? `${matchedItem.description} Portfolio project by ${tenant.name}.`
+          : `${matchedItem.title} — Portfolio project by ${tenant.name} (${subdomainLabel}) on Store254.`
+        : matchedItem.description
+          ? `${matchedItem.description} ${isService ? "Book" : "Order"} from ${tenant.name} for ${priceLabel} with M-Pesa checkout.`
+          : `${isService ? "Book" : "Buy"} ${matchedItem.title} from ${tenant.name} (${subdomainLabel}) for ${priceLabel}. Fast service and instant M-Pesa payment.`
     );
     const canonicalUrl = `${origin}/item/${encodeURIComponent(matchedItem.slug)}`;
     const primaryItemImg =
@@ -2615,7 +2709,7 @@ export function buildStorefrontSeoData(options: {
       `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`,
       `<meta name="robots" content="${escapeHtml(robotsBase)}">`,
       ...(bingMetaTag ? [bingMetaTag] : []),
-      `<meta property="og:type" content="${isService ? "website" : "product"}">`,
+      `<meta property="og:type" content="${isService || isPortfolioItem ? "website" : "product"}">`,
       `<meta property="og:site_name" content="${escapeHtml(tenant.name)}">`,
       `<meta property="og:locale" content="en_KE">`,
       `<meta property="og:title" content="${escapeHtml(title)}">`,
@@ -2624,9 +2718,13 @@ export function buildStorefrontSeoData(options: {
       `<meta property="og:image" content="${escapeHtml(primaryItemImg)}">`,
       `<meta property="og:image:alt" content="${escapeHtml(matchedItem.title)}">`,
       ...(storeLogoUrl ? [`<meta property="og:logo" content="${escapeHtml(storeLogoUrl)}">`] : []),
-      `<meta property="product:price:amount" content="${escapeHtml(String(matchedItem.basePrice))}">`,
-      `<meta property="product:price:currency" content="${escapeHtml(currency)}">`,
-      `<meta property="product:availability" content="${availabilityText}">`,
+      ...(!isPortfolioItem
+        ? [
+            `<meta property="product:price:amount" content="${escapeHtml(String(matchedItem.basePrice))}">`,
+            `<meta property="product:price:currency" content="${escapeHtml(currency)}">`,
+            `<meta property="product:availability" content="${availabilityText}">`,
+          ]
+        : []),
       `<meta name="twitter:card" content="summary_large_image">`,
       `<meta name="twitter:title" content="${escapeHtml(title)}">`,
       `<meta name="twitter:description" content="${escapeHtml(description)}">`,
@@ -2646,7 +2744,7 @@ export function buildStorefrontSeoData(options: {
       ssrStoreTagline: settings.tagline || "",
       ssrStoreDesc: defaultStoreDesc,
       ssrCategoryHtml: buildSsrCategoryLinksHtml(categories, cat?.slug || ""),
-      ssrItemsHtml: buildSsrItemCardsHtml(origin, items, currency, categories),
+      ssrItemsHtml: buildSsrItemCardsHtml(origin, items, currency, categories, tenant),
       ssrItemDetailHtml: buildSsrItemDetailHtml(origin, tenant, matchedItem, cat),
       downgradeBannerHeading: true,
     };
@@ -2667,7 +2765,7 @@ export function buildStorefrontSeoData(options: {
         ssrStoreTagline: settings.tagline || "",
         ssrStoreDesc: defaultStoreDesc,
         ssrCategoryHtml: buildSsrCategoryLinksHtml(categories, ""),
-        ssrItemsHtml: buildSsrItemCardsHtml(origin, items, currency, categories),
+        ssrItemsHtml: buildSsrItemCardsHtml(origin, items, currency, categories, tenant),
         ssrItemDetailHtml: "",
         downgradeBannerHeading: false,
       };
@@ -2755,7 +2853,7 @@ export function buildStorefrontSeoData(options: {
       ssrStoreTagline: settings.tagline || "",
       ssrStoreDesc: cat.description || defaultStoreDesc,
       ssrCategoryHtml: buildSsrCategoryLinksHtml(categories, cat.slug),
-      ssrItemsHtml: buildSsrItemCardsHtml(origin, filteredItems, currency, categories),
+      ssrItemsHtml: buildSsrItemCardsHtml(origin, filteredItems, currency, categories, tenant),
       ssrItemDetailHtml: "",
       downgradeBannerHeading: false,
     };
@@ -2763,11 +2861,21 @@ export function buildStorefrontSeoData(options: {
 
   // Default: Storefront Home (/)
   const tagline = typeof settings.tagline === "string" && settings.tagline.trim() ? settings.tagline.trim() : "";
-  const title = tagline ? `${tenant.name} — ${tagline} | Store254` : `${tenant.name} — Shop Products & Services Online | Store254`;
+  const title = tagline
+    ? `${tenant.name} — ${tagline} | Store254`
+    : isPortfolioStore
+      ? `${tenant.name} — Portfolio & Showcase | Store254`
+      : `${tenant.name} — Shop Products & Services Online | Store254`;
   const topCats = categories.filter((c) => !c.parentId).slice(0, 4).map((c) => c.name);
   const catSummary = topCats.length > 0 ? ` Browse ${topCats.join(", ")}.` : "";
   const description = truncateSeoText(
-    `${tenant.name} (${subdomainLabel}): ${settings.description || tagline || "Shop online directly from this Kenyan store with M-Pesa."}${catSummary}`
+    `${tenant.name} (${subdomainLabel}): ${
+      settings.description ||
+      tagline ||
+      (isPortfolioStore
+        ? "Explore portfolio projects and creative work on Store254."
+        : "Shop online directly from this Kenyan store with M-Pesa.")
+    }${catSummary}`
   );
   const canonicalUrl = `${origin}/`;
 
@@ -2844,7 +2952,7 @@ export function buildStorefrontSeoData(options: {
     ssrStoreTagline: tagline,
     ssrStoreDesc: defaultStoreDesc,
     ssrCategoryHtml: buildSsrCategoryLinksHtml(categories, ""),
-    ssrItemsHtml: buildSsrItemCardsHtml(origin, items, currency, categories),
+    ssrItemsHtml: buildSsrItemCardsHtml(origin, items, currency, categories, tenant),
     ssrItemDetailHtml: "",
     downgradeBannerHeading: false,
   };

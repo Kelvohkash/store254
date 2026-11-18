@@ -2904,3 +2904,20 @@ html[data-storefront="true"] #item-modal-qty::-webkit-outer-spin-button,
   margin: 0 !important;
   display: none !important;
 }
+
+/* Portfolio / Showcase Mode: hide cart, orders & buy controls */
+html[data-portfolio-mode="true"] #desktop-cart-btn,
+html[data-portfolio-mode="true"] #mobile-cart-btn,
+html[data-portfolio-mode="true"] .customer-orders-shortcut,
+html[data-portfolio-mode="true"] .mobile-orders-link,
+html[data-portfolio-mode="true"] .product-cart-icon,
+html[data-portfolio-mode="true"] #maker-buy-bar {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  html[data-portfolio-mode="true"] .mobile-bottom-nav,
+  html[data-portfolio-mode="true"] #mobile-bottom-nav {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}

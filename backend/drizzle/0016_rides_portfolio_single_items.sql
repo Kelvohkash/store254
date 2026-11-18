@@ -1,0 +1,60 @@
+CREATE TABLE IF NOT EXISTS `ride_drivers` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_email` text NOT NULL,
+	`full_name` text NOT NULL,
+	`phone` text NOT NULL,
+	`mpesa_payment_info` text,
+	`vehicle_type` text DEFAULT 'BODABODA' NOT NULL,
+	`vehicle_make_model` text,
+	`plate_number` text,
+	`county_id` text,
+	`location_id` text,
+	`location_label` text,
+	`is_online` integer DEFAULT 0 NOT NULL,
+	`is_busy` integer DEFAULT 0 NOT NULL,
+	`current_lat` real,
+	`current_lng` real,
+	`heading` real,
+	`last_location_at` integer,
+	`base_fare_kes` integer DEFAULT 50 NOT NULL,
+	`per_km_rate_kes` integer DEFAULT 35 NOT NULL,
+	`rating_avg` real DEFAULT 5 NOT NULL,
+	`rating_count` integer DEFAULT 0 NOT NULL,
+	`completed_rides` integer DEFAULT 0 NOT NULL,
+	`status` text DEFAULT 'ACTIVE' NOT NULL,
+	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL
+);--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS `ride_drivers_user_email_unique` ON `ride_drivers` (`user_email`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `ride_drivers_online_vehicle_status_idx` ON `ride_drivers` (`is_online`,`vehicle_type`,`status`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `ride_requests` (
+	`id` text PRIMARY KEY NOT NULL,
+	`rider_email` text,
+	`rider_name` text NOT NULL,
+	`rider_phone` text NOT NULL,
+	`vehicle_type` text DEFAULT 'BODABODA' NOT NULL,
+	`driver_id` text,
+	`pickup_label` text NOT NULL,
+	`pickup_lat` real NOT NULL,
+	`pickup_lng` real NOT NULL,
+	`pickup_location_id` text,
+	`dropoff_label` text NOT NULL,
+	`dropoff_lat` real NOT NULL,
+	`dropoff_lng` real NOT NULL,
+	`dropoff_location_id` text,
+	`distance_km` real NOT NULL,
+	`estimated_fare_kes` integer NOT NULL,
+	`status` text DEFAULT 'REQUESTED' NOT NULL,
+	`driver_lat` real,
+	`driver_lng` real,
+	`driver_updated_at` integer,
+	`tracking_token_hash` text NOT NULL,
+	`rider_rating` integer,
+	`rider_review` text,
+	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
+	FOREIGN KEY (`driver_id`) REFERENCES `ride_drivers`(`id`) ON UPDATE no action ON DELETE set null
+);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `ride_requests_status_vehicle_driver_idx` ON `ride_requests` (`status`,`vehicle_type`,`driver_id`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `ride_requests_driver_status_idx` ON `ride_requests` (`driver_id`,`status`);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS `ride_requests_rider_email_idx` ON `ride_requests` (`rider_email`);

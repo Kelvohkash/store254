@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { eq, and, desc, gt, lt, isNull, inArray, sql } from "drizzle-orm";
+import { eq, and, desc, gt, lt, isNull, inArray, ne, sql } from "drizzle-orm";
 import type { AppEnv } from "../../types/context";
 import { createDb } from "../../db";
 import { tenants } from "../../db/schema/tenants";
@@ -27,6 +27,11 @@ import {
   readPlatformGoogleUser,
   assertAllowedPlatformOrigin,
 } from "./marketplace.routes";
+import {
+  singleItemsRouter,
+  COMMUNITY_MARKET_TENANT_ID,
+} from "./single-items.routes";
+import { ridesRouter } from "./rides.routes";
 import {
   clearCustomerSessionCookie,
 } from "../../security/session-cookie";
@@ -66,6 +71,7 @@ const PUBLIC_TENANT_SETTINGS_KEYS = new Set([
   "sectionVisibility",
   "headerVariant",
   "productCardStyle",
+  "portfolioMode",
 ]);
 
 /**
@@ -104,6 +110,8 @@ function resolveCanonicalPlatformOrigin(primaryDomainEnv?: string): string {
 platformRouter.route("/locations", locationsRouter);
 platformRouter.route("/search", searchRouter);
 platformRouter.route("/marketplace", marketplaceRouter);
+platformRouter.route("/single-items", singleItemsRouter);
+platformRouter.route("/rides", ridesRouter);
 
 platformRouter.get("/google-config", (c) => {
   const clientId = c.env?.GOOGLE_CLIENT_ID?.trim() || "";
@@ -180,6 +188,7 @@ const registerStoreSchema = z
     storeName: z.string().min(2, "Store name must be at least 2 characters").max(60),
     subdomain: z.string().min(2).max(32),
     businessType: businessTypeSchema.default("GENERAL"),
+    portfolioMode: z.boolean().optional(),
     currency: z.string().length(3).default("KES"),
     ownerEmail: z.string().email("Valid email address required").optional(),
     ownerPassword: z
@@ -294,7 +303,7 @@ platformRouter.get("/stores", async (c) => {
       })
       .from(tenants)
       .leftJoin(users, and(eq(users.tenantId, tenants.id), eq(users.role, "OWNER")))
-      .where(eq(tenants.status, "ACTIVE"))
+      .where(and(eq(tenants.status, "ACTIVE"), ne(tenants.id, COMMUNITY_MARKET_TENANT_ID)))
       .orderBy(desc(tenants.createdAt))
       .limit(50);
 
@@ -387,6 +396,7 @@ platformRouter.post(
     const tenantId = generateUUID();
     const userId = generateUUID();
     const hashedPassword = await hashPassword(body.ownerPassword);
+    const isPortfolioMode = body.businessType === "PORTFOLIO" || body.portfolioMode === true;
 
     // 1. Create Tenant with status = PENDING (Admin approval required)
     await db.insert(tenants).values({
@@ -405,6 +415,13 @@ platformRouter.post(
         primaryColor: "#2563eb",
         contactEmail: verifiedOwnerEmail,
         contactPhone: body.ownerPhone || null,
+        ...(isPortfolioMode
+          ? {
+              portfolioMode: true,
+              storefrontArchetype: "service-portfolio",
+              productCardStyle: "service-card",
+            }
+          : {}),
         location: {
           countyId: resolvedLocation.county.id,
           countyName: resolvedLocation.county.name,
@@ -460,6 +477,8 @@ platformRouter.post(
             id: tenantId,
             name: body.storeName,
             subdomain: sanitizedSub,
+            businessType: body.businessType,
+            portfolioMode: isPortfolioMode,
             storeUrl,
             status: "PENDING",
             currency: body.currency.toUpperCase(),
