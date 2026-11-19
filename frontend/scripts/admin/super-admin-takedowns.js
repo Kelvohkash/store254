@@ -121,6 +121,23 @@
             : `<p class="takedown-resolution-note">${escapeHtml(rep.resolutionNotes || `Resolved by ${rep.resolvedBy || "Super Admin"}`)}</p>`;
 
         const isExternal = isExternalPreviewUrl(previewSrc);
+        const phoneInfo = resolveStorePhones({ phone: rep.storePhone, whatsapp: rep.storeWhatsapp });
+        const storePhoneParts = [];
+        if (phoneInfo.telHref) {
+          storePhoneParts.push(
+            `<a href="${escapeHtml(phoneInfo.telHref)}" class="takedown-proof-link" title="Call store">${escapeHtml(phoneInfo.primaryPhone)}</a>`
+          );
+        } else if (phoneInfo.primaryPhone) {
+          storePhoneParts.push(`<span>${escapeHtml(phoneInfo.primaryPhone)}</span>`);
+        }
+        if (phoneInfo.whatsappHref) {
+          storePhoneParts.push(
+            `<a href="${escapeHtml(phoneInfo.whatsappHref)}" target="_blank" rel="noopener noreferrer" class="takedown-proof-link">WhatsApp ↗</a>`
+          );
+        }
+        const storePhoneMeta = storePhoneParts.length
+          ? `<div><strong>Store Phone:</strong> ${storePhoneParts.join(" · ")}</div>`
+          : "";
 
         return `
           <article class="takedown-report-card">
@@ -143,6 +160,7 @@
               </div>
               <div class="takedown-meta-grid">
                 <div><strong>Store:</strong> ${escapeHtml(storeLabel)}</div>
+                ${storePhoneMeta}
                 <div><strong>Reporter:</strong> ${escapeHtml(rep.reporterName)} (${escapeHtml(rep.reporterEmail)})</div>
                 <div class="takedown-url-row"><strong>Reported Image:</strong> <code>${escapeHtml(rep.reportedImageUrl)}</code>${previewSrc ? ` <a href="${escapeHtml(previewSrc)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" class="takedown-proof-link">Open image ↗</a>` : ""}</div>
                 ${proofLink ? `<div><strong>Original Proof:</strong> ${proofLink}</div>` : ""}

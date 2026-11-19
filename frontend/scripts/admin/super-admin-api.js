@@ -21,6 +21,85 @@ const formatDate = (value) => {
 
 const money = (value) => `KES ${Number(value || 0).toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
 
+const normalizePhoneComparable = (phone) => {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("0") && digits.length === 10 && (digits[1] === "7" || digits[1] === "1")) {
+    return `254${digits.slice(1)}`;
+  }
+  if ((digits.startsWith("7") || digits.startsWith("1")) && digits.length === 9) {
+    return `254${digits}`;
+  }
+  return digits;
+};
+
+const sanitizeTelHref = (phone) => {
+  const trimmed = String(phone || "").trim();
+  if (!trimmed) return "";
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length < 6) return "";
+  return `tel:${hasPlus ? "+" : ""}${digits}`;
+};
+
+const buildWhatsappHref = (rawWhatsapp, fallbackPhone) => {
+  const input = String(rawWhatsapp || "").trim();
+  if (input && /^https?:\/\//i.test(input)) {
+    try {
+      const parsed = new URL(input);
+      const host = parsed.hostname.toLowerCase();
+      if (
+        (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+        (host === "wa.me" || host === "whatsapp.com" || host.endsWith(".whatsapp.com"))
+      ) {
+        return parsed.href;
+      }
+      return "";
+    } catch {
+      return "";
+    }
+  }
+  const safeInput = input && !/^[a-z][a-z\d+.-]*:/i.test(input) ? input : "";
+  const source = safeInput || String(fallbackPhone || "").trim();
+  let digits = source.replace(/\D/g, "");
+  if (digits.length < 6) return "";
+  if (digits.startsWith("0") && digits.length === 10 && (digits[1] === "7" || digits[1] === "1")) {
+    digits = `254${digits.slice(1)}`;
+  } else if ((digits.startsWith("7") || digits.startsWith("1")) && digits.length === 9) {
+    digits = `254${digits}`;
+  }
+  return `https://wa.me/${digits}`;
+};
+
+const resolveStorePhones = (store) => {
+  const data = store && typeof store === "object" ? store : {};
+  const clean = (val) => (typeof val === "string" ? val.trim() : "");
+  const whatsappRaw = clean(data.whatsapp);
+  const nonUrlWhatsapp =
+    whatsappRaw &&
+    !/^[a-z][a-z\d+.-]*:/i.test(whatsappRaw) &&
+    whatsappRaw.replace(/\D/g, "").length >= 6
+      ? whatsappRaw
+      : "";
+  const primaryPhone =
+    [clean(data.phone), clean(data.contactPhone), clean(data.ownerPhone), nonUrlWhatsapp].find(Boolean) || "";
+  const telHref = sanitizeTelHref(primaryPhone);
+  const whatsappHref = buildWhatsappHref(whatsappRaw, primaryPhone);
+  const ownerPhone = clean(data.ownerPhone);
+  const primaryComp = normalizePhoneComparable(primaryPhone);
+  const ownerComp = normalizePhoneComparable(ownerPhone);
+  const secondaryOwnerPhone =
+    ownerPhone && ownerComp && ownerComp !== primaryComp ? ownerPhone : "";
+  const secondaryOwnerTelHref = sanitizeTelHref(secondaryOwnerPhone);
+  return {
+    primaryPhone,
+    telHref,
+    whatsappHref,
+    secondaryOwnerPhone,
+    secondaryOwnerTelHref,
+  };
+};
+
 async function platformApiFetch(path, options = {}) {
   try {
     const response = await fetch(`${superAdminApiBase}/api/platform/admin${path}`, {

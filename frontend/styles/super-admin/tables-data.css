@@ -279,6 +279,97 @@ tbody tr:last-child td { border-bottom: 0; }
 }
 .copy-url-btn:hover { background: #e2ece6; color: var(--text-main); }
 
+/* Store Phone & Direct Contact Pill */
+.store-phone-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .22rem;
+}
+.store-phone-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .22rem;
+  padding: .26rem .38rem .26rem .52rem;
+  border-radius: .55rem;
+  background: #f8faf9;
+  border: 1px solid #e2ece6;
+  white-space: nowrap;
+}
+.store-phone-link,
+.store-phone-text {
+  display: inline-flex;
+  align-items: center;
+  gap: .34rem;
+  color: var(--text-main);
+  text-decoration: none;
+  font-size: .74rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.store-phone-link:hover {
+  color: var(--brand-green);
+  text-decoration: underline;
+}
+.store-phone-link svg,
+.store-phone-text svg {
+  width: .78rem;
+  height: .78rem;
+  color: var(--brand-green);
+  flex-shrink: 0;
+}
+.phone-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: .35rem;
+  background: transparent;
+  color: var(--text-subtle);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .14s ease, color .14s ease;
+}
+.phone-action-btn svg {
+  width: .78rem;
+  height: .78rem;
+}
+.phone-action-btn:hover {
+  background: #e2ece6;
+  color: var(--text-main);
+}
+.phone-action-btn.is-whatsapp {
+  color: #059669;
+}
+.phone-action-btn.is-whatsapp:hover {
+  background: #dcfce7;
+  color: #065f46;
+}
+.store-owner-phone-alt {
+  font-size: .66rem;
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.store-owner-phone-alt a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.store-owner-phone-alt a:hover {
+  color: var(--brand-green);
+  text-decoration: underline;
+}
+.store-phone-empty {
+  color: var(--text-subtle);
+  font-size: .72rem;
+  white-space: nowrap;
+}
+
 .category-pill {
   display: inline-block;
   padding: .22rem .55rem;

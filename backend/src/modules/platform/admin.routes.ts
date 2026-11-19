@@ -43,6 +43,78 @@ const amendSubdomainSchema = z.object({
   subdomain: z.string().trim().min(2).max(32),
 });
 
+function cleanContactString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function extractPhoneFromWhatsapp(whatsapp: string | null): string | null {
+  if (!whatsapp) return null;
+  const trimmed = whatsapp.trim();
+  if (!trimmed) return null;
+  if (!/^[a-z][a-z\d+.-]*:/i.test(trimmed)) {
+    return trimmed.replace(/\D/g, "").length >= 6 ? trimmed : null;
+  }
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    const host = url.hostname.toLowerCase();
+    if (host === "wa.me") {
+      const digits = url.pathname.replace(/\D/g, "");
+      return digits.length >= 6 ? `+${digits}` : null;
+    }
+    if (host === "api.whatsapp.com" || host === "whatsapp.com" || host === "www.whatsapp.com") {
+      const digits = (url.searchParams.get("phone") || "").replace(/\D/g, "");
+      return digits.length >= 6 ? `+${digits}` : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function extractStoreContact(rawSettings: unknown): {
+  contactPhone: string | null;
+  whatsapp: string | null;
+  contactEmail: string | null;
+} {
+  let parsed: unknown = rawSettings;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      parsed = null;
+    }
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { contactPhone: null, whatsapp: null, contactEmail: null };
+  }
+  const obj = parsed as Record<string, unknown>;
+  const rawSocials = obj.socialLinks;
+  const socialLinks =
+    rawSocials && typeof rawSocials === "object" && !Array.isArray(rawSocials)
+      ? (rawSocials as Record<string, unknown>)
+      : {};
+  return {
+    contactPhone: cleanContactString(obj.contactPhone) || cleanContactString(obj.phone),
+    whatsapp: cleanContactString(socialLinks.whatsapp),
+    contactEmail: cleanContactString(obj.contactEmail),
+  };
+}
+
+function normalizePhoneDigitsForSearch(phone: string | null): string {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("0") && digits.length === 10 && (digits[1] === "7" || digits[1] === "1")) {
+    return `254${digits.slice(1)}`;
+  }
+  if ((digits.startsWith("7") || digits.startsWith("1")) && digits.length === 9) {
+    return `254${digits}`;
+  }
+  return digits;
+}
+
 async function matchesSecret(provided: string, expected: string): Promise<boolean> {
   const [providedHash, expectedHash] = await Promise.all([hashOtp(provided), hashOtp(expected)]);
   return timingSafeEqual(providedHash, expectedHash);
@@ -288,6 +360,7 @@ platformAdminRouter.get("/stores", async (c) => {
       businessType: tenants.businessType,
       currency: tenants.currency,
       status: tenants.status,
+      settings: tenants.settings,
       subscriptionAmount: tenants.subscriptionAmount,
       subscriptionDueAt: tenants.subscriptionDueAt,
       createdAt: tenants.createdAt,
@@ -304,13 +377,6 @@ platformAdminRouter.get("/stores", async (c) => {
     storeList = storeList.filter((s) => s.status === statusFilter.toUpperCase());
   }
 
-  if (search) {
-    const q = search.toLowerCase();
-    storeList = storeList.filter(
-      (s) => s.name.toLowerCase().includes(q) || s.subdomain.toLowerCase().includes(q)
-    );
-  }
-
   const owners = storeList.length
     ? await db
         .select({
@@ -322,23 +388,76 @@ platformAdminRouter.get("/stores", async (c) => {
         .from(users)
         .where(and(inArray(users.tenantId, storeList.map((store) => store.id)), eq(users.role, "OWNER")))
     : [];
-  const ownerByTenant = new Map(owners.map((owner) => [owner.tenantId, owner]));
+  const ownerByTenant = new Map<string, (typeof owners)[number]>();
+  for (const owner of owners) {
+    const existing = ownerByTenant.get(owner.tenantId);
+    if (!existing || (!cleanContactString(existing.phone) && cleanContactString(owner.phone))) {
+      ownerByTenant.set(owner.tenantId, owner);
+    }
+  }
+
+  let mappedStores = storeList.map((store) => {
+    const { settings, ...storeFields } = store;
+    const owner = ownerByTenant.get(store.id);
+    const contact = extractStoreContact(settings);
+    const ownerPhone = cleanContactString(owner?.phone);
+    const phone =
+      contact.contactPhone || ownerPhone || extractPhoneFromWhatsapp(contact.whatsapp) || null;
+    return {
+      ...storeFields,
+      phone,
+      contactPhone: contact.contactPhone,
+      whatsapp: contact.whatsapp,
+      ownerPhone,
+      ownerEmail: owner?.email || contact.contactEmail || null,
+      ownerName: owner?.fullName || null,
+    };
+  });
+
+  if (search) {
+    const q = search.trim().toLowerCase();
+    const isPhoneLikeQuery = /^[+\d\s()-]{4,}$/.test(search.trim());
+    const qRawDigits = search.replace(/\D/g, "");
+    const qNormalizedDigits = normalizePhoneDigitsForSearch(search);
+
+    mappedStores = mappedStores.filter((s) => {
+      const textMatch = [
+        s.name,
+        s.subdomain,
+        s.customDomain,
+        s.ownerName,
+        s.ownerEmail,
+        s.phone,
+        s.contactPhone,
+        s.ownerPhone,
+        s.whatsapp,
+      ]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(q));
+      if (textMatch) return true;
+      if (!isPhoneLikeQuery) return false;
+      const phoneDigits = [s.phone, s.contactPhone, s.ownerPhone, s.whatsapp]
+        .filter(Boolean)
+        .flatMap((val) => {
+          const raw = String(val).replace(/\D/g, "");
+          const norm = normalizePhoneDigitsForSearch(val);
+          return [raw, norm].filter(Boolean);
+        });
+      return phoneDigits.some(
+        (digits) =>
+          (qRawDigits && digits.includes(qRawDigits)) ||
+          (qNormalizedDigits && digits.includes(qNormalizedDigits))
+      );
+    });
+  }
 
   return c.json({
     success: true,
-    data: storeList.map((store) => {
-      const owner = ownerByTenant.get(store.id);
-      return {
-        ...store,
-        ownerPhone: owner?.phone || null,
-        ownerEmail: owner?.email || null,
-        ownerName: owner?.fullName || null,
-      };
-    }),
+    data: mappedStores,
     pagination: {
       page,
       limit,
-      count: storeList.length,
+      count: mappedStores.length,
     },
   });
 });
@@ -398,11 +517,22 @@ platformAdminRouter.get("/stores/:id", async (c) => {
     .from(orders)
     .where(eq(orders.tenantId, store.id));
 
+  const contact = extractStoreContact(store.settings);
+  const ownerPhone = cleanContactString(owner?.phone);
+
   return c.json({
     success: true,
     data: {
       store,
       owner,
+      contact: {
+        phone:
+          contact.contactPhone || ownerPhone || extractPhoneFromWhatsapp(contact.whatsapp) || null,
+        contactPhone: contact.contactPhone,
+        ownerPhone,
+        whatsapp: contact.whatsapp,
+        email: owner?.email || contact.contactEmail || null,
+      },
       paymentConfig: paymentConfig || { isEnabled: false, status: "NOT_CONFIGURED" },
       metrics: {
         totalItems: itemList.length,
@@ -892,19 +1022,47 @@ platformAdminRouter.get("/copyright-reports", async (c) => {
             name: tenants.name,
             subdomain: tenants.subdomain,
             status: tenants.status,
+            settings: tenants.settings,
           })
           .from(tenants)
           .where(inArray(tenants.id, tenantIds))
       : [];
   const tenantMap = new Map(tenantRows.map((t) => [t.id, t]));
 
+  const ownerRows =
+    tenantIds.length > 0
+      ? await db
+          .select({
+            tenantId: users.tenantId,
+            phone: users.phone,
+          })
+          .from(users)
+          .where(and(inArray(users.tenantId, tenantIds), eq(users.role, "OWNER")))
+      : [];
+  const ownerPhoneByTenant = new Map<string, string>();
+  for (const owner of ownerRows) {
+    const cleaned = cleanContactString(owner.phone);
+    if (cleaned && !ownerPhoneByTenant.has(owner.tenantId)) {
+      ownerPhoneByTenant.set(owner.tenantId, cleaned);
+    }
+  }
+
   const data = filtered.map((r) => {
     const store = r.tenantId ? tenantMap.get(r.tenantId) : null;
+    const storeContact = store ? extractStoreContact(store.settings) : null;
+    const ownerPhone = r.tenantId ? ownerPhoneByTenant.get(r.tenantId) || null : null;
+    const storePhone =
+      storeContact?.contactPhone ||
+      ownerPhone ||
+      extractPhoneFromWhatsapp(storeContact?.whatsapp || null) ||
+      null;
     return {
       ...r,
       storeName: store?.name || null,
       storeSubdomain: r.storeSubdomain || store?.subdomain || null,
       storeStatus: store?.status || null,
+      storePhone,
+      storeWhatsapp: storeContact?.whatsapp || null,
     };
   });
 

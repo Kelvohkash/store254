@@ -529,3 +529,31 @@ test("Portfolio mode hides commerce chrome and enables zero-price project showca
   assert.match(adminCatalogJs, /product-project-url/);
   assert.match(adminCatalogJs, /isPortfolioProject/);
 });
+
+test("Super Admin displays storefront phone numbers with Call, WhatsApp, and Copy actions", async () => {
+  const [superAdminHtml, apiJs, tableJs, takedownsJs, superAdminJs] = await Promise.all([
+    read("../super-admin.html"),
+    read("../scripts/admin/super-admin-api.js"),
+    read("../scripts/admin/super-admin-table.js"),
+    read("../scripts/admin/super-admin-takedowns.js"),
+    read("../scripts/admin/super-admin.js"),
+  ]);
+
+  assert.match(superAdminHtml, /<th>PHONE<\/th>/);
+  assert.match(superAdminHtml, /colspan="7"/);
+  assert.match(superAdminJs, /colspan="7"/);
+
+  assert.match(apiJs, /sanitizeTelHref/);
+  assert.match(apiJs, /buildWhatsappHref/);
+  assert.match(apiJs, /resolveStorePhones/);
+
+  assert.match(tableJs, /class="store-phone-pill"/);
+  assert.match(tableJs, /data-copy-phone=/);
+  assert.match(tableJs, /is-whatsapp/);
+  assert.doesNotMatch(tableJs, /ownerMeta[\s\S]*?\.slice\(0,\s*2\)/);
+  assert.match(tableJs, /Call \$\{escapeHtml\(phoneInfo\.primaryPhone\)\}/);
+  assert.match(tableJs, /Message on WhatsApp/);
+
+  assert.match(takedownsJs, /resolveStorePhones\(/);
+  assert.match(takedownsJs, /Store Phone:/);
+});

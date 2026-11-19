@@ -22,7 +22,7 @@
   }
 
   async function loadStores() {
-    ui.rows.innerHTML = '<tr><td colspan="6" class="table-message">Loading registered businesses…</td></tr>';
+    ui.rows.innerHTML = '<tr><td colspan="7" class="table-message">Loading registered businesses…</td></tr>';
     ui.empty.hidden = true;
     const collected = [];
     let page = 1;
@@ -385,7 +385,7 @@
       await loadDashboard();
     } catch (error) {
       setAdminNotice(error.message || "Could not load platform data.", true);
-      ui.rows.innerHTML = '<tr><td colspan="6" class="table-message">The business directory could not be loaded. Try refreshing.</td></tr>';
+      ui.rows.innerHTML = '<tr><td colspan="7" class="table-message">The business directory could not be loaded. Try refreshing.</td></tr>';
     }
 
     // Keyboard shortcut ⌘K / Ctrl+K

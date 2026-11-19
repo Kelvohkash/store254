@@ -46,6 +46,7 @@ function openRowActionMenu(trigger, store, onAction) {
   const slug = /^[a-z0-9-]+$/i.test(store.subdomain || "") ? store.subdomain : "";
   const storeUrl = slug ? `https://${slug}.store254.co.ke/` : "";
   const status = ["ACTIVE", "PENDING", "SUSPENDED"].includes(store.status) ? store.status : "UNKNOWN";
+  const phoneInfo = resolveStorePhones(store);
 
   const items = [];
   items.push(
@@ -62,6 +63,21 @@ function openRowActionMenu(trigger, store, onAction) {
   if (storeUrl) {
     items.push(
       `<a class="action-menu-item" role="menuitem" href="${storeUrl}" target="_blank" rel="noopener"><i data-lucide="external-link"></i><span>Visit storefront</span></a>`
+    );
+  }
+  if (phoneInfo.telHref) {
+    items.push(
+      `<a class="action-menu-item" role="menuitem" href="${escapeHtml(phoneInfo.telHref)}"><i data-lucide="phone"></i><span>Call ${escapeHtml(phoneInfo.primaryPhone)}</span></a>`
+    );
+  }
+  if (phoneInfo.whatsappHref) {
+    items.push(
+      `<a class="action-menu-item" role="menuitem" href="${escapeHtml(phoneInfo.whatsappHref)}" target="_blank" rel="noopener noreferrer"><i data-lucide="message-circle"></i><span>Message on WhatsApp</span></a>`
+    );
+  }
+  if (phoneInfo.primaryPhone) {
+    items.push(
+      `<button type="button" class="action-menu-item" role="menuitem" data-copy-phone="${escapeHtml(phoneInfo.primaryPhone)}"><i data-lucide="copy"></i><span>Copy phone number</span></button>`
     );
   }
   items.push('<div class="action-menu-divider" role="separator"></div>');
@@ -95,6 +111,19 @@ function openRowActionMenu(trigger, store, onAction) {
     btn.addEventListener("click", () => {
       closeRowActionMenu();
       onAction(btn);
+    });
+  });
+  menu.querySelectorAll("[data-copy-phone]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const value = btn.dataset.copyPhone || "";
+      closeRowActionMenu();
+      if (!value) return;
+      try {
+        await navigator.clipboard.writeText(value);
+        showAdminToast(`Copied ${value}`);
+      } catch {
+        setAdminNotice("Could not copy phone number to clipboard.", true);
+      }
     });
   });
   menu.querySelectorAll("a[role='menuitem']").forEach((link) => {
@@ -135,10 +164,31 @@ function storeRowMarkup(store) {
     ? isBillingDue ? "Payment overdue" : `Covered until ${formatDate(dueDate)}`
     : "Billing not started";
 
-  const ownerMeta = [store.ownerName, store.ownerEmail, store.ownerPhone]
+  const ownerMeta = [store.ownerName, store.ownerEmail]
     .filter((val) => typeof val === "string" && val.trim().length > 0)
-    .slice(0, 2)
     .join(" · ");
+
+  const phoneInfo = resolveStorePhones(store);
+  const phoneCellHtml = (phoneInfo.primaryPhone || phoneInfo.whatsappHref)
+    ? `<div class="store-phone-cell">
+        <div class="store-phone-pill">
+          ${phoneInfo.telHref
+            ? `<a class="store-phone-link" href="${escapeHtml(phoneInfo.telHref)}" title="Call ${escapeHtml(phoneInfo.primaryPhone)}"><i data-lucide="phone"></i><span>${escapeHtml(phoneInfo.primaryPhone)}</span></a>`
+            : `<span class="store-phone-text"><i data-lucide="phone"></i><span>${escapeHtml(phoneInfo.primaryPhone || "WhatsApp")}</span></span>`}
+          ${phoneInfo.primaryPhone
+            ? `<button type="button" class="phone-action-btn" title="Copy phone number" aria-label="Copy phone number ${escapeHtml(phoneInfo.primaryPhone)}" data-copy-phone="${escapeHtml(phoneInfo.primaryPhone)}"><i data-lucide="copy"></i></button>`
+            : ""}
+          ${phoneInfo.whatsappHref
+            ? `<a class="phone-action-btn is-whatsapp" href="${escapeHtml(phoneInfo.whatsappHref)}" target="_blank" rel="noopener noreferrer" title="WhatsApp ${escapeHtml(name)}" aria-label="WhatsApp ${escapeHtml(name)}"><i data-lucide="message-circle"></i></a>`
+            : ""}
+        </div>
+        ${phoneInfo.secondaryOwnerPhone
+          ? `<small class="store-owner-phone-alt">Owner: ${phoneInfo.secondaryOwnerTelHref
+              ? `<a href="${escapeHtml(phoneInfo.secondaryOwnerTelHref)}" title="Call owner ${escapeHtml(phoneInfo.secondaryOwnerPhone)}">${escapeHtml(phoneInfo.secondaryOwnerPhone)}</a>`
+              : escapeHtml(phoneInfo.secondaryOwnerPhone)}</small>`
+          : ""}
+      </div>`
+    : '<span class="text-muted store-phone-empty">No phone</span>';
 
   const primaryAction = status === "PENDING"
     ? `<button class="row-action is-approve" type="button" data-store-action="activate" data-store-id="${escapeHtml(store.id)}"><i data-lucide="check"></i><span>Approve</span></button>`
@@ -172,6 +222,7 @@ function storeRowMarkup(store) {
         </div>
       </div>
     </td>
+    <td>${phoneCellHtml}</td>
     <td>
       ${storeUrl ? `
         <div class="store-url-pill">
@@ -208,12 +259,23 @@ function renderStoresTable(stores, filterOrStatus, onAction) {
   const rowsContainer = document.getElementById("business-rows");
   const emptyState = document.getElementById("empty-state");
   const query = searchInput?.value.trim().toLowerCase() || "";
+  const isPhoneQuery = /^[+\d\s()-]{4,}$/.test(query);
+  const queryRawDigits = query.replace(/\D/g, "");
+  const queryNormDigits = normalizePhoneComparable(query);
   const selectedStatus = typeof filterOrStatus === "string" ? filterOrStatus : (filterOrStatus?.status || "ALL");
   const selectedCategory = typeof filterOrStatus === "object" && filterOrStatus?.category ? filterOrStatus.category : "ALL";
 
   const visible = stores.filter((store) => {
     const matchesStatus = selectedStatus === "ALL" || store.status === selectedStatus;
     const matchesCategory = selectedCategory === "ALL" || String(store.businessType || "GENERAL").toUpperCase() === selectedCategory;
+    const phoneDigitVariants = [store.phone, store.contactPhone, store.ownerPhone, store.whatsapp]
+      .filter(Boolean)
+      .flatMap((val) => {
+        const raw = String(val).replace(/\D/g, "");
+        const norm = normalizePhoneComparable(val);
+        const local = norm.startsWith("254") && norm.length === 12 ? `0${norm.slice(3)}` : "";
+        return [raw, norm, local].filter(Boolean);
+      });
     const searchable = [
       store.name,
       store.subdomain,
@@ -221,9 +283,17 @@ function renderStoresTable(stores, filterOrStatus, onAction) {
       store.businessType,
       store.ownerName,
       store.ownerEmail,
+      store.phone,
+      store.contactPhone,
       store.ownerPhone,
+      store.whatsapp,
+      ...phoneDigitVariants,
     ].filter(Boolean).join(" ").toLowerCase();
-    const matchesQuery = !query || searchable.includes(query);
+    const matchesText = !query || searchable.includes(query);
+    const matchesPhoneDigits = isPhoneQuery && phoneDigitVariants.some(
+      (digits) => (queryRawDigits && digits.includes(queryRawDigits)) || (queryNormDigits && digits.includes(queryNormDigits))
+    );
+    const matchesQuery = matchesText || matchesPhoneDigits;
     return matchesStatus && matchesCategory && matchesQuery;
   });
 
@@ -251,6 +321,17 @@ function renderStoresTable(stores, filterOrStatus, onAction) {
         showAdminToast(`Copied ${button.dataset.copyUrl}`);
       } catch {
         setAdminNotice("Could not copy link to clipboard.", true);
+      }
+    });
+  });
+
+  rowsContainer.querySelectorAll("[data-copy-phone]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copyPhone);
+        showAdminToast(`Copied ${button.dataset.copyPhone}`);
+      } catch {
+        setAdminNotice("Could not copy phone number to clipboard.", true);
       }
     });
   });
