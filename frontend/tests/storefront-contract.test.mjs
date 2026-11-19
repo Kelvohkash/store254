@@ -640,6 +640,13 @@ test("Boda/Taxi live street map, store exact pinning, and Find Store automatic p
 
   assert.match(liveMapJs, /\/api\/platform\/locations\/route/);
   assert.match(liveMapJs, /window\.Store254Map\s*=/);
+  assert.match(
+    liveMapJs,
+    /https:\/\/basemaps\.cartocdn\.com\/rastertiles\/voyager\/\{z\}\/\{x\}\/\{y\}\{r\}\.png\?key=/
+  );
+  assert.doesNotMatch(liveMapJs, /\{s\}\.basemaps\.cartocdn\.com/);
+  assert.match(liveMapJs, /openstreetmap\.org\/copyright/);
+  assert.match(liveMapJs, /carto\.com\/attributions/);
   assert.match(storeFinderJs, /window\.openStoreFinder\s*=/);
   assert.match(storeFinderJs, /window\.openRidesModal\(/);
   assert.match(ridesJs, /window\.Store254Map/);

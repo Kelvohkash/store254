@@ -3,8 +3,18 @@
   "use strict";
 
   const DEFAULT_CENTER = { lat: -1.286389, lng: 36.817223 };
-  const PRIMARY_TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+  const CARTO_BASEMAPS_API_KEY = "cb1_5c3j_1_c86b1c0c31b55e1c229b0f64";
   const FALLBACK_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+  function buildPrimaryTileUrl() {
+    const runtimeKey =
+      typeof window !== "undefined" &&
+      typeof window.STORE254_CARTO_API_KEY === "string" &&
+      window.STORE254_CARTO_API_KEY.trim()
+        ? window.STORE254_CARTO_API_KEY.trim()
+        : CARTO_BASEMAPS_API_KEY;
+    return `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(runtimeKey)}`;
+  }
 
   function esc(val) {
     return String(val ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -94,10 +104,10 @@
       attributionControl: options.attributionControl !== false,
     });
 
-    const primaryLayer = window.L.tileLayer(PRIMARY_TILE_URL, {
-      maxZoom: 19,
-      subdomains: "abcd",
-      attribution: "&copy; OpenStreetMap &copy; CARTO",
+    const primaryLayer = window.L.tileLayer(buildPrimaryTileUrl(), {
+      maxZoom: 20,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
     });
 
     let switchedToFallback = false;
