@@ -266,12 +266,18 @@ test("store onboarding requires Google sign-in and locks owner email", async () 
   assert.match(html, /id="onboard-auth-gate"/);
   assert.match(html, /id="btn-onboard-google-signin"/);
   assert.match(html, /id="onboard-email"[^>]*readonly/);
+  assert.match(html, /type="tel"\s+id="onboard-owner-phone"[^>]*name="ownerPhone"[^>]*required/);
   assert.match(onboardingJs, /startOnboardGoogleSignIn/);
   assert.match(onboardingJs, /syncOnboardModalAuthState/);
   assert.match(onboardingJs, /platformUser\.email/);
+  assert.match(onboardingJs, /onboard-owner-phone/);
+  assert.match(onboardingJs, /ownerPhoneDigits/);
+  assert.match(onboardingJs, /\bownerPhone\b/);
   assert.match(cartJs, /store254_reopen_onboard/);
   assert.match(platformRoutes, /GOOGLE_AUTH_REQUIRED/);
   assert.match(platformRoutes, /EMAIL_MISMATCH/);
+  assert.doesNotMatch(platformRoutes, /ownerPhone:\s*z\.string\(\)\.optional\(\)/);
+  assert.match(platformRoutes, /ownerPhone:\s*z\s*\.string\(/);
 });
 
 test("offline fallback renders styled self-contained page with auto-reconnect and pinned stores", async () => {
@@ -556,4 +562,92 @@ test("Super Admin displays storefront phone numbers with Call, WhatsApp, and Cop
 
   assert.match(takedownsJs, /resolveStorePhones\(/);
   assert.match(takedownsJs, /Store Phone:/);
+});
+
+test("Boda/Taxi live street map, store exact pinning, and Find Store automatic pathfinder are wired", async () => {
+  const [
+    workerTs,
+    headersFile,
+    indexHtml,
+    adminHtml,
+    liveMapJs,
+    storeFinderJs,
+    ridesJs,
+    designJs,
+    bannerJs,
+    platformJs,
+    cartJs,
+  ] = await Promise.all([
+    read("../src/worker.ts"),
+    read("../_headers"),
+    read("../index.html"),
+    read("../admin.html"),
+    read("../scripts/shared/live-map.js"),
+    read("../scripts/storefront/store-finder.js"),
+    read("../scripts/storefront/rides.js"),
+    read("../scripts/admin/design.js"),
+    read("../scripts/storefront/banner.js"),
+    read("../scripts/storefront/platform.js"),
+    read("../scripts/storefront/marketplace-cart.js"),
+  ]);
+
+  assert.match(workerTs, /style-src[^"]*https:\/\/unpkg\.com/);
+  assert.match(workerTs, /connect-src 'self'/);
+  assert.match(headersFile, /style-src[^;]*https:\/\/unpkg\.com/);
+  assert.match(headersFile, /connect-src 'self'/);
+
+  assert.match(indexHtml, /unpkg\.com\/leaflet@1\.9\.4\/dist\/leaflet\.css/);
+  assert.match(indexHtml, /unpkg\.com\/leaflet@1\.9\.4\/dist\/leaflet\.js/);
+  assert.match(indexHtml, /\/scripts\/shared\/live-map\.js/);
+  assert.match(indexHtml, /\/scripts\/storefront\/store-finder\.js/);
+  assert.match(adminHtml, /unpkg\.com\/leaflet@1\.9\.4\/dist\/leaflet\.css/);
+  assert.match(adminHtml, /\/scripts\/shared\/live-map\.js/);
+
+  for (const id of [
+    "rides-live-map",
+    "ride-map-mode-pickup",
+    "ride-map-mode-dropoff",
+    "ride-swap-btn",
+    "ride-map-recenter-btn",
+    "rides-route-pill",
+    "rides-driver-map",
+    "banner-find-store-btn",
+    "store-finder-modal",
+    "store-finder-map",
+    "store-finder-mode-driving",
+    "store-finder-mode-walking",
+    "store-finder-gps-btn",
+    "store-finder-follow-btn",
+    "store-finder-origin-input",
+    "store-finder-summary",
+    "store-finder-steps",
+    "store-finder-ride-btn",
+    "store-finder-gmaps-link",
+  ]) {
+    assert.ok(indexHtml.includes(`id="${id}"`), `Missing #${id} in index.html`);
+  }
+
+  for (const id of [
+    "settings-pin-search",
+    "settings-pin-gps-btn",
+    "settings-pin-clear-btn",
+    "settings-location-map",
+    "settings-pin-status",
+    "settings-pin-note",
+  ]) {
+    assert.ok(adminHtml.includes(`id="${id}"`), `Missing #${id} in admin.html`);
+  }
+
+  assert.match(liveMapJs, /\/api\/platform\/locations\/route/);
+  assert.match(liveMapJs, /window\.Store254Map\s*=/);
+  assert.match(storeFinderJs, /window\.openStoreFinder\s*=/);
+  assert.match(storeFinderJs, /window\.openRidesModal\(/);
+  assert.match(ridesJs, /window\.Store254Map/);
+  assert.match(ridesJs, /setRidePinMode/);
+  assert.match(ridesJs, /swapRideEndpoints/);
+  assert.match(designJs, /refreshAdminLocationMap/);
+  assert.match(designJs, /exactLocation/);
+  assert.match(bannerJs, /banner-find-store-btn/);
+  assert.match(platformJs, /data-platform-action="find-store"/);
+  assert.match(cartJs, /data-mp-cart-action="find-store"/);
 });

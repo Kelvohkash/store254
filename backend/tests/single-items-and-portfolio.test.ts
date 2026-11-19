@@ -697,6 +697,7 @@ describe("Single-Item Quick Sell & Portfolio Mode", () => {
           portfolioMode: true,
           ownerPassword: "StrongPassword123!",
           ownerFullName: "Jane Creative",
+          ownerPhone: "0722000222",
           countyId: nairobi.countyId,
           locationId: nairobi.id,
         }),

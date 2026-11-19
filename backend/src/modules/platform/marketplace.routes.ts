@@ -32,6 +32,7 @@ import {
 import { sanitizePublicTenantSettings } from "./platform.routes";
 import { sanitizePublicItemMetadata } from "../catalog/items.routes";
 import { getStaticLocationById } from "./kenya-static-data";
+import { resolveStorePinCoords } from "./locations.service";
 
 export const marketplaceRouter = new Hono<AppEnv>();
 
@@ -187,6 +188,8 @@ marketplaceRouter.get(
               locationName: kenyaLocations.name,
               countyName: kenyaCounties.name,
               constituencyName: kenyaConstituencies.name,
+              latitude: kenyaLocations.latitude,
+              longitude: kenyaLocations.longitude,
             })
             .from(kenyaLocations)
             .leftJoin(kenyaCounties, eq(kenyaLocations.countyId, kenyaCounties.id))
@@ -309,6 +312,27 @@ marketplaceRouter.get(
             : typeof rawSettings.phone === "string"
             ? rawSettings.phone
             : null,
+          locationCoords: isSingleListing
+            ? singleStaticLoc
+              ? {
+                  lat: singleStaticLoc.latitude,
+                  lng: singleStaticLoc.longitude,
+                  isExactPin: false,
+                  label: singleLocationLabel || singleStaticLoc.name,
+                  directionsNote: null,
+                  physicalAddress: null,
+                }
+              : null
+            : resolveStorePinCoords(
+                row.tenant,
+                locMeta
+                  ? {
+                      latitude: locMeta.latitude,
+                      longitude: locMeta.longitude,
+                      name: locMeta.locationName,
+                    }
+                  : null
+              ),
           mpesaEnabled,
         },
       },

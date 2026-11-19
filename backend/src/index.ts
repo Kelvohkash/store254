@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { eq } from "drizzle-orm";
 import type { AppEnv } from "./types/context";
 import { SECURITY_LIMITS } from "./config/constants";
+import { createDb } from "./db";
+import { kenyaLocations } from "./db/schema/kenya-locations";
 
 // Security Frameworks
 import { enterpriseSecurityHeaders } from "./security/headers";
@@ -15,6 +18,8 @@ import { tenantMiddleware } from "./middlewares/tenant.middleware";
 
 // Feature Modules
 import { platformRouter, sanitizePublicTenantSettings } from "./modules/platform/platform.routes";
+import { getStaticLocationById } from "./modules/platform/kenya-static-data";
+import { resolveStorePinCoords } from "./modules/platform/locations.service";
 import { platformAdminRouter } from "./modules/platform/admin.routes";
 import { authRouter } from "./modules/auth/auth.routes";
 import { googleGatewayRouter } from "./modules/auth/google-gateway.routes";
@@ -178,14 +183,56 @@ const tenantScope = new Hono<AppEnv>();
 tenantScope.use("*", tenantMiddleware({ required: true }));
 
 // Storefront public metadata
-tenantScope.get("/store", (c) => {
+tenantScope.get("/store", async (c) => {
   const tenant = c.get("tenant")!;
+  const settingsLoc =
+    tenant.settings &&
+    typeof tenant.settings.location === "object" &&
+    tenant.settings.location !== null
+      ? (tenant.settings.location as Record<string, unknown>)
+      : null;
+  const effectiveLocationId =
+    tenant.locationId ||
+    (typeof settingsLoc?.locationId === "string" ? settingsLoc.locationId : null);
+  const effectiveLocationLabel =
+    tenant.locationLabel ||
+    (typeof settingsLoc?.locationLabel === "string" ? settingsLoc.locationLabel : null);
+
+  let fallbackLoc: { latitude: number; longitude: number; name: string } | null =
+    effectiveLocationId ? getStaticLocationById(effectiveLocationId) || null : null;
+
+  if (!fallbackLoc && effectiveLocationId && c.env?.DB) {
+    try {
+      const db = createDb(c.env.DB);
+      const [dbLoc] = await db
+        .select({
+          latitude: kenyaLocations.latitude,
+          longitude: kenyaLocations.longitude,
+          name: kenyaLocations.name,
+        })
+        .from(kenyaLocations)
+        .where(eq(kenyaLocations.id, effectiveLocationId))
+        .limit(1);
+      if (dbLoc) fallbackLoc = dbLoc;
+    } catch {
+      fallbackLoc = null;
+    }
+  }
+
   c.header("Cache-Control", "no-cache, no-store, must-revalidate");
   return c.json({
     success: true,
     data: {
       ...tenant,
       settings: sanitizePublicTenantSettings(tenant.settings),
+      locationCoords: resolveStorePinCoords(
+        {
+          locationId: effectiveLocationId,
+          locationLabel: effectiveLocationLabel,
+          settings: tenant.settings,
+        },
+        fallbackLoc
+      ),
     },
   });
 });

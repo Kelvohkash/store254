@@ -214,6 +214,16 @@ export const updateStoreProfileSchema = z.object({
       headerVariant: z.enum(["compact-search-first", "centered-brand", "minimal-nav"]).optional(),
       productCardStyle: z.enum(["grid-card", "service-card"]).optional(),
       portfolioMode: z.boolean().optional(),
+      exactLocation: z
+        .object({
+          lat: z.number().min(-90).max(90),
+          lng: z.number().min(-180).max(180),
+          label: z.string().trim().max(200).optional(),
+          directionsNote: z.string().trim().max(240).optional(),
+          pinnedAt: z.string().trim().max(40).optional(),
+        })
+        .nullable()
+        .optional(),
     })
     .optional(),
 });
@@ -320,10 +330,29 @@ tenantSettingsRouter.patch(
       .limit(1);
     const latestSettings = ((latestTenant?.settings as Record<string, unknown>) || currentSettings);
 
+    const incomingSettings: Record<string, unknown> = {};
+    if (body.settings) {
+      for (const [key, value] of Object.entries(body.settings)) {
+        if (value !== undefined) {
+          incomingSettings[key] = value;
+        }
+      }
+    }
+
     const mergedSettings: Record<string, unknown> = {
       ...currentSettings,
-      ...(body.settings || {}),
+      ...incomingSettings,
     };
+    if (body.settings?.exactLocation === null) {
+      delete mergedSettings.exactLocation;
+    } else if (body.settings?.exactLocation && typeof body.settings.exactLocation === "object") {
+      mergedSettings.exactLocation = {
+        ...body.settings.exactLocation,
+        lat: Number(body.settings.exactLocation.lat.toFixed(6)),
+        lng: Number(body.settings.exactLocation.lng.toFixed(6)),
+        pinnedAt: body.settings.exactLocation.pinnedAt || new Date().toISOString(),
+      };
+    }
     if (latestSettings.staffPermissions && typeof latestSettings.staffPermissions === "object") {
       mergedSettings.staffPermissions = latestSettings.staffPermissions;
     }

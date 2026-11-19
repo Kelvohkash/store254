@@ -94,6 +94,9 @@ function showPage(name) {
     if (typeof loadSettings === 'function' && (typeof hasAdminPermission !== 'function' || hasAdminPermission('manage_settings'))) {
       loadSettings();
     }
+    if (typeof window.refreshAdminLocationMap === 'function') {
+      window.refreshAdminLocationMap();
+    }
     if (typeof loadStaffAccounts === 'function' && currentAdminUser?.role === 'OWNER') {
       loadStaffAccounts();
     }

@@ -8,6 +8,8 @@ export interface TenantContext {
   businessType: string;
   currency: string;
   status: "ACTIVE" | "SUSPENDED" | "PENDING";
+  locationId?: string | null;
+  locationLabel?: string | null;
   settings: Record<string, unknown>;
 }
 

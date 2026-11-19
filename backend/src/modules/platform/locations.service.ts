@@ -771,3 +771,141 @@ export async function resolveOrCreateStoreLocation(
     400
   );
 }
+
+export interface StoreExactLocation {
+  lat: number;
+  lng: number;
+  label?: string | null;
+  directionsNote?: string | null;
+  pinnedAt?: string | null;
+}
+
+export interface StorePinCoords {
+  lat: number;
+  lng: number;
+  isExactPin: boolean;
+  label: string | null;
+  directionsNote: string | null;
+  physicalAddress: string | null;
+}
+
+function parseSettingsObject(rawSettings: unknown): Record<string, unknown> {
+  let parsed: unknown = rawSettings;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return {};
+    }
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {};
+  }
+  return parsed as Record<string, unknown>;
+}
+
+export function extractStoreExactLocation(rawSettings: unknown): StoreExactLocation | null {
+  const settings = parseSettingsObject(rawSettings);
+  const rawExact = settings.exactLocation;
+  if (!rawExact || typeof rawExact !== "object" || Array.isArray(rawExact)) {
+    return null;
+  }
+  const exact = rawExact as Record<string, unknown>;
+  const lat = Number(exact.lat);
+  const lng = Number(exact.lng);
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    return null;
+  }
+  const label = typeof exact.label === "string" && exact.label.trim() ? exact.label.trim() : null;
+  const directionsNote =
+    typeof exact.directionsNote === "string" && exact.directionsNote.trim()
+      ? exact.directionsNote.trim()
+      : null;
+  const pinnedAt =
+    typeof exact.pinnedAt === "string" && exact.pinnedAt.trim() ? exact.pinnedAt.trim() : null;
+
+  return {
+    lat: Number(lat.toFixed(6)),
+    lng: Number(lng.toFixed(6)),
+    label,
+    directionsNote,
+    pinnedAt,
+  };
+}
+
+export function resolveStorePinCoords(
+  tenant: {
+    locationId?: string | null;
+    locationLabel?: string | null;
+    settings?: unknown;
+  },
+  fallbackLoc?: {
+    latitude?: number | null;
+    longitude?: number | null;
+    name?: string | null;
+  } | null
+): StorePinCoords | null {
+  const settings = parseSettingsObject(tenant.settings);
+  const physicalAddress =
+    typeof settings.physicalAddress === "string" && settings.physicalAddress.trim()
+      ? settings.physicalAddress.trim()
+      : null;
+  const exact = extractStoreExactLocation(settings);
+  if (exact) {
+    return {
+      lat: exact.lat,
+      lng: exact.lng,
+      isExactPin: true,
+      label: exact.label || physicalAddress || tenant.locationLabel || null,
+      directionsNote: exact.directionsNote || null,
+      physicalAddress,
+    };
+  }
+
+  let resolvedLat =
+    fallbackLoc && typeof fallbackLoc.latitude === "number" ? fallbackLoc.latitude : null;
+  let resolvedLng =
+    fallbackLoc && typeof fallbackLoc.longitude === "number" ? fallbackLoc.longitude : null;
+  let resolvedName =
+    fallbackLoc && typeof fallbackLoc.name === "string" && fallbackLoc.name.trim()
+      ? fallbackLoc.name.trim()
+      : null;
+
+  if (
+    (resolvedLat === null || resolvedLng === null) &&
+    typeof tenant.locationId === "string" &&
+    tenant.locationId.trim()
+  ) {
+    const staticLoc = getStaticLocationById(tenant.locationId.trim());
+    if (staticLoc) {
+      resolvedLat = staticLoc.latitude;
+      resolvedLng = staticLoc.longitude;
+      resolvedName = resolvedName || staticLoc.name;
+    }
+  }
+
+  if (
+    resolvedLat !== null &&
+    resolvedLng !== null &&
+    Number.isFinite(resolvedLat) &&
+    Number.isFinite(resolvedLng)
+  ) {
+    return {
+      lat: Number(resolvedLat.toFixed(6)),
+      lng: Number(resolvedLng.toFixed(6)),
+      isExactPin: false,
+      label: physicalAddress || tenant.locationLabel || resolvedName || null,
+      directionsNote: null,
+      physicalAddress,
+    };
+  }
+
+  return null;
+}

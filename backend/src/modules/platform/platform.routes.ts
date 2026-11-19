@@ -38,7 +38,10 @@ import {
 import {
   LocationResolutionError,
   resolveOrCreateStoreLocation,
+  resolveStorePinCoords,
 } from "./locations.service";
+import { kenyaLocations } from "../../db/schema/kenya-locations";
+import { getStaticLocationById } from "./kenya-static-data";
 import { findMerchantStoresByEmail } from "../../services/user-stores.service";
 import { copyrightReports } from "../../db/schema/copyright-reports";
 import { items } from "../../db/schema/items";
@@ -72,6 +75,7 @@ const PUBLIC_TENANT_SETTINGS_KEYS = new Set([
   "headerVariant",
   "productCardStyle",
   "portfolioMode",
+  "exactLocation",
 ]);
 
 /**
@@ -196,12 +200,29 @@ const registerStoreSchema = z
       .min(SECURITY_LIMITS.MIN_PASSWORD_LENGTH, "Password must be at least 8 characters")
       .max(SECURITY_LIMITS.MAX_PASSWORD_LENGTH),
     ownerFullName: z.string().min(2).max(80),
-    ownerPhone: z.string().optional(),
+    ownerPhone: z
+      .string({ required_error: "Phone number is required." })
+      .trim()
+      .min(9, "Please enter a valid phone number (e.g. 0712 345 678 or +254712345678).")
+      .max(24, "Phone number is too long.")
+      .refine(
+        (val) => {
+          if (!/^\+?[0-9\s()-]+$/.test(val)) return false;
+          const digits = val.replace(/\D/g, "");
+          return digits.length >= 9 && digits.length <= 15;
+        },
+        {
+          message: "Please enter a valid phone number (e.g. 0712 345 678 or +254712345678).",
+        }
+      ),
     countyId: z.string().min(1, "Please select your County"),
     constituencyId: z.string().optional(),
     locationId: z.string().optional(),
     googlePlaceId: z.string().optional(),
     customLocationName: z.string().trim().min(2).max(80).optional(),
+    exactLat: z.number().min(-90).max(90).optional(),
+    exactLng: z.number().min(-180).max(180).optional(),
+    directionsNote: z.string().trim().max(240).optional(),
     acceptedTerms: z
       .boolean()
       .optional()
@@ -307,10 +328,42 @@ platformRouter.get("/stores", async (c) => {
       .orderBy(desc(tenants.createdAt))
       .limit(50);
 
-    activeStores = rawStores.map((store) => ({
-      ...store,
-      settings: sanitizePublicTenantSettings(store.settings),
-    }));
+    const missingLocationIds = Array.from(
+      new Set(
+        rawStores
+          .map((s) => s.locationId)
+          .filter((id): id is string => Boolean(id && !getStaticLocationById(id)))
+      )
+    );
+    const dbLocationsMap = new Map<
+      string,
+      { latitude: number; longitude: number; name: string }
+    >();
+    if (missingLocationIds.length > 0) {
+      const dbLocs = await db
+        .select({
+          id: kenyaLocations.id,
+          name: kenyaLocations.name,
+          latitude: kenyaLocations.latitude,
+          longitude: kenyaLocations.longitude,
+        })
+        .from(kenyaLocations)
+        .where(inArray(kenyaLocations.id, missingLocationIds));
+      for (const loc of dbLocs) {
+        dbLocationsMap.set(loc.id, loc);
+      }
+    }
+
+    activeStores = rawStores.map((store) => {
+      const fallbackLoc = store.locationId
+        ? getStaticLocationById(store.locationId) || dbLocationsMap.get(store.locationId) || null
+        : null;
+      return {
+        ...store,
+        settings: sanitizePublicTenantSettings(store.settings),
+        locationCoords: resolveStorePinCoords(store, fallbackLoc),
+      };
+    });
   } catch {
     activeStores = [];
   }
@@ -414,7 +467,7 @@ platformRouter.post(
         theme: "default",
         primaryColor: "#2563eb",
         contactEmail: verifiedOwnerEmail,
-        contactPhone: body.ownerPhone || null,
+        contactPhone: body.ownerPhone,
         ...(isPortfolioMode
           ? {
               portfolioMode: true,
@@ -432,6 +485,17 @@ platformRouter.post(
           locationLabel: resolvedLocation.locationLabel,
           googlePlaceId: resolvedLocation.location.googlePlaceId || null,
         },
+        ...(typeof body.exactLat === "number" && typeof body.exactLng === "number"
+          ? {
+              exactLocation: {
+                lat: Number(body.exactLat.toFixed(6)),
+                lng: Number(body.exactLng.toFixed(6)),
+                label: resolvedLocation.locationLabel,
+                directionsNote: body.directionsNote || "",
+                pinnedAt: new Date().toISOString(),
+              },
+            }
+          : {}),
       },
     });
 
@@ -442,7 +506,7 @@ platformRouter.post(
       email: verifiedOwnerEmail,
       passwordHash: hashedPassword,
       fullName: body.ownerFullName,
-      phone: body.ownerPhone || null,
+      phone: body.ownerPhone,
       googleId: googleUser.sub,
       role: "OWNER",
       status: "ACTIVE",
@@ -491,6 +555,7 @@ platformRouter.post(
             id: userId,
             email: verifiedOwnerEmail,
             fullName: body.ownerFullName,
+            phone: body.ownerPhone,
             role: "OWNER",
           },
         },

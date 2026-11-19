@@ -1014,6 +1014,23 @@
                   class="qv-follow-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors${isStoreFollowedNow ? " is-following" : ""}">
                   <span>${isStoreFollowedNow ? "Subscribed ★" : "+ Subscribe"}</span>
                 </button>
+                ${
+                  store.locationCoords &&
+                  Number.isFinite(Number(store.locationCoords.lat)) &&
+                  Number.isFinite(Number(store.locationCoords.lng))
+                    ? `<button type="button" data-mp-cart-action="find-store" data-find-store="${escapeHtml(JSON.stringify({
+                        id: store.id || "",
+                        name: store.name || store.subdomain || "Store",
+                        subdomain: store.subdomain || "",
+                        locationLabel: storeLoc || store.locationLabel || "",
+                        phone: store.phone || "",
+                        locationCoords: store.locationCoords,
+                      }))}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 hover:bg-emerald-700 text-emerald-800 hover:text-white border border-emerald-200 transition-colors">
+                        <i data-lucide="navigation" class="w-3 h-3"></i>
+                        <span>Find Store</span>
+                      </button>`
+                    : ""
+                }
                 <a href="${escapeHtml(storefrontHref)}" target="_blank" rel="noopener" class="text-[11px] font-bold text-slate-500 hover:text-emerald-700 inline-flex items-center gap-1">
                   <span>Visit Storefront</span>
                   <i data-lucide="external-link" class="w-3 h-3"></i>
@@ -1712,6 +1729,14 @@
           const parsed = JSON.parse(btn.dataset.followStore || "null");
           if (parsed && typeof window.toggleFollowStore === "function") {
             window.toggleFollowStore(parsed, event);
+          }
+        } catch {}
+      } else if (action === "find-store") {
+        try {
+          const parsed = JSON.parse(btn.dataset.findStore || "null");
+          window.closeMarketplaceQuickView();
+          if (parsed && typeof window.openStoreFinder === "function") {
+            void window.openStoreFinder(parsed);
           }
         } catch {}
       } else if (action === "select-qv-variant") {

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "store254-pwa-v23";
+const CACHE_VERSION = "store254-pwa-v24";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [
   "/",
@@ -14,6 +14,7 @@ const PRECACHE_URLS = [
   "/styles/base/hero-banner.css",
   "/styles/base/cards-catalog.css",
   "/styles/base/drawers-modals.css",
+  "/styles/base/live-map.css",
   "/styles/storefront-components.css",
   "/styles/storefront-components.css?v=20261116g",
   "/styles/components/tokens-variants.css",

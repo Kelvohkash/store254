@@ -145,6 +145,8 @@ export function tenantMiddleware(
         businessType: tenants.businessType,
         currency: tenants.currency,
         status: tenants.status,
+        locationId: tenants.locationId,
+        locationLabel: tenants.locationLabel,
         settings: tenants.settings,
       })
       .from(tenants)
@@ -205,6 +207,8 @@ export function tenantMiddleware(
       businessType: tenant.businessType,
       currency: tenant.currency,
       status: tenant.status,
+      locationId: tenant.locationId ?? null,
+      locationLabel: tenant.locationLabel ?? null,
       settings: (tenant.settings as Record<string, unknown>) || {},
     };
 

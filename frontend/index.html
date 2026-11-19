@@ -59,6 +59,10 @@
   <!-- Lucide Icons CDN -->
   <script defer src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
 
+  <!-- Leaflet Live Street Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+
   <link rel="stylesheet" href="/styles/tailwind.generated.css?v=20261116">
   <link rel="stylesheet" href="/styles/base.css?v=20261116">
   <link rel="stylesheet" href="/styles/storefront-components.css?v=20261116g">
@@ -298,6 +302,10 @@
             <i data-lucide="phone" class="w-4 h-4"></i>
             <span id="banner-store-phone-text">Call store</span>
           </a>
+          <button id="banner-find-store-btn" type="button" onclick="openActiveStoreFinder()" class="store-find-btn hidden">
+            <i data-lucide="navigation" class="w-4 h-4"></i>
+            <span>Find Store</span>
+          </button>
           <button id="banner-follow-store-btn" type="button" onclick="toggleActiveStoreFollow(event)" class="store-follow-btn" aria-pressed="false">
             <i data-lucide="bookmark-plus" class="w-4 h-4"></i>
             <span id="banner-follow-store-label">Subscribe to Store</span>
@@ -1201,11 +1209,38 @@
             </p>
             <div id="onboard-nearby-chips" class="flex flex-wrap gap-1.5"></div>
           </div>
+
+          <div class="rounded-xl border border-emerald-200/80 bg-white p-2.5 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <span class="block text-[11px] font-bold text-slate-800">Pin Exact Shop Location (Optional)</span>
+                <span class="block text-[10px] text-slate-500">Helps shoppers &amp; boda riders navigate right to your door.</span>
+              </div>
+              <button id="onboard-pin-toggle-btn" type="button" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-[11px] font-bold text-emerald-800">Pin on Map</button>
+            </div>
+            <div id="onboard-pin-panel" class="hidden space-y-2 pt-2 border-t border-slate-100">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <span id="onboard-pin-status" class="text-[11px] font-semibold text-slate-600">Tap the map or use GPS to drop your shop pin.</span>
+                <button id="onboard-pin-gps-btn" type="button" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-800">
+                  <i data-lucide="locate-fixed" class="w-3.5 h-3.5 text-emerald-700"></i>
+                  <span>Use My GPS</span>
+                </button>
+              </div>
+              <div id="onboard-pin-map" class="s254-map-container w-full h-[190px] border border-slate-200"></div>
+              <input id="onboard-pin-note" type="text" maxlength="240" placeholder="Optional landmark / floor / stall (e.g. Ground Floor Stall 12, opposite Quickmart)" class="w-full p-2 rounded-xl border border-slate-300 bg-white text-xs">
+            </div>
+          </div>
         </div>
 
         <div>
           <label class="block font-bold text-slate-700 mb-1">Owner Full Name</label>
           <input type="text" id="onboard-owner-name" required class="w-full p-2.5 rounded-xl border border-slate-300">
+        </div>
+
+        <div>
+          <label for="onboard-owner-phone" class="block font-bold text-slate-700 mb-1">Owner / Store Phone Number <span class="text-rose-600">*</span></label>
+          <input type="tel" id="onboard-owner-phone" name="ownerPhone" required autocomplete="tel" inputmode="tel" maxlength="24" placeholder="e.g. 0712 345 678 or +254712345678" class="w-full p-2.5 rounded-xl border border-slate-300">
+          <p class="mt-1 text-[11px] text-slate-500">Required so shoppers and Our 254 team can reach your store directly (Call / WhatsApp).</p>
         </div>
 
         <div>
@@ -1603,10 +1638,29 @@
       <!-- Rider Booking Panel -->
       <div id="rides-book-panel" class="p-4 sm:p-6 space-y-5">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          <!-- Left: Live Radar Canvas & Summary -->
-          <div class="lg:col-span-5 space-y-3">
+          <!-- Left: Live Street Map & Summary -->
+          <div class="lg:col-span-6 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-1.5 bg-slate-50 border border-slate-200/80 rounded-xl p-1.5">
+              <div class="flex items-center gap-1">
+                <button id="ride-map-mode-pickup" type="button" onclick="setRidePinMode('pickup')" aria-pressed="true" class="px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold bg-emerald-700 text-white transition-colors">Pin Pickup</button>
+                <button id="ride-map-mode-dropoff" type="button" onclick="setRidePinMode('dropoff')" aria-pressed="false" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors">Pin Drop-off</button>
+              </div>
+              <div class="flex items-center gap-1">
+                <button id="ride-swap-btn" type="button" onclick="swapRideEndpoints()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors" title="Swap pickup and drop-off">
+                  <i data-lucide="arrow-up-down" class="w-3 h-3"></i>
+                  <span>Swap</span>
+                </button>
+                <button id="ride-map-recenter-btn" type="button" onclick="fitRideMapBounds()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors" title="Fit map to route">
+                  <i data-lucide="maximize-2" class="w-3 h-3"></i>
+                  <span>Fit Route</span>
+                </button>
+              </div>
+            </div>
+
             <div class="relative rounded-2xl overflow-hidden border border-emerald-900/20 bg-slate-950 shadow-inner">
-              <canvas id="rides-map-canvas" width="420" height="300" class="w-full h-[230px] sm:h-[270px] block"></canvas>
+              <div id="rides-live-map" class="s254-map-container w-full h-[280px] sm:h-[330px]"></div>
+              <canvas id="rides-map-canvas" width="420" height="300" class="w-full h-[280px] sm:h-[330px] block hidden"></canvas>
+              <div id="rides-route-pill" class="hidden absolute top-3 right-3 z-20 s254-route-badge"></div>
               <div class="px-3.5 py-2.5 bg-slate-900/95 border-t border-slate-800 flex items-center justify-between gap-2 text-xs text-slate-200">
                 <div id="rides-nearby-summary" class="font-medium leading-snug">Checking nearby Bodabodas &amp; Taxis…</div>
               </div>
@@ -1643,7 +1697,7 @@
           </div>
 
           <!-- Right: Route & Request Form + Live Tracker -->
-          <div class="lg:col-span-7 space-y-4">
+          <div class="lg:col-span-6 space-y-4">
             <form class="space-y-3 bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4" onsubmit="event.preventDefault(); requestRide();">
               <div class="relative">
                 <label for="ride-pickup-input" class="block text-xs font-bold text-slate-700 mb-1">Pickup Point</label>
@@ -1766,6 +1820,14 @@
 
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             <div class="lg:col-span-6 space-y-4">
+              <div class="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
+                <div class="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 text-[11px] font-bold text-slate-700">
+                  <span>Driver Stage &amp; Live Pathfinder Map</span>
+                  <span class="text-emerald-700">Tap / drag pin</span>
+                </div>
+                <div id="rides-driver-map" class="s254-map-container w-full h-[220px] rounded-none"></div>
+                <div class="px-3.5 py-2 bg-white border-t border-slate-100 text-[11px] text-slate-500">Tap or drag the pin to set your exact waiting stage, or follow your active trip pathfinder.</div>
+              </div>
               <div id="rides-driver-active-ride"></div>
               <div>
                 <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Nearby Ride Requests</h3>
@@ -1841,6 +1903,97 @@
                 Save Driver Profile
               </button>
             </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Store Pathfinder Modal ("Find Store" Automatic Route Guide) -->
+  <div id="store-finder-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[97] flex items-center justify-center p-2 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="store-finder-title">
+    <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 my-auto">
+      <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-4 sm:px-6 py-4 flex items-start justify-between gap-3">
+        <div class="min-w-0 space-y-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <span id="store-finder-pin-badge" class="inline-flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Exact Pinned Location</span>
+          </div>
+          <h2 id="store-finder-title" class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">Find Store</h2>
+          <p id="store-finder-address" class="text-xs text-slate-600 truncate"></p>
+          <p id="store-finder-note" class="hidden text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5"></p>
+        </div>
+        <button type="button" onclick="closeStoreFinder()" aria-label="Close store pathfinder" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center flex-shrink-0 transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-6 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2.5 bg-slate-50 border border-slate-200 rounded-2xl p-3">
+          <div class="inline-flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200">
+            <button id="store-finder-mode-driving" type="button" aria-pressed="true" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold bg-emerald-700 text-white transition-colors">
+              <i data-lucide="car" class="w-3.5 h-3.5"></i>
+              <span>Drive / Boda</span>
+            </button>
+            <button id="store-finder-mode-walking" type="button" aria-pressed="false" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors">
+              <i data-lucide="footprints" class="w-3.5 h-3.5"></i>
+              <span>Walk</span>
+            </button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="store-finder-gps-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-bold text-slate-800 transition-colors">
+              <i data-lucide="locate-fixed" class="w-3.5 h-3.5 text-emerald-700"></i>
+              <span>Use My GPS</span>
+            </button>
+            <button id="store-finder-follow-btn" type="button" aria-pressed="false" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-bold text-slate-800 transition-colors">
+              <i data-lucide="compass" class="w-3.5 h-3.5 text-sky-600"></i>
+              <span>Live Follow</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="relative">
+          <label for="store-finder-origin-input" class="block text-xs font-bold text-slate-700 mb-1">Starting From (or tap anywhere on the map)</label>
+          <input id="store-finder-origin-input" type="text" autocomplete="off" placeholder="Detecting your GPS… or search any town, estate, or road" class="w-full border border-slate-300 bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-600">
+          <div id="store-finder-origin-suggestions" class="hidden absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-lg max-h-52 overflow-y-auto divide-y divide-slate-100"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          <div class="lg:col-span-7 space-y-2.5">
+            <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-inner bg-slate-100">
+              <div id="store-finder-map" class="s254-map-container w-full h-[290px] sm:h-[340px]"></div>
+            </div>
+            <div id="store-finder-summary" class="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-xs font-bold text-emerald-950 flex flex-wrap items-center justify-between gap-2">
+              <span>Locating your starting point and building route…</span>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 space-y-3">
+            <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">Automatic Pathfinder Steps</h3>
+                <span class="text-[11px] font-semibold text-slate-500">Turn-by-turn</span>
+              </div>
+              <div id="store-finder-steps" class="s254-step-list">
+                <p class="text-xs text-slate-500 py-3 text-center">Calculating route to store…</p>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <button id="store-finder-ride-btn" type="button" class="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs sm:text-sm shadow-sm inline-flex items-center justify-center gap-2 transition-colors">
+                <i data-lucide="bike" class="w-4 h-4"></i>
+                <span>Book Boda / Taxi Here (0% Fee)</span>
+              </button>
+              <div class="grid grid-cols-2 gap-2">
+                <a id="store-finder-gmaps-link" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold transition-colors">
+                  <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                  <span>Open in Google Maps</span>
+                </a>
+                <a id="store-finder-call-link" href="#" class="hidden inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold transition-colors">
+                  <i data-lucide="phone" class="w-3.5 h-3.5 text-emerald-700"></i>
+                  <span>Call Store</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1996,6 +2149,8 @@
   <script src="/scripts/storefront/onboarding.js?v=20261116"></script>
   <script src="/scripts/storefront/copyright-report.js?v=20261116"></script>
   <script src="/scripts/admin/media-optimizer.js"></script>
+  <script src="/scripts/shared/live-map.js"></script>
+  <script src="/scripts/storefront/store-finder.js"></script>
   <script src="/scripts/storefront/rides.js"></script>
   <script src="/scripts/storefront/single-item-sell.js"></script>
   <script src="/scripts/storefront/pwa.js"></script>

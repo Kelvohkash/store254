@@ -90,6 +90,22 @@ function renderStoreBanner() {
     actionsWrap.classList.toggle("has-call-btn", showCallBtn);
   }
 
+  const findBtn = document.getElementById("banner-find-store-btn");
+  const hasLocationPin = Boolean(
+    (state.activeTenant?.locationCoords &&
+      Number.isFinite(Number(state.activeTenant.locationCoords.lat)) &&
+      Number.isFinite(Number(state.activeTenant.locationCoords.lng))) ||
+      (settings.exactLocation &&
+        Number.isFinite(Number(settings.exactLocation.lat)) &&
+        Number.isFinite(Number(settings.exactLocation.lng)))
+  );
+  if (findBtn) {
+    findBtn.classList.toggle("hidden", !hasLocationPin);
+  }
+  if (actionsWrap) {
+    actionsWrap.classList.toggle("has-find-btn", hasLocationPin);
+  }
+
   setHeaderLogo(settings.logoUrl || DEFAULT_STOREFRONT_LOGO, state.activeTenant.name, DEFAULT_STOREFRONT_LOGO);
   const headerStoreIdentity = document.getElementById("header-store-identity");
   const headerStoreName = document.getElementById("header-store-name");

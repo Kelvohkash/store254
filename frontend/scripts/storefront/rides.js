@@ -39,11 +39,22 @@
     isOpen: false,
     activeTab: "book",
     selectedVehicle: "BODABODA",
+    pinMode: "pickup", // "pickup" | "dropoff"
     pickup: null, // { label, lat, lng, locationId }
     dropoff: null, // { label, lat, lng, locationId }
     pickupSuggestions: [],
     dropoffSuggestions: [],
     estimate: null,
+    roadRoute: null,
+    roadRouteKey: "",
+    driverApproachKey: "",
+    map: null,
+    routeLayer: null,
+    approachLayer: null,
+    pickupMarker: null,
+    dropoffMarker: null,
+    assignedDriverMarker: null,
+    nearbyDriverMarkers: new Map(),
     nearbyDrivers: [],
     activeRideRecord: null, // { rideId, trackingToken }
     activeRideData: null, // { ride, driver, driverDistanceKm, driverEtaMinutes }
@@ -67,6 +78,12 @@
       heartbeatTimer: null,
       dashboardPollTimer: null,
       formPopulated: false,
+      map: null,
+      stageMarker: null,
+      routeLayer: null,
+      pickupMarker: null,
+      dropoffMarker: null,
+      activeRouteKey: "",
     },
   };
 
@@ -610,10 +627,437 @@
     ctx.restore();
   }
 
+  function usesLeafletMap() {
+    return Boolean(window.Store254Map?.isAvailable?.() && document.getElementById("rides-live-map"));
+  }
+
+  function toggleMapCanvasFallback(useLeaflet) {
+    const mapEl = document.getElementById("rides-live-map");
+    const canvasEl = document.getElementById("rides-map-canvas");
+    if (mapEl) mapEl.classList.toggle("hidden", !useLeaflet);
+    if (canvasEl) canvasEl.classList.toggle("hidden", useLeaflet);
+  }
+
+  function updatePinModeButtons() {
+    const pickupBtn = document.getElementById("ride-map-mode-pickup");
+    const dropoffBtn = document.getElementById("ride-map-mode-dropoff");
+    const isPickup = ridesState.pinMode !== "dropoff";
+    if (pickupBtn) {
+      pickupBtn.setAttribute("aria-pressed", String(isPickup));
+      pickupBtn.classList.toggle("bg-emerald-700", isPickup);
+      pickupBtn.classList.toggle("text-white", isPickup);
+      pickupBtn.classList.toggle("bg-white", !isPickup);
+      pickupBtn.classList.toggle("text-slate-700", !isPickup);
+      pickupBtn.classList.toggle("border", !isPickup);
+      pickupBtn.classList.toggle("border-slate-200", !isPickup);
+    }
+    if (dropoffBtn) {
+      const isDrop = !isPickup;
+      dropoffBtn.setAttribute("aria-pressed", String(isDrop));
+      dropoffBtn.classList.toggle("bg-rose-600", isDrop);
+      dropoffBtn.classList.toggle("text-white", isDrop);
+      dropoffBtn.classList.toggle("bg-white", !isDrop);
+      dropoffBtn.classList.toggle("text-slate-700", !isDrop);
+      dropoffBtn.classList.toggle("border", !isDrop);
+      dropoffBtn.classList.toggle("border-slate-200", !isDrop);
+    }
+  }
+
+  function updateRoutePill(route) {
+    const pill = document.getElementById("rides-route-pill");
+    if (!pill) return;
+    if (!route || !Number.isFinite(Number(route.distanceKm))) {
+      pill.classList.add("hidden");
+      pill.textContent = "";
+      return;
+    }
+    const prefix = route.source === "osrm" ? "Road Route" : "Est. Route";
+    pill.textContent = `${prefix} · ${Number(route.distanceKm).toFixed(1)} km · ~${Math.round(Number(route.durationMinutes || 5))} min`;
+    pill.classList.remove("hidden");
+  }
+
+  async function reverseLabelForCoords(lat, lng, fallbackPrefix = "Pinned") {
+    try {
+      const res = await apiFetch(
+        `/api/platform/locations/nearest?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`
+      );
+      const loc = res.ok ? res.data?.location : null;
+      if (loc?.name) {
+        return {
+          locationId: loc.id || "",
+          label: `${loc.name} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        };
+      }
+    } catch {}
+    return {
+      locationId: "",
+      label: `${fallbackPrefix} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+    };
+  }
+
+  async function handleRideMapPinSelect(kind, lat, lng, customLabel) {
+    const fixedLat = Number(Number(lat).toFixed(6));
+    const fixedLng = Number(Number(lng).toFixed(6));
+    if (!Number.isFinite(fixedLat) || !Number.isFinite(fixedLng)) return;
+
+    const resolved = customLabel
+      ? { locationId: "", label: customLabel }
+      : await reverseLabelForCoords(fixedLat, fixedLng, kind === "pickup" ? "Pickup Pin" : "Drop-off Pin");
+
+    const place = {
+      locationId: resolved.locationId || "",
+      label: resolved.label,
+      lat: fixedLat,
+      lng: fixedLng,
+    };
+
+    if (kind === "pickup") {
+      ridesState.pickup = place;
+      const input = document.getElementById("ride-pickup-input");
+      if (input) input.value = place.label;
+      document.getElementById("ride-pickup-suggestions")?.classList.add("hidden");
+      if (!ridesState.dropoff) {
+        window.setRidePinMode("dropoff");
+      }
+      void refreshNearbyRides();
+    } else {
+      ridesState.dropoff = place;
+      const input = document.getElementById("ride-dropoff-input");
+      if (input) input.value = place.label;
+      document.getElementById("ride-dropoff-suggestions")?.classList.add("hidden");
+    }
+
+    syncRideLeafletState();
+    await fetchAndRenderRideRoadRoute();
+    await requestRideEstimateIfReady();
+  }
+
+  function ensureRidesLeafletMap() {
+    if (!usesLeafletMap()) {
+      toggleMapCanvasFallback(false);
+      return null;
+    }
+    toggleMapCanvasFallback(true);
+    const mapEl = document.getElementById("rides-live-map");
+    if (!mapEl) return null;
+
+    if (!ridesState.map) {
+      const ref = getMapReferenceCoords();
+      ridesState.map = window.Store254Map.createMap(mapEl, {
+        lat: ref.lat,
+        lng: ref.lng,
+        zoom: 14,
+        onClick: ({ lat, lng }) => {
+          const active = ridesState.activeRideData?.ride;
+          if (active && !["COMPLETED", "CANCELLED"].includes(String(active.status || "").toUpperCase())) {
+            return;
+          }
+          const targetKind = ridesState.pinMode === "dropoff" ? "dropoff" : "pickup";
+          void handleRideMapPinSelect(targetKind, lat, lng);
+        },
+      });
+      if (ridesState.map && window.L) {
+        ridesState.routeLayer = window.L.layerGroup().addTo(ridesState.map);
+        ridesState.approachLayer = window.L.layerGroup().addTo(ridesState.map);
+      }
+    } else {
+      window.Store254Map.refreshSize(ridesState.map);
+    }
+
+    return ridesState.map;
+  }
+
+  function syncRideLeafletState() {
+    const map = ensureRidesLeafletMap();
+    if (!map || !window.L) return;
+
+    const activeRide = ridesState.activeRideData?.ride || null;
+    const isActiveTrip = Boolean(activeRide && !["COMPLETED", "CANCELLED"].includes(String(activeRide.status || "").toUpperCase()));
+    const pickupPt = activeRide && Number.isFinite(Number(activeRide.pickupLat))
+      ? { lat: Number(activeRide.pickupLat), lng: Number(activeRide.pickupLng), label: activeRide.pickupLabel || "Pickup" }
+      : ridesState.pickup;
+    const dropoffPt = activeRide && Number.isFinite(Number(activeRide.dropoffLat))
+      ? { lat: Number(activeRide.dropoffLat), lng: Number(activeRide.dropoffLng), label: activeRide.dropoffLabel || "Drop-off" }
+      : ridesState.dropoff;
+
+    // Pickup marker
+    if (pickupPt && Number.isFinite(pickupPt.lat) && Number.isFinite(pickupPt.lng)) {
+      const icon = window.Store254Map.createPinIcon({
+        kind: "pickup",
+        letter: "P",
+        label: pickupPt.label || "Pickup",
+      });
+      if (ridesState.pickupMarker) {
+        ridesState.pickupMarker.setLatLng([pickupPt.lat, pickupPt.lng]);
+        ridesState.pickupMarker.setIcon(icon);
+        if (ridesState.pickupMarker.dragging) {
+          if (isActiveTrip) ridesState.pickupMarker.dragging.disable();
+          else ridesState.pickupMarker.dragging.enable();
+        }
+      } else {
+        ridesState.pickupMarker = window.L.marker([pickupPt.lat, pickupPt.lng], {
+          icon,
+          draggable: !isActiveTrip,
+        }).addTo(map);
+        ridesState.pickupMarker.on("dragend", (ev) => {
+          const pos = ev.target.getLatLng();
+          void handleRideMapPinSelect("pickup", pos.lat, pos.lng);
+        });
+      }
+    } else if (ridesState.pickupMarker) {
+      map.removeLayer(ridesState.pickupMarker);
+      ridesState.pickupMarker = null;
+    }
+
+    // Dropoff marker
+    if (dropoffPt && Number.isFinite(dropoffPt.lat) && Number.isFinite(dropoffPt.lng)) {
+      const icon = window.Store254Map.createPinIcon({
+        kind: "dropoff",
+        letter: "D",
+        label: dropoffPt.label || "Drop-off",
+      });
+      if (ridesState.dropoffMarker) {
+        ridesState.dropoffMarker.setLatLng([dropoffPt.lat, dropoffPt.lng]);
+        ridesState.dropoffMarker.setIcon(icon);
+        if (ridesState.dropoffMarker.dragging) {
+          if (isActiveTrip) ridesState.dropoffMarker.dragging.disable();
+          else ridesState.dropoffMarker.dragging.enable();
+        }
+      } else {
+        ridesState.dropoffMarker = window.L.marker([dropoffPt.lat, dropoffPt.lng], {
+          icon,
+          draggable: !isActiveTrip,
+        }).addTo(map);
+        ridesState.dropoffMarker.on("dragend", (ev) => {
+          const pos = ev.target.getLatLng();
+          void handleRideMapPinSelect("dropoff", pos.lat, pos.lng);
+        });
+      }
+    } else if (ridesState.dropoffMarker) {
+      map.removeLayer(ridesState.dropoffMarker);
+      ridesState.dropoffMarker = null;
+    }
+
+    // Nearby drivers markers
+    const showNearby = !activeRide || activeRide.status === "REQUESTED";
+    const keepIds = new Set();
+    if (showNearby) {
+      for (const drv of ridesState.nearbyDrivers || []) {
+        const dLat = Number(drv.currentLat);
+        const dLng = Number(drv.currentLng);
+        if (!Number.isFinite(dLat) || !Number.isFinite(dLng)) continue;
+        keepIds.add(drv.id);
+        const isTaxi = String(drv.vehicleType || "").toUpperCase() === "TAXI";
+        const icon = window.Store254Map.createPinIcon({
+          kind: isTaxi ? "taxi" : "boda",
+          plate: drv.plateNumber,
+          etaMinutes: drv.etaMinutes,
+          isAssigned: false,
+        });
+        const popupHtml = `
+          <div style="min-width:155px;font-size:12px;line-height:1.4;">
+            <strong>${esc(drv.fullName || (isTaxi ? "Taxi Driver" : "Bodaboda Rider"))}</strong> · ★ ${Number(drv.ratingAvg || 5).toFixed(1)}<br>
+            <span>${esc(drv.vehicleMakeModel || (isTaxi ? "Taxi Cab" : "Bodaboda"))} · <code>${esc(drv.plateNumber || "—")}</code></span><br>
+            <span style="color:#047857;font-weight:700;">Base ${formatKes(drv.baseFareKes)} + ${formatKes(drv.perKmRateKes)}/km</span>
+          </div>`;
+        const existing = ridesState.nearbyDriverMarkers.get(drv.id);
+        if (existing) {
+          existing.setLatLng([dLat, dLng]);
+          existing.setIcon(icon);
+          existing.setPopupContent(popupHtml);
+        } else {
+          const marker = window.L.marker([dLat, dLng], { icon }).addTo(map);
+          marker.bindPopup(popupHtml);
+          ridesState.nearbyDriverMarkers.set(drv.id, marker);
+        }
+      }
+    }
+    for (const [id, marker] of ridesState.nearbyDriverMarkers.entries()) {
+      if (!keepIds.has(id)) {
+        map.removeLayer(marker);
+        ridesState.nearbyDriverMarkers.delete(id);
+      }
+    }
+
+    // Assigned driver marker
+    const assignedDriver = ridesState.activeRideData?.driver;
+    const dLat = Number(assignedDriver?.currentLat ?? activeRide?.driverLat);
+    const dLng = Number(assignedDriver?.currentLng ?? activeRide?.driverLng);
+    if (isActiveTrip && Number.isFinite(dLat) && Number.isFinite(dLng)) {
+      const isTaxi = String(assignedDriver?.vehicleType || activeRide?.vehicleType || "").toUpperCase() === "TAXI";
+      const icon = window.Store254Map.createPinIcon({
+        kind: isTaxi ? "taxi" : "boda",
+        plate: assignedDriver?.plateNumber || "ASSIGNED",
+        etaMinutes: ridesState.activeRideData?.driverEtaMinutes,
+        isAssigned: true,
+      });
+      if (ridesState.assignedDriverMarker) {
+        ridesState.assignedDriverMarker.setLatLng([dLat, dLng]);
+        ridesState.assignedDriverMarker.setIcon(icon);
+      } else {
+        ridesState.assignedDriverMarker = window.L.marker([dLat, dLng], { icon }).addTo(map);
+      }
+      void syncActiveDriverApproachRoute(activeRide, dLat, dLng);
+    } else {
+      if (ridesState.assignedDriverMarker) {
+        map.removeLayer(ridesState.assignedDriverMarker);
+        ridesState.assignedDriverMarker = null;
+      }
+      ridesState.approachLayer?.clearLayers();
+      ridesState.driverApproachKey = "";
+    }
+
+    if (!pickupPt && !dropoffPt) {
+      const ref = getMapReferenceCoords();
+      map.setView([ref.lat, ref.lng], 14);
+    } else if (pickupPt && !dropoffPt) {
+      map.setView([pickupPt.lat, pickupPt.lng], 15);
+    } else if (!pickupPt && dropoffPt) {
+      map.setView([dropoffPt.lat, dropoffPt.lng], 15);
+    }
+  }
+
+  async function syncActiveDriverApproachRoute(activeRide, driverLat, driverLng) {
+    if (!ridesState.map || !ridesState.approachLayer || !window.Store254Map) return;
+    if (!activeRide || !["ACCEPTED", "ARRIVING", "IN_PROGRESS"].includes(activeRide.status)) {
+      ridesState.approachLayer.clearLayers();
+      return;
+    }
+    const targetLat = activeRide.status === "IN_PROGRESS" ? Number(activeRide.dropoffLat) : Number(activeRide.pickupLat);
+    const targetLng = activeRide.status === "IN_PROGRESS" ? Number(activeRide.dropoffLng) : Number(activeRide.pickupLng);
+    if (!Number.isFinite(targetLat) || !Number.isFinite(targetLng)) return;
+
+    const bucketKey = `${activeRide.status}:${driverLat.toFixed(3)},${driverLng.toFixed(3)}->${targetLat.toFixed(4)},${targetLng.toFixed(4)}`;
+    if (ridesState.driverApproachKey === bucketKey) return;
+    ridesState.driverApproachKey = bucketKey;
+
+    const { route } = await window.Store254Map.fetchRoute({
+      fromLat: driverLat,
+      fromLng: driverLng,
+      toLat: targetLat,
+      toLng: targetLng,
+      mode: "driving",
+    });
+    if (!route || !ridesState.approachLayer) return;
+
+    const color = activeRide.status === "IN_PROGRESS" ? "#10b981" : "#f59e0b";
+    window.Store254Map.drawRoute(ridesState.map, ridesState.approachLayer, route.geometry, {
+      color,
+      shadowColor: "#111827",
+      weight: 4,
+      dashed: true,
+      fitBounds: false,
+    });
+  }
+
+  async function fetchAndRenderRideRoadRoute() {
+    const activeRide = ridesState.activeRideData?.ride || null;
+    const pickupPt = activeRide && Number.isFinite(Number(activeRide.pickupLat))
+      ? { lat: Number(activeRide.pickupLat), lng: Number(activeRide.pickupLng) }
+      : ridesState.pickup;
+    const dropoffPt = activeRide && Number.isFinite(Number(activeRide.dropoffLat))
+      ? { lat: Number(activeRide.dropoffLat), lng: Number(activeRide.dropoffLng) }
+      : ridesState.dropoff;
+
+    if (!pickupPt || !dropoffPt || !Number.isFinite(pickupPt.lat) || !Number.isFinite(dropoffPt.lat)) {
+      ridesState.roadRoute = null;
+      ridesState.roadRouteKey = "";
+      ridesState.routeLayer?.clearLayers();
+      updateRoutePill(null);
+      return null;
+    }
+
+    const routeKey = `${pickupPt.lat.toFixed(5)},${pickupPt.lng.toFixed(5)}->${dropoffPt.lat.toFixed(5)},${dropoffPt.lng.toFixed(5)}`;
+    if (ridesState.roadRouteKey === routeKey && ridesState.roadRoute) {
+      updateRoutePill(ridesState.roadRoute);
+      return ridesState.roadRoute;
+    }
+
+    ridesState.roadRouteKey = routeKey;
+    const { route } = window.Store254Map
+      ? await window.Store254Map.fetchRoute({
+          fromLat: pickupPt.lat,
+          fromLng: pickupPt.lng,
+          toLat: dropoffPt.lat,
+          toLng: dropoffPt.lng,
+          mode: "driving",
+        })
+      : { route: null };
+
+    if (ridesState.roadRouteKey !== routeKey || !route) return null;
+    ridesState.roadRoute = route;
+    updateRoutePill(route);
+
+    if (ridesState.map && ridesState.routeLayer && window.Store254Map) {
+      window.Store254Map.drawRoute(ridesState.map, ridesState.routeLayer, route.geometry, {
+        color: "#059669",
+        shadowColor: "#064e3b",
+        weight: 5,
+        dashed: route.source === "fallback",
+        badgeText: `${Number(route.distanceKm).toFixed(1)} km · ~${route.durationMinutes}m`,
+        fitBounds: true,
+      });
+    }
+    return route;
+  }
+
+  window.setRidePinMode = function setRidePinMode(mode) {
+    ridesState.pinMode = mode === "dropoff" ? "dropoff" : "pickup";
+    updatePinModeButtons();
+  };
+
+  window.swapRideEndpoints = async function swapRideEndpoints() {
+    const prevPickup = ridesState.pickup;
+    const prevDropoff = ridesState.dropoff;
+    ridesState.pickup = prevDropoff;
+    ridesState.dropoff = prevPickup;
+
+    const pInput = document.getElementById("ride-pickup-input");
+    const dInput = document.getElementById("ride-dropoff-input");
+    if (pInput) pInput.value = ridesState.pickup?.label || "";
+    if (dInput) dInput.value = ridesState.dropoff?.label || "";
+
+    ridesState.roadRoute = null;
+    ridesState.roadRouteKey = "";
+    syncRideLeafletState();
+    void refreshNearbyRides();
+    await fetchAndRenderRideRoadRoute();
+    await requestRideEstimateIfReady();
+  };
+
+  window.fitRideMapBounds = function fitRideMapBounds() {
+    const map = ensureRidesLeafletMap();
+    if (!map || !window.L) return;
+    const points = [];
+    const activeRide = ridesState.activeRideData?.ride || null;
+    const pickupPt = activeRide?.pickupLat != null ? { lat: Number(activeRide.pickupLat), lng: Number(activeRide.pickupLng) } : ridesState.pickup;
+    const dropoffPt = activeRide?.dropoffLat != null ? { lat: Number(activeRide.dropoffLat), lng: Number(activeRide.dropoffLng) } : ridesState.dropoff;
+    if (pickupPt && Number.isFinite(pickupPt.lat)) points.push([pickupPt.lat, pickupPt.lng]);
+    if (dropoffPt && Number.isFinite(dropoffPt.lat)) points.push([dropoffPt.lat, dropoffPt.lng]);
+    if (ridesState.assignedDriverMarker) {
+      const ll = ridesState.assignedDriverMarker.getLatLng();
+      points.push([ll.lat, ll.lng]);
+    }
+    if (points.length >= 2) {
+      map.fitBounds(window.L.latLngBounds(points), { padding: [44, 44], maxZoom: 16 });
+    } else if (points.length === 1) {
+      map.setView(points[0], 15);
+    } else {
+      const ref = getMapReferenceCoords();
+      map.setView([ref.lat, ref.lng], 14);
+    }
+  };
+
   function startCanvasLoop() {
+    if (usesLeafletMap()) {
+      stopCanvasLoop();
+      syncRideLeafletState();
+      return;
+    }
+    toggleMapCanvasFallback(false);
     if (ridesState.rafId) return;
     const frame = (ts) => {
-      if (!ridesState.isOpen || ridesState.activeTab !== "book") {
+      if (!ridesState.isOpen || ridesState.activeTab !== "book" || usesLeafletMap()) {
         ridesState.rafId = null;
         return;
       }
@@ -672,6 +1116,9 @@
       ridesState.nearbyDrivers = Array.isArray(res.data?.data?.drivers) ? res.data.data.drivers : [];
     }
     syncAnimatedMarkerTargets();
+    if (usesLeafletMap() && ridesState.isOpen && ridesState.activeTab === "book") {
+      syncRideLeafletState();
+    }
     renderNearbySummary();
   }
 
@@ -686,6 +1133,8 @@
       return;
     }
 
+    const road = await fetchAndRenderRideRoadRoute();
+
     const payload = {
       pickupLat: ridesState.pickup.lat,
       pickupLng: ridesState.pickup.lng,
@@ -693,6 +1142,8 @@
       dropoffLat: ridesState.dropoff.lat,
       dropoffLng: ridesState.dropoff.lng,
       dropoffLocationId: ridesState.dropoff.locationId || undefined,
+      ...(road?.distanceKm ? { routeDistanceKm: Number(road.distanceKm) } : {}),
+      ...(road?.durationMinutes ? { routeDurationMinutes: Math.round(Number(road.durationMinutes)) } : {}),
     };
 
     const res = await apiFetch("/api/platform/rides/estimate", {
@@ -769,6 +1220,9 @@
       const input = document.getElementById("ride-pickup-input");
       if (input) input.value = label;
       document.getElementById("ride-pickup-suggestions")?.classList.add("hidden");
+      if (!ridesState.dropoff) {
+        window.setRidePinMode("dropoff");
+      }
       void refreshNearbyRides();
     } else {
       ridesState.dropoff = place;
@@ -777,6 +1231,9 @@
       document.getElementById("ride-dropoff-suggestions")?.classList.add("hidden");
     }
 
+    if (usesLeafletMap() && ridesState.isOpen && ridesState.activeTab === "book") {
+      syncRideLeafletState();
+    }
     void requestRideEstimateIfReady();
   }
 
@@ -813,6 +1270,12 @@
         };
         if (input) input.value = label;
         document.getElementById("ride-pickup-suggestions")?.classList.add("hidden");
+        if (!ridesState.dropoff) {
+          window.setRidePinMode("dropoff");
+        }
+        if (usesLeafletMap() && ridesState.isOpen && ridesState.activeTab === "book") {
+          syncRideLeafletState();
+        }
         await refreshNearbyRides();
         await requestRideEstimateIfReady();
         toast(`Pickup set to ${label}`, "success");
@@ -971,6 +1434,10 @@
     }
 
     syncAnimatedMarkerTargets();
+    if (usesLeafletMap() && ridesState.isOpen && ridesState.activeTab === "book") {
+      syncRideLeafletState();
+      void fetchAndRenderRideRoadRoute();
+    }
   }
 
   async function pollActiveRideOnce() {
@@ -1023,7 +1490,14 @@
     stopRidePolling();
     saveActiveRideRecord(null);
     ridesState.activeRideData = null;
+    ridesState.roadRoute = null;
+    ridesState.roadRouteKey = "";
+    ridesState.driverApproachKey = "";
     renderActiveRideTracker();
+    if (usesLeafletMap() && ridesState.isOpen && ridesState.activeTab === "book") {
+      syncRideLeafletState();
+      void fetchAndRenderRideRoadRoute();
+    }
     void refreshNearbyRides();
   };
 
@@ -1102,6 +1576,8 @@
           dropoffLat: dropoff.lat,
           dropoffLng: dropoff.lng,
           dropoffLocationId: dropoff.locationId || undefined,
+          ...(ridesState.roadRoute?.distanceKm ? { routeDistanceKm: Number(ridesState.roadRoute.distanceKm) } : {}),
+          ...(ridesState.roadRoute?.durationMinutes ? { routeDurationMinutes: Math.round(Number(ridesState.roadRoute.durationMinutes)) } : {}),
         }),
       });
 
@@ -1285,6 +1761,157 @@
     }
   }
 
+  function ensureDriverLeafletMap() {
+    const mapEl = document.getElementById("rides-driver-map");
+    if (!mapEl || !window.Store254Map?.isAvailable?.()) return null;
+
+    if (!ridesState.driver.map) {
+      const startLat = Number.isFinite(Number(ridesState.driver.lat)) ? Number(ridesState.driver.lat) : DEFAULT_CENTER.lat;
+      const startLng = Number.isFinite(Number(ridesState.driver.lng)) ? Number(ridesState.driver.lng) : DEFAULT_CENTER.lng;
+      ridesState.driver.map = window.Store254Map.createMap(mapEl, {
+        lat: startLat,
+        lng: startLng,
+        zoom: 14,
+        onClick: ({ lat, lng }) => {
+          void handleDriverStagePin(lat, lng);
+        },
+      });
+      if (ridesState.driver.map && window.L) {
+        ridesState.driver.routeLayer = window.L.layerGroup().addTo(ridesState.driver.map);
+      }
+    } else {
+      window.Store254Map.refreshSize(ridesState.driver.map);
+    }
+    return ridesState.driver.map;
+  }
+
+  async function handleDriverStagePin(lat, lng) {
+    const fixedLat = Number(Number(lat).toFixed(6));
+    const fixedLng = Number(Number(lng).toFixed(6));
+    if (!Number.isFinite(fixedLat) || !Number.isFinite(fixedLng)) return;
+
+    ridesState.driver.lat = fixedLat;
+    ridesState.driver.lng = fixedLng;
+    const resolved = await reverseLabelForCoords(fixedLat, fixedLng, "Driver Stage");
+    if (resolved.locationId) ridesState.driver.locationId = resolved.locationId;
+    ridesState.driver.locationLabel = resolved.label;
+
+    const locInput = document.getElementById("driver-location-label");
+    if (locInput) locInput.value = resolved.label;
+
+    if (ridesState.driver.isOnline && ridesState.driver.profile) {
+      void sendDriverHeartbeat();
+    }
+    void syncDriverLeafletMap();
+    toast(`Driver stage pinned: ${resolved.label}`, "success");
+  }
+
+  async function syncDriverLeafletMap() {
+    const map = ensureDriverLeafletMap();
+    if (!map || !window.L || !window.Store254Map) return;
+
+    const dLat = Number(ridesState.driver.lat);
+    const dLng = Number(ridesState.driver.lng);
+    const active = ridesState.driver.activeRide;
+    const hasDriverPos = Number.isFinite(dLat) && Number.isFinite(dLng);
+
+    if (hasDriverPos) {
+      const isTaxi = String(ridesState.driver.profile?.vehicleType || "").toUpperCase() === "TAXI";
+      const icon = window.Store254Map.createPinIcon({
+        kind: isTaxi ? "taxi" : "boda",
+        plate: ridesState.driver.profile?.plateNumber || "STAGE",
+        label: "Your Stage",
+        isAssigned: true,
+      });
+      if (ridesState.driver.stageMarker) {
+        ridesState.driver.stageMarker.setLatLng([dLat, dLng]);
+        ridesState.driver.stageMarker.setIcon(icon);
+      } else {
+        ridesState.driver.stageMarker = window.L.marker([dLat, dLng], {
+          icon,
+          draggable: true,
+        }).addTo(map);
+        ridesState.driver.stageMarker.on("dragend", (ev) => {
+          const pos = ev.target.getLatLng();
+          void handleDriverStagePin(pos.lat, pos.lng);
+        });
+      }
+    }
+
+    if (active && Number.isFinite(Number(active.pickupLat)) && Number.isFinite(Number(active.dropoffLat))) {
+      const pLat = Number(active.pickupLat);
+      const pLng = Number(active.pickupLng);
+      const dropLat = Number(active.dropoffLat);
+      const dropLng = Number(active.dropoffLng);
+
+      const pIcon = window.Store254Map.createPinIcon({
+        kind: "pickup",
+        letter: "P",
+        label: active.pickupLabel || "Pickup",
+      });
+      if (ridesState.driver.pickupMarker) {
+        ridesState.driver.pickupMarker.setLatLng([pLat, pLng]);
+        ridesState.driver.pickupMarker.setIcon(pIcon);
+      } else {
+        ridesState.driver.pickupMarker = window.L.marker([pLat, pLng], { icon: pIcon }).addTo(map);
+      }
+
+      const dIcon = window.Store254Map.createPinIcon({
+        kind: "dropoff",
+        letter: "D",
+        label: active.dropoffLabel || "Drop-off",
+      });
+      if (ridesState.driver.dropoffMarker) {
+        ridesState.driver.dropoffMarker.setLatLng([dropLat, dropLng]);
+        ridesState.driver.dropoffMarker.setIcon(dIcon);
+      } else {
+        ridesState.driver.dropoffMarker = window.L.marker([dropLat, dropLng], { icon: dIcon }).addTo(map);
+      }
+
+      const isInProgress = String(active.status || "").toUpperCase() === "IN_PROGRESS";
+      const fromLat = hasDriverPos ? dLat : pLat;
+      const fromLng = hasDriverPos ? dLng : pLng;
+      const toLat = isInProgress ? dropLat : pLat;
+      const toLng = isInProgress ? dropLng : pLng;
+      const routeKey = `${active.id}:${active.status}:${fromLat.toFixed(3)},${fromLng.toFixed(3)}->${toLat.toFixed(4)},${toLng.toFixed(4)}`;
+
+      if (ridesState.driver.activeRouteKey !== routeKey) {
+        ridesState.driver.activeRouteKey = routeKey;
+        const { route } = await window.Store254Map.fetchRoute({
+          fromLat,
+          fromLng,
+          toLat,
+          toLng,
+          mode: "driving",
+        });
+        if (route && ridesState.driver.routeLayer) {
+          window.Store254Map.drawRoute(map, ridesState.driver.routeLayer, route.geometry, {
+            color: isInProgress ? "#059669" : "#f59e0b",
+            shadowColor: "#0f172a",
+            weight: 5,
+            dashed: route.source === "fallback",
+            badgeText: `${Number(route.distanceKm).toFixed(1)} km · ~${route.durationMinutes}m`,
+            fitBounds: true,
+          });
+        }
+      }
+    } else {
+      if (ridesState.driver.pickupMarker) {
+        map.removeLayer(ridesState.driver.pickupMarker);
+        ridesState.driver.pickupMarker = null;
+      }
+      if (ridesState.driver.dropoffMarker) {
+        map.removeLayer(ridesState.driver.dropoffMarker);
+        ridesState.driver.dropoffMarker = null;
+      }
+      ridesState.driver.routeLayer?.clearLayers();
+      ridesState.driver.activeRouteKey = "";
+      if (hasDriverPos) {
+        map.setView([dLat, dLng], 15);
+      }
+    }
+  }
+
   function renderDriverActiveRideAndRequests() {
     const activeBox = document.getElementById("rides-driver-active-ride");
     const reqBox = document.getElementById("rides-driver-requests-list");
@@ -1297,6 +1924,20 @@
       } else {
         const st = String(active.status || "").toUpperCase();
         const tel = sanitizeTelHref(active.riderPhone);
+        const navTargetLat = st === "IN_PROGRESS" ? active.dropoffLat : active.pickupLat;
+        const navTargetLng = st === "IN_PROGRESS" ? active.dropoffLng : active.pickupLng;
+        const gmapsNavHref =
+          window.Store254Map?.buildGoogleMapsDirectionsUrl &&
+          Number.isFinite(Number(navTargetLat)) &&
+          Number.isFinite(Number(navTargetLng))
+            ? window.Store254Map.buildGoogleMapsDirectionsUrl({
+                toLat: navTargetLat,
+                toLng: navTargetLng,
+                fromLat: ridesState.driver.lat,
+                fromLng: ridesState.driver.lng,
+                mode: "driving",
+              })
+            : "";
         const actions = [];
         if (st === "ACCEPTED") {
           actions.push(`<button type="button" data-driver-ride-id="${esc(active.id)}" data-driver-action="ARRIVING" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs">Arriving</button>`);
@@ -1307,6 +1948,9 @@
           actions.push(`<button type="button" data-driver-ride-id="${esc(active.id)}" data-driver-action="CANCEL" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs">Cancel</button>`);
         } else if (st === "IN_PROGRESS") {
           actions.push(`<button type="button" data-driver-ride-id="${esc(active.id)}" data-driver-action="COMPLETE" class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs">Complete Trip</button>`);
+        }
+        if (gmapsNavHref) {
+          actions.push(`<a href="${esc(gmapsNavHref)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-xs">Navigate in Google Maps</a>`);
         }
 
         activeBox.innerHTML = `
@@ -1323,6 +1967,10 @@
             <div class="flex flex-wrap gap-2 pt-1">${actions.join("")}</div>
           </div>`;
       }
+    }
+
+    if (ridesState.isOpen && ridesState.activeTab === "driver") {
+      void syncDriverLeafletMap();
     }
 
     if (reqBox) {
@@ -1447,6 +2095,9 @@
         if (locInput) locInput.value = label;
         if (ridesState.driver.isOnline && ridesState.driver.profile) {
           void sendDriverHeartbeat();
+        }
+        if (ridesState.isOpen && ridesState.activeTab === "driver") {
+          void syncDriverLeafletMap();
         }
         toast(`Driver location updated: ${label}`, "success");
         return true;
@@ -1659,9 +2310,15 @@
     if (nextTab === "driver") {
       stopCanvasLoop();
       void loadDriverProfile(true);
+      if (ridesState.driver.map) {
+        window.Store254Map?.refreshSize?.(ridesState.driver.map);
+      }
     } else {
       stopDriverDashboardPoll();
       startCanvasLoop();
+      if (ridesState.map) {
+        window.Store254Map?.refreshSize?.(ridesState.map);
+      }
       void refreshNearbyRides();
       if (ridesState.activeRideRecord) {
         void pollActiveRideOnce();
@@ -1670,7 +2327,7 @@
     refreshIcons();
   };
 
-  window.openRidesModal = async function openRidesModal(tab = "book") {
+  window.openRidesModal = async function openRidesModal(tab = "book", prefill = null) {
     initRidesBindings();
     const modal = document.getElementById("rides-modal");
     if (!modal) return;
@@ -1697,6 +2354,49 @@
     if (!ridesState.activeRideRecord) {
       ridesState.activeRideRecord = readSavedActiveRide();
     }
+
+    if (prefill && (prefill.dropoff || prefill.pickup)) {
+      const currentStatus = String(ridesState.activeRideData?.ride?.status || "").toUpperCase();
+      if (["COMPLETED", "CANCELLED"].includes(currentStatus)) {
+        saveActiveRideRecord(null);
+        ridesState.activeRideData = null;
+      }
+      if (prefill.dropoff && Number.isFinite(Number(prefill.dropoff.lat)) && Number.isFinite(Number(prefill.dropoff.lng))) {
+        ridesState.dropoff = {
+          locationId: prefill.dropoff.locationId || "",
+          label: prefill.dropoff.label || "Store Location",
+          lat: Number(Number(prefill.dropoff.lat).toFixed(6)),
+          lng: Number(Number(prefill.dropoff.lng).toFixed(6)),
+        };
+        const dInput = document.getElementById("ride-dropoff-input");
+        if (dInput) dInput.value = ridesState.dropoff.label;
+      }
+      if (prefill.pickup && Number.isFinite(Number(prefill.pickup.lat)) && Number.isFinite(Number(prefill.pickup.lng))) {
+        ridesState.pickup = {
+          locationId: prefill.pickup.locationId || "",
+          label: prefill.pickup.label || "My Location",
+          lat: Number(Number(prefill.pickup.lat).toFixed(6)),
+          lng: Number(Number(prefill.pickup.lng).toFixed(6)),
+        };
+        const pInput = document.getElementById("ride-pickup-input");
+        if (pInput) pInput.value = ridesState.pickup.label;
+      } else if (!ridesState.pickup) {
+        const buyerLoc = typeof window.getStore254BuyerLocation === "function" ? window.getStore254BuyerLocation() : null;
+        if (buyerLoc && Number.isFinite(Number(buyerLoc.lat)) && Number.isFinite(Number(buyerLoc.lng))) {
+          ridesState.pickup = {
+            locationId: buyerLoc.locationId || "",
+            label: buyerLoc.locationName || "My Location",
+            lat: Number(buyerLoc.lat),
+            lng: Number(buyerLoc.lng),
+          };
+          const pInput = document.getElementById("ride-pickup-input");
+          if (pInput) pInput.value = ridesState.pickup.label;
+        }
+      }
+      ridesState.roadRoute = null;
+      ridesState.roadRouteKey = "";
+    }
+
     if (ridesState.activeRideRecord) {
       await pollActiveRideOnce();
       if (ridesState.activeRideRecord) {
@@ -1707,6 +2407,7 @@
     }
 
     window.selectRideVehicle(ridesState.selectedVehicle);
+    updatePinModeButtons();
     window.switchRidesTab(tab);
 
     if (!ridesState.nearbyPollTimer) {
@@ -1717,7 +2418,17 @@
       }, 10000);
     }
 
-    requestAnimationFrame(() => renderRidesCanvas());
+    if (usesLeafletMap()) {
+      window.Store254Map?.refreshSize?.(ridesState.map);
+      syncRideLeafletState();
+      if (ridesState.pickup && ridesState.dropoff) {
+        void fetchAndRenderRideRoadRoute().then(() => requestRideEstimateIfReady());
+      } else if (prefill?.dropoff && !ridesState.pickup) {
+        void window.useRidePickupGps();
+      }
+    } else {
+      requestAnimationFrame(() => renderRidesCanvas());
+    }
     refreshIcons(modal);
   };
 

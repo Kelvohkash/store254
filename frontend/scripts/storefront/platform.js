@@ -205,6 +205,30 @@ function renderStoreCardMarkup(s, index) {
     locationLabel: s.locationLabel || s.countyName || "",
   };
 
+  const hasFinderCoords = Boolean(
+    (s.locationCoords &&
+      Number.isFinite(Number(s.locationCoords.lat)) &&
+      Number.isFinite(Number(s.locationCoords.lng))) ||
+      (settings?.exactLocation &&
+        Number.isFinite(Number(settings.exactLocation.lat)) &&
+        Number.isFinite(Number(settings.exactLocation.lng)))
+  );
+  const findStorePayload = hasFinderCoords
+    ? {
+        id: s.id || "",
+        name: s.name || s.subdomain || "Store",
+        subdomain: s.subdomain || "",
+        locationLabel: s.locationLabel || "",
+        phone: settings?.contactPhone || settings?.phone || "",
+        locationCoords: s.locationCoords || null,
+        settings: {
+          physicalAddress: settings?.physicalAddress || "",
+          exactLocation: settings?.exactLocation || null,
+          contactPhone: settings?.contactPhone || settings?.phone || "",
+        },
+      }
+    : null;
+
   return `
     <a href="${storeUrl}" class="platform-store-card ${isFollowed ? "is-followed-store " : ""}bg-white rounded-xl border border-slate-200 hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer text-left group flex flex-col justify-between no-underline overflow-hidden">
       <div>
@@ -231,12 +255,22 @@ function renderStoreCardMarkup(s, index) {
           <p class="text-xs sm:text-[13px] text-slate-600 line-clamp-2 leading-relaxed mt-1.5">${desc}</p>
         </div>
       </div>
-      <div class="platform-store-card-footer mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm font-bold text-emerald-600">
-        <span class="flex items-center gap-1.5 group-hover:translate-x-1 transition-transform text-xs sm:text-sm">
-          <span>Visit Storefront</span>
-          <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+      <div class="platform-store-card-footer mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs sm:text-sm font-bold text-emerald-600">
+        <span class="flex items-center gap-1.5 group-hover:translate-x-1 transition-transform text-xs sm:text-sm min-w-0">
+          <span class="truncate">Visit Storefront</span>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5 shrink-0"></i>
         </span>
-        <span class="platform-store-live-pill${isFollowed ? " is-pinned" : ""}">${isFollowed ? "★ Pinned" : "Open"}</span>
+        <div class="flex items-center gap-1.5 shrink-0">
+          ${
+            findStorePayload
+              ? `<button type="button" data-platform-action="find-store" data-find-store="${escapeHtml(JSON.stringify(findStorePayload))}" class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 hover:bg-emerald-700 text-emerald-800 hover:text-white border border-emerald-200 text-[11px] font-bold transition-colors" title="Get directions to ${escapeHtml(s.name)}">
+                  <i data-lucide="navigation" class="w-3 h-3"></i>
+                  <span>Find Store</span>
+                </button>`
+              : ""
+          }
+          <span class="platform-store-live-pill${isFollowed ? " is-pinned" : ""}">${isFollowed ? "★ Pinned" : "Open"}</span>
+        </div>
       </div>
     </a>
   `;
@@ -748,6 +782,15 @@ if (typeof document !== "undefined") {
       try {
         const parsed = JSON.parse(btn.dataset.unpinStore || "null");
         if (parsed) toggleFollowStore(parsed, event);
+      } catch {}
+    } else if (action === "find-store") {
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        const parsed = JSON.parse(btn.dataset.findStore || "null");
+        if (parsed && typeof window.openStoreFinder === "function") {
+          void window.openStoreFinder(parsed);
+        }
       } catch {}
     } else if (action === "filter-type") {
       setPlatformTypeFilter(btn.dataset.type || "");

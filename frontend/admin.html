@@ -18,8 +18,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="./styles/tailwind.generated.css">
   <link rel="stylesheet" href="./styles/admin.css">
+  <link rel="stylesheet" href="./styles/base/live-map.css">
 </head>
 <body class="bg-slate-50 min-h-screen">
 
@@ -539,6 +542,34 @@
                   <div>
                     <label class="label">Physical Address / Pickup Location</label>
                     <input id="settings-address" type="text" class="input" placeholder="e.g. Westlands Commercial Centre, Nairobi" />
+                  </div>
+                  <div class="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-3">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <h5 class="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                          <i data-lucide="map-pin" class="w-4 h-4 text-emerald-700"></i>
+                          <span>Pin Exact Store Location (For Customer Pathfinder)</span>
+                        </h5>
+                        <p class="text-[11px] text-slate-600 mt-0.5">Drop a pin on your exact shop entrance so customers can click <strong>Find Store</strong> and get turn-by-turn directions or book a Boda/Taxi straight to you.</p>
+                      </div>
+                      <div class="flex items-center gap-1.5 shrink-0">
+                        <button id="settings-pin-gps-btn" type="button" class="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors">
+                          <i data-lucide="locate-fixed" class="w-3.5 h-3.5"></i>
+                          <span>Use My GPS</span>
+                        </button>
+                        <button id="settings-pin-clear-btn" type="button" class="hidden px-2.5 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-xs font-bold transition-colors">Clear Pin</button>
+                      </div>
+                    </div>
+                    <div class="relative">
+                      <input id="settings-pin-search" type="text" autocomplete="off" class="input text-xs bg-white" placeholder="Jump map to town, estate, or shopping centre (e.g. Westlands, Roysambu, Thika)…" />
+                      <div id="settings-pin-search-results" class="hidden absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100"></div>
+                    </div>
+                    <div id="settings-location-map" class="s254-map-container w-full h-[260px] border border-slate-200"></div>
+                    <p id="settings-pin-status" class="text-[11px] font-semibold text-slate-600">No exact shop pin yet — tap the map or click Use My GPS above.</p>
+                    <div>
+                      <label class="label" for="settings-pin-note">Landmark / Building / Floor Note (Optional)</label>
+                      <input id="settings-pin-note" type="text" maxlength="240" class="input text-xs bg-white" placeholder="e.g. 1st Floor Room 4, opposite Naivas Supermarket entrance" />
+                    </div>
                   </div>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
@@ -1221,6 +1252,7 @@
 <script src="./scripts/admin/catalog.js?v=20261116c"></script>
 <script src="./scripts/admin/orders.js?v=20261116c"></script>
 <script src="./scripts/admin/design-branding.js?v=20261116"></script>
+<script src="/scripts/shared/live-map.js"></script>
 <script src="./scripts/admin/design.js?v=20261116"></script>
 <script src="./scripts/admin/payments.js?v=20261115"></script>
 <script src="/scripts/storefront/pwa.js"></script>

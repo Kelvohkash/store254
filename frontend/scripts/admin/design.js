@@ -1,6 +1,269 @@
 // Store appearance: profile fields and accent colour.
 let currentStoreDesign = { name: "Your Store", settings: {} };
 
+const adminLocationPinState = {
+  lat: null,
+  lng: null,
+  label: "",
+  pinnedAt: "",
+  cleared: false,
+  map: null,
+  marker: null,
+  searchTimer: null,
+  searchResults: [],
+  listenersBound: false,
+};
+
+function getPlatformApiPrefix() {
+  if (typeof API === "string" && API) return `${API}/platform`;
+  return "/api/platform";
+}
+
+function updateAdminPinUi() {
+  const statusEl = document.getElementById("settings-pin-status");
+  const clearBtn = document.getElementById("settings-pin-clear-btn");
+  const hasPin = Number.isFinite(adminLocationPinState.lat) && Number.isFinite(adminLocationPinState.lng);
+  if (statusEl) {
+    if (hasPin) {
+      const coordText = `${adminLocationPinState.lat.toFixed(5)}, ${adminLocationPinState.lng.toFixed(5)}`;
+      const labelText = adminLocationPinState.label ? `${adminLocationPinState.label} · ` : "";
+      statusEl.textContent = `Exact store pin ready: ${labelText}${coordText} (drag pin to fine-tune)`;
+      statusEl.className = "text-[11px] font-bold text-emerald-800";
+    } else {
+      statusEl.textContent = "No exact shop pin yet — tap the map or click Use My GPS above.";
+      statusEl.className = "text-[11px] font-semibold text-slate-600";
+    }
+  }
+  if (clearBtn) {
+    clearBtn.classList.toggle("hidden", !hasPin);
+  }
+}
+
+function syncAdminLocationMapMarker(recenter = false) {
+  if (!adminLocationPinState.map || !window.Store254Map || !window.L) return;
+  const hasPin = Number.isFinite(adminLocationPinState.lat) && Number.isFinite(adminLocationPinState.lng);
+  if (hasPin) {
+    const icon = window.Store254Map.createPinIcon({
+      kind: "store",
+      letter: "S",
+      label: currentStoreDesign?.name || "Your Store",
+    });
+    if (adminLocationPinState.marker) {
+      adminLocationPinState.marker.setLatLng([adminLocationPinState.lat, adminLocationPinState.lng]);
+      adminLocationPinState.marker.setIcon(icon);
+    } else {
+      adminLocationPinState.marker = window.L.marker(
+        [adminLocationPinState.lat, adminLocationPinState.lng],
+        { icon, draggable: true }
+      ).addTo(adminLocationPinState.map);
+      adminLocationPinState.marker.on("dragend", (ev) => {
+        const pos = ev.target.getLatLng();
+        void setAdminLocationPin(pos.lat, pos.lng);
+      });
+    }
+    if (recenter) {
+      adminLocationPinState.map.setView([adminLocationPinState.lat, adminLocationPinState.lng], 16);
+    }
+  } else {
+    if (adminLocationPinState.marker) {
+      adminLocationPinState.map.removeLayer(adminLocationPinState.marker);
+      adminLocationPinState.marker = null;
+    }
+    if (recenter && currentStoreDesign?.locationCoords && Number.isFinite(Number(currentStoreDesign.locationCoords.lat))) {
+      adminLocationPinState.map.setView(
+        [Number(currentStoreDesign.locationCoords.lat), Number(currentStoreDesign.locationCoords.lng)],
+        14
+      );
+    }
+  }
+}
+
+function ensureAdminLocationMap() {
+  bindAdminLocationPinListeners();
+  const mapEl = document.getElementById("settings-location-map");
+  if (!mapEl || !window.Store254Map?.isAvailable?.()) return null;
+
+  if (!adminLocationPinState.map) {
+    const fallbackLat = Number(currentStoreDesign?.locationCoords?.lat);
+    const fallbackLng = Number(currentStoreDesign?.locationCoords?.lng);
+    const startLat = Number.isFinite(adminLocationPinState.lat)
+      ? adminLocationPinState.lat
+      : Number.isFinite(fallbackLat)
+        ? fallbackLat
+        : window.Store254Map.DEFAULT_CENTER.lat;
+    const startLng = Number.isFinite(adminLocationPinState.lng)
+      ? adminLocationPinState.lng
+      : Number.isFinite(fallbackLng)
+        ? fallbackLng
+        : window.Store254Map.DEFAULT_CENTER.lng;
+    const startZoom = Number.isFinite(adminLocationPinState.lat) ? 16 : 14;
+
+    adminLocationPinState.map = window.Store254Map.createMap(mapEl, {
+      lat: startLat,
+      lng: startLng,
+      zoom: startZoom,
+      onClick: ({ lat, lng }) => {
+        void setAdminLocationPin(lat, lng);
+      },
+    });
+    syncAdminLocationMapMarker(false);
+  } else {
+    window.Store254Map.refreshSize(adminLocationPinState.map);
+  }
+  return adminLocationPinState.map;
+}
+
+window.refreshAdminLocationMap = function refreshAdminLocationMap() {
+  ensureAdminLocationMap();
+  if (adminLocationPinState.map && window.Store254Map) {
+    window.Store254Map.refreshSize(adminLocationPinState.map);
+    syncAdminLocationMapMarker(true);
+  }
+};
+
+async function setAdminLocationPin(lat, lng, explicitLabel) {
+  const fixedLat = Number(Number(lat).toFixed(6));
+  const fixedLng = Number(Number(lng).toFixed(6));
+  if (!Number.isFinite(fixedLat) || !Number.isFinite(fixedLng)) return;
+
+  adminLocationPinState.lat = fixedLat;
+  adminLocationPinState.lng = fixedLng;
+  adminLocationPinState.cleared = false;
+  adminLocationPinState.pinnedAt = new Date().toISOString();
+
+  if (explicitLabel) {
+    adminLocationPinState.label = explicitLabel;
+  } else {
+    try {
+      const res = await fetch(
+        `${getPlatformApiPrefix()}/locations/nearest?lat=${encodeURIComponent(fixedLat)}&lng=${encodeURIComponent(fixedLng)}`
+      );
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.location?.name) {
+        adminLocationPinState.label = json.location.countyName
+          ? `${json.location.name}, ${json.location.countyName}`
+          : json.location.name;
+      }
+    } catch {}
+  }
+
+  ensureAdminLocationMap();
+  syncAdminLocationMapMarker(true);
+  updateAdminPinUi();
+}
+
+function clearAdminLocationPin() {
+  adminLocationPinState.lat = null;
+  adminLocationPinState.lng = null;
+  adminLocationPinState.label = "";
+  adminLocationPinState.pinnedAt = "";
+  adminLocationPinState.cleared = true;
+  syncAdminLocationMapMarker(false);
+  updateAdminPinUi();
+}
+
+async function useAdminPinGps() {
+  const btn = document.getElementById("settings-pin-gps-btn");
+  if (btn) btn.disabled = true;
+  try {
+    if (!navigator.geolocation) {
+      showToast("GPS unavailable on this device. Tap the map to drop your shop pin.", false);
+      return;
+    }
+    await new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          await setAdminLocationPin(pos.coords.latitude, pos.coords.longitude);
+          showToast("Exact store GPS pin placed! Click Save & Apply to Store.");
+          resolve();
+        },
+        () => {
+          showToast("Location permission denied. Tap anywhere on the map to pin your store.", false);
+          resolve();
+        },
+        { enableHighAccuracy: true, timeout: 6500, maximumAge: 30000 }
+      );
+    });
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function searchAdminPinTown(rawQuery) {
+  const resultsEl = document.getElementById("settings-pin-search-results");
+  if (!resultsEl) return;
+  const q = String(rawQuery || "").trim();
+  if (q.length < 2) {
+    resultsEl.classList.add("hidden");
+    resultsEl.innerHTML = "";
+    return;
+  }
+  try {
+    const res = await fetch(`${getPlatformApiPrefix()}/locations/towns?q=${encodeURIComponent(q)}&limit=6`);
+    const json = await res.json().catch(() => null);
+    const locs = Array.isArray(json?.locations) ? json.locations : [];
+    adminLocationPinState.searchResults = locs;
+    if (locs.length === 0) {
+      resultsEl.innerHTML = '<div class="px-3 py-2 text-xs text-slate-500">No matching centre found.</div>';
+      resultsEl.classList.remove("hidden");
+      return;
+    }
+    resultsEl.innerHTML = locs
+      .map(
+        (loc, idx) =>
+          `<button type="button" data-admin-pin-idx="${idx}" class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-xs flex items-center justify-between gap-2">
+            <span class="font-bold text-slate-900 truncate">${escapeDesignHtml(loc.name)}</span>
+            <span class="text-[10px] text-emerald-700 shrink-0">${escapeDesignHtml(loc.countyName || "")}</span>
+          </button>`
+      )
+      .join("");
+    resultsEl.classList.remove("hidden");
+  } catch {
+    resultsEl.classList.add("hidden");
+  }
+}
+
+function bindAdminLocationPinListeners() {
+  if (adminLocationPinState.listenersBound || typeof document === "undefined") return;
+  adminLocationPinState.listenersBound = true;
+
+  document.getElementById("settings-pin-gps-btn")?.addEventListener("click", () => {
+    void useAdminPinGps();
+  });
+  document.getElementById("settings-pin-clear-btn")?.addEventListener("click", () => {
+    clearAdminLocationPin();
+  });
+  const searchInput = document.getElementById("settings-pin-search");
+  const resultsEl = document.getElementById("settings-pin-search-results");
+  if (searchInput) {
+    searchInput.addEventListener("input", () => {
+      clearTimeout(adminLocationPinState.searchTimer);
+      adminLocationPinState.searchTimer = setTimeout(() => {
+        void searchAdminPinTown(searchInput.value);
+      }, 180);
+    });
+  }
+  if (resultsEl) {
+    resultsEl.addEventListener("click", (ev) => {
+      const btn = ev.target?.closest?.("[data-admin-pin-idx]");
+      if (!btn) return;
+      const loc = adminLocationPinState.searchResults[Number(btn.dataset.adminPinIdx)];
+      if (!loc) return;
+      resultsEl.classList.add("hidden");
+      if (searchInput) searchInput.value = `${loc.name}${loc.countyName ? `, ${loc.countyName}` : ""}`;
+      ensureAdminLocationMap();
+      if (adminLocationPinState.map && Number.isFinite(Number(loc.latitude)) && Number.isFinite(Number(loc.longitude))) {
+        adminLocationPinState.map.setView([Number(loc.latitude), Number(loc.longitude)], 15);
+      }
+    });
+  }
+  document.addEventListener("click", (ev) => {
+    if (resultsEl && searchInput && !resultsEl.contains(ev.target) && ev.target !== searchInput) {
+      resultsEl.classList.add("hidden");
+    }
+  });
+}
+
 async function loadSettings() {
   const result = await apiFetch("/store");
   if (!result.ok || !result.data?.data) return;
@@ -37,12 +300,46 @@ async function loadSettings() {
   setVal("settings-facebook", socials.facebook || "");
   setVal("settings-tiktok", socials.tiktok || "");
   setVal("settings-custom-domain", currentStoreDesign.customDomain || "");
+
+  const exact = settings.exactLocation;
+  if (exact && Number.isFinite(Number(exact.lat)) && Number.isFinite(Number(exact.lng))) {
+    adminLocationPinState.lat = Number(exact.lat);
+    adminLocationPinState.lng = Number(exact.lng);
+    adminLocationPinState.label = exact.label || "";
+    adminLocationPinState.pinnedAt = exact.pinnedAt || "";
+    adminLocationPinState.cleared = false;
+    setVal("settings-pin-note", exact.directionsNote || "");
+  } else {
+    adminLocationPinState.lat = null;
+    adminLocationPinState.lng = null;
+    adminLocationPinState.label = "";
+    adminLocationPinState.pinnedAt = "";
+    adminLocationPinState.cleared = false;
+    setVal("settings-pin-note", "");
+  }
+  updateAdminPinUi();
+  window.refreshAdminLocationMap();
 }
 
 async function saveStoreSettings(event) {
   event.preventDefault();
   const status = document.getElementById("design-draft-status");
   const name = document.getElementById("settings-name")?.value.trim() || currentStoreDesign.name;
+  const directionsNote = document.getElementById("settings-pin-note")?.value.trim() || "";
+  const physicalAddress = document.getElementById("settings-address")?.value.trim() || undefined;
+  let exactLocationPayload;
+  if (Number.isFinite(adminLocationPinState.lat) && Number.isFinite(adminLocationPinState.lng)) {
+    exactLocationPayload = {
+      lat: Number(adminLocationPinState.lat.toFixed(6)),
+      lng: Number(adminLocationPinState.lng.toFixed(6)),
+      label: adminLocationPinState.label || physicalAddress || currentStoreDesign?.locationLabel || undefined,
+      directionsNote,
+      pinnedAt: adminLocationPinState.pinnedAt || new Date().toISOString(),
+    };
+  } else if (adminLocationPinState.cleared) {
+    exactLocationPayload = null;
+  }
+
   const settings = {
     primaryColor: document.getElementById("settings-primary-color")?.value || "#2563eb",
     productCardStyle: document.getElementById("settings-product-card-style")?.value || "grid-card",
@@ -53,7 +350,8 @@ async function saveStoreSettings(event) {
     bannerUrl: document.getElementById("settings-banner")?.value.trim() || "",
     contactPhone: document.getElementById("settings-phone")?.value.trim() || undefined,
     contactEmail: document.getElementById("settings-email")?.value.trim() || "",
-    physicalAddress: document.getElementById("settings-address")?.value.trim() || undefined,
+    physicalAddress,
+    ...(exactLocationPayload !== undefined ? { exactLocation: exactLocationPayload } : {}),
     socialLinks: {
       whatsapp: document.getElementById("settings-whatsapp")?.value.trim() || undefined,
       instagram: document.getElementById("settings-instagram")?.value.trim() || undefined,
@@ -64,11 +362,18 @@ async function saveStoreSettings(event) {
   if (status) status.textContent = "Applying your storefront settings…";
   const response = await apiFetch("/store/settings", { method: "PATCH", body: JSON.stringify({ name, settings }) });
   if (response.ok) {
+    adminLocationPinState.cleared = false;
     currentStoreDesign.name = name;
     currentStoreDesign.settings = { ...currentStoreDesign.settings, ...settings };
+    if (exactLocationPayload === null) {
+      delete currentStoreDesign.settings.exactLocation;
+    }
     if (typeof tenantInfo === "object" && tenantInfo !== null) {
       tenantInfo.name = name;
       tenantInfo.settings = { ...(tenantInfo.settings || {}), ...settings };
+      if (exactLocationPayload === null) {
+        delete tenantInfo.settings.exactLocation;
+      }
     }
     const sideName = document.getElementById("sidebar-store-name");
     if (sideName) sideName.textContent = name;

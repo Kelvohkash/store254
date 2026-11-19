@@ -171,7 +171,9 @@ function assertAllowedPlatformOrigin(c: Context<AppEnv>): void {
 
     const isAllowed =
       parsed.protocol === "https:" &&
-      (hostname === primaryDomain || hostname === `www.${primaryDomain}`);
+      (hostname === primaryDomain ||
+        hostname === `www.${primaryDomain}` ||
+        hostname.endsWith(`.${primaryDomain}`));
 
     if (!isAllowed) {
       throw new AppError("Origin is not authorized for platform requests.", 403, "FORBIDDEN_ORIGIN");
@@ -340,13 +342,26 @@ function calculateFareAndEstimates(
   pickupLat: number,
   pickupLng: number,
   dropoffLat: number,
-  dropoffLng: number
+  dropoffLng: number,
+  routeDistanceKm?: number,
+  routeDurationMinutes?: number
 ) {
   const straightKm = haversineKm(pickupLat, pickupLng, dropoffLat, dropoffLng);
-  const distanceKm = Math.max(1, Number((straightKm * 1.25).toFixed(1)));
+  let distanceKm: number;
+  if (typeof routeDistanceKm === "number" && Number.isFinite(routeDistanceKm)) {
+    const minBound = Math.max(0.5, straightKm * 0.9);
+    const maxBound = Math.max(2, straightKm * 3.0);
+    const clamped = Math.min(Math.max(routeDistanceKm, minBound), maxBound);
+    distanceKm = Math.max(1, Number(clamped.toFixed(1)));
+  } else {
+    distanceKm = Math.max(1, Number((straightKm * 1.25).toFixed(1)));
+  }
   const bodaFareKes = Math.max(70, Math.round(50 + distanceKm * 35));
   const taxiFareKes = Math.max(250, Math.round(180 + distanceKm * 65));
-  const etaMinutes = computeEtaMinutes(distanceKm);
+  const etaMinutes =
+    typeof routeDurationMinutes === "number" && Number.isFinite(routeDurationMinutes)
+      ? Math.min(1440, Math.max(2, Math.round(routeDurationMinutes)))
+      : computeEtaMinutes(distanceKm);
 
   return {
     distanceKm,
@@ -496,6 +511,8 @@ const estimateSchema = z.object({
   dropoffLng: z.number().min(-180).max(180).optional(),
   dropoffLocationId: z.string().trim().max(80).optional().nullable(),
   dropoffLabel: z.string().trim().max(200).optional().nullable(),
+  routeDistanceKm: z.number().min(0.1).max(1500).optional(),
+  routeDurationMinutes: z.number().min(1).max(1440).optional(),
 });
 
 const driverRegisterSchema = z.object({
@@ -552,6 +569,8 @@ const createRideRequestSchema = z.object({
   dropoffLat: z.number().min(-90).max(90).optional(),
   dropoffLng: z.number().min(-180).max(180).optional(),
   dropoffLocationId: z.string().trim().max(80).optional().nullable(),
+  routeDistanceKm: z.number().min(0.1).max(1500).optional(),
+  routeDurationMinutes: z.number().min(1).max(1440).optional(),
 });
 
 const rideStatusActionSchema = z.object({
@@ -777,7 +796,9 @@ ridesRouter.post(
       pickup.lat,
       pickup.lng,
       dropoff.lat,
-      dropoff.lng
+      dropoff.lng,
+      body.routeDistanceKm,
+      body.routeDurationMinutes
     );
 
     return c.json({
@@ -1254,7 +1275,9 @@ ridesRouter.post(
       pickup.lat,
       pickup.lng,
       dropoff.lat,
-      dropoff.lng
+      dropoff.lng,
+      body.routeDistanceKm,
+      body.routeDurationMinutes
     );
     const estimatedFareKes = estimates[body.vehicleType].fareKes;
 

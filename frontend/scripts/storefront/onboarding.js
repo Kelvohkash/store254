@@ -8,8 +8,12 @@ const onboardLocationState = {
   counties: [],
   googleMapsConfigured: false,
   selectedCounty: null,
-  selectedLocation: null, // { id?, googlePlaceId?, name, kindLabel, constituencyId?, constituencyName?, countyName }
+  selectedLocation: null, // { id?, googlePlaceId?, name, kindLabel, constituencyId?, constituencyName?, countyName, lat?, lng? }
   usingCustomMode: false,
+  pinLat: null,
+  pinLng: null,
+  pinMap: null,
+  pinMarker: null,
 };
 
 const LOCATION_KIND_LABELS = {
@@ -218,6 +222,91 @@ function clearSelectedCounty() {
   }
 }
 
+function clearOnboardExactPin() {
+  onboardLocationState.pinLat = null;
+  onboardLocationState.pinLng = null;
+  if (onboardLocationState.pinMap && onboardLocationState.pinMarker) {
+    onboardLocationState.pinMap.removeLayer(onboardLocationState.pinMarker);
+    onboardLocationState.pinMarker = null;
+  }
+  const statusEl = document.getElementById("onboard-pin-status");
+  if (statusEl) statusEl.textContent = "Tap the map or use GPS to drop your shop pin.";
+  const noteEl = document.getElementById("onboard-pin-note");
+  if (noteEl) noteEl.value = "";
+}
+
+function getOnboardMapCenter() {
+  if (Number.isFinite(onboardLocationState.pinLat) && Number.isFinite(onboardLocationState.pinLng)) {
+    return { lat: onboardLocationState.pinLat, lng: onboardLocationState.pinLng, zoom: 16 };
+  }
+  const sel = onboardLocationState.selectedLocation;
+  if (sel && Number.isFinite(Number(sel.lat)) && Number.isFinite(Number(sel.lng))) {
+    return { lat: Number(sel.lat), lng: Number(sel.lng), zoom: 15 };
+  }
+  const county = onboardLocationState.selectedCounty;
+  if (county && Number.isFinite(Number(county.centroidLat)) && Number.isFinite(Number(county.centroidLng))) {
+    return { lat: Number(county.centroidLat), lng: Number(county.centroidLng), zoom: 12 };
+  }
+  return { lat: -1.286389, lng: 36.817223, zoom: 12 };
+}
+
+function setOnboardExactPin(lat, lng) {
+  const fixedLat = Number(Number(lat).toFixed(6));
+  const fixedLng = Number(Number(lng).toFixed(6));
+  if (!Number.isFinite(fixedLat) || !Number.isFinite(fixedLng)) return;
+  onboardLocationState.pinLat = fixedLat;
+  onboardLocationState.pinLng = fixedLng;
+
+  const statusEl = document.getElementById("onboard-pin-status");
+  if (statusEl) {
+    statusEl.textContent = `Pinned: ${fixedLat.toFixed(5)}, ${fixedLng.toFixed(5)} (drag to adjust)`;
+  }
+  if (onboardLocationState.pinMap && window.Store254Map && window.L) {
+    const icon = window.Store254Map.createPinIcon({
+      kind: "store",
+      letter: "S",
+      label: "Your Shop",
+    });
+    if (onboardLocationState.pinMarker) {
+      onboardLocationState.pinMarker.setLatLng([fixedLat, fixedLng]);
+      onboardLocationState.pinMarker.setIcon(icon);
+    } else {
+      onboardLocationState.pinMarker = window.L.marker([fixedLat, fixedLng], {
+        icon,
+        draggable: true,
+      }).addTo(onboardLocationState.pinMap);
+      onboardLocationState.pinMarker.on("dragend", (ev) => {
+        const pos = ev.target.getLatLng();
+        setOnboardExactPin(pos.lat, pos.lng);
+      });
+    }
+    onboardLocationState.pinMap.setView([fixedLat, fixedLng], 16);
+  }
+}
+
+function ensureOnboardPinMap(recenter = false) {
+  const mapEl = document.getElementById("onboard-pin-map");
+  if (!mapEl || !window.Store254Map?.isAvailable?.()) return null;
+  const center = getOnboardMapCenter();
+  if (!onboardLocationState.pinMap) {
+    onboardLocationState.pinMap = window.Store254Map.createMap(mapEl, {
+      lat: center.lat,
+      lng: center.lng,
+      zoom: center.zoom,
+      onClick: ({ lat, lng }) => setOnboardExactPin(lat, lng),
+    });
+    if (Number.isFinite(onboardLocationState.pinLat) && Number.isFinite(onboardLocationState.pinLng)) {
+      setOnboardExactPin(onboardLocationState.pinLat, onboardLocationState.pinLng);
+    }
+  } else {
+    window.Store254Map.refreshSize(onboardLocationState.pinMap);
+    if (recenter) {
+      onboardLocationState.pinMap.setView([center.lat, center.lng], center.zoom);
+    }
+  }
+  return onboardLocationState.pinMap;
+}
+
 function clearSelectedLocation() {
   onboardLocationState.selectedLocation = null;
   onboardLocationState.usingCustomMode = false;
@@ -233,6 +322,7 @@ function clearSelectedLocation() {
   if (customInput) customInput.value = "";
   if (locWrap) locWrap.classList.remove("hidden");
   hideNearbyPreview();
+  clearOnboardExactPin();
 
   if (locSearch && !locSearch.disabled) {
     locSearch.focus();
@@ -414,7 +504,12 @@ async function selectDirectoryLocation(loc) {
     constituencyId: loc.constituencyId,
     constituencyName: loc.constituencyName || "",
     countyName,
+    lat: Number.isFinite(Number(loc.latitude)) ? Number(loc.latitude) : null,
+    lng: Number.isFinite(Number(loc.longitude)) ? Number(loc.longitude) : null,
   };
+  if (onboardLocationState.pinMap && Number.isFinite(Number(loc.latitude)) && Number.isFinite(Number(loc.longitude))) {
+    onboardLocationState.pinMap.setView([Number(loc.latitude), Number(loc.longitude)], 15);
+  }
   onboardLocationState.usingCustomMode = false;
 
   const locWrap = document.getElementById("onboard-location-input-wrap");
@@ -479,6 +574,13 @@ async function selectGooglePlaceSuggestion(item) {
   if (res.ok && res.data?.constituency?.name) {
     onboardLocationState.selectedLocation.constituencyId = res.data.constituency.id;
     onboardLocationState.selectedLocation.constituencyName = res.data.constituency.name;
+    if (res.data.location && Number.isFinite(Number(res.data.location.latitude)) && Number.isFinite(Number(res.data.location.longitude))) {
+      onboardLocationState.selectedLocation.lat = Number(res.data.location.latitude);
+      onboardLocationState.selectedLocation.lng = Number(res.data.location.longitude);
+      if (onboardLocationState.pinMap) {
+        onboardLocationState.pinMap.setView([Number(res.data.location.latitude), Number(res.data.location.longitude)], 15);
+      }
+    }
     if (cardMeta) {
       cardMeta.textContent = `Constituency: ${res.data.constituency.name} · ${county.name} County`;
     }
@@ -574,6 +676,7 @@ function syncOnboardModalAuthState() {
   const formEl = document.getElementById("onboard-form");
   const emailEl = document.getElementById("onboard-email");
   const ownerNameEl = document.getElementById("onboard-owner-name");
+  const ownerPhoneEl = document.getElementById("onboard-owner-phone");
   const user = getSignedInPlatformUserForOnboard();
 
   if (user) {
@@ -587,6 +690,9 @@ function syncOnboardModalAuthState() {
     }
     if (ownerNameEl && !ownerNameEl.value.trim() && user.fullName) {
       ownerNameEl.value = user.fullName;
+    }
+    if (ownerPhoneEl && !ownerPhoneEl.value.trim() && user.phone) {
+      ownerPhoneEl.value = String(user.phone).trim();
     }
   } else {
     if (gateEl) gateEl.classList.remove("hidden");
@@ -649,12 +755,14 @@ async function handleOnboardSubmit(e) {
   const storeNameEl = document.getElementById("onboard-name");
   const subdomainEl = document.getElementById("onboard-subdomain");
   const ownerNameEl = document.getElementById("onboard-owner-name");
+  const ownerPhoneEl = document.getElementById("onboard-owner-phone");
   const emailEl = document.getElementById("onboard-email");
   const passwordEl = document.getElementById("onboard-password");
 
   const storeName = (storeNameEl?.value || "").trim();
   const subdomain = (subdomainEl?.value || "").trim().toLowerCase();
   const ownerFullName = (ownerNameEl?.value || "").trim();
+  const ownerPhone = (ownerPhoneEl?.value || "").trim();
   const ownerEmail = platformUser.email.trim().toLowerCase();
   if (emailEl) emailEl.value = ownerEmail;
   const ownerPassword = passwordEl?.value || "";
@@ -696,6 +804,18 @@ async function handleOnboardSubmit(e) {
   if (ownerFullName.length < 2) {
     return failValidation("Please enter the owner's full name.", ownerNameEl);
   }
+  const ownerPhoneDigits = ownerPhone.replace(/\D/g, "");
+  if (
+    !ownerPhone ||
+    !/^\+?[0-9\s()-]{9,24}$/.test(ownerPhone) ||
+    ownerPhoneDigits.length < 9 ||
+    ownerPhoneDigits.length > 15
+  ) {
+    return failValidation(
+      "Please enter a valid phone number (e.g. 0712 345 678 or +254712345678).",
+      ownerPhoneEl
+    );
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
     return failValidation("Please enter a valid owner email address.", emailEl);
   }
@@ -729,6 +849,7 @@ async function handleOnboardSubmit(e) {
     portfolioMode,
     primaryColor: "#2563eb",
     ownerFullName,
+    ownerPhone,
     ownerEmail,
     ownerPassword,
     countyId,
@@ -744,6 +865,13 @@ async function handleOnboardSubmit(e) {
   } else {
     payload.customLocationName = customLocationName;
     if (customConstituencyId) payload.constituencyId = customConstituencyId;
+  }
+
+  if (Number.isFinite(onboardLocationState.pinLat) && Number.isFinite(onboardLocationState.pinLng)) {
+    payload.exactLat = onboardLocationState.pinLat;
+    payload.exactLng = onboardLocationState.pinLng;
+    const note = (document.getElementById("onboard-pin-note")?.value || "").trim();
+    if (note) payload.directionsNote = note;
   }
 
   try {
@@ -824,6 +952,45 @@ document.addEventListener("DOMContentLoaded", () => {
       if (onboardTypeEl.value === "PORTFOLIO") {
         onboardPortfolioEl.checked = true;
       }
+    });
+  }
+
+  const pinToggleBtn = document.getElementById("onboard-pin-toggle-btn");
+  const pinPanel = document.getElementById("onboard-pin-panel");
+  const pinGpsBtn = document.getElementById("onboard-pin-gps-btn");
+  if (pinToggleBtn && pinPanel) {
+    pinToggleBtn.addEventListener("click", () => {
+      const opening = pinPanel.classList.contains("hidden");
+      pinPanel.classList.toggle("hidden", !opening);
+      pinToggleBtn.textContent = opening ? "Hide Map" : "Pin on Map";
+      if (opening) {
+        ensureOnboardPinMap(true);
+      }
+    });
+  }
+  if (pinGpsBtn) {
+    pinGpsBtn.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        if (typeof showToast === "function") showToast("GPS unavailable. Tap the map to drop your shop pin.", "error");
+        return;
+      }
+      pinGpsBtn.disabled = true;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          pinGpsBtn.disabled = false;
+          if (pinPanel && pinPanel.classList.contains("hidden")) {
+            pinPanel.classList.remove("hidden");
+            if (pinToggleBtn) pinToggleBtn.textContent = "Hide Map";
+          }
+          ensureOnboardPinMap(false);
+          setOnboardExactPin(pos.coords.latitude, pos.coords.longitude);
+        },
+        () => {
+          pinGpsBtn.disabled = false;
+          if (typeof showToast === "function") showToast("Location permission denied. Tap the map to place your pin.", "error");
+        },
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
+      );
     });
   }
 });

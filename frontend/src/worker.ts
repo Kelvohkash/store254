@@ -117,7 +117,7 @@ function buildCspPolicy(isLocalHost = false): string {
   return [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://unpkg.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     `img-src 'self' data: blob: https:${localApiSources}`,
     `connect-src 'self'${localApiSources}`,

@@ -13,9 +13,11 @@ import {
   autocompleteGooglePlacesKenya,
   formatLocationLabel,
   getNearestNeighborsForLocation,
+  haversineKm,
   LocationResolutionError,
   resolveOrCreateStoreLocation,
 } from "./locations.service";
+import { computeRoadRoute, type RouteMode } from "./routing.service";
 import {
   findStaticNearestLocation,
   findStaticNeighborsForLocation,
@@ -339,6 +341,66 @@ locationsRouter.post(
       }
       return c.json({ error: "Failed to resolve location" }, 500);
     }
+  }
+);
+
+/**
+ * GET /api/platform/locations/route?fromLat=...&fromLng=...&toLat=...&toLng=...&mode=driving|walking
+ * Computes a road or walking pathfinder route between two points via OSRM with graceful fallback.
+ */
+locationsRouter.get(
+  "/route",
+  rateLimiter({ max: 60, windowMs: 60 * 1000 }),
+  async (c) => {
+    const fromLat = Number(c.req.query("fromLat"));
+    const fromLng = Number(c.req.query("fromLng"));
+    const toLat = Number(c.req.query("toLat"));
+    const toLng = Number(c.req.query("toLng"));
+    const rawMode = (c.req.query("mode") || "driving").trim().toLowerCase();
+    const mode: RouteMode = rawMode === "walking" ? "walking" : "driving";
+
+    if (
+      !Number.isFinite(fromLat) ||
+      !Number.isFinite(fromLng) ||
+      !Number.isFinite(toLat) ||
+      !Number.isFinite(toLng) ||
+      fromLat < -90 ||
+      fromLat > 90 ||
+      toLat < -90 ||
+      toLat > 90 ||
+      fromLng < -180 ||
+      fromLng > 180 ||
+      toLng < -180 ||
+      toLng > 180
+    ) {
+      throw new AppError(
+        "Valid fromLat, fromLng, toLat, and toLng coordinates are required.",
+        400,
+        "INVALID_COORDINATES"
+      );
+    }
+
+    if (haversineKm(fromLat, fromLng, toLat, toLng) > 1500) {
+      throw new AppError(
+        "Selected route exceeds the maximum supported distance (1,500 km).",
+        400,
+        "ROUTE_TOO_FAR"
+      );
+    }
+
+    const route = await computeRoadRoute({
+      fromLat,
+      fromLng,
+      toLat,
+      toLng,
+      mode,
+    });
+
+    c.header("Cache-Control", "public, max-age=120");
+    return c.json({
+      success: true,
+      data: route,
+    });
   }
 );
 

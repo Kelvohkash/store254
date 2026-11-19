@@ -272,6 +272,7 @@ describe("Store254 End-to-End Workflow & Security Tests", () => {
           ownerEmail: "owner@testshopke.co.ke",
           ownerPassword: "StrongPassword123!",
           ownerFullName: "Jane Wanjiku",
+          ownerPhone: "0712345678",
         }),
       },
       mockEnv as any
@@ -333,6 +334,7 @@ describe("Store254 End-to-End Workflow & Security Tests", () => {
       ownerEmail: "verified.owner@gmail.com",
       ownerPassword: "StrongPassword123!",
       ownerFullName: "Jane Wanjiku",
+      ownerPhone: "0712345678",
       countyId: "county-nairobi",
       customLocationName: "Westlands Market",
     };
@@ -384,5 +386,40 @@ describe("Store254 End-to-End Workflow & Security Tests", () => {
     expect(mismatchRes.status).toBe(403);
     const mismatchJson = (await mismatchRes.json()) as any;
     expect(mismatchJson.error.code).toBe("EMAIL_MISMATCH");
+  });
+
+  it("should require a valid phone number on store registration", async () => {
+    const baseBody = {
+      storeName: "Test Verified Shop",
+      subdomain: "phonetestshop99",
+      businessType: "GENERAL",
+      ownerEmail: "verified.owner@gmail.com",
+      ownerPassword: "StrongPassword123!",
+      ownerFullName: "Jane Wanjiku",
+      countyId: "county-nairobi",
+      customLocationName: "Westlands Market",
+    };
+
+    const invalidPhones: unknown[] = [undefined, "   ", "07123", "call-me-now"];
+    for (const [idx, phone] of invalidPhones.entries()) {
+      const payload: Record<string, unknown> = { ...baseBody };
+      if (phone !== undefined) {
+        payload.ownerPhone = phone;
+      }
+      const res = await app.request(
+        "https://store254.co.ke/api/platform/register-store",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: "https://store254.co.ke",
+            "CF-Connecting-IP": `198.51.100.${idx + 50}`,
+          },
+          body: JSON.stringify(payload),
+        },
+        mockEnv as any
+      );
+      expect(res.status).toBe(400);
+    }
   });
 });

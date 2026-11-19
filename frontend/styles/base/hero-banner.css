@@ -308,6 +308,8 @@
   }
   .store-banner-actions #banner-store-call-btn,
   .store-banner-actions .store-contact,
+  .store-banner-actions #banner-find-store-btn,
+  .store-banner-actions .store-find-btn,
   .store-banner-actions .store-follow-btn {
     width: 100%;
     min-width: 0;
