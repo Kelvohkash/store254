@@ -194,6 +194,11 @@
   white-space: nowrap;
 }
 
+.s254-route-badge.hidden,
+.s254-route-badge:empty {
+  display: none !important;
+}
+
 .s254-route-tooltip {
   background: rgba(6, 78, 59, 0.94);
   border: 1px solid #34d399;

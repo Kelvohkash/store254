@@ -1084,20 +1084,20 @@
 
     if (drivers.length === 0) {
       el.innerHTML = `
-        <span class="inline-flex items-center gap-1.5 text-slate-600 font-semibold">
+        <span class="inline-flex items-center gap-1.5 text-slate-200 font-semibold">
           <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-          <span>No riders online in this area yet · <strong>0% Commission</strong> — Pay Driver Directly</span>
+          <span>No riders online in this area yet · <strong class="text-white">0% Commission</strong> — Pay Driver Directly</span>
         </span>`;
       return;
     }
 
     el.innerHTML = `
-      <span class="inline-flex flex-wrap items-center gap-2 font-bold text-emerald-900">
-        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ${bodaCount} Bodaboda${bodaCount === 1 ? "" : "s"}</span>
-        <span class="text-slate-300">·</span>
+      <span class="inline-flex flex-wrap items-center gap-2 font-bold text-emerald-200">
+        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ${bodaCount} Bodaboda${bodaCount === 1 ? "" : "s"}</span>
+        <span class="text-slate-500">·</span>
         <span>${taxiCount} Taxi${taxiCount === 1 ? "" : "s"} nearby</span>
-        <span class="text-slate-300">·</span>
-        <span class="text-emerald-700">0% Commission — Pay Driver Directly</span>
+        <span class="text-slate-500">·</span>
+        <span class="text-emerald-300">0% Commission — Pay Driver Directly</span>
       </span>`;
   }
 
